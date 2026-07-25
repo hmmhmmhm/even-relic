@@ -2,14 +2,69 @@
 import { describe, expect, it } from "vitest";
 import {
   HUD_GRID_TILES,
-  createHudGridPage,
   createHudStagePage,
-  createLoadingPage,
   transmitHudGrid,
 } from "./hud-grid";
 
-describe("G2 400x200 HUD grid", () => {
+type BridgeOptions = {
+  created?: number;
+  rebuildResult?: (imageCount: number) => boolean;
+  imageResult?: (stage: number, containerName: string) => string;
+};
+
+function createBridge(calls: string[], options: BridgeOptions = {}) {
+  let currentStage = 0;
+  return {
+    createStartUpPageContainer: async (page: { imageObject?: unknown[] }) => {
+      currentStage = page.imageObject?.length ?? 0;
+      calls.push(`create:${currentStage}`);
+      return options.created ?? 0;
+    },
+    rebuildPageContainer: async (page: { imageObject?: unknown[] }) => {
+      currentStage = page.imageObject?.length ?? 0;
+      calls.push(`rebuild:${currentStage}`);
+      return options.rebuildResult?.(currentStage) ?? true;
+    },
+    textContainerUpgrade: async (update: { content?: string }) => {
+      calls.push(`text:${update.content}`);
+      return true;
+    },
+    updateImageRawData: async (update: { containerName?: string }) => {
+      const name = update.containerName ?? "";
+      calls.push(`send:${name}`);
+      return options.imageResult?.(currentStage, name) ?? "success";
+    },
+    onEvenHubEvent: () => () => undefined,
+    shutDownPageContainer: async () => true,
+  };
+}
+
+function createDependencies(
+  calls: string[],
+  bridge: ReturnType<typeof createBridge>,
+) {
+  return {
+    waitForBridge: async () => bridge,
+    loadBytes: async () => Uint8Array.from([137]),
+    waitForPageReady: async (milliseconds: number) => {
+      calls.push(`wait:${milliseconds}`);
+    },
+  };
+}
+
+describe("G2 400x200 incremental HUD grid", () => {
   it("builds cumulative stages with loading text only on stage 1", () => {
+    expect(HUD_GRID_TILES.map((tile) => ({
+      name: tile.containerName,
+      x: tile.xPosition,
+      y: tile.yPosition,
+    }))).toEqual([
+      { name: "relicTL", x: 88, y: 44 },
+      { name: "relicTR", x: 288, y: 44 },
+      { name: "relicBL", x: 88, y: 144 },
+      { name: "relicBR", x: 288, y: 144 },
+    ]);
+
     const stage1 = createHudStagePage(1, "RELIC HUD LOADING...");
     expect(stage1.containerTotalNum).toBe(2);
     expect(stage1.textObject?.[0].content).toBe("RELIC HUD LOADING...");
@@ -28,228 +83,95 @@ describe("G2 400x200 HUD grid", () => {
     ]);
   });
 
-  it("uses a text-only loading page before the centered 2x2 image grid", () => {
-    expect(HUD_GRID_TILES).toEqual([
-      {
-        containerID: 2,
-        containerName: "relicTL",
-        xPosition: 88,
-        yPosition: 44,
-        width: 200,
-        height: 100,
-        file: "/relic-hud-400x200/relic-tl.png",
-      },
-      {
-        containerID: 3,
-        containerName: "relicTR",
-        xPosition: 288,
-        yPosition: 44,
-        width: 200,
-        height: 100,
-        file: "/relic-hud-400x200/relic-tr.png",
-      },
-      {
-        containerID: 4,
-        containerName: "relicBL",
-        xPosition: 88,
-        yPosition: 144,
-        width: 200,
-        height: 100,
-        file: "/relic-hud-400x200/relic-bl.png",
-      },
-      {
-        containerID: 5,
-        containerName: "relicBR",
-        xPosition: 288,
-        yPosition: 144,
-        width: 200,
-        height: 100,
-        file: "/relic-hud-400x200/relic-br.png",
-      },
-    ]);
-
-    const loadingPage = createLoadingPage();
-    expect(loadingPage.containerTotalNum).toBe(1);
-    expect(loadingPage.textObject).toHaveLength(1);
-    expect(loadingPage.textObject?.[0].content).toBe("RELIC HUD LOADING...");
-    expect(loadingPage.imageObject).toBeUndefined();
-
-    const gridPage = createHudGridPage();
-    expect(gridPage.containerTotalNum).toBe(5);
-    expect(gridPage.textObject).toHaveLength(1);
-    expect(gridPage.textObject?.[0].content).toBe(" ");
-    expect(gridPage.imageObject).toHaveLength(4);
-  });
-
-  it("creates the loading page, waits three seconds, then rebuilds and sends serially", async () => {
+  it("creates stage 1, waits, then rebuilds and retransmits stages 2 through 4", async () => {
     const calls: string[] = [];
-    const bridge = {
-      createStartUpPageContainer: async (page: { imageObject?: unknown[] }) => {
-        calls.push(`create:${page.imageObject?.length ?? 0}`);
-        return 0;
-      },
-      rebuildPageContainer: async (page: { imageObject?: unknown[] }) => {
-        calls.push(`rebuild:${page.imageObject?.length ?? 0}`);
-        return true;
-      },
-      updateImageRawData: async (update: {
-        containerName?: string;
-        imageData?: number[] | string | Uint8Array | ArrayBuffer;
-      }) => {
-        calls.push(`send:${update.containerName}`);
-        return "success";
-      },
-      onEvenHubEvent: () => () => undefined,
-      shutDownPageContainer: async () => true,
-    };
+    const bridge = createBridge(calls);
 
     await transmitHudGrid(
       () => undefined,
-      {
-        waitForBridge: async () => bridge,
-        loadBytes: async (url) => {
-          calls.push(`load:${url.split("/").at(-1)}`);
-          return Uint8Array.from([137]);
-        },
-        waitForPageReady: async (milliseconds) => {
-          calls.push(`wait:${milliseconds}`);
-        },
-      },
+      createDependencies(calls, bridge),
     );
 
     expect(calls).toEqual([
-      "create:0",
+      "create:1",
       "wait:3000",
-      "rebuild:4",
-      "load:relic-tl.png",
+      "text: ",
       "send:relicTL",
-      "load:relic-tr.png",
+      "wait:1000",
+      "rebuild:2",
+      "send:relicTL",
+      "wait:1000",
       "send:relicTR",
-      "load:relic-bl.png",
+      "wait:1000",
+      "rebuild:3",
+      "send:relicTL",
+      "wait:1000",
+      "send:relicTR",
+      "wait:1000",
       "send:relicBL",
-      "load:relic-br.png",
+      "wait:1000",
+      "rebuild:4",
+      "send:relicTL",
+      "wait:1000",
+      "send:relicTR",
+      "wait:1000",
+      "send:relicBL",
+      "wait:1000",
       "send:relicBR",
+      "wait:1000",
     ]);
   });
 
-  it("rebuilds the text-only loading page first when startup creation is invalid", async () => {
+  it("rebuilds stage 1 when startup creation returns invalid", async () => {
     const calls: string[] = [];
     const reports: string[] = [];
-    const bridge = {
-      createStartUpPageContainer: async (page: { imageObject?: unknown[] }) => {
-        calls.push(`create:${page.imageObject?.length ?? 0}`);
-        return 1;
-      },
-      rebuildPageContainer: async (page: { imageObject?: unknown[] }) => {
-        calls.push(`rebuild:${page.imageObject?.length ?? 0}`);
-        return true;
-      },
-      updateImageRawData: async (update: {
-        containerName?: string;
-        imageData?: number[] | string | Uint8Array | ArrayBuffer;
-      }) => {
-        calls.push(`image:${update.containerName}`);
-        return "success";
-      },
-      onEvenHubEvent: () => () => undefined,
-      shutDownPageContainer: async () => true,
-    };
+    const bridge = createBridge(calls, { created: 1 });
 
     await transmitHudGrid(
       (message) => reports.push(message),
-      {
-        waitForBridge: async () => bridge,
-        loadBytes: async () => Uint8Array.from([137]),
-        waitForPageReady: async () => {
-          calls.push("wait:3000");
-        },
-      },
+      createDependencies(calls, bridge),
     );
 
-    expect(calls).toEqual([
-      "create:0",
-      "rebuild:0",
+    expect(calls.slice(0, 4)).toEqual([
+      "create:1",
+      "rebuild:1",
       "wait:3000",
-      "rebuild:4",
-      "image:relicTL",
-      "image:relicTR",
-      "image:relicBL",
-      "image:relicBR",
+      "text: ",
     ]);
-    expect(reports).toContain("LOADING PAGE REBUILD RESULT: true");
+    expect(reports).toContain("STAGE 1 REBUILD RESULT: true");
   });
 
-  it("stops before the timer when the loading page cannot rebuild", async () => {
+  it("stops before loading stage 3 images when stage 3 rebuild fails", async () => {
     const calls: string[] = [];
     const reports: string[] = [];
-    const bridge = {
-      createStartUpPageContainer: async () => {
-        calls.push("create");
-        return 1;
-      },
-      rebuildPageContainer: async () => {
-        calls.push("rebuild");
-        return false;
-      },
-      updateImageRawData: async () => {
-        calls.push("unexpected-image");
-        return "success";
-      },
-      onEvenHubEvent: () => () => undefined,
-      shutDownPageContainer: async () => true,
-    };
+    const bridge = createBridge(calls, {
+      rebuildResult: (imageCount) => imageCount !== 3,
+    });
 
     await expect(transmitHudGrid(
       (message) => reports.push(message),
-      {
-        waitForBridge: async () => bridge,
-        loadBytes: async () => {
-          calls.push("unexpected-load");
-          return Uint8Array.from([137]);
-        },
-        waitForPageReady: async () => {
-          calls.push("unexpected-wait");
-        },
-      },
-    )).rejects.toThrow("LOADING PAGE REBUILD FAILED");
+      createDependencies(calls, bridge),
+    )).rejects.toThrow("STAGE 3 REBUILD FAILED");
 
-    expect(calls).toEqual(["create", "rebuild"]);
-    expect(reports).toContain("LOADING PAGE REBUILD RESULT: false");
+    expect(calls).not.toContain("rebuild:4");
+    expect(reports).toContain("STAGE 3 REBUILD RESULT: false");
+    expect(reports).not.toContain("STAGE 3 relicBL LOAD");
   });
 
-  it("stops before image transfer when the HUD grid rebuild fails", async () => {
+  it("stops before stage 3 when the stage 2 TR image transfer fails", async () => {
     const calls: string[] = [];
-    const bridge = {
-      createStartUpPageContainer: async () => {
-        calls.push("create");
-        return 0;
-      },
-      rebuildPageContainer: async () => {
-        calls.push("rebuild");
-        return false;
-      },
-      updateImageRawData: async () => {
-        calls.push("unexpected-image");
-        return "success";
-      },
-      onEvenHubEvent: () => () => undefined,
-      shutDownPageContainer: async () => true,
-    };
+    const reports: string[] = [];
+    const bridge = createBridge(calls, {
+      imageResult: (stage, name) => (
+        stage === 2 && name === "relicTR" ? "sendFailed" : "success"
+      ),
+    });
 
     await expect(transmitHudGrid(
-      () => undefined,
-      {
-        waitForBridge: async () => bridge,
-        loadBytes: async () => {
-          calls.push("unexpected-load");
-          return Uint8Array.from([137]);
-        },
-        waitForPageReady: async (milliseconds) => {
-          calls.push(`wait:${milliseconds}`);
-        },
-      },
-    )).rejects.toThrow("HUD GRID REBUILD FAILED");
+      (message) => reports.push(message),
+      createDependencies(calls, bridge),
+    )).rejects.toThrow("STAGE 2 relicTR 전송 실패: sendFailed");
 
-    expect(calls).toEqual(["create", "wait:3000", "rebuild"]);
+    expect(reports).not.toContain("STAGE 3 REBUILDING 3 IMAGES");
   });
 });
