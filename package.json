@@ -10,7 +10,7 @@
     "test": "vitest run src",
     "typecheck": "tsc --noEmit",
     "test:sites": "node --test tests/sites-worker.test.mjs tests/sample-format.test.mjs tests/hud-density-format.test.mjs tests/hud-grid-format.test.mjs",
-    "qr": "evenhub qr --url http://100.84.176.81:4180/hud-density-v2?sdk=0.0.11&build=hud400-text3s",
+    "qr": "evenhub qr --url http://100.84.176.81:4180/hud-density-v2?sdk=0.0.11&build=hud400-step1",
     "pack": "npm run build && evenhub pack app.json dist/client -o even-relic.ehpk"
   },
   "dependencies": {

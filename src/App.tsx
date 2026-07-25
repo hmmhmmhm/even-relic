@@ -14,7 +14,7 @@ type AppProps = {
   autoStart?: boolean;
 };
 
-const DIAGNOSTIC_BUILD = "hud400-text3s";
+const DIAGNOSTIC_BUILD = "hud400-step1";
 
 export function App({ autoStart = true }: AppProps) {
   const hardwareBmpMode = window.location.pathname === "/diagnostic-v10";
