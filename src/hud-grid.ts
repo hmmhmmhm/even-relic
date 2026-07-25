@@ -80,6 +80,18 @@ function createEventLayer(content: string) {
   });
 }
 
+export function createHudStagePage(
+  tileCount: number,
+  content: string,
+) {
+  const tiles = HUD_GRID_TILES.slice(0, tileCount);
+  return new CreateStartUpPageContainer({
+    containerTotalNum: tiles.length + 1,
+    textObject: [createEventLayer(content)],
+    imageObject: tiles.map((tile) => new ImageContainerProperty(tile)),
+  });
+}
+
 export function createLoadingPage() {
   return new CreateStartUpPageContainer({
     containerTotalNum: 1,

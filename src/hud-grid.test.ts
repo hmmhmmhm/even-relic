@@ -3,11 +3,31 @@ import { describe, expect, it } from "vitest";
 import {
   HUD_GRID_TILES,
   createHudGridPage,
+  createHudStagePage,
   createLoadingPage,
   transmitHudGrid,
 } from "./hud-grid";
 
 describe("G2 400x200 HUD grid", () => {
+  it("builds cumulative stages with loading text only on stage 1", () => {
+    const stage1 = createHudStagePage(1, "RELIC HUD LOADING...");
+    expect(stage1.containerTotalNum).toBe(2);
+    expect(stage1.textObject?.[0].content).toBe("RELIC HUD LOADING...");
+    expect(stage1.imageObject?.map((image) => image.containerName)).toEqual([
+      "relicTL",
+    ]);
+
+    const stage4 = createHudStagePage(4, " ");
+    expect(stage4.containerTotalNum).toBe(5);
+    expect(stage4.textObject?.[0].content).toBe(" ");
+    expect(stage4.imageObject?.map((image) => image.containerName)).toEqual([
+      "relicTL",
+      "relicTR",
+      "relicBL",
+      "relicBR",
+    ]);
+  });
+
   it("uses a text-only loading page before the centered 2x2 image grid", () => {
     expect(HUD_GRID_TILES).toEqual([
       {
