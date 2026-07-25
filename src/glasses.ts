@@ -12,14 +12,12 @@ import {
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
 import { waitForImageClick } from "./image-trigger";
-
 export const G2_TILES = [
   { id: 2, name: "relicTL", x: 0, y: 0, width: 288, height: 144 },
   { id: 3, name: "relicTR", x: 288, y: 0, width: 288, height: 144 },
   { id: 4, name: "relicBL", x: 0, y: 144, width: 288, height: 144 },
   { id: 5, name: "relicBR", x: 288, y: 144, width: 288, height: 144 },
 ] as const;
-
 export const DIAGNOSTIC_TILES = [
   {
     id: 2,
@@ -32,7 +30,6 @@ export const DIAGNOSTIC_TILES = [
     sourceY: 0,
   },
 ] as const;
-
 type CanvasFactory = () => HTMLCanvasElement;
 type ImageLoader = (url: string) => Promise<CanvasImageSource>;
 type Tile = {
@@ -68,14 +65,12 @@ type HardwareBmpDependencies = {
   waitForBridge: () => Promise<OfficialBridge>;
   waitForTrigger: typeof waitForImageClick;
 };
-
 async function loadImage(url: string): Promise<HTMLImageElement> {
   const image = new Image();
   image.src = url;
   await image.decode();
   return image;
 }
-
 export function quantizeForG2Pixels(source: Uint8ClampedArray) {
   const output = new Uint8ClampedArray(source.length);
   for (let index = 0; index < source.length; index += 4) {

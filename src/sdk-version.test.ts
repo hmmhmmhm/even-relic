@@ -1,14 +1,25 @@
 import { describe, expect, it } from "vitest";
+import { ImageRawDataUpdate } from "@evenrealities/even_hub_sdk";
 import appManifest from "../app.json";
 import packageManifest from "../package.json";
 
 describe("Even Hub SDK compatibility", () => {
-  it("pins the latest SDK and matches the app minimum version", () => {
+  it("pins the G2-compatible SDK and identifies the A/B build", () => {
     const installed = packageManifest.dependencies["@evenrealities/even_hub_sdk"];
-    expect(installed).toBe("0.0.12");
+    expect(installed).toBe("0.0.11");
     expect(appManifest.min_sdk_version).toBe(installed);
     expect(packageManifest.scripts.qr).toContain(`sdk=${installed}`);
     expect(packageManifest.scripts.qr).toContain("/diagnostic-v11");
-    expect(packageManifest.scripts.qr).toContain("build=png8-1");
+    expect(packageManifest.scripts.qr).toContain("build=sdk011-1");
+  });
+
+  it("serializes raw image updates without the rejected LZ4 mode", () => {
+    const update = new ImageRawDataUpdate({
+      containerID: 3,
+      containerName: "frame",
+      imageData: Uint8Array.from([1, 2, 3]),
+    });
+
+    expect(update.toJson()).not.toHaveProperty("compressMode");
   });
 });

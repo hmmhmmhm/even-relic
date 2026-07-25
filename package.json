@@ -10,11 +10,11 @@
     "test": "vitest run src",
     "typecheck": "tsc --noEmit",
     "test:sites": "node --test tests/sites-worker.test.mjs tests/sample-format.test.mjs",
-    "qr": "evenhub qr --url http://100.84.176.81:4173/diagnostic-v11?sdk=0.0.12&build=png8-1",
+    "qr": "evenhub qr --url http://100.84.176.81:4173/diagnostic-v11?sdk=0.0.11&build=sdk011-1",
     "pack": "npm run build && evenhub pack app.json dist/client -o even-relic.ehpk"
   },
   "dependencies": {
-    "@evenrealities/even_hub_sdk": "0.0.12",
+    "@evenrealities/even_hub_sdk": "0.0.11",
     "@vitejs/plugin-react": "5.0.4",
     "react": "19.2.0",
     "react-dom": "19.2.0",
