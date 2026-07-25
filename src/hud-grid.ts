@@ -121,7 +121,13 @@ export async function transmitHudGrid(
       imageObject: page.imageObject,
     }));
     report(`PAGE REBUILD RESULT: ${rebuilt}`);
-    if (!rebuilt) throw new Error("PAGE REBUILD FAILED");
+    if (!rebuilt) {
+      report("STALE PAGE CLOSING");
+      const closed = await bridge.shutDownPageContainer(0);
+      report(`STALE PAGE CLOSE RESULT: ${closed}`);
+      if (!closed) throw new Error("STALE PAGE CLOSE FAILED");
+      throw new Error("STALE PAGE CLOSED - REOPEN THIS URL");
+    }
   } else if (created !== StartUpPageCreateResult.success) {
     throw new Error(`PAGE CREATE FAILED: ${resultName}`);
   }

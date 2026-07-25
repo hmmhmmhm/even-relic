@@ -100,4 +100,45 @@ describe("G2 400x200 HUD grid", () => {
       "send:relicBR",
     ]);
   });
+
+  it("closes a stale native page when invalid cannot rebuild", async () => {
+    const calls: string[] = [];
+    const reports: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => {
+        calls.push("create");
+        return 1;
+      },
+      rebuildPageContainer: async () => {
+        calls.push("rebuild");
+        return false;
+      },
+      updateImageRawData: async () => {
+        calls.push("image");
+        return "success";
+      },
+      onEvenHubEvent: () => () => undefined,
+      shutDownPageContainer: async (exitMode: number) => {
+        calls.push(`shutdown:${exitMode}`);
+        return true;
+      },
+    };
+
+    await expect(transmitHudGrid(
+      (message) => reports.push(message),
+      {
+        waitForBridge: async () => bridge,
+        loadBytes: async () => Uint8Array.from([137]),
+        waitForPageReady: async () => {
+          calls.push("wait");
+        },
+      },
+    )).rejects.toThrow("STALE PAGE CLOSED - REOPEN THIS URL");
+
+    expect(calls).toEqual(["create", "rebuild", "shutdown:0"]);
+    expect(reports.slice(-2)).toEqual([
+      "STALE PAGE CLOSING",
+      "STALE PAGE CLOSE RESULT: true",
+    ]);
+  });
 });
