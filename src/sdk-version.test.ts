@@ -10,7 +10,7 @@ describe("Even Hub SDK compatibility", () => {
     expect(appManifest.min_sdk_version).toBe(installed);
     expect(packageManifest.scripts.qr).toContain(`sdk=${installed}`);
     expect(packageManifest.scripts.qr).toContain("/hud-density-v2");
-    expect(packageManifest.scripts.qr).toContain("build=hud400-reset1");
+    expect(packageManifest.scripts.qr).toContain("build=hud400-reuse1");
   });
 
   it("serializes raw image updates without the rejected LZ4 mode", () => {

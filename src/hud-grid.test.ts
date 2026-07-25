@@ -101,7 +101,7 @@ describe("G2 400x200 HUD grid", () => {
     ]);
   });
 
-  it("closes a stale native page when invalid cannot rebuild", async () => {
+  it("reuses existing image containers when invalid cannot rebuild", async () => {
     const calls: string[] = [];
     const reports: string[] = [];
     const bridge = {
@@ -113,8 +113,11 @@ describe("G2 400x200 HUD grid", () => {
         calls.push("rebuild");
         return false;
       },
-      updateImageRawData: async () => {
-        calls.push("image");
+      updateImageRawData: async (update: {
+        containerName?: string;
+        imageData?: number[] | string | Uint8Array | ArrayBuffer;
+      }) => {
+        calls.push(`image:${update.containerName}`);
         return "success";
       },
       onEvenHubEvent: () => () => undefined,
@@ -124,21 +127,27 @@ describe("G2 400x200 HUD grid", () => {
       },
     };
 
-    await expect(transmitHudGrid(
+    await transmitHudGrid(
       (message) => reports.push(message),
       {
         waitForBridge: async () => bridge,
         loadBytes: async () => Uint8Array.from([137]),
         waitForPageReady: async () => {
-          calls.push("wait");
+          calls.push("wait:3000");
         },
       },
-    )).rejects.toThrow("STALE PAGE CLOSED - REOPEN THIS URL");
+    );
 
-    expect(calls).toEqual(["create", "rebuild", "shutdown:0"]);
-    expect(reports.slice(-2)).toEqual([
-      "STALE PAGE CLOSING",
-      "STALE PAGE CLOSE RESULT: true",
+    expect(calls).toEqual([
+      "create",
+      "rebuild",
+      "wait:3000",
+      "image:relicTL",
+      "image:relicTR",
+      "image:relicBL",
+      "image:relicBR",
     ]);
+    expect(reports).toContain("PAGE REUSE MODE: existing 400x200");
+    expect(reports.at(-1)).toBe("RELIC HUD 400x200 전송 완료");
   });
 });
