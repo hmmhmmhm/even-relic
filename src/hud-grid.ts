@@ -7,6 +7,7 @@ import {
   RebuildPageContainer,
   StartUpPageCreateResult,
   TextContainerProperty,
+  TextContainerUpgrade,
   waitForEvenAppBridge,
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
@@ -53,6 +54,7 @@ export const HUD_GRID_TILES = [
 type HudGridBridge = {
   createStartUpPageContainer: (page: CreateStartUpPageContainer) => Promise<unknown>;
   rebuildPageContainer: (page: RebuildPageContainer) => Promise<boolean>;
+  textContainerUpgrade: (update: TextContainerUpgrade) => Promise<boolean>;
   updateImageRawData: (update: ImageRawDataUpdate) => Promise<unknown>;
   onEvenHubEvent: (listener: (event: EvenHubEvent) => void) => () => void;
   shutDownPageContainer: (exitMode: number) => Promise<unknown>;
@@ -75,7 +77,7 @@ export function createHudGridPage() {
     paddingLength: 0,
     containerID: 1,
     containerName: "eventLayer",
-    content: " ",
+    content: "RELIC HUD LOADING...",
     isEventCapture: 1,
   });
   const images = HUD_GRID_TILES.map((tile) => (
@@ -128,8 +130,19 @@ export async function transmitHudGrid(
     throw new Error(`PAGE CREATE FAILED: ${resultName}`);
   }
 
-  report("PAGE READY 400x200 - SEND IN 3S");
-  await dependencies.waitForPageReady(3000);
+  const loadingText = await bridge.textContainerUpgrade(new TextContainerUpgrade({
+    containerID: 1,
+    containerName: "eventLayer",
+    content: "RELIC HUD LOADING...",
+  }));
+  report(`LOADING TEXT RESULT: ${loadingText}`);
+  if (loadingText) {
+    report("LOADING TEXT READY - SEND IN 3S");
+    await dependencies.waitForPageReady(3000);
+    report("LOADING WAIT COMPLETE");
+  } else {
+    report("LOADING TEXT UNAVAILABLE - SEND NOW");
+  }
   for (const [index, tile] of HUD_GRID_TILES.entries()) {
     const progress = `${index + 1}/4`;
     report(`${tile.containerName} LOAD ${progress}`);
@@ -146,6 +159,12 @@ export async function transmitHudGrid(
       throw new Error(`${tile.containerName} 전송 실패: ${result}`);
     }
   }
+  const cleared = await bridge.textContainerUpgrade(new TextContainerUpgrade({
+    containerID: 1,
+    containerName: "eventLayer",
+    content: " ",
+  }));
+  report(`LOADING TEXT CLEAR RESULT: ${cleared}`);
   report("RELIC HUD 400x200 전송 완료");
 
   return bridge.onEvenHubEvent((event) => {

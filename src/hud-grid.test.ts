@@ -50,7 +50,7 @@ describe("G2 400x200 HUD grid", () => {
     const page = createHudGridPage();
     expect(page.containerTotalNum).toBe(5);
     expect(page.textObject).toHaveLength(1);
-    expect(page.textObject?.[0].content).toBe(" ");
+    expect(page.textObject?.[0].content).toBe("RELIC HUD LOADING...");
     expect(page.imageObject).toHaveLength(4);
   });
 
@@ -62,6 +62,10 @@ describe("G2 400x200 HUD grid", () => {
         return 0;
       },
       rebuildPageContainer: async () => true,
+      textContainerUpgrade: async (update: { content?: string }) => {
+        calls.push(`text:${update.content}`);
+        return true;
+      },
       updateImageRawData: async (update: {
         containerName?: string;
         imageData?: number[] | string | Uint8Array | ArrayBuffer;
@@ -89,6 +93,7 @@ describe("G2 400x200 HUD grid", () => {
 
     expect(calls).toEqual([
       "create",
+      "text:RELIC HUD LOADING...",
       "wait:3000",
       "load:relic-tl.png",
       "send:relicTL",
@@ -98,6 +103,7 @@ describe("G2 400x200 HUD grid", () => {
       "send:relicBL",
       "load:relic-br.png",
       "send:relicBR",
+      "text: ",
     ]);
   });
 
@@ -113,6 +119,7 @@ describe("G2 400x200 HUD grid", () => {
         calls.push("rebuild");
         return false;
       },
+      textContainerUpgrade: async () => true,
       updateImageRawData: async (update: {
         containerName?: string;
         imageData?: number[] | string | Uint8Array | ArrayBuffer;
@@ -149,5 +156,48 @@ describe("G2 400x200 HUD grid", () => {
     ]);
     expect(reports).toContain("PAGE REUSE MODE: existing 400x200");
     expect(reports.at(-1)).toBe("RELIC HUD 400x200 전송 완료");
+  });
+
+  it("skips the shadow timer when loading text cannot activate the page", async () => {
+    const calls: string[] = [];
+    const reports: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => 1,
+      rebuildPageContainer: async () => false,
+      textContainerUpgrade: async () => {
+        calls.push("text:false");
+        return false;
+      },
+      updateImageRawData: async (update: {
+        containerName?: string;
+        imageData?: number[] | string | Uint8Array | ArrayBuffer;
+      }) => {
+        calls.push(`image:${update.containerName}`);
+        return "success";
+      },
+      onEvenHubEvent: () => () => undefined,
+      shutDownPageContainer: async () => true,
+    };
+
+    await transmitHudGrid(
+      (message) => reports.push(message),
+      {
+        waitForBridge: async () => bridge,
+        loadBytes: async () => Uint8Array.from([137]),
+        waitForPageReady: async () => {
+          calls.push("unexpected-wait");
+        },
+      },
+    );
+
+    expect(calls).toEqual([
+      "text:false",
+      "image:relicTL",
+      "image:relicTR",
+      "image:relicBL",
+      "image:relicBR",
+      "text:false",
+    ]);
+    expect(reports).toContain("LOADING TEXT UNAVAILABLE - SEND NOW");
   });
 });

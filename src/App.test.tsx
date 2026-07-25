@@ -70,7 +70,7 @@ describe("RELIC peripheral HUD", () => {
     window.history.replaceState({}, "", "/diagnostic-v11");
     render(<App autoStart={false} />);
 
-    expect(screen.getByText("v0.1.0 · hud400-reuse1")).toBeTruthy();
+    expect(screen.getByText("v0.1.0 · hud400-loading1")).toBeTruthy();
     expect(screen.getByTestId("status-log").children).toHaveLength(1);
   });
 });
