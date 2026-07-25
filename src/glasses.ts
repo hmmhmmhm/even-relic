@@ -338,25 +338,32 @@ export async function transmitOfficialSample(
     }),
   },
 ) {
-  onProgress("공식 Even Hub 이미지 진단 연결 중");
+  onProgress("BRIDGE WAIT");
   const bridge = await dependencies.waitForBridge();
+  onProgress("BRIDGE READY");
   const page = createOfficialDiagnosticPage();
+  onProgress("PAGE CREATING");
   const created = StartUpPageCreateResult.normalize(
     await bridge.createStartUpPageContainer(page),
   );
+  const resultName = StartUpPageCreateResult[created];
+  onProgress(`PAGE RESULT: ${resultName}`);
 
   if (created === StartUpPageCreateResult.invalid) {
+    onProgress("PAGE REBUILDING");
     const rebuilt = await bridge.rebuildPageContainer(new RebuildPageContainer({
       containerTotalNum: page.containerTotalNum,
       textObject: page.textObject,
       imageObject: page.imageObject,
     }));
-    if (!rebuilt) throw new Error("공식 진단 페이지 재구성 실패");
+    onProgress(`PAGE REBUILD RESULT: ${rebuilt}`);
+    if (!rebuilt) throw new Error("PAGE REBUILD FAILED");
   } else if (created !== StartUpPageCreateResult.success) {
-    throw new Error(`공식 진단 페이지 생성 실패: ${created}`);
+    throw new Error(`PAGE CREATE FAILED: ${resultName}`);
   }
 
-  await dependencies.waitForPageReady(1000);
+  onProgress("PAGE READY 200x100 - SEND IN 3S");
+  await dependencies.waitForPageReady(3000);
   const bytes = await dependencies.loadBytes("/evenhub-official-sample.png");
   const result = ImageRawDataUpdateResult.normalize(
     await bridge.updateImageRawData(new ImageRawDataUpdate({

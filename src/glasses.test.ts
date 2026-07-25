@@ -259,7 +259,9 @@ describe("G2 raster transport", () => {
     if (!module) return;
 
     const calls: string[] = [];
+    const reports: string[] = [];
     const sample = new Uint8Array([137, 80, 78, 71]);
+    let waited = 0;
     const bridge = {
       createStartUpPageContainer: async () => {
         calls.push("create");
@@ -285,17 +287,141 @@ describe("G2 raster transport", () => {
     };
 
     await module.transmitOfficialSample(
-      () => undefined,
+      (message) => reports.push(message),
       {
         waitForBridge: async () => bridge,
         loadBytes: async () => sample,
-        waitForPageReady: async () => {
+        waitForPageReady: async (milliseconds) => {
+          waited = milliseconds;
           calls.push("ready");
         },
       } as Parameters<typeof module.transmitOfficialSample>[1],
     );
 
+    expect(waited).toBe(3000);
     expect(calls).toEqual(["create", "ready", "image:3:137", "status"]);
+    expect(reports).toEqual([
+      "BRIDGE WAIT",
+      "BRIDGE READY",
+      "PAGE CREATING",
+      "PAGE RESULT: success",
+      "PAGE READY 200x100 - SEND IN 3S",
+      "공식 sample.png 전송 완료",
+    ]);
+  });
+
+  it("rebuilds once after invalid and reports every boundary", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+
+    const calls: string[] = [];
+    const reports: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => {
+        calls.push("create");
+        return 1;
+      },
+      rebuildPageContainer: async () => {
+        calls.push("rebuild");
+        return true;
+      },
+      updateImageRawData: async () => {
+        calls.push("image");
+        return "success";
+      },
+      textContainerUpgrade: async () => true,
+      onEvenHubEvent: () => () => undefined,
+      shutDownPageContainer: async () => true,
+    };
+
+    await module.transmitOfficialSample(
+      (message) => reports.push(message),
+      {
+        waitForBridge: async () => bridge,
+        loadBytes: async () => new Uint8Array([137]),
+        waitForPageReady: async () => {
+          calls.push("ready");
+        },
+      },
+    );
+
+    expect(calls).toEqual(["create", "rebuild", "ready", "image"]);
+    expect(reports.slice(0, 7)).toEqual([
+      "BRIDGE WAIT",
+      "BRIDGE READY",
+      "PAGE CREATING",
+      "PAGE RESULT: invalid",
+      "PAGE REBUILDING",
+      "PAGE REBUILD RESULT: true",
+      "PAGE READY 200x100 - SEND IN 3S",
+    ]);
+  });
+
+  it("stops after an invalid page also fails to rebuild", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+
+    const calls: string[] = [];
+    const reports: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => 1,
+      rebuildPageContainer: async () => {
+        calls.push("rebuild");
+        return false;
+      },
+      updateImageRawData: async () => {
+        calls.push("image");
+        return "success";
+      },
+      textContainerUpgrade: async () => true,
+      onEvenHubEvent: () => () => undefined,
+      shutDownPageContainer: async () => true,
+    };
+
+    await expect(module.transmitOfficialSample(
+      (message) => reports.push(message),
+      {
+        waitForBridge: async () => bridge,
+        loadBytes: async () => new Uint8Array([137]),
+        waitForPageReady: async () => {
+          calls.push("ready");
+        },
+      },
+    )).rejects.toThrow("PAGE REBUILD FAILED");
+
+    expect(calls).toEqual(["rebuild"]);
+    expect(reports.at(-1)).toBe("PAGE REBUILD RESULT: false");
+  });
+
+  it.each([
+    [2, "oversize"],
+    [3, "outOfMemory"],
+  ])("does not rebuild native page error %i (%s)", async (result, name) => {
+    const module = await loadGlasses();
+    if (!module) return;
+
+    let rebuilds = 0;
+    const bridge = {
+      createStartUpPageContainer: async () => result,
+      rebuildPageContainer: async () => {
+        rebuilds += 1;
+        return true;
+      },
+      updateImageRawData: async () => "success",
+      textContainerUpgrade: async () => true,
+      onEvenHubEvent: () => () => undefined,
+      shutDownPageContainer: async () => true,
+    };
+
+    await expect(module.transmitOfficialSample(
+      () => undefined,
+      {
+        waitForBridge: async () => bridge,
+        loadBytes: async () => new Uint8Array([137]),
+        waitForPageReady: async () => undefined,
+      },
+    )).rejects.toThrow(`PAGE CREATE FAILED: ${name}`);
+    expect(rebuilds).toBe(0);
   });
 
   it("shows text, waits for a click, then sends the hardware-sized BMP", async () => {
