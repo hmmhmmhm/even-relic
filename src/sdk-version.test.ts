@@ -8,5 +8,7 @@ describe("Even Hub SDK compatibility", () => {
     expect(installed).toBe("0.0.12");
     expect(appManifest.min_sdk_version).toBe(installed);
     expect(packageManifest.scripts.qr).toContain(`sdk=${installed}`);
+    expect(packageManifest.scripts.qr).toContain("/diagnostic-v11");
+    expect(packageManifest.scripts.qr).toContain("build=session-rebuild-1");
   });
 });
