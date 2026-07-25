@@ -1,0 +1,103 @@
+:root {
+  color: #91ff73;
+  background: #030504;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font-synthesis: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 50% 45%, rgb(24 54 28 / 24%), transparent 38%),
+    #030504;
+}
+
+.preview-stage {
+  width: min(1180px, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: clamp(18px, 4vw, 48px);
+  display: grid;
+  align-content: center;
+  gap: 16px;
+}
+
+.preview-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  color: #83ea6a;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.preview-header div {
+  display: grid;
+  gap: 5px;
+}
+
+.preview-header strong {
+  font-size: clamp(0.8rem, 1.6vw, 1rem);
+}
+
+.preview-header span,
+.preview-header output,
+.preview-note {
+  color: #4f8f49;
+  font-size: clamp(0.62rem, 1.2vw, 0.76rem);
+}
+
+.preview-header output {
+  max-width: 48ch;
+  text-align: right;
+}
+
+.hud-frame {
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  background: #000;
+  border: 1px solid #244d25;
+  box-shadow: 0 0 50px rgb(87 255 89 / 10%);
+}
+
+.hud-frame canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.preview-note {
+  margin: 0;
+  text-align: center;
+}
+
+@media (max-width: 680px) {
+  .preview-stage {
+    padding: 14px;
+  }
+
+  .preview-header {
+    align-items: start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .preview-header output {
+    text-align: left;
+  }
+}

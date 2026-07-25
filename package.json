@@ -1,0 +1,32 @@
+{
+  "name": "even-relic",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/prepare-sites-build.mjs",
+    "preview": "vite preview",
+    "test": "vitest run src",
+    "typecheck": "tsc --noEmit",
+    "test:sites": "node --test tests/sites-worker.test.mjs",
+    "qr": "evenhub qr --url http://100.84.176.81:4173/diagnostic-v10?sdk=0.0.12",
+    "pack": "npm run build && evenhub pack app.json dist/client -o even-relic.ehpk"
+  },
+  "dependencies": {
+    "@evenrealities/even_hub_sdk": "0.0.12",
+    "@vitejs/plugin-react": "5.0.4",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "vite": "6.4.2"
+  },
+  "devDependencies": {
+    "@evenrealities/evenhub-cli": "^0.1.13",
+    "@testing-library/react": "^16.3.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "jsdom": "^29.1.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}
