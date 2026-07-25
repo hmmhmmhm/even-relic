@@ -56,11 +56,21 @@ describe("RELIC peripheral HUD", () => {
     expect(hud.dataset.imageContainers).toBe("1");
   });
 
+  it("selects the four-tile 400 by 200 HUD build", () => {
+    window.history.replaceState({}, "", "/hud-density-v2");
+    render(<App autoStart={false} />);
+
+    const hud = screen.getByTestId("hud-frame");
+    expect(screen.getByText(/RELIC HUD · 400×200 · 4 TILES/)).toBeTruthy();
+    expect(hud.dataset.textContainers).toBe("0");
+    expect(hud.dataset.imageContainers).toBe("4");
+  });
+
   it("shows the app version and diagnostic build name in the webview", () => {
     window.history.replaceState({}, "", "/diagnostic-v11");
     render(<App autoStart={false} />);
 
-    expect(screen.getByText("v0.1.0 · hud200-1")).toBeTruthy();
+    expect(screen.getByText("v0.1.0 · hud400-1")).toBeTruthy();
     expect(screen.getByTestId("status-log").children).toHaveLength(1);
   });
 });

@@ -4,13 +4,13 @@ import appManifest from "../app.json";
 import packageManifest from "../package.json";
 
 describe("Even Hub SDK compatibility", () => {
-  it("pins the G2-compatible SDK and identifies the HUD build", () => {
+  it("pins the G2-compatible SDK and identifies the 400x200 HUD build", () => {
     const installed = packageManifest.dependencies["@evenrealities/even_hub_sdk"];
     expect(installed).toBe("0.0.11");
     expect(appManifest.min_sdk_version).toBe(installed);
     expect(packageManifest.scripts.qr).toContain(`sdk=${installed}`);
-    expect(packageManifest.scripts.qr).toContain("/hud-density-v1");
-    expect(packageManifest.scripts.qr).toContain("build=hud200-1");
+    expect(packageManifest.scripts.qr).toContain("/hud-density-v2");
+    expect(packageManifest.scripts.qr).toContain("build=hud400-1");
   });
 
   it("serializes raw image updates without the rejected LZ4 mode", () => {
