@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import appManifest from "../app.json";
 import hudReferenceUrl from "../docs/design/selected-peripheral-focus.png";
 import {
   drawHudReference,
@@ -11,14 +12,15 @@ type AppProps = {
   autoStart?: boolean;
 };
 
+const DIAGNOSTIC_BUILD = "session-rebuild-1";
+
 export function App({ autoStart = true }: AppProps) {
   const hardwareBmpMode = window.location.pathname === "/diagnostic-v10";
   const diagnosticMode = window.location.pathname.startsWith("/diagnostic-v")
     || new URLSearchParams(window.location.search).get("mode") === "diagnostic";
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [status, setStatus] = useState(
-    autoStart ? "HUD 이미지 준비 중" : "자동 전송 비활성",
-  );
+  const initialStatus = autoStart ? "HUD 이미지 준비 중" : "자동 전송 비활성";
+  const [statusLog, setStatusLog] = useState([initialStatus]);
 
   useEffect(() => {
     if (!autoStart || !canvasRef.current) return;
@@ -26,7 +28,9 @@ export function App({ autoStart = true }: AppProps) {
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
     const report = (message: string) => {
-      if (!cancelled) setStatus(message);
+      if (!cancelled) {
+        setStatusLog((current) => [...current, message]);
+      }
     };
 
     void (async () => {
@@ -60,8 +64,15 @@ export function App({ autoStart = true }: AppProps) {
                 : "576×288 · 4 IMAGE TILES"}
             {" · STATIC MOCK"}
           </span>
+          <small className="build-version">
+            {`v${appManifest.version} · ${DIAGNOSTIC_BUILD}`}
+          </small>
         </div>
-        <output aria-live="polite">{status}</output>
+        <output aria-live="polite" data-testid="status-log">
+          {statusLog.map((message, index) => (
+            <span key={`${index}-${message}`}>{message}</span>
+          ))}
+        </output>
       </header>
 
       <section

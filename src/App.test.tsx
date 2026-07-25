@@ -45,4 +45,12 @@ describe("RELIC peripheral HUD", () => {
 
     expect(screen.getByText(/1-BIT BMP · CLICK TO SEND/)).toBeTruthy();
   });
+
+  it("shows the app version and diagnostic build name in the webview", () => {
+    window.history.replaceState({}, "", "/diagnostic-v11");
+    render(<App autoStart={false} />);
+
+    expect(screen.getByText("v0.1.0 · session-rebuild-1")).toBeTruthy();
+    expect(screen.getByTestId("status-log").children).toHaveLength(1);
+  });
 });

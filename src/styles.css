@@ -53,6 +53,13 @@ body {
   font-size: clamp(0.8rem, 1.6vw, 1rem);
 }
 
+.build-version {
+  display: block;
+  margin-top: 2px;
+  color: #74ad80;
+  font: 11px/1.3 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
 .preview-header span,
 .preview-header output,
 .preview-note {
@@ -61,8 +68,15 @@ body {
 }
 
 .preview-header output {
+  display: grid;
   max-width: 48ch;
+  max-height: 9rem;
+  overflow: auto;
   text-align: right;
+}
+
+.preview-header output span {
+  display: block;
 }
 
 .hud-frame {
