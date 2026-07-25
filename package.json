@@ -9,8 +9,8 @@
     "preview": "vite preview",
     "test": "vitest run src",
     "typecheck": "tsc --noEmit",
-    "test:sites": "node --test tests/sites-worker.test.mjs",
-    "qr": "evenhub qr --url http://100.84.176.81:4173/diagnostic-v11?sdk=0.0.12&build=session-rebuild-1",
+    "test:sites": "node --test tests/sites-worker.test.mjs tests/sample-format.test.mjs",
+    "qr": "evenhub qr --url http://100.84.176.81:4173/diagnostic-v11?sdk=0.0.12&build=png8-1",
     "pack": "npm run build && evenhub pack app.json dist/client -o even-relic.ehpk"
   },
   "dependencies": {

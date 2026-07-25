@@ -12,7 +12,7 @@ type AppProps = {
   autoStart?: boolean;
 };
 
-const DIAGNOSTIC_BUILD = "session-rebuild-1";
+const DIAGNOSTIC_BUILD = "png8-1";
 
 export function App({ autoStart = true }: AppProps) {
   const hardwareBmpMode = window.location.pathname === "/diagnostic-v10";

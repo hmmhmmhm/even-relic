@@ -364,7 +364,7 @@ export async function transmitOfficialSample(
 
   onProgress("PAGE READY 200x100 - SEND IN 3S");
   await dependencies.waitForPageReady(3000);
-  const bytes = await dependencies.loadBytes("/evenhub-official-sample.png");
+  const bytes = await dependencies.loadBytes("/evenhub-sample-8bit-200x100.png");
   const result = ImageRawDataUpdateResult.normalize(
     await bridge.updateImageRawData(new ImageRawDataUpdate({
       containerID: 3,

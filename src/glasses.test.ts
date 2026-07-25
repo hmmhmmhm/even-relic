@@ -290,7 +290,10 @@ describe("G2 raster transport", () => {
       (message) => reports.push(message),
       {
         waitForBridge: async () => bridge,
-        loadBytes: async () => sample,
+        loadBytes: async (url) => {
+          expect(url).toBe("/evenhub-sample-8bit-200x100.png");
+          return sample;
+        },
         waitForPageReady: async (milliseconds) => {
           waited = milliseconds;
           calls.push("ready");
