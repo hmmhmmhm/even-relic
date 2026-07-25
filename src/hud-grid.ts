@@ -7,7 +7,6 @@ import {
   RebuildPageContainer,
   StartUpPageCreateResult,
   TextContainerProperty,
-  TextContainerUpgrade,
   waitForEvenAppBridge,
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
@@ -54,7 +53,6 @@ export const HUD_GRID_TILES = [
 type HudGridBridge = {
   createStartUpPageContainer: (page: CreateStartUpPageContainer) => Promise<unknown>;
   rebuildPageContainer: (page: RebuildPageContainer) => Promise<boolean>;
-  textContainerUpgrade: (update: TextContainerUpgrade) => Promise<boolean>;
   updateImageRawData: (update: ImageRawDataUpdate) => Promise<unknown>;
   onEvenHubEvent: (listener: (event: EvenHubEvent) => void) => () => void;
   shutDownPageContainer: (exitMode: number) => Promise<unknown>;
@@ -66,8 +64,8 @@ type HudGridDependencies = {
   waitForPageReady: (milliseconds: number) => Promise<void>;
 };
 
-export function createHudGridPage() {
-  const eventLayer = new TextContainerProperty({
+function createEventLayer(content: string) {
+  return new TextContainerProperty({
     xPosition: 0,
     yPosition: 0,
     width: 576,
@@ -77,16 +75,31 @@ export function createHudGridPage() {
     paddingLength: 0,
     containerID: 1,
     containerName: "eventLayer",
-    content: "RELIC HUD LOADING...",
+    content,
     isEventCapture: 1,
   });
-  const images = HUD_GRID_TILES.map((tile) => (
-    new ImageContainerProperty(tile)
-  ));
+}
+
+export function createLoadingPage() {
+  return new CreateStartUpPageContainer({
+    containerTotalNum: 1,
+    textObject: [createEventLayer("RELIC HUD LOADING...")],
+  });
+}
+
+export function createHudGridPage() {
   return new CreateStartUpPageContainer({
     containerTotalNum: 5,
-    textObject: [eventLayer],
-    imageObject: images,
+    textObject: [createEventLayer(" ")],
+    imageObject: HUD_GRID_TILES.map((tile) => new ImageContainerProperty(tile)),
+  });
+}
+
+function toRebuildPage(page: CreateStartUpPageContainer) {
+  return new RebuildPageContainer({
+    containerTotalNum: page.containerTotalNum,
+    textObject: page.textObject,
+    imageObject: page.imageObject,
   });
 }
 
@@ -96,7 +109,7 @@ export async function transmitHudGrid(
     waitForBridge: waitForEvenAppBridge,
     loadBytes: async (url) => {
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`RELIC HUD 타일 로드 실패: ${response.status}`);
+      if (!response.ok) throw new Error(`RELIC HUD 이미지 로드 실패: ${response.status}`);
       return new Uint8Array(await response.arrayBuffer());
     },
     waitForPageReady: (milliseconds) => new Promise((resolve) => {
@@ -107,42 +120,34 @@ export async function transmitHudGrid(
   report("BRIDGE WAIT");
   const bridge = await dependencies.waitForBridge();
   report("BRIDGE READY");
-  const page = createHudGridPage();
-  report("PAGE CREATING 400x200");
+
+  const loadingPage = createLoadingPage();
+  report("LOADING PAGE CREATING");
   const created = StartUpPageCreateResult.normalize(
-    await bridge.createStartUpPageContainer(page),
+    await bridge.createStartUpPageContainer(loadingPage),
   );
   const resultName = StartUpPageCreateResult[created];
-  report(`PAGE RESULT: ${resultName}`);
+  report(`LOADING PAGE RESULT: ${resultName}`);
 
   if (created === StartUpPageCreateResult.invalid) {
-    report("PAGE REBUILDING");
-    const rebuilt = await bridge.rebuildPageContainer(new RebuildPageContainer({
-      containerTotalNum: page.containerTotalNum,
-      textObject: page.textObject,
-      imageObject: page.imageObject,
-    }));
-    report(`PAGE REBUILD RESULT: ${rebuilt}`);
-    if (!rebuilt) {
-      report("PAGE REUSE MODE: existing 400x200");
-    }
+    report("LOADING PAGE REBUILDING");
+    const rebuilt = await bridge.rebuildPageContainer(toRebuildPage(loadingPage));
+    report(`LOADING PAGE REBUILD RESULT: ${rebuilt}`);
+    if (!rebuilt) throw new Error("LOADING PAGE REBUILD FAILED");
   } else if (created !== StartUpPageCreateResult.success) {
-    throw new Error(`PAGE CREATE FAILED: ${resultName}`);
+    throw new Error(`LOADING PAGE CREATE FAILED: ${resultName}`);
   }
 
-  const loadingText = await bridge.textContainerUpgrade(new TextContainerUpgrade({
-    containerID: 1,
-    containerName: "eventLayer",
-    content: "RELIC HUD LOADING...",
-  }));
-  report(`LOADING TEXT RESULT: ${loadingText}`);
-  if (loadingText) {
-    report("LOADING TEXT READY - SEND IN 3S");
-    await dependencies.waitForPageReady(3000);
-    report("LOADING WAIT COMPLETE");
-  } else {
-    report("LOADING TEXT UNAVAILABLE - SEND NOW");
-  }
+  report("LOADING PAGE READY - WAIT 3S");
+  await dependencies.waitForPageReady(3000);
+  report("LOADING WAIT COMPLETE");
+
+  const gridPage = createHudGridPage();
+  report("HUD GRID REBUILDING 400x200");
+  const gridRebuilt = await bridge.rebuildPageContainer(toRebuildPage(gridPage));
+  report(`HUD GRID REBUILD RESULT: ${gridRebuilt}`);
+  if (!gridRebuilt) throw new Error("HUD GRID REBUILD FAILED");
+
   for (const [index, tile] of HUD_GRID_TILES.entries()) {
     const progress = `${index + 1}/4`;
     report(`${tile.containerName} LOAD ${progress}`);
@@ -159,12 +164,6 @@ export async function transmitHudGrid(
       throw new Error(`${tile.containerName} 전송 실패: ${result}`);
     }
   }
-  const cleared = await bridge.textContainerUpgrade(new TextContainerUpgrade({
-    containerID: 1,
-    containerName: "eventLayer",
-    content: " ",
-  }));
-  report(`LOADING TEXT CLEAR RESULT: ${cleared}`);
   report("RELIC HUD 400x200 전송 완료");
 
   return bridge.onEvenHubEvent((event) => {

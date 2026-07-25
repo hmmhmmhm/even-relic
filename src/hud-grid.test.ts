@@ -3,11 +3,12 @@ import { describe, expect, it } from "vitest";
 import {
   HUD_GRID_TILES,
   createHudGridPage,
+  createLoadingPage,
   transmitHudGrid,
 } from "./hud-grid";
 
 describe("G2 400x200 HUD grid", () => {
-  it("centers four proven 200x100 image containers as a 2x2 grid", () => {
+  it("uses a text-only loading page before the centered 2x2 image grid", () => {
     expect(HUD_GRID_TILES).toEqual([
       {
         containerID: 2,
@@ -47,23 +48,28 @@ describe("G2 400x200 HUD grid", () => {
       },
     ]);
 
-    const page = createHudGridPage();
-    expect(page.containerTotalNum).toBe(5);
-    expect(page.textObject).toHaveLength(1);
-    expect(page.textObject?.[0].content).toBe("RELIC HUD LOADING...");
-    expect(page.imageObject).toHaveLength(4);
+    const loadingPage = createLoadingPage();
+    expect(loadingPage.containerTotalNum).toBe(1);
+    expect(loadingPage.textObject).toHaveLength(1);
+    expect(loadingPage.textObject?.[0].content).toBe("RELIC HUD LOADING...");
+    expect(loadingPage.imageObject).toBeUndefined();
+
+    const gridPage = createHudGridPage();
+    expect(gridPage.containerTotalNum).toBe(5);
+    expect(gridPage.textObject).toHaveLength(1);
+    expect(gridPage.textObject?.[0].content).toBe(" ");
+    expect(gridPage.imageObject).toHaveLength(4);
   });
 
-  it("waits three seconds and transmits TL, TR, BL, BR sequentially", async () => {
+  it("creates the loading page, waits three seconds, then rebuilds and sends serially", async () => {
     const calls: string[] = [];
     const bridge = {
-      createStartUpPageContainer: async () => {
-        calls.push("create");
+      createStartUpPageContainer: async (page: { imageObject?: unknown[] }) => {
+        calls.push(`create:${page.imageObject?.length ?? 0}`);
         return 0;
       },
-      rebuildPageContainer: async () => true,
-      textContainerUpgrade: async (update: { content?: string }) => {
-        calls.push(`text:${update.content}`);
+      rebuildPageContainer: async (page: { imageObject?: unknown[] }) => {
+        calls.push(`rebuild:${page.imageObject?.length ?? 0}`);
         return true;
       },
       updateImageRawData: async (update: {
@@ -92,9 +98,9 @@ describe("G2 400x200 HUD grid", () => {
     );
 
     expect(calls).toEqual([
-      "create",
-      "text:RELIC HUD LOADING...",
+      "create:0",
       "wait:3000",
+      "rebuild:4",
       "load:relic-tl.png",
       "send:relicTL",
       "load:relic-tr.png",
@@ -103,70 +109,20 @@ describe("G2 400x200 HUD grid", () => {
       "send:relicBL",
       "load:relic-br.png",
       "send:relicBR",
-      "text: ",
     ]);
   });
 
-  it("reuses existing image containers when invalid cannot rebuild", async () => {
+  it("rebuilds the text-only loading page first when startup creation is invalid", async () => {
     const calls: string[] = [];
     const reports: string[] = [];
     const bridge = {
-      createStartUpPageContainer: async () => {
-        calls.push("create");
+      createStartUpPageContainer: async (page: { imageObject?: unknown[] }) => {
+        calls.push(`create:${page.imageObject?.length ?? 0}`);
         return 1;
       },
-      rebuildPageContainer: async () => {
-        calls.push("rebuild");
-        return false;
-      },
-      textContainerUpgrade: async () => true,
-      updateImageRawData: async (update: {
-        containerName?: string;
-        imageData?: number[] | string | Uint8Array | ArrayBuffer;
-      }) => {
-        calls.push(`image:${update.containerName}`);
-        return "success";
-      },
-      onEvenHubEvent: () => () => undefined,
-      shutDownPageContainer: async (exitMode: number) => {
-        calls.push(`shutdown:${exitMode}`);
+      rebuildPageContainer: async (page: { imageObject?: unknown[] }) => {
+        calls.push(`rebuild:${page.imageObject?.length ?? 0}`);
         return true;
-      },
-    };
-
-    await transmitHudGrid(
-      (message) => reports.push(message),
-      {
-        waitForBridge: async () => bridge,
-        loadBytes: async () => Uint8Array.from([137]),
-        waitForPageReady: async () => {
-          calls.push("wait:3000");
-        },
-      },
-    );
-
-    expect(calls).toEqual([
-      "create",
-      "rebuild",
-      "wait:3000",
-      "image:relicTL",
-      "image:relicTR",
-      "image:relicBL",
-      "image:relicBR",
-    ]);
-    expect(reports).toContain("PAGE REUSE MODE: existing 400x200");
-    expect(reports.at(-1)).toBe("RELIC HUD 400x200 전송 완료");
-  });
-
-  it("skips the shadow timer when loading text cannot activate the page", async () => {
-    const calls: string[] = [];
-    const reports: string[] = [];
-    const bridge = {
-      createStartUpPageContainer: async () => 1,
-      rebuildPageContainer: async () => false,
-      textContainerUpgrade: async () => {
-        calls.push("text:false");
-        return false;
       },
       updateImageRawData: async (update: {
         containerName?: string;
@@ -185,19 +141,95 @@ describe("G2 400x200 HUD grid", () => {
         waitForBridge: async () => bridge,
         loadBytes: async () => Uint8Array.from([137]),
         waitForPageReady: async () => {
-          calls.push("unexpected-wait");
+          calls.push("wait:3000");
         },
       },
     );
 
     expect(calls).toEqual([
-      "text:false",
+      "create:0",
+      "rebuild:0",
+      "wait:3000",
+      "rebuild:4",
       "image:relicTL",
       "image:relicTR",
       "image:relicBL",
       "image:relicBR",
-      "text:false",
     ]);
-    expect(reports).toContain("LOADING TEXT UNAVAILABLE - SEND NOW");
+    expect(reports).toContain("LOADING PAGE REBUILD RESULT: true");
+  });
+
+  it("stops before the timer when the loading page cannot rebuild", async () => {
+    const calls: string[] = [];
+    const reports: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => {
+        calls.push("create");
+        return 1;
+      },
+      rebuildPageContainer: async () => {
+        calls.push("rebuild");
+        return false;
+      },
+      updateImageRawData: async () => {
+        calls.push("unexpected-image");
+        return "success";
+      },
+      onEvenHubEvent: () => () => undefined,
+      shutDownPageContainer: async () => true,
+    };
+
+    await expect(transmitHudGrid(
+      (message) => reports.push(message),
+      {
+        waitForBridge: async () => bridge,
+        loadBytes: async () => {
+          calls.push("unexpected-load");
+          return Uint8Array.from([137]);
+        },
+        waitForPageReady: async () => {
+          calls.push("unexpected-wait");
+        },
+      },
+    )).rejects.toThrow("LOADING PAGE REBUILD FAILED");
+
+    expect(calls).toEqual(["create", "rebuild"]);
+    expect(reports).toContain("LOADING PAGE REBUILD RESULT: false");
+  });
+
+  it("stops before image transfer when the HUD grid rebuild fails", async () => {
+    const calls: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => {
+        calls.push("create");
+        return 0;
+      },
+      rebuildPageContainer: async () => {
+        calls.push("rebuild");
+        return false;
+      },
+      updateImageRawData: async () => {
+        calls.push("unexpected-image");
+        return "success";
+      },
+      onEvenHubEvent: () => () => undefined,
+      shutDownPageContainer: async () => true,
+    };
+
+    await expect(transmitHudGrid(
+      () => undefined,
+      {
+        waitForBridge: async () => bridge,
+        loadBytes: async () => {
+          calls.push("unexpected-load");
+          return Uint8Array.from([137]);
+        },
+        waitForPageReady: async (milliseconds) => {
+          calls.push(`wait:${milliseconds}`);
+        },
+      },
+    )).rejects.toThrow("HUD GRID REBUILD FAILED");
+
+    expect(calls).toEqual(["create", "wait:3000", "rebuild"]);
   });
 });
