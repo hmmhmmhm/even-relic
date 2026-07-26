@@ -39,6 +39,11 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   only right-side container IDs 3 and 5 after scroll.
 - Use the high-contrast Canvas palette `#ffffff`, `#d0d0d0`, `#808080`, and
   `#000000` on `/hud-canvas-fast`, with 20–28 px core information.
+- Hardware feedback approves the `/hud-canvas-fast` structure: preserve its
+  large fixed map on the left and page-focused information area on the right.
+- Hardware confirms the two-right-tile scroll transition feels very fast.
+  Preserve that initial four-tile and navigation IDs 3/5 transport contract.
+  Treat the top/bottom right-tile seam as a separate pending hardware check.
 - Preserve `/hud-hybrid` as the hardware-proven missing-z-order diagnosis.
   Test SDK `0.0.10` z-order backport only on `/hud-hybrid-z`: image layers
   1–4, Text layer 5, and no image resend during scroll.
