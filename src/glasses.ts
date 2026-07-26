@@ -391,21 +391,32 @@ export async function transmitHybridCanvas(
     encode: encodeCanvasTiles,
   },
   tiles: readonly Tile[] = G2_TILES,
+  explicitZOrder = false,
 ) {
   onProgress("하이브리드 안경 페이지 연결 중");
   const bridge = await dependencies.waitForBridge();
+  const startupPage = explicitZOrder
+    ? createLayeredGlassesPage(tiles)
+    : createGlassesPage(tiles, 8);
   const created = StartUpPageCreateResult.normalize(
-    await bridge.createStartUpPageContainer(createGlassesPage(tiles, 8)),
+    await bridge.createStartUpPageContainer(startupPage),
   );
   if (created === StartUpPageCreateResult.invalid) {
     onProgress("기존 하이브리드 페이지 재구성 중");
-    const { eventLayer, imageObject } = createContainerObjects(tiles, 8);
+    const { eventLayer, imageObject } = createContainerObjects(
+      tiles,
+      8,
+      explicitZOrder,
+    );
+    const rebuildFailure = explicitZOrder
+      ? "레이어 하이브리드 안경 페이지 재구성 실패"
+      : "하이브리드 안경 페이지 재구성 실패";
     const rebuilt = await bridge.rebuildPageContainer(new RebuildPageContainer({
       containerTotalNum: tiles.length + 1,
       textObject: [eventLayer],
       imageObject,
     }));
-    if (!rebuilt) throw new Error("하이브리드 안경 페이지 재구성 실패");
+    if (!rebuilt) throw new Error(rebuildFailure);
   } else if (created !== StartUpPageCreateResult.success) {
     throw new Error(`하이브리드 안경 페이지 생성 실패: ${created}`);
   }
@@ -462,6 +473,28 @@ export async function transmitHybridCanvas(
       queueNavigation("previous");
     }
   });
+}
+
+export function transmitLayeredHybridCanvas(
+  source: HTMLCanvasElement,
+  initialContent: string,
+  onProgress: (message: string) => void,
+  onNavigate: (direction: PageDirection) => string | Promise<string>,
+  dependencies: HybridDependencies = {
+    waitForBridge: waitForEvenAppBridge,
+    encode: encodeCanvasTiles,
+  },
+  tiles: readonly Tile[] = G2_TILES,
+) {
+  return transmitHybridCanvas(
+    source,
+    initialContent,
+    onProgress,
+    onNavigate,
+    dependencies,
+    tiles,
+    true,
+  );
 }
 
 export async function transmitOfficialSample(

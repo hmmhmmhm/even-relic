@@ -345,6 +345,72 @@ describe("G2 raster transport", () => {
     unsubscribe();
   });
 
+  it("keeps layered hybrid images static while scrolling native Text", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+    const transmitLayeredHybridCanvas = (
+      module as unknown as {
+        transmitLayeredHybridCanvas?: (
+          ...args: unknown[]
+        ) => Promise<() => void>;
+      }
+    ).transmitLayeredHybridCanvas;
+    expect(transmitLayeredHybridCanvas).toBeTypeOf("function");
+    if (!transmitLayeredHybridCanvas) return;
+
+    let listener: ((event: EvenHubEvent) => void) | undefined;
+    let startupPage: {
+      toJson: () => {
+        textObject?: Array<{ zOrderIndex?: number }>;
+        imageObject?: Array<{ zOrderIndex?: number }>;
+      };
+    } | undefined;
+    const imageIds: number[] = [];
+    const textContents: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async (page: typeof startupPage) => {
+        startupPage = page;
+        return 0;
+      },
+      rebuildPageContainer: async () => true,
+      updateImageRawData: async (update: { containerID?: number }) => {
+        imageIds.push(update.containerID!);
+        return "success";
+      },
+      textContainerUpgrade: async (update: { content?: string }) => {
+        textContents.push(update.content!);
+        return true;
+      },
+      onEvenHubEvent: (next: (event: EvenHubEvent) => void) => {
+        listener = next;
+        return () => undefined;
+      },
+      shutDownPageContainer: async () => true,
+    };
+
+    await transmitLayeredHybridCanvas(
+      {} as HTMLCanvasElement,
+      "OVERVIEW",
+      () => undefined,
+      async () => "NAVIGATION",
+      {
+        waitForBridge: async () => bridge,
+        encode: async () => module.G2_TILES.map(({ id }) => new Uint8Array([id])),
+      },
+    );
+    expect(startupPage!.toJson().imageObject?.map(
+      ({ zOrderIndex }) => zOrderIndex,
+    )).toEqual([1, 2, 3, 4]);
+    expect(startupPage!.toJson().textObject?.[0].zOrderIndex).toBe(5);
+
+    listener!({
+      sysEvent: { eventType: OsEventTypeList.SCROLL_BOTTOM_EVENT },
+    } as EvenHubEvent);
+    await vi.waitFor(() => expect(textContents).toHaveLength(2));
+    expect(imageIds).toEqual([2, 3, 4, 5]);
+    expect(textContents).toEqual(["OVERVIEW", "NAVIGATION"]);
+  });
+
   it("serializes rapid native Text page updates without resending images", async () => {
     const module = await loadGlasses();
     if (!module) return;
