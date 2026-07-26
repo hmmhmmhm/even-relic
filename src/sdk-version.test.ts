@@ -4,16 +4,16 @@ import appManifest from "../app.json";
 import packageManifest from "../package.json";
 
 describe("Even Hub SDK compatibility", () => {
-  it("pins the 0.0.10 A/B SDK across dependency, manifest, and QR metadata", () => {
+  it("pins the pre-LZ4 0.0.11 SDK for the fast HUD gate", () => {
     const installed = packageManifest.dependencies["@evenrealities/even_hub_sdk"];
 
-    expect(installed).toBe("0.0.10");
+    expect(installed).toBe("0.0.11");
     expect(appManifest.min_sdk_version).toBe(installed);
     expect(packageManifest.scripts.qr).toContain(
-      "http://100.96.68.73:4173/diagnostic-v10",
+      "http://100.96.68.73:4176/hud-canvas-fast",
     );
-    expect(packageManifest.scripts.qr).toContain("sdk=0.0.10");
-    expect(packageManifest.scripts.qr).toContain("build=sdk-0010-ab");
+    expect(packageManifest.scripts.qr).toContain("sdk=0.0.11");
+    expect(packageManifest.scripts.qr).toContain("build=fast-live-011");
   });
 
   it("serializes image bytes without the 0.0.12 LZ4 transport flag", () => {
