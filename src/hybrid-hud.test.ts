@@ -96,12 +96,29 @@ describe("hybrid native Text HUD", () => {
     const news = module.formatHybridHudText("news", fixedDate);
     const todo = module.formatHybridHudText("todo", fixedDate);
 
-    for (const content of [overview, navigation, news, todo]) {
-      expect(content).toContain("14:37:42");
-      expect(content).toContain("HONGDAE 23°C 맑음");
+    for (const [index, content] of [
+      overview,
+      navigation,
+      news,
+      todo,
+    ].entries()) {
+      const lines = content.split("\n");
+      expect(lines).toHaveLength(8);
+      expect(lines[0]).toContain("14:37:42");
+      expect(lines[0]).toContain("23°C 맑음");
+      expect(lines[0]).toContain(`0${index + 1} / 04`);
+      expect(lines[1]).toBe("RELIC // LIVE   HONGDAE");
+      expect(lines[2]).toBe("");
+      expect(Math.max(...lines.map((line) => Array.from(line).length)))
+        .toBeLessThanOrEqual(27);
     }
-    expect(overview).toContain("01 / 04");
-    expect(overview).toContain("2호선 정상 운행");
+    expect(overview.split("\n").slice(3)).toEqual([
+      "NEWS // OVERVIEW",
+      "2호선 정상 운행",
+      "홍대입구역 혼잡도 보통",
+      "[ ] 지하철역으로 이동",
+      "MIC -24 dBFS",
+    ]);
     expect(navigation).toContain("02 / 04");
     expect(navigation).toContain("우회전 →");
     expect(news).toContain("03 / 04");

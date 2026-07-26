@@ -11,31 +11,27 @@ type Point = readonly [number, number];
 const HYBRID_PAGE_LINES: Record<HudPage, readonly string[]> = {
   overview: [
     "NEWS // OVERVIEW",
-    "",
     "2호선 정상 운행",
-    "홍대입구역 혼잡도  보통",
-    "",
-    "MIC -24 dBFS   [ ] 지하철역으로 이동",
+    "홍대입구역 혼잡도 보통",
+    "[ ] 지하철역으로 이동",
+    "MIC -24 dBFS",
   ],
   navigation: [
     "NAVIGATION // ACTIVE",
-    "",
-    "DEST 0.8km   NEXT 120m",
-    "",
+    "NEXT 120m   DEST 0.8km",
     "우회전 →",
-    "다음 교차로에서 우회전",
+    "다음 교차로에서",
+    "우회전",
   ],
   news: [
     "NEWS // FOCUS",
-    "",
     "2호선 정상 운행",
     "홍대입구역 혼잡도 보통",
-    "",
-    "오늘 23°C · 맑음   강수 확률 10%",
+    "오늘 23°C · 맑음",
+    "강수 확률 10%",
   ],
   todo: [
     "TODO // FOCUS",
-    "",
     "[ ] 지하철역으로 이동",
     "[ ] 우산 챙기기",
     "[x] 경로 확인",
@@ -143,7 +139,8 @@ export function formatHybridHudText(
     .join(":");
   const pageNumber = String(HUD_PAGES.indexOf(page) + 1).padStart(2, "0");
   return [
-    `RELIC // LIVE   ${time}   HONGDAE 23°C 맑음   ${pageNumber} / 04`,
+    `${time}  23°C 맑음  ${pageNumber} / 04`,
+    "RELIC // LIVE   HONGDAE",
     "",
     ...HYBRID_PAGE_LINES[page],
   ].join("\n");
