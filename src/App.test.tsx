@@ -55,4 +55,15 @@ describe("RELIC peripheral HUD", () => {
     expect(hud.dataset.textContainers).toBe("1");
     expect(hud.dataset.imageContainers).toBe("4");
   });
+
+  it("selects the dense Canvas HUD with the proven four-tile layout", () => {
+    window.history.replaceState({}, "", "/hud-canvas");
+    render(<App autoStart={false} />);
+
+    const hud = screen.getByTestId("hud-frame");
+    expect(screen.getByText(/576×288 · CANVAS HUD/)).toBeTruthy();
+    expect(hud.dataset.renderer).toBe("canvas");
+    expect(hud.dataset.textContainers).toBe("1");
+    expect(hud.dataset.imageContainers).toBe("4");
+  });
 });

@@ -7,6 +7,7 @@ import {
   transmitOfficialSample,
 } from "./glasses";
 import { drawCalibrationPattern } from "./calibration";
+import { drawDenseCanvasHud } from "./canvas-hud";
 
 type AppProps = {
   autoStart?: boolean;
@@ -14,6 +15,7 @@ type AppProps = {
 
 export function App({ autoStart = true }: AppProps) {
   const calibrationMode = window.location.pathname === "/calibration-max";
+  const canvasHudMode = window.location.pathname === "/hud-canvas";
   const hardwareBmpMode = window.location.pathname === "/diagnostic-v10";
   const diagnosticMode = window.location.pathname.startsWith("/diagnostic-v")
     || new URLSearchParams(window.location.search).get("mode") === "diagnostic";
@@ -34,6 +36,8 @@ export function App({ autoStart = true }: AppProps) {
     void (async () => {
       if (calibrationMode) {
         drawCalibrationPattern(canvasRef.current!);
+      } else if (canvasHudMode) {
+        drawDenseCanvasHud(canvasRef.current!);
       } else {
         await drawHudReference(canvasRef.current!, hudReferenceUrl);
       }
@@ -51,7 +55,7 @@ export function App({ autoStart = true }: AppProps) {
       cancelled = true;
       unsubscribe?.();
     };
-  }, [autoStart, calibrationMode, diagnosticMode, hardwareBmpMode]);
+  }, [autoStart, calibrationMode, canvasHudMode, diagnosticMode, hardwareBmpMode]);
 
   return (
     <main className="preview-stage">
@@ -65,7 +69,9 @@ export function App({ autoStart = true }: AppProps) {
                 ? "OFFICIAL SAMPLE.PNG · RAW BYTES"
                 : calibrationMode
                   ? "576×288 MAX BOUNDARY"
-                  : "576×288 · 4 IMAGE TILES"}
+                  : canvasHudMode
+                    ? "576×288 · CANVAS HUD"
+                    : "576×288 · 4 IMAGE TILES"}
             {" · STATIC MOCK"}
           </span>
         </div>
@@ -76,6 +82,7 @@ export function App({ autoStart = true }: AppProps) {
         className="hud-frame"
         data-testid="hud-frame"
         data-logical-size="576x288"
+        data-renderer={canvasHudMode ? "canvas" : calibrationMode ? "calibration" : "image"}
         data-text-containers={diagnosticMode ? "2" : "1"}
         data-image-containers={diagnosticMode ? "1" : "4"}
         aria-label="RELIC 이미지 전송 시안"
@@ -96,7 +103,9 @@ export function App({ autoStart = true }: AppProps) {
             ? "진단 모드에서는 Even Realities 공식 sample.png 원본 바이트를 그대로 전송합니다."
             : calibrationMode
               ? "외곽 띠, 보조 테두리, 중앙 십자와 32px 눈금을 네 타일로 전송합니다."
-              : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
+              : canvasHudMode
+                ? "이미지 원본 없이 Canvas에서 직접 그린 HUD를 네 타일로 전송합니다."
+                : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
       </p>
     </main>
   );
