@@ -18,4 +18,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Render the selected visual as one 576 x 288 Canvas frame, split it into four
   288 x 144 image containers, and keep the required event-capture text layer
   visually blank.
+- The physical G2 checkpoint confirmed that the four-tile 576 x 288 HUD is
+  clearly visible and fills the maximum SDK raster area. Adjust future visual
+  scale and density inside this fixed frame rather than enlarging the canvas.
 - Keep custom TypeScript/TSX/CSS implementation code at or below 450 lines in total.

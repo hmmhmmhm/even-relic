@@ -92,3 +92,14 @@ A/B 실험에서는 원인 변수가 너무 많아지므로 결과 확인 뒤 �
 - Interpretation: the SDK `0.0.12` image transport change is incompatible with
   the current Even app or G2 firmware environment.
 - Next: update the Even app and G2 firmware, then retest SDK `0.0.12`.
+
+## Full HUD follow-up result
+
+- SDK: `0.0.10`
+- Build: `hud-4tile-sdk0010`
+- Layout: four `288×144` image containers covering the `576×288` display
+- Result: all four tiles rendered successfully on the physical G2
+- Optical observation: the full HUD was very clear and felt larger than the
+  centered `200×100` diagnostic pattern
+- Size conclusion: this layout already fills the maximum SDK raster area;
+  future size changes must scale content within the same frame
