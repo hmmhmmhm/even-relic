@@ -81,3 +81,14 @@ A/B 실험에서는 원인 변수가 너무 많아지므로 결과 확인 뒤 �
   결과를 기록한다.
 - 결과에 따라 SDK `0.0.12` 복원 또는 호스트 업데이트라는 다음 단계가
   하나로 결정된다.
+
+## Hardware result
+
+- SDK: `0.0.10`
+- Build: `sdk-0010-ab`
+- Trigger: one manual G2 or R1 click
+- Result: `success`
+- Optical observation: a very small dot/checker pattern was visible on the G2.
+- Interpretation: the SDK `0.0.12` image transport change is incompatible with
+  the current Even app or G2 firmware environment.
+- Next: update the Even app and G2 firmware, then retest SDK `0.0.12`.
