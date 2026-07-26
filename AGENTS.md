@@ -21,4 +21,12 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - The physical G2 checkpoint confirmed that the four-tile 576 x 288 HUD is
   clearly visible and fills the maximum SDK raster area. Adjust future visual
   scale and density inside this fixed frame rather than enlarging the canvas.
+- Default to a non-navigation overview: keep the map, replace the center route
+  and lower intersection cards with news, and show navigation only on its own
+  page.
+- Distribute the dense HUD across four circular scroll pages in this order:
+  overview, navigation, news, and TODO/status. G2 and R1 bottom scroll advances;
+  top scroll goes back.
+- Keep the four image containers alive during page changes. Redraw the same
+  Canvas and update container IDs 2–5 serially instead of rebuilding the page.
 - Keep custom TypeScript/TSX/CSS implementation code at or below 450 lines in total.
