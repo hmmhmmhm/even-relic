@@ -1,6 +1,6 @@
 # G2 Hybrid Text Console Alignment Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Keep one native Text update per scroll while aligning `/hud-hybrid-z` to a fixed right-hand Text console and preserving a large static map on the left.
 
@@ -16,7 +16,7 @@
 - Modify: `src/hybrid-hud.test.ts`
 - Modify: `src/hybrid-hud.ts`
 
-- [ ] **Step 1: Write the failing eight-line Text test**
+- [x] **Step 1: Write the failing eight-line Text test**
 
 Extend the module type with `HYBRID_TEXT_CONSOLE`, then replace the loose content
 assertions with this exact structural contract:
@@ -47,7 +47,7 @@ expect(overview.split("\n").slice(3)).toEqual([
 ]);
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -58,7 +58,7 @@ node node_modules/vitest/vitest.mjs run src/hybrid-hud.test.ts
 Expected: FAIL because the current pages have nine lines and the shared header is
 one long line.
 
-- [ ] **Step 3: Implement the minimal fixed-width Text content**
+- [x] **Step 3: Implement the minimal fixed-width Text content**
 
 Change `HYBRID_PAGE_LINES` so every page contains exactly five content lines,
 and change the shared prefix to two lines:
@@ -105,7 +105,7 @@ todo: [
 ],
 ```
 
-- [ ] **Step 4: Run the focused test and verify GREEN**
+- [x] **Step 4: Run the focused test and verify GREEN**
 
 Run:
 
@@ -115,7 +115,7 @@ node node_modules/vitest/vitest.mjs run src/hybrid-hud.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the Text contract**
+- [x] **Step 5: Commit the Text contract**
 
 ```bash
 git add src/hybrid-hud.ts src/hybrid-hud.test.ts
@@ -130,7 +130,7 @@ git commit -m "fix: fit hybrid HUD text to one console"
 - Modify: `src/glasses.test.ts`
 - Modify: `src/glasses.ts`
 
-- [ ] **Step 1: Write failing Canvas and container geometry tests**
+- [x] **Step 1: Write failing Canvas and container geometry tests**
 
 Add a `drawLayeredHybridHudBackground` test that records Canvas rectangles and
 asserts:
@@ -171,7 +171,7 @@ Add a separate invalid-startup test that captures `rebuildPageContainer` and
 asserts its Text object has the same five geometry fields. This covers reloads
 where an old page is still open and the SDK chooses the rebuild path.
 
-- [ ] **Step 2: Run both focused tests and verify RED**
+- [x] **Step 2: Run both focused tests and verify RED**
 
 Run:
 
@@ -182,7 +182,7 @@ node node_modules/vitest/vitest.mjs run src/hybrid-hud.test.ts src/glasses.test.
 Expected: FAIL because the layered renderer and console constant do not exist,
 and the layered Text is still full-screen.
 
-- [ ] **Step 3: Add the isolated renderer and shared geometry**
+- [x] **Step 3: Add the isolated renderer and shared geometry**
 
 Export:
 
@@ -267,7 +267,7 @@ Use this helper in both `createLayeredGlassesPage()` and the
 
 Leave `createGlassesPage()` and the old `drawHybridHudBackground()` unchanged.
 
-- [ ] **Step 4: Run both focused tests and verify GREEN**
+- [x] **Step 4: Run both focused tests and verify GREEN**
 
 Run:
 
@@ -277,7 +277,7 @@ node node_modules/vitest/vitest.mjs run src/hybrid-hud.test.ts src/glasses.test.
 
 Expected: both files pass.
 
-- [ ] **Step 5: Commit the coordinate contract**
+- [x] **Step 5: Commit the coordinate contract**
 
 ```bash
 git add src/hybrid-hud.ts src/hybrid-hud.test.ts src/glasses.ts src/glasses.test.ts
@@ -290,7 +290,7 @@ git commit -m "fix: align layered HUD to native text console"
 - Modify: `src/App.test.tsx`
 - Modify: `src/App.tsx`
 
-- [ ] **Step 1: Write the failing route contract**
+- [x] **Step 1: Write the failing route contract**
 
 Extend the explicit z-order route test:
 
@@ -304,7 +304,7 @@ Extend the legacy hybrid route test:
 expect(hud.dataset.layout).toBeUndefined();
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -314,7 +314,7 @@ node node_modules/vitest/vitest.mjs run src/App.test.tsx
 
 Expected: FAIL because `data-layout` is not present.
 
-- [ ] **Step 3: Route the new Canvas renderer**
+- [x] **Step 3: Route the new Canvas renderer**
 
 Import `drawLayeredHybridHudBackground`. In the hybrid initialization branch,
 select it only when `layeredHybridHudMode` is true:
@@ -332,7 +332,7 @@ Add the semantic route marker:
 data-layout={layeredHybridHudMode ? "map-text-console" : undefined}
 ```
 
-- [ ] **Step 4: Run the focused test and verify GREEN**
+- [x] **Step 4: Run the focused test and verify GREEN**
 
 Run:
 
@@ -342,7 +342,7 @@ node node_modules/vitest/vitest.mjs run src/App.test.tsx
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the isolated route**
+- [x] **Step 5: Commit the isolated route**
 
 ```bash
 git add src/App.tsx src/App.test.tsx
@@ -356,13 +356,13 @@ git commit -m "feat: show aligned console on layered HUD route"
 - Modify: `AGENTS.md`
 - Modify: `docs/hardware/2026-07-26-first-g2-image-success.md`
 
-- [ ] **Step 1: Record the new candidate**
+- [x] **Step 1: Record the new candidate**
 
 Document build identifier `hybrid-console-007`, the left-map/right-console
 layout, the preserved single-update contract, and the remaining G2 alignment
 check. Do not mark hardware-only items complete before the user confirms them.
 
-- [ ] **Step 2: Run the complete verification**
+- [x] **Step 2: Run the complete verification**
 
 Run:
 
@@ -379,7 +379,7 @@ Expected: all commands exit `0`; Vitest reports no failures; Vite and the Sites
 preparation script create the required `dist` files; SDK version is `0.0.10`;
 the diff has no whitespace errors.
 
-- [ ] **Step 3: Start the isolated Tailscale preview**
+- [x] **Step 3: Start the isolated Tailscale preview**
 
 Keep the existing feature server on port `4174`, verify it serves the current
 commit, and open:
@@ -388,14 +388,14 @@ commit, and open:
 http://100.96.68.73:4174/hud-hybrid-z?sdk=0.0.10&build=hybrid-console-007
 ```
 
-- [ ] **Step 4: Commit the candidate documentation**
+- [x] **Step 4: Commit the candidate documentation**
 
 ```bash
 git add README.md AGENTS.md docs/hardware/2026-07-26-first-g2-image-success.md
 git commit -m "docs: prepare aligned hybrid HUD hardware test"
 ```
 
-- [ ] **Step 5: Stop before integration**
+- [x] **Step 5: Stop before integration**
 
 Report the Tailscale URL and ask for the actual G2 result. Do not merge or push
 until the user confirms Text alignment and the preserved scroll speed.

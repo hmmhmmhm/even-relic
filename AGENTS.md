@@ -35,8 +35,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   update per scroll.
 - Preserve `/hud-hybrid` as the hardware-proven missing-z-order diagnosis.
   Test SDK `0.0.10` z-order backport only on `/hud-hybrid-z`: image layers
-  1–4, full-screen Text layer 5, and no image resend during scroll.
+  1–4, Text layer 5, and no image resend during scroll.
 - Hardware confirms `/hud-hybrid-z` keeps Text visible above Canvas and makes
-  scroll text changes immediate. Do not treat it as layout-complete: one
-  full-screen flowing Text block does not align with independent Canvas panels.
+  scroll text changes immediate. Align its single flowing Text block to one
+  right-side `(196, 8, 372, 272)` console, keep the static map on the left, and
+  avoid Canvas dividers that depend on native Text line height.
 - Keep custom TypeScript/TSX/CSS implementation code at or below 450 lines in total.
