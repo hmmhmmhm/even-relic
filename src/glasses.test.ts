@@ -1,5 +1,9 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
+import {
+  OsEventTypeList,
+  type EvenHubEvent,
+} from "@evenrealities/even_hub_sdk";
+import { describe, expect, it, vi } from "vitest";
 
 async function loadGlasses() {
   const module = await import("./glasses").catch(() => null);
@@ -217,6 +221,138 @@ describe("G2 raster transport", () => {
     );
 
     expect(calls).toEqual(["create", "image:2", "image:3", "image:4", "image:5"]);
+  });
+
+  it("updates the same four containers for bottom and top scroll paging", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+
+    let listener: ((event: EvenHubEvent) => void) | undefined;
+    let createCount = 0;
+    let rebuildCount = 0;
+    const imageIds: number[] = [];
+    const directions: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => {
+        createCount += 1;
+        return 0;
+      },
+      rebuildPageContainer: async () => {
+        rebuildCount += 1;
+        return true;
+      },
+      updateImageRawData: async (update: { containerID?: number }) => {
+        imageIds.push(update.containerID!);
+        return "success";
+      },
+      onEvenHubEvent: (next: (event: EvenHubEvent) => void) => {
+        listener = next;
+        return () => undefined;
+      },
+      shutDownPageContainer: async () => true,
+    };
+
+    const unsubscribe = await module.transmitCanvas(
+      {} as HTMLCanvasElement,
+      () => undefined,
+      {
+        waitForBridge: async () => bridge,
+        encode: async () => module.G2_TILES.map(({ id }) => new Uint8Array([id])),
+      },
+      module.G2_TILES,
+      async (direction: string) => {
+        directions.push(direction);
+      },
+    );
+
+    listener!({
+      sysEvent: { eventType: OsEventTypeList.SCROLL_BOTTOM_EVENT },
+    } as EvenHubEvent);
+    await vi.waitFor(() => expect(imageIds).toHaveLength(8));
+    listener!({
+      textEvent: { eventType: OsEventTypeList.SCROLL_TOP_EVENT },
+    } as EvenHubEvent);
+    await vi.waitFor(() => expect(imageIds).toHaveLength(12));
+
+    expect(directions).toEqual(["next", "previous"]);
+    expect(imageIds).toEqual([
+      2, 3, 4, 5,
+      2, 3, 4, 5,
+      2, 3, 4, 5,
+    ]);
+    expect(createCount).toBe(1);
+    expect(rebuildCount).toBe(0);
+    unsubscribe();
+  });
+
+  it("serializes rapid scroll pages and every image update", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+
+    let listener: ((event: EvenHubEvent) => void) | undefined;
+    let blockUpdates = false;
+    let activeUpdates = 0;
+    let maximumActiveUpdates = 0;
+    const releases: Array<() => void> = [];
+    const imageIds: number[] = [];
+    const directions: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => 0,
+      rebuildPageContainer: async () => true,
+      updateImageRawData: async (update: { containerID?: number }) => {
+        imageIds.push(update.containerID!);
+        if (!blockUpdates) return "success";
+        activeUpdates += 1;
+        maximumActiveUpdates = Math.max(maximumActiveUpdates, activeUpdates);
+        await new Promise<void>((resolve) => {
+          releases.push(() => {
+            activeUpdates -= 1;
+            resolve();
+          });
+        });
+        return "success";
+      },
+      onEvenHubEvent: (next: (event: EvenHubEvent) => void) => {
+        listener = next;
+        return () => undefined;
+      },
+      shutDownPageContainer: async () => true,
+    };
+
+    await module.transmitCanvas(
+      {} as HTMLCanvasElement,
+      () => undefined,
+      {
+        waitForBridge: async () => bridge,
+        encode: async () => module.G2_TILES.map(({ id }) => new Uint8Array([id])),
+      },
+      module.G2_TILES,
+      async (direction: string) => {
+        directions.push(direction);
+      },
+    );
+    blockUpdates = true;
+
+    listener!({
+      sysEvent: { eventType: OsEventTypeList.SCROLL_BOTTOM_EVENT },
+    } as EvenHubEvent);
+    listener!({
+      sysEvent: { eventType: OsEventTypeList.SCROLL_BOTTOM_EVENT },
+    } as EvenHubEvent);
+
+    for (let index = 0; index < 8; index += 1) {
+      await vi.waitFor(() => expect(releases.length).toBeGreaterThan(0));
+      releases.shift()!();
+    }
+    await vi.waitFor(() => expect(imageIds).toHaveLength(12));
+
+    expect(directions).toEqual(["next", "next"]);
+    expect(maximumActiveUpdates).toBe(1);
+    expect(imageIds).toEqual([
+      2, 3, 4, 5,
+      2, 3, 4, 5,
+      2, 3, 4, 5,
+    ]);
   });
 
   it("rebuilds an existing page when startup creation reports invalid", async () => {

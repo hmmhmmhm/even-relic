@@ -68,6 +68,7 @@ type HardwareBmpDependencies = {
   waitForBridge: () => Promise<OfficialBridge>;
   waitForTrigger: typeof waitForImageClick;
 };
+export type PageDirection = "next" | "previous";
 
 async function loadImage(url: string): Promise<HTMLImageElement> {
   const image = new Image();
@@ -274,6 +275,7 @@ export async function transmitCanvas(
     encode: encodeCanvasTiles,
   },
   tiles: readonly Tile[] = G2_TILES,
+  onNavigate?: (direction: PageDirection) => void | Promise<void>,
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();
@@ -295,31 +297,50 @@ export async function transmitCanvas(
     throw new Error(`안경 페이지 생성 실패: ${created}`);
   }
 
-  const encodedTiles = await dependencies.encode(source, undefined, tiles);
-  await sendTilesSequentially(encodedTiles, async (bytes, index) => {
-    const tile = tiles[index];
-    const result = ImageRawDataUpdateResult.normalize(
-      await bridge.updateImageRawData(new ImageRawDataUpdate({
-        containerID: tile.id,
-        containerName: tile.name,
-        imageData: bytes,
-      })),
-    );
-    if (!ImageRawDataUpdateResult.isSuccess(result)) {
-      throw new Error(`${tile.name} 전송 실패: ${result}`);
-    }
-    onProgress(`안경 이미지 전송 중 ${index + 1}/${tiles.length}`);
-  });
+  const refreshImages = async (completionMessage: string) => {
+    const encodedTiles = await dependencies.encode(source, undefined, tiles);
+    await sendTilesSequentially(encodedTiles, async (bytes, index) => {
+      const tile = tiles[index];
+      const result = ImageRawDataUpdateResult.normalize(
+        await bridge.updateImageRawData(new ImageRawDataUpdate({
+          containerID: tile.id,
+          containerName: tile.name,
+          imageData: bytes,
+        })),
+      );
+      if (!ImageRawDataUpdateResult.isSuccess(result)) {
+        throw new Error(`${tile.name} 전송 실패: ${result}`);
+      }
+      onProgress(`안경 이미지 전송 중 ${index + 1}/${tiles.length}`);
+    });
+    onProgress(completionMessage);
+  };
 
-  onProgress("안경 전송 완료");
+  await refreshImages("안경 전송 완료");
+  let navigationQueue = Promise.resolve();
+  const queueNavigation = (direction: PageDirection) => {
+    if (!onNavigate) return;
+    navigationQueue = navigationQueue
+      .then(async () => {
+        onProgress("HUD 페이지 전환 중");
+        await onNavigate(direction);
+        await refreshImages("페이지 전송 완료");
+      })
+      .catch((error: unknown) => {
+        onProgress(error instanceof Error ? error.message : String(error));
+      });
+  };
+
   return bridge.onEvenHubEvent((event) => {
-    const systemEvent = event.sysEvent?.eventType ?? null;
-    const textEvent = event.textEvent?.eventType ?? null;
-    if (
-      systemEvent === OsEventTypeList.DOUBLE_CLICK_EVENT
-      || textEvent === OsEventTypeList.DOUBLE_CLICK_EVENT
-    ) {
+    const eventType = event.sysEvent?.eventType
+      ?? event.textEvent?.eventType
+      ?? null;
+    if (eventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
       void bridge.shutDownPageContainer(1);
+    } else if (eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
+      queueNavigation("next");
+    } else if (eventType === OsEventTypeList.SCROLL_TOP_EVENT) {
+      queueNavigation("previous");
     }
   });
 }
