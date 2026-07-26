@@ -45,6 +45,9 @@ type Tile = {
   readonly sourceX?: number;
   readonly sourceY?: number;
 };
+type ZOrderedContainer = {
+  zOrderIndex?: number;
+};
 type Bridge = {
   createStartUpPageContainer: (page: CreateStartUpPageContainer) => Promise<unknown>;
   rebuildPageContainer: (page: RebuildPageContainer) => Promise<boolean>;
@@ -122,6 +125,7 @@ export async function drawHudReference(
 function createContainerObjects(
   tiles: readonly Tile[],
   eventPadding = 0,
+  explicitZOrder = false,
 ) {
   const eventLayer = new TextContainerProperty({
     xPosition: 0,
@@ -144,6 +148,14 @@ function createContainerObjects(
     containerID: tile.id,
     containerName: tile.name,
   }));
+  if (explicitZOrder) {
+    imageObject.forEach((image, index) => {
+      (image as ImageContainerProperty & ZOrderedContainer).zOrderIndex =
+        index + 1;
+    });
+    (eventLayer as TextContainerProperty & ZOrderedContainer).zOrderIndex =
+      imageObject.length + 1;
+  }
   return { eventLayer, imageObject };
 }
 
@@ -156,6 +168,17 @@ export function createGlassesPage(
     eventPadding,
   );
 
+  return new CreateStartUpPageContainer({
+    containerTotalNum: tiles.length + 1,
+    textObject: [eventLayer],
+    imageObject,
+  });
+}
+
+export function createLayeredGlassesPage(
+  tiles: readonly Tile[] = G2_TILES,
+) {
+  const { eventLayer, imageObject } = createContainerObjects(tiles, 8, true);
   return new CreateStartUpPageContainer({
     containerTotalNum: tiles.length + 1,
     textObject: [eventLayer],

@@ -36,6 +36,39 @@ describe("G2 raster transport", () => {
     expect(page.imageObject?.map(({ containerID }) => containerID)).toEqual([2, 3, 4, 5]);
   });
 
+  it("serializes explicit unique z-order with Text above every image", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+    const createLayeredGlassesPage = (
+      module as unknown as {
+        createLayeredGlassesPage?: () => {
+          toJson: () => {
+            textObject?: Array<{ zOrderIndex?: number }>;
+            imageObject?: Array<{ zOrderIndex?: number }>;
+          };
+        };
+      }
+    ).createLayeredGlassesPage;
+    expect(createLayeredGlassesPage).toBeTypeOf("function");
+    if (!createLayeredGlassesPage) return;
+
+    const legacy = module.createGlassesPage().toJson();
+    const layered = createLayeredGlassesPage().toJson();
+    expect([
+      ...legacy.imageObject!.map(
+        ({ zOrderIndex }: { zOrderIndex?: number }) => zOrderIndex,
+      ),
+      legacy.textObject![0].zOrderIndex,
+    ]).toEqual([undefined, undefined, undefined, undefined, undefined]);
+    expect(layered.imageObject?.map(({ zOrderIndex }) => zOrderIndex)).toEqual([
+      1,
+      2,
+      3,
+      4,
+    ]);
+    expect(layered.textObject?.[0].zOrderIndex).toBe(5);
+  });
+
   it("builds the official-size single-image diagnostic page", async () => {
     const module = await loadGlasses();
     if (!module) return;
