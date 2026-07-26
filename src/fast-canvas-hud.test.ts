@@ -123,7 +123,7 @@ function renderFastHud(
 
   module.drawFastCanvasHud!(
     canvas,
-    new Date(2026, 6, 26, 14, 37, 42),
+    new Date(2026, 6, 27, 14, 37, 42),
     page,
     battery,
   );
@@ -198,10 +198,14 @@ describe("fast split Canvas HUD", () => {
       expect(hud.canvas.height).toBe(288);
       expect(hud.values).toEqual(expect.arrayContaining([
         "14:37",
-        "HONGDAE  23°C 맑음",
+        "2026.07.27 월요일",
+        "23°C 맑음",
         `0${index + 1} / 04`,
         "MAP // HONGDAE",
       ]));
+      expect(hud.texts.find(
+        ({ value }) => value === "2026.07.27 월요일",
+      )).toMatchObject({ x: 306, y: 40 });
       expect(hud.values).not.toContain("14:37:42");
       expect(hud.texts.some(({ font }) => /(?:2[0-8])px/.test(font))).toBe(true);
     }

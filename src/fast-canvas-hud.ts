@@ -12,6 +12,15 @@ const COLOR = {
 
 type HudColor = typeof COLOR[keyof typeof COLOR];
 type Point = readonly [number, number];
+const WEEKDAYS = [
+  "일요일",
+  "월요일",
+  "화요일",
+  "수요일",
+  "목요일",
+  "금요일",
+  "토요일",
+] as const;
 
 export const FAST_HUD_PAGES = [
   "overview",
@@ -35,6 +44,15 @@ function formatTime(now: Date) {
   return [now.getHours(), now.getMinutes()]
     .map((value) => String(value).padStart(2, "0"))
     .join(":");
+}
+
+function formatDate(now: Date) {
+  const date = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0"),
+  ].join(".");
+  return `${date} ${WEEKDAYS[now.getDay()]}`;
 }
 
 function drawText(
@@ -184,13 +202,14 @@ function drawDynamicHeader(
 ) {
   drawFrame(context, 296, 8, 272, 54);
   drawText(context, formatTime(now), 306, 12, 22, COLOR.primary, "bold");
-  drawText(context, "HONGDAE  23°C 맑음", 306, 40, 10, COLOR.secondary, "bold");
+  drawText(context, formatDate(now), 306, 40, 10, COLOR.secondary, "bold");
+  drawText(context, "23°C 맑음", 468, 40, 10, COLOR.secondary, "bold");
   const pageNumber = FAST_HUD_PAGES.indexOf(page) + 1;
   drawText(
     context,
     `${String(pageNumber).padStart(2, "0")} / 04`,
     516,
-    42,
+    18,
     9,
     COLOR.dim,
     "bold",
