@@ -29,6 +29,22 @@ SDK 버전별 차이, 정확한 재현 명령과 성공 증거는
 [G2 이미지 전송 최초 성공 기록](docs/hardware/2026-07-26-first-g2-image-success.md)에
 보존한다.
 
+## 고밀도 Canvas HUD 실험
+
+기존 `/`는 선택한 PNG 시안을 전송하는 하드웨어 기준선으로 보존한다.
+새 `/hud-canvas`는 원본 이미지를 사용하지 않고 시간, 나침반, 지도, 경로
+안내와 센서 패널을 `576×288` Canvas에 직접 크게 그린다.
+
+2026-07-26 Tailscale 하드웨어 테스트 URL은 다음과 같다.
+
+```text
+http://100.96.68.73:4174/hud-canvas?sdk=0.0.10&build=dense-canvas-001
+```
+
+`/calibration-max`는 최대 표시 외곽을 비교하는 교정 화면이며
+`/diagnostic-v10`은 클릭 뒤 작은 1-bit BMP를 보내는 전송 진단이다. 네
+경로 모두 검증된 SDK `0.0.10` 계약을 유지한다.
+
 ## Windows와 실제 G2에서 실행
 
 PC와 아이폰에서 Tailscale을 켠 뒤 PowerShell에서 실행한다.
