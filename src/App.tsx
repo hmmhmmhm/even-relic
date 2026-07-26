@@ -3,6 +3,7 @@ import hudReferenceUrl from "../docs/design/selected-peripheral-focus.png";
 import {
   drawHudReference,
   transmitCanvas,
+  transmitFastCanvas,
   transmitHardwareBmp,
   transmitHybridCanvas,
   transmitLayeredHybridCanvas,
@@ -15,6 +16,7 @@ import {
   HUD_PAGES,
   type HudPage,
 } from "./canvas-hud";
+import { drawFastCanvasHud } from "./fast-canvas-hud";
 import {
   drawHybridHudBackground,
   drawLayeredHybridHudBackground,
@@ -27,7 +29,9 @@ type AppProps = {
 
 export function App({ autoStart = true }: AppProps) {
   const calibrationMode = window.location.pathname === "/calibration-max";
-  const canvasHudMode = window.location.pathname === "/hud-canvas";
+  const legacyCanvasHudMode = window.location.pathname === "/hud-canvas";
+  const fastCanvasHudMode = window.location.pathname === "/hud-canvas-fast";
+  const canvasHudMode = legacyCanvasHudMode || fastCanvasHudMode;
   const legacyHybridHudMode = window.location.pathname === "/hud-hybrid";
   const layeredHybridHudMode = window.location.pathname === "/hud-hybrid-z";
   const hybridHudMode = legacyHybridHudMode || layeredHybridHudMode;
@@ -50,7 +54,12 @@ export function App({ autoStart = true }: AppProps) {
       if (!cancelled) setStatus(message);
     };
     const drawCurrentPage = () => {
-      drawDenseCanvasHud(canvas, new Date(), page);
+      if (fastCanvasHudMode) drawFastCanvasHud(canvas, new Date(), page);
+      else drawDenseCanvasHud(canvas, new Date(), page);
+    };
+    const navigateCanvas = async (direction: "next" | "previous") => {
+      page = getAdjacentHudPage(page, direction);
+      drawCurrentPage();
     };
     const transmitHybrid = layeredHybridHudMode
       ? transmitLayeredHybridCanvas
@@ -82,17 +91,18 @@ export function App({ autoStart = true }: AppProps) {
                   return formatHybridHudText(page);
                 },
               )
+          : fastCanvasHudMode
+            ? await transmitFastCanvas(
+                canvas,
+                report,
+                navigateCanvas,
+              )
           : await transmitCanvas(
               canvas,
               report,
               undefined,
               undefined,
-              canvasHudMode
-                ? async (direction) => {
-                    page = getAdjacentHudPage(page, direction);
-                    drawCurrentPage();
-                  }
-                : undefined,
+              legacyCanvasHudMode ? navigateCanvas : undefined,
             );
     })().catch((error: unknown) => {
       report(error instanceof Error ? error.message : String(error));
@@ -107,9 +117,11 @@ export function App({ autoStart = true }: AppProps) {
     calibrationMode,
     canvasHudMode,
     diagnosticMode,
+    fastCanvasHudMode,
     hardwareBmpMode,
     hybridHudMode,
     layeredHybridHudMode,
+    legacyCanvasHudMode,
   ]);
 
   return (
@@ -128,9 +140,11 @@ export function App({ autoStart = true }: AppProps) {
                     ? "STATIC CANVAS + NATIVE TEXT + Z-ORDER · SCROLL · 4 PAGES"
                     : hybridHudMode
                       ? "STATIC CANVAS + NATIVE TEXT · SCROLL · 4 PAGES"
-                      : canvasHudMode
-                        ? "576×288 · CANVAS HUD · SCROLL · 4 PAGES"
-                        : "576×288 · 4 IMAGE TILES"}
+                      : fastCanvasHudMode
+                        ? "576×288 · CANVAS HUD · FAST 2-TILE · SCROLL · 4 PAGES"
+                        : canvasHudMode
+                          ? "576×288 · CANVAS HUD · SCROLL · 4 PAGES"
+                          : "576×288 · 4 IMAGE TILES"}
             {" · STATIC MOCK"}
           </span>
         </div>
@@ -142,20 +156,27 @@ export function App({ autoStart = true }: AppProps) {
         data-testid="hud-frame"
         data-logical-size="576x288"
         data-renderer={
-          layeredHybridHudMode
-            ? "hybrid-z"
-            : hybridHudMode
-              ? "hybrid"
-              : canvasHudMode
-                ? "canvas"
-                : calibrationMode
-                  ? "calibration"
-                  : "image"
+          fastCanvasHudMode
+            ? "canvas-fast"
+            : layeredHybridHudMode
+              ? "hybrid-z"
+              : hybridHudMode
+                ? "hybrid"
+                : canvasHudMode
+                  ? "canvas"
+                  : calibrationMode
+                    ? "calibration"
+                    : "image"
         }
         data-layering={layeredHybridHudMode ? "explicit" : undefined}
         data-layout={
-          layeredHybridHudMode ? "map-text-console" : undefined
+          fastCanvasHudMode
+            ? "static-left-dynamic-right"
+            : layeredHybridHudMode
+              ? "map-text-console"
+              : undefined
         }
+        data-update-tiles={fastCanvasHudMode ? "2" : undefined}
         data-text-containers={diagnosticMode ? "2" : "1"}
         data-image-containers={diagnosticMode ? "1" : "4"}
         data-pages={
@@ -183,9 +204,11 @@ export function App({ autoStart = true }: AppProps) {
                 ? "Canvas 배경 위에 명시적 최상위 레이어의 네이티브 Text를 표시합니다."
                 : hybridHudMode
                   ? "Canvas에는 정적 배경만 보이며, 실제 안경 문구는 네이티브 Text로 한 번에 전환됩니다."
-                  : canvasHudMode
-                    ? "기본 뉴스 화면에서 아래 스크롤은 다음, 위 스크롤은 이전 페이지를 네 타일로 전송합니다."
-                    : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
+                  : fastCanvasHudMode
+                    ? "왼쪽 지도는 유지하고, 스크롤할 때 오른쪽 위·아래 두 타일만 전송합니다."
+                    : canvasHudMode
+                      ? "기본 뉴스 화면에서 아래 스크롤은 다음, 위 스크롤은 이전 페이지를 네 타일로 전송합니다."
+                      : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
       </p>
     </main>
   );
