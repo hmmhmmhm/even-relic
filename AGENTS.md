@@ -82,4 +82,6 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   scroll text changes immediate. Align its single flowing Text block to one
   right-side `(196, 8, 372, 272)` console, keep the static map on the left, and
   avoid Canvas dividers that depend on native Text line height.
-- Keep custom TypeScript/TSX/CSS implementation code at or below 450 lines in total.
+- Keep each custom TypeScript/TSX/CSS implementation file at or below 450
+  lines. Split live providers, state, transport, and rendering by
+  responsibility instead of extending the existing large modules.

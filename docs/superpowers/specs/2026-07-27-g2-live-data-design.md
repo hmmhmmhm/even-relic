@@ -1,7 +1,7 @@
 # G2 Live Data and Optional Routing Design
 
 Date: 2026-07-27
-Status: Draft for review
+Status: Approved
 Target route: `/hud-canvas-fast`
 
 ## Goal
