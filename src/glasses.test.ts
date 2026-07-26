@@ -270,6 +270,60 @@ describe("G2 raster transport", () => {
     expect(calls).toEqual(["create", "image:2", "image:3", "image:4", "image:5"]);
   });
 
+  it("starts fast Canvas with four tiles and scrolls with the right two", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+    const transmitFastCanvas = (
+      module as unknown as {
+        transmitFastCanvas?: (...args: unknown[]) => Promise<() => void>;
+      }
+    ).transmitFastCanvas;
+    expect(module.G2_RIGHT_TILES?.map(({ id }) => id)).toEqual([3, 5]);
+    expect(transmitFastCanvas).toBeTypeOf("function");
+    if (!transmitFastCanvas) return;
+
+    let listener: ((event: EvenHubEvent) => void) | undefined;
+    const encodedTileIds: number[][] = [];
+    const imageIds: number[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => 0,
+      rebuildPageContainer: async () => true,
+      updateImageRawData: async (update: { containerID?: number }) => {
+        imageIds.push(update.containerID!);
+        return "success";
+      },
+      onEvenHubEvent: (next: (event: EvenHubEvent) => void) => {
+        listener = next;
+        return () => undefined;
+      },
+      shutDownPageContainer: async () => true,
+    };
+
+    await transmitFastCanvas(
+      {} as HTMLCanvasElement,
+      () => undefined,
+      async () => undefined,
+      {
+        waitForBridge: async () => bridge,
+        encode: async (
+          _source: HTMLCanvasElement,
+          _factory: unknown,
+          tiles = module.G2_TILES,
+        ) => {
+          encodedTileIds.push(tiles.map(({ id }) => id));
+          return tiles.map(({ id }) => new Uint8Array([id]));
+        },
+      },
+    );
+    listener!({
+      sysEvent: { eventType: OsEventTypeList.SCROLL_BOTTOM_EVENT },
+    } as EvenHubEvent);
+    await vi.waitFor(() => expect(imageIds).toHaveLength(6));
+
+    expect(encodedTileIds).toEqual([[2, 3, 4, 5], [3, 5]]);
+    expect(imageIds).toEqual([2, 3, 4, 5, 3, 5]);
+  });
+
   it("sends the hybrid background once and pages with native Text only", async () => {
     const module = await loadGlasses();
     if (!module) return;

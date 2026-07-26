@@ -20,6 +20,7 @@ export const G2_TILES = [
   { id: 4, name: "relicBL", x: 0, y: 144, width: 288, height: 144 },
   { id: 5, name: "relicBR", x: 288, y: 144, width: 288, height: 144 },
 ] as const;
+export const G2_RIGHT_TILES = [G2_TILES[1], G2_TILES[3]] as const;
 
 export const DIAGNOSTIC_TILES = [
   {
@@ -335,6 +336,7 @@ export async function transmitCanvas(
   },
   tiles: readonly Tile[] = G2_TILES,
   onNavigate?: (direction: PageDirection) => void | Promise<void>,
+  navigationTiles: readonly Tile[] = tiles,
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();
@@ -356,10 +358,17 @@ export async function transmitCanvas(
     throw new Error(`안경 페이지 생성 실패: ${created}`);
   }
 
-  const refreshImages = async (completionMessage: string) => {
-    const encodedTiles = await dependencies.encode(source, undefined, tiles);
+  const refreshImages = async (
+    targetTiles: readonly Tile[],
+    completionMessage: string,
+  ) => {
+    const encodedTiles = await dependencies.encode(
+      source,
+      undefined,
+      targetTiles,
+    );
     await sendTilesSequentially(encodedTiles, async (bytes, index) => {
-      const tile = tiles[index];
+      const tile = targetTiles[index];
       const result = ImageRawDataUpdateResult.normalize(
         await bridge.updateImageRawData(new ImageRawDataUpdate({
           containerID: tile.id,
@@ -370,12 +379,12 @@ export async function transmitCanvas(
       if (!ImageRawDataUpdateResult.isSuccess(result)) {
         throw new Error(`${tile.name} 전송 실패: ${result}`);
       }
-      onProgress(`안경 이미지 전송 중 ${index + 1}/${tiles.length}`);
+      onProgress(`안경 이미지 전송 중 ${index + 1}/${targetTiles.length}`);
     });
     onProgress(completionMessage);
   };
 
-  await refreshImages("안경 전송 완료");
+  await refreshImages(tiles, "안경 전송 완료");
   let navigationQueue = Promise.resolve();
   const queueNavigation = (direction: PageDirection) => {
     if (!onNavigate) return;
@@ -383,7 +392,7 @@ export async function transmitCanvas(
       .then(async () => {
         onProgress("HUD 페이지 전환 중");
         await onNavigate(direction);
-        await refreshImages("페이지 전송 완료");
+        await refreshImages(navigationTiles, "페이지 전송 완료");
       })
       .catch((error: unknown) => {
         onProgress(error instanceof Error ? error.message : String(error));
@@ -402,6 +411,25 @@ export async function transmitCanvas(
       queueNavigation("previous");
     }
   });
+}
+
+export function transmitFastCanvas(
+  source: HTMLCanvasElement,
+  onProgress: (message: string) => void,
+  onNavigate: (direction: PageDirection) => void | Promise<void>,
+  dependencies: TransportDependencies = {
+    waitForBridge: waitForEvenAppBridge,
+    encode: encodeCanvasTiles,
+  },
+) {
+  return transmitCanvas(
+    source,
+    onProgress,
+    dependencies,
+    G2_TILES,
+    onNavigate,
+    G2_RIGHT_TILES,
+  );
 }
 
 export async function transmitHybridCanvas(
