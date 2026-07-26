@@ -7,6 +7,14 @@ const COLOR = {
   dim: "#555555",
 } as const;
 
+export const HUD_PAGES = [
+  "overview",
+  "navigation",
+  "news",
+  "todo",
+] as const;
+export type HudPage = typeof HUD_PAGES[number];
+
 type HudColor = typeof COLOR[keyof typeof COLOR];
 type Point = readonly [number, number];
 
@@ -123,7 +131,11 @@ function fillPolygon(
   context.fill();
 }
 
-function drawHeader(context: CanvasRenderingContext2D, now: Date) {
+function drawHeader(
+  context: CanvasRenderingContext2D,
+  now: Date,
+  page: HudPage,
+) {
   drawFrame(context, 8, 8, 132, 54);
   drawText(context, formatTime(now), 16, 11, 22, COLOR.primary, "bold");
   drawText(context, "HONGDAE  23°C 맑음", 16, 42, 9, COLOR.secondary, "bold");
@@ -143,7 +155,16 @@ function drawHeader(context: CanvasRenderingContext2D, now: Date) {
 
   drawFrame(context, 432, 8, 136, 54);
   drawText(context, "RELIC // LIVE", 440, 13, 10, COLOR.primary, "bold");
-  drawText(context, "LINK 04", 510, 47, 8, COLOR.dim, "bold");
+  const pageNumber = HUD_PAGES.indexOf(page) + 1;
+  drawText(
+    context,
+    `${String(pageNumber).padStart(2, "0")} / 04`,
+    514,
+    47,
+    8,
+    COLOR.dim,
+    "bold",
+  );
   for (let index = 0; index < 5; index += 1) {
     context.fillStyle = index < 4 ? COLOR.primary : COLOR.dim;
     context.fillRect(442 + index * 13, 49 - index * 5, 8, 3 + index * 5);
@@ -246,7 +267,7 @@ function drawRightRail(context: CanvasRenderingContext2D) {
   context.fillRect(414, 125, 142, 1);
 
   drawFrame(context, 404, 142, 164, 138, "top-right");
-  drawText(context, "NEWS // 02", 416, 151, 11, COLOR.primary, "bold");
+  drawText(context, "STATUS // 04", 416, 151, 11, COLOR.primary, "bold");
   drawText(context, "TODO // ACTIVE", 416, 168, 9, COLOR.secondary, "bold");
   drawCheckbox(context, 416, 190, 12, false);
   drawText(context, "지하철역으로", 434, 187, 16, COLOR.primary, "bold");
@@ -256,9 +277,86 @@ function drawRightRail(context: CanvasRenderingContext2D) {
   drawText(context, "02:14", 520, 254, 9, COLOR.primary, "bold");
 }
 
+function drawOverview(context: CanvasRenderingContext2D) {
+  drawMap(context);
+
+  drawFrame(context, 204, 72, 188, 130, "top-right");
+  drawText(context, "NEWS // LOCAL 01", 216, 80, 9, COLOR.secondary, "bold");
+  drawText(context, "2호선 정상 운행", 216, 101, 18, COLOR.primary, "bold");
+  context.fillStyle = COLOR.dim;
+  context.fillRect(216, 130, 164, 1);
+  drawText(context, "홍대입구역 혼잡도", 216, 145, 10, COLOR.secondary, "bold");
+  drawText(context, "보통", 216, 164, 22, COLOR.primary, "bold");
+  drawFrameIndex(context, "01", 356, 184);
+
+  drawFrame(context, 204, 214, 188, 66);
+  drawText(context, "BRIEF // 02", 216, 222, 9, COLOR.secondary, "bold");
+  drawText(context, "오늘 23°C · 맑음", 216, 239, 15, COLOR.primary, "bold");
+  drawText(context, "강수 10%", 216, 260, 9, COLOR.secondary, "bold");
+  drawRightRail(context);
+}
+
+function drawNavigationPage(context: CanvasRenderingContext2D) {
+  drawMap(context);
+  drawNavigation(context);
+  drawRightRail(context);
+}
+
+function drawNewsPage(context: CanvasRenderingContext2D) {
+  drawFrame(context, 8, 72, 384, 130, "top-right");
+  drawText(context, "NEWS // FOCUS", 20, 80, 10, COLOR.secondary, "bold");
+  drawText(context, "2호선 정상 운행", 20, 103, 28, COLOR.primary, "bold");
+  drawText(context, "홍대입구역 혼잡도 보통", 20, 145, 16, COLOR.primary, "bold");
+  drawText(context, "16:31  ·  LOCAL TRANSIT", 20, 178, 9, COLOR.dim, "bold");
+  drawFrameIndex(context, "01", 354, 184);
+
+  drawFrame(context, 8, 214, 384, 66);
+  drawText(context, "WEATHER // HONGDAE", 20, 222, 9, COLOR.secondary, "bold");
+  drawText(context, "오늘 23°C · 맑음", 20, 240, 17, COLOR.primary, "bold");
+  drawText(context, "강수 확률 10%", 242, 244, 11, COLOR.secondary, "bold");
+
+  drawFrame(context, 404, 72, 164, 96);
+  drawText(context, "UP NEXT // 02", 416, 80, 9, COLOR.secondary, "bold");
+  drawText(context, "기온 변화 없음", 416, 101, 15, COLOR.primary, "bold");
+  drawText(context, "18:00까지", 416, 130, 10, COLOR.secondary, "bold");
+
+  drawFrame(context, 404, 180, 164, 100, "top-right");
+  drawText(context, "SIGNAL // LIVE", 416, 188, 9, COLOR.secondary, "bold");
+  drawText(context, "NEWS  03", 416, 209, 18, COLOR.primary, "bold");
+  drawText(context, "LAST  00:12", 416, 248, 9, COLOR.dim, "bold");
+}
+
+function drawTodoPage(context: CanvasRenderingContext2D) {
+  drawFrame(context, 8, 72, 384, 208, "top-right");
+  drawText(context, "TODO // FOCUS", 20, 80, 10, COLOR.secondary, "bold");
+  drawCheckbox(context, 20, 106, 14, false);
+  drawText(context, "지하철역으로 이동", 44, 101, 21, COLOR.primary, "bold");
+  drawText(context, "NEXT  ·  0.8km", 44, 128, 9, COLOR.dim, "bold");
+  drawCheckbox(context, 20, 158, 14, false);
+  drawText(context, "우산 챙기기", 44, 153, 21, COLOR.primary, "bold");
+  drawText(context, "강수 확률 10%", 44, 180, 9, COLOR.dim, "bold");
+  drawCheckbox(context, 20, 214, 14, true);
+  drawText(context, "경로 확인", 44, 209, 21, COLOR.secondary, "bold");
+  drawText(context, "DONE  ·  02:14", 44, 238, 9, COLOR.dim, "bold");
+
+  drawFrame(context, 404, 72, 164, 96);
+  drawText(context, "AUDIO // STATUS", 416, 80, 9, COLOR.secondary, "bold");
+  drawText(context, "-24 dBFS", 416, 102, 20, COLOR.primary, "bold");
+  context.fillStyle = COLOR.primary;
+  context.fillRect(416, 140, 104, 2);
+  context.fillStyle = COLOR.dim;
+  context.fillRect(520, 140, 36, 2);
+
+  drawFrame(context, 404, 180, 164, 100, "top-right");
+  drawText(context, "LINK // G2 + R1", 416, 188, 9, COLOR.secondary, "bold");
+  drawText(context, "CONNECTED", 416, 211, 16, COLOR.primary, "bold");
+  drawText(context, "SCROLL READY", 416, 248, 9, COLOR.dim, "bold");
+}
+
 export function drawDenseCanvasHud(
   canvas: HTMLCanvasElement,
   now = new Date(),
+  page: HudPage = "overview",
 ) {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
@@ -269,8 +367,9 @@ export function drawDenseCanvasHud(
   context.fillStyle = COLOR.background;
   context.fillRect(0, 0, WIDTH, HEIGHT);
 
-  drawHeader(context, now);
-  drawMap(context);
-  drawNavigation(context);
-  drawRightRail(context);
+  drawHeader(context, now, page);
+  if (page === "overview") drawOverview(context);
+  if (page === "navigation") drawNavigationPage(context);
+  if (page === "news") drawNewsPage(context);
+  if (page === "todo") drawTodoPage(context);
 }
