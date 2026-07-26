@@ -43,7 +43,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   large fixed map on the left and page-focused information area on the right.
 - Hardware confirms the two-right-tile scroll transition feels very fast.
   Preserve that initial four-tile and navigation IDs 3/5 transport contract.
-  Treat the top/bottom right-tile seam as a separate pending hardware check.
+- Hardware accepts `fast-canvas-008` as the technical and visual baseline; the
+  remaining product work is page content selection. Do not alter the split
+  layout or transport contract without new hardware evidence.
 - Preserve `/hud-hybrid` as the hardware-proven missing-z-order diagnosis.
   Test SDK `0.0.10` z-order backport only on `/hud-hybrid-z`: image layers
   1–4, Text layer 5, and no image resend during scroll.
