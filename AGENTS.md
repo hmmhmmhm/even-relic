@@ -13,8 +13,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - The selected visual target is `docs/design/selected-peripheral-focus.png`.
 - Preserve a mostly empty center so the real world remains readable.
 - Use a black/off background and monochrome green only.
-- The first hardware prototype is static. Connect only the Even Hub image
-  pipeline; do not connect sensors, maps, STT, news, or other live data yet.
+- The static hardware prototype phase is complete. Connect live location,
+  weather, OSM map data, and RSS news without changing the hardware-proven
+  `/hud-canvas-fast` layout or image transport contract.
 - Render the selected visual as one 576 x 288 Canvas frame, split it into four
   288 x 144 image containers, and keep the required event-capture text layer
   visually blank.
@@ -63,6 +64,17 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Tint only the WebView preview with a flat `#91ff73` multiply layer. Keep the
   transmitted grayscale Canvas palette unchanged and do not add preview
   shadows or radial glow.
+- Keep general live features keyless: use the Even SDK for phone location,
+  Open-Meteo for weather, allowlisted RSS feeds through the RELIC Worker, and
+  OSM-derived road geometry rendered by RELIC's own Canvas code.
+- Use SDK `0.0.11` as the next hardware experiment because it adds native
+  location APIs without the SDK `0.0.12` LZ4 image path that produced
+  `SENDFAILED`. Do not adopt `0.0.12` until its image transport is separately
+  proven on the physical G2.
+- Treat routing as optional. Enable OpenRouteService only when `ORS_API_KEY`
+  exists in the server environment, keep the key out of WebView bundles and
+  source control, and show a clear disabled state without breaking the
+  keyless map, weather, or news experience.
 - Preserve `/hud-hybrid` as the hardware-proven missing-z-order diagnosis.
   Test SDK `0.0.10` z-order backport only on `/hud-hybrid-z`: image layers
   1–4, Text layer 5, and no image resend during scroll.
