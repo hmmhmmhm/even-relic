@@ -90,7 +90,7 @@ describe("dense Canvas HUD", () => {
       getContext: () => context,
     } as unknown as HTMLCanvasElement;
 
-    drawDenseCanvasHud(canvas);
+    drawDenseCanvasHud(canvas, new Date(2026, 6, 26, 14, 37, 42));
 
     const paintedStyles = [
       ...rectangles.map(({ style }) => style),
@@ -108,6 +108,10 @@ describe("dense Canvas HUD", () => {
       { style: "#555555", args: [404, 72, 16, 1] },
       { style: "#555555", args: [404, 142, 16, 1] },
       { style: "#555555", args: [552, 279, 16, 1] },
+      { style: "#ffffff", args: [416, 190, 12, 12] },
+      { style: "#000000", args: [419, 193, 6, 6] },
+      { style: "#aaaaaa", args: [416, 255, 10, 10] },
+      { style: "#000000", args: [419, 258, 4, 4] },
     ]));
     expect(new Set(paintedStyles)).toEqual(new Set([
       "#000000",
@@ -117,8 +121,8 @@ describe("dense Canvas HUD", () => {
     ]));
     const values = texts.map(({ value }) => value);
     expect(values).toEqual(expect.arrayContaining([
-      "14:37",
-      "HONGDAE",
+      "14:37:42",
+      "HONGDAE  23°C 맑음",
       "NE 047°",
       "NAV // ROUTE 01",
       "120m",
@@ -126,11 +130,15 @@ describe("dense Canvas HUD", () => {
       "-24 dBFS",
       "다음 교차로",
       "NEWS // 02",
-      "MISSION ACTIVE",
+      "TODO // ACTIVE",
       "지하철역으로",
       "이동",
-      "ROUTE UPDATED",
+      "경로 확인",
+      "02:14",
     ]));
+    expect(values).not.toContain("14:37");
+    expect(values).not.toContain("MISSION ACTIVE");
+    expect(values).not.toContain("ROUTE UPDATED");
     for (const forbiddenValue of [
       "ACC",
       "X +0.12",
@@ -140,15 +148,22 @@ describe("dense Canvas HUD", () => {
       expect(values).not.toContain(forbiddenValue);
     }
 
+    const clock = texts.find(({ value }) => value === "14:37:42");
     const newsBody = texts.find(({ value }) => value === "지하철역으로");
     const missionAction = texts.find(({ value }) => value === "이동");
-    expect(newsBody?.font).toContain("17px");
+    expect(clock?.font).toContain("22px");
+    expect(newsBody?.font).toContain("16px");
     expect(missionAction?.font).toContain("24px");
     expect(strokedPaths).toEqual(expect.arrayContaining([
       expect.objectContaining({ style: "#aaaaaa", width: 6 }),
       expect.objectContaining({ style: "#ffffff", width: 2 }),
       expect.objectContaining({ style: "#aaaaaa", width: 8 }),
       expect.objectContaining({ style: "#ffffff", width: 3 }),
+      expect.objectContaining({
+        style: "#ffffff",
+        width: 2,
+        points: [[418, 260], [420, 263], [425, 257]],
+      }),
     ]));
     expect(strokedPaths.length).toBeGreaterThanOrEqual(8);
     expect(filledPaths.length).toBeGreaterThanOrEqual(1);
