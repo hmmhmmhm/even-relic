@@ -1,4 +1,4 @@
-import { HUD_PAGES, type HudPage } from "./canvas-hud";
+import type { HudPage } from "./canvas-hud";
 
 const WIDTH = 576;
 const HEIGHT = 288;
@@ -12,8 +12,26 @@ const COLOR = {
 type HudColor = typeof COLOR[keyof typeof COLOR];
 type Point = readonly [number, number];
 
+export const FAST_HUD_PAGES = [
+  "overview",
+  "news",
+  "todo",
+  "navigation",
+] as const satisfies readonly HudPage[];
+
+export function getAdjacentFastHudPage(
+  page: HudPage,
+  direction: "next" | "previous",
+) {
+  const offset = direction === "next" ? 1 : -1;
+  const index = FAST_HUD_PAGES.indexOf(page);
+  return FAST_HUD_PAGES[
+    (index + offset + FAST_HUD_PAGES.length) % FAST_HUD_PAGES.length
+  ];
+}
+
 function formatTime(now: Date) {
-  return [now.getHours(), now.getMinutes(), now.getSeconds()]
+  return [now.getHours(), now.getMinutes()]
     .map((value) => String(value).padStart(2, "0"))
     .join(":");
 }
@@ -166,7 +184,7 @@ function drawDynamicHeader(
   drawFrame(context, 296, 8, 272, 54);
   drawText(context, formatTime(now), 306, 12, 22, COLOR.primary, "bold");
   drawText(context, "HONGDAE  23°C 맑음", 306, 40, 10, COLOR.secondary, "bold");
-  const pageNumber = HUD_PAGES.indexOf(page) + 1;
+  const pageNumber = FAST_HUD_PAGES.indexOf(page) + 1;
   drawText(
     context,
     `${String(pageNumber).padStart(2, "0")} / 04`,
@@ -217,13 +235,14 @@ function drawNavigation(context: CanvasRenderingContext2D) {
 
 function drawNews(context: CanvasRenderingContext2D) {
   drawText(context, "NEWS // FOCUS", 308, 82, 11, COLOR.secondary, "bold");
-  drawText(context, "2호선 정상 운행", 308, 106, 22, COLOR.primary, "bold");
-  drawText(context, "홍대입구역  보통", 308, 146, 18, COLOR.primary, "bold");
-  drawText(context, "LOCAL TRANSIT  16:31", 308, 181, 10, COLOR.dim, "bold");
+  drawText(context, "· AI 산업 투자 확대", 308, 104, 14, COLOR.primary, "bold");
+  drawText(context, "· 도심 자율주행 시범", 308, 128, 14, COLOR.primary, "bold");
+  drawText(context, "· 코스피 장중 상승", 308, 152, 14, COLOR.primary, "bold");
+  drawText(context, "· 서울 낮 최고 29도", 308, 176, 14, COLOR.primary, "bold");
 
-  drawText(context, "WEATHER // HONGDAE", 308, 226, 10, COLOR.secondary, "bold");
-  drawText(context, "23°C  맑음", 308, 244, 18, COLOR.primary, "bold");
-  drawText(context, "강수 10%", 486, 249, 10, COLOR.dim, "bold");
+  drawText(context, "NEWS // MORE", 308, 222, 10, COLOR.secondary, "bold");
+  drawText(context, "· 주말 프로야구 빅매치", 308, 237, 13, COLOR.primary, "bold");
+  drawText(context, "· 신작 게임 글로벌 출시", 308, 257, 13, COLOR.primary, "bold");
 }
 
 function drawTodo(context: CanvasRenderingContext2D) {
@@ -235,8 +254,8 @@ function drawTodo(context: CanvasRenderingContext2D) {
   drawCheckbox(context, 308, 188, true);
   drawText(context, "경로 확인", 332, 183, 16, COLOR.secondary, "bold");
 
-  drawText(context, "LINK // G2 + R1", 308, 226, 10, COLOR.secondary, "bold");
-  drawText(context, "CONNECTED", 308, 244, 18, COLOR.primary, "bold");
+  drawText(context, "PROGRESS // TODAY", 308, 226, 10, COLOR.secondary, "bold");
+  drawText(context, "완료 1 / 3", 308, 244, 18, COLOR.primary, "bold");
 }
 
 function drawDynamicPage(

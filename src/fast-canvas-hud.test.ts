@@ -19,6 +19,11 @@ type PathRecord = {
   points: Array<[number, number]>;
 };
 type FastHudModule = {
+  FAST_HUD_PAGES?: readonly HudPage[];
+  getAdjacentFastHudPage?: (
+    page: HudPage,
+    direction: "next" | "previous",
+  ) => HudPage;
   drawFastCanvasHud?: (
     canvas: HTMLCanvasElement,
     now?: Date,
@@ -143,6 +148,26 @@ function leftSnapshot(hud: ReturnType<typeof renderFastHud>) {
 }
 
 describe("fast split Canvas HUD", () => {
+  it("uses the approved fast-only circular page order", async () => {
+    const module = await loadFastHud();
+    if (!module) return;
+
+    expect(module.FAST_HUD_PAGES).toEqual([
+      "overview",
+      "news",
+      "todo",
+      "navigation",
+    ]);
+    expect(module.getAdjacentFastHudPage).toBeTypeOf("function");
+    expect(module.getAdjacentFastHudPage?.("overview", "next")).toBe("news");
+    expect(module.getAdjacentFastHudPage?.("navigation", "next")).toBe(
+      "overview",
+    );
+    expect(module.getAdjacentFastHudPage?.("overview", "previous")).toBe(
+      "navigation",
+    );
+  });
+
   it("keeps a static left map and draws high-contrast right pages", async () => {
     const module = await loadFastHud();
     if (!module) return;
@@ -151,9 +176,9 @@ describe("fast split Canvas HUD", () => {
 
     const pageNames: HudPage[] = [
       "overview",
-      "navigation",
       "news",
       "todo",
+      "navigation",
     ];
     const pages = pageNames.map((page) => renderFastHud(module, page));
 
@@ -161,11 +186,12 @@ describe("fast split Canvas HUD", () => {
       expect(hud.canvas.width).toBe(576);
       expect(hud.canvas.height).toBe(288);
       expect(hud.values).toEqual(expect.arrayContaining([
-        "14:37:42",
+        "14:37",
         "HONGDAE  23°C 맑음",
         `0${index + 1} / 04`,
         "MAP // HONGDAE",
       ]));
+      expect(hud.values).not.toContain("14:37:42");
       expect(hud.texts.some(({ font }) => /(?:2[0-8])px/.test(font))).toBe(true);
     }
     expect(new Set(pages[0].paintedStyles)).toEqual(new Set([
@@ -180,18 +206,24 @@ describe("fast split Canvas HUD", () => {
       leftSnapshot(pages[0]),
       leftSnapshot(pages[0]),
     ]);
-    expect(pages[1].values).toEqual(expect.arrayContaining([
+    expect(pages[3].values).toEqual(expect.arrayContaining([
       "NAV // ACTIVE",
       "120m",
       "우회전",
       "다음 교차로",
     ]));
-    expect(pages[2].values).toContain("2호선 정상 운행");
-    expect(pages[3].values).toEqual(expect.arrayContaining([
+    expect(pages[1].values.filter((value) => value.startsWith("· "))).toHaveLength(
+      6,
+    );
+    expect(pages[1].values).not.toContain("2호선 정상 운행");
+    expect(pages[2].values).toEqual(expect.arrayContaining([
       "TODO // ACTIVE",
       "지하철역으로 이동",
       "우산 챙기기",
       "경로 확인",
+      "완료 1 / 3",
     ]));
+    expect(pages[2].values).not.toContain("CONNECTED");
+    expect(pages[2].values).not.toContain("LINK // G2 + R1");
   });
 });

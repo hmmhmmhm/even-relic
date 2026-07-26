@@ -16,7 +16,10 @@ import {
   HUD_PAGES,
   type HudPage,
 } from "./canvas-hud";
-import { drawFastCanvasHud } from "./fast-canvas-hud";
+import {
+  drawFastCanvasHud,
+  getAdjacentFastHudPage,
+} from "./fast-canvas-hud";
 import {
   drawHybridHudBackground,
   drawLayeredHybridHudBackground,
@@ -58,7 +61,9 @@ export function App({ autoStart = true }: AppProps) {
       else drawDenseCanvasHud(canvas, new Date(), page);
     };
     const navigateCanvas = async (direction: "next" | "previous") => {
-      page = getAdjacentHudPage(page, direction);
+      page = fastCanvasHudMode
+        ? getAdjacentFastHudPage(page, direction)
+        : getAdjacentHudPage(page, direction);
       drawCurrentPage();
     };
     const transmitHybrid = layeredHybridHudMode
