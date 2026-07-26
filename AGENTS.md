@@ -29,4 +29,8 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   top scroll goes back.
 - Keep the four image containers alive during page changes. Redraw the same
   Canvas and update container IDs 2–5 serially instead of rebuilding the page.
+- Preserve `/hud-canvas` as the proven all-Canvas baseline. Test faster native
+  text paging only on `/hud-hybrid`: send a text-free four-tile background once,
+  then reuse the full-screen event-capture Text container for one in-place text
+  update per scroll.
 - Keep custom TypeScript/TSX/CSS implementation code at or below 450 lines in total.
