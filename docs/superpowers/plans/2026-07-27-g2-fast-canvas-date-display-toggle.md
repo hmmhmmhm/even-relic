@@ -16,7 +16,7 @@
 - Modify: `src/fast-canvas-hud.test.ts`
 - Modify: `src/fast-canvas-hud.ts`
 
-- [ ] **Step 1: Write the failing date test**
+- [x] **Step 1: Write the failing date test**
 
 Render `new Date(2026, 6, 27, 14, 37, 42)` and assert:
 
@@ -33,7 +33,7 @@ expect(hud.texts.find(({ value }) => value === "2026.07.27 월요일")).toMatchO
 });
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -44,7 +44,7 @@ npx vitest run src/fast-canvas-hud.test.ts
 Expected: FAIL because the date string is absent and weather still includes
 `HONGDAE`.
 
-- [ ] **Step 3: Implement date formatting and header placement**
+- [x] **Step 3: Implement date formatting and header placement**
 
 Add:
 
@@ -72,7 +72,7 @@ function formatDate(now: Date) {
 Keep the time at `(306, 12)`, draw the page count at `(516, 18)`, the date at
 `(306, 40)`, and `23°C 맑음` at `(468, 40)`.
 
-- [ ] **Step 4: Run the focused test and verify GREEN**
+- [x] **Step 4: Run the focused test and verify GREEN**
 
 Run:
 
@@ -82,7 +82,7 @@ npx vitest run src/fast-canvas-hud.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the date header**
+- [x] **Step 5: Commit the date header**
 
 ```bash
 git add src/fast-canvas-hud.test.ts src/fast-canvas-hud.ts
@@ -92,10 +92,10 @@ git commit -m "feat: add Korean date to fast Canvas header"
 ### Task 2: Flat green WebView preview
 
 **Files:**
-- Create: `src/styles.test.ts`
+- Create: `src/styles.test.mjs`
 - Modify: `src/styles.css`
 
-- [ ] **Step 1: Write the failing CSS contract test**
+- [x] **Step 1: Write the failing CSS contract test**
 
 Read `src/styles.css` and assert:
 
@@ -108,17 +108,17 @@ expect(css).not.toContain("radial-gradient");
 expect(css).not.toContain("0 0 50px");
 ```
 
-- [ ] **Step 2: Run the CSS test and verify RED**
+- [x] **Step 2: Run the CSS test and verify RED**
 
 Run:
 
 ```bash
-npx vitest run src/styles.test.ts
+npx vitest run src/styles.test.mjs
 ```
 
 Expected: FAIL because the overlay and flat styling do not exist.
 
-- [ ] **Step 3: Implement preview-only compositing**
+- [x] **Step 3: Implement preview-only compositing**
 
 Replace the body background with a flat color, make the frame positioned, remove
 the glow, and add the noninteractive overlay:
@@ -146,20 +146,20 @@ body {
 
 Do not change any Canvas drawing palette.
 
-- [ ] **Step 4: Run CSS and Canvas palette tests and verify GREEN**
+- [x] **Step 4: Run CSS and Canvas palette tests and verify GREEN**
 
 Run:
 
 ```bash
-npx vitest run src/styles.test.ts src/fast-canvas-hud.test.ts
+npx vitest run src/styles.test.mjs src/fast-canvas-hud.test.ts
 ```
 
 Expected: PASS, including the grayscale Canvas palette assertion.
 
-- [ ] **Step 5: Commit the preview treatment**
+- [x] **Step 5: Commit the preview treatment**
 
 ```bash
-git add src/styles.test.ts src/styles.css
+git add src/styles.test.mjs src/styles.css
 git commit -m "feat: flatten green WebView HUD preview"
 ```
 
@@ -170,7 +170,7 @@ git commit -m "feat: flatten green WebView HUD preview"
 - Modify: `src/glasses.ts`
 - Modify: `src/App.tsx`
 
-- [ ] **Step 1: Write the failing black Canvas test**
+- [x] **Step 1: Write the failing black Canvas test**
 
 Inject a fake canvas factory into a new `createBlackCanvas()` helper and assert:
 
@@ -181,7 +181,7 @@ expect(fillStyle).toBe("#000000");
 expect(fills).toEqual([[0, 0, 576, 288]]);
 ```
 
-- [ ] **Step 2: Write the failing fast toggle behavior test**
+- [x] **Step 2: Write the failing fast toggle behavior test**
 
 Call `transmitFastCanvas()` with a marked hidden source and record every encode:
 
@@ -200,13 +200,13 @@ expect(beforeRestoreCalls).toBe(1);
 The sequence is: initial display, double-tap hide, scroll while hidden, double-tap
 restore, scroll while visible.
 
-- [ ] **Step 3: Write the failing error-state retry test**
+- [x] **Step 3: Write the failing error-state retry test**
 
 Make the first black-tile update fail, then assert a scroll still navigates because
 the state stayed visible. Hide successfully, make the first restore fail, assert a
 scroll is ignored because the state stayed hidden, and double-tap again to restore.
 
-- [ ] **Step 4: Run the transport tests and verify RED**
+- [x] **Step 4: Run the transport tests and verify RED**
 
 Run:
 
@@ -217,7 +217,7 @@ npx vitest run src/glasses.test.ts
 Expected: FAIL because fast double-tap still calls shutdown and no black Canvas
 or visibility state exists.
 
-- [ ] **Step 5: Implement a black Canvas factory**
+- [x] **Step 5: Implement a black Canvas factory**
 
 Add:
 
@@ -236,7 +236,7 @@ export function createBlackCanvas(
 }
 ```
 
-- [ ] **Step 6: Add optional serialized visibility behavior**
+- [x] **Step 6: Add optional serialized visibility behavior**
 
 Add an optional final `displayToggle` argument to `transmitCanvas()`:
 
@@ -259,7 +259,7 @@ with one shared operation queue. When `displayToggle` is present:
 
 When `displayToggle` is absent, keep calling `shutDownPageContainer(1)`.
 
-- [ ] **Step 7: Enable the toggle only for fast Canvas**
+- [x] **Step 7: Enable the toggle only for fast Canvas**
 
 Extend `FastCanvasOptions`:
 
@@ -280,7 +280,7 @@ Pass this config from `transmitFastCanvas()`:
 In `src/App.tsx`, pass `beforeRestore: drawCurrentPage` so restored time and date
 are freshly drawn.
 
-- [ ] **Step 8: Run focused and full transport tests and verify GREEN**
+- [x] **Step 8: Run focused and full transport tests and verify GREEN**
 
 Run:
 
@@ -291,7 +291,7 @@ npx vitest run src/glasses.test.ts src/App.test.tsx
 Expected: PASS. Legacy Canvas shutdown assertions and fast scroll IDs `3, 5`
 must remain unchanged.
 
-- [ ] **Step 9: Commit the display toggle**
+- [x] **Step 9: Commit the display toggle**
 
 ```bash
 git add src/glasses.test.ts src/glasses.ts src/App.tsx
@@ -305,7 +305,7 @@ git commit -m "feat: toggle fast Canvas display on double tap"
 - Modify: `AGENTS.md`
 - Modify: `docs/hardware/2026-07-26-first-g2-image-success.md`
 
-- [ ] **Step 1: Document build `fast-sleep-010`**
+- [x] **Step 1: Document build `fast-sleep-010`**
 
 Record the date format, WebView-only green flat preview, black four-tile hide and
 restore contract, ignored hidden scroll, lack of official SDK sleep, and preserved
@@ -315,7 +315,7 @@ legacy shutdown behavior. Add:
 http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.10&build=fast-sleep-010
 ```
 
-- [ ] **Step 2: Run complete verification**
+- [x] **Step 2: Run complete verification**
 
 Run:
 
@@ -330,7 +330,7 @@ npm run test:sites
 Expected: no whitespace errors; all Vitest, TypeScript, Vite, and four Sites
 worker checks pass.
 
-- [ ] **Step 3: Commit documentation**
+- [x] **Step 3: Commit documentation**
 
 ```bash
 git add README.md AGENTS.md docs/hardware/2026-07-26-first-g2-image-success.md

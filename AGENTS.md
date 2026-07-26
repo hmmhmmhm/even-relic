@@ -48,12 +48,21 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   evidence.
 - On `/hud-canvas-fast`, use the circular order overview, news, TODO, and
   navigation. Keep `/hud-canvas` on its original order.
-- Show minute-only time. Fetch one SDK `0.0.10` `DeviceInfo` before initial
-  fast-Canvas encoding and show its G1/G2/R1 battery on overview. Fall back to
-  `BATTERY --` without blocking image transmission. Do not resend tiles every
-  second or on device-status events.
+- Show minute-only time plus `YYYY.MM.DD` and the Korean weekday. Fetch one SDK
+  `0.0.10` `DeviceInfo` before initial fast-Canvas encoding and show its
+  G1/G2/R1 battery on overview. Fall back to `BATTERY --` without blocking
+  image transmission. Do not resend tiles every second or on device-status
+  events.
 - Keep six general-article samples on news, the three-item checklist plus daily
   progress on TODO, and the approved turn instruction on navigation.
+- On `/hud-canvas-fast` only, replace double-tap shutdown with a serialized
+  display toggle: send black IDs 2–5 to hide, ignore scroll while hidden, and
+  resend the current IDs 2–5 to restore. Keep the event layer and app alive,
+  update visibility only after successful transmission, and preserve legacy
+  shutdown behavior on every other route.
+- Tint only the WebView preview with a flat `#91ff73` multiply layer. Keep the
+  transmitted grayscale Canvas palette unchanged and do not add preview
+  shadows or radial glow.
 - Preserve `/hud-hybrid` as the hardware-proven missing-z-order diagnosis.
   Test SDK `0.0.10` z-order backport only on `/hud-hybrid-z`: image layers
   1–4, Text layer 5, and no image resend during scroll.
