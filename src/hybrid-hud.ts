@@ -8,6 +8,14 @@ const COLOR = {
 } as const;
 type Point = readonly [number, number];
 
+export const HYBRID_TEXT_CONSOLE = {
+  x: 196,
+  y: 8,
+  width: 372,
+  height: 272,
+  padding: 8,
+} as const;
+
 const HYBRID_PAGE_LINES: Record<HudPage, readonly string[]> = {
   overview: [
     "NEWS // OVERVIEW",
@@ -125,6 +133,59 @@ export function drawHybridHudBackground(canvas: HTMLCanvasElement) {
   context.fillRect(16, 16, 42, 2);
   context.fillRect(212, 80, 26, 2);
   context.fillRect(418, 80, 26, 2);
+  context.fillStyle = COLOR.primary;
+  context.fillRect(8, 8, 12, 2);
+  context.fillRect(556, 278, 12, 2);
+}
+
+export function drawLayeredHybridHudBackground(canvas: HTMLCanvasElement) {
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
+  canvas.width = 576;
+  canvas.height = 288;
+  context.imageSmoothingEnabled = false;
+  context.fillStyle = COLOR.background;
+  context.fillRect(0, 0, 576, 288);
+
+  drawCornerFrame(context, 8, 8, 180, 272);
+  drawCornerFrame(
+    context,
+    HYBRID_TEXT_CONSOLE.x,
+    HYBRID_TEXT_CONSOLE.y,
+    HYBRID_TEXT_CONSOLE.width,
+    HYBRID_TEXT_CONSOLE.height,
+  );
+
+  const roads: readonly Point[][] = [
+    [[18, 40], [62, 32], [106, 52], [180, 38]],
+    [[18, 78], [72, 74], [116, 55], [180, 69]],
+    [[18, 118], [64, 106], [104, 122], [180, 108]],
+    [[18, 158], [60, 144], [112, 162], [180, 148]],
+    [[18, 198], [76, 180], [126, 196], [180, 182]],
+    [[18, 238], [70, 224], [122, 242], [180, 226]],
+    [[42, 16], [44, 272]],
+    [[88, 16], [80, 272]],
+    [[138, 16], [144, 272]],
+  ];
+  for (const road of roads) drawPath(context, road, COLOR.dim, 1);
+  const route: readonly Point[] = [
+    [42, 258],
+    [62, 218],
+    [108, 204],
+    [108, 154],
+    [156, 154],
+    [156, 92],
+  ];
+  drawPath(context, route, COLOR.secondary, 6);
+  drawPath(context, route, COLOR.primary, 2);
+
+  context.fillStyle = COLOR.dim;
+  for (const y of [56, 104, 152, 200, 248]) {
+    context.fillRect(196, y, 2, 12);
+    context.fillRect(566, y, 2, 12);
+  }
+  context.fillStyle = COLOR.secondary;
+  context.fillRect(16, 16, 42, 2);
   context.fillStyle = COLOR.primary;
   context.fillRect(8, 8, 12, 2);
   context.fillRect(556, 278, 12, 2);

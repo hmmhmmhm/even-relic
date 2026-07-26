@@ -43,7 +43,14 @@ describe("G2 raster transport", () => {
       module as unknown as {
         createLayeredGlassesPage?: () => {
           toJson: () => {
-            textObject?: Array<{ zOrderIndex?: number }>;
+            textObject?: Array<{
+              xPosition?: number;
+              yPosition?: number;
+              width?: number;
+              height?: number;
+              paddingLength?: number;
+              zOrderIndex?: number;
+            }>;
             imageObject?: Array<{ zOrderIndex?: number }>;
           };
         };
@@ -66,7 +73,14 @@ describe("G2 raster transport", () => {
       3,
       4,
     ]);
-    expect(layered.textObject?.[0].zOrderIndex).toBe(5);
+    expect(layered.textObject?.[0]).toMatchObject({
+      xPosition: 196,
+      yPosition: 8,
+      width: 372,
+      height: 272,
+      paddingLength: 8,
+      zOrderIndex: 5,
+    });
   });
 
   it("builds the official-size single-image diagnostic page", async () => {
@@ -409,6 +423,54 @@ describe("G2 raster transport", () => {
     await vi.waitFor(() => expect(textContents).toHaveLength(2));
     expect(imageIds).toEqual([2, 3, 4, 5]);
     expect(textContents).toEqual(["OVERVIEW", "NAVIGATION"]);
+  });
+
+  it("rebuilds layered hybrid Text with the same console geometry", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+    let rebuiltPage: {
+      toJson: () => {
+        textObject?: Array<{
+          xPosition?: number;
+          yPosition?: number;
+          width?: number;
+          height?: number;
+          paddingLength?: number;
+          zOrderIndex?: number;
+        }>;
+      };
+    } | undefined;
+    const bridge = {
+      createStartUpPageContainer: async () => 1,
+      rebuildPageContainer: async (page: typeof rebuiltPage) => {
+        rebuiltPage = page;
+        return true;
+      },
+      updateImageRawData: async () => "success",
+      textContainerUpgrade: async () => true,
+      onEvenHubEvent: () => () => undefined,
+      shutDownPageContainer: async () => true,
+    };
+
+    await module.transmitLayeredHybridCanvas(
+      {} as HTMLCanvasElement,
+      "OVERVIEW",
+      () => undefined,
+      async () => "NAVIGATION",
+      {
+        waitForBridge: async () => bridge,
+        encode: async () => module.G2_TILES.map(({ id }) => new Uint8Array([id])),
+      },
+    );
+
+    expect(rebuiltPage?.toJson().textObject?.[0]).toMatchObject({
+      xPosition: 196,
+      yPosition: 8,
+      width: 372,
+      height: 272,
+      paddingLength: 8,
+      zOrderIndex: 5,
+    });
   });
 
   it("serializes rapid native Text page updates without resending images", async () => {

@@ -11,6 +11,7 @@ import {
   waitForEvenAppBridge,
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
+import { HYBRID_TEXT_CONSOLE } from "./hybrid-hud";
 import { waitForImageClick } from "./image-trigger";
 
 export const G2_TILES = [
@@ -47,6 +48,18 @@ type Tile = {
 };
 type ZOrderedContainer = {
   zOrderIndex?: number;
+};
+type EventLayerGeometry = {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+};
+const FULLSCREEN_EVENT_LAYER: EventLayerGeometry = {
+  x: 0,
+  y: 0,
+  width: 576,
+  height: 288,
 };
 type Bridge = {
   createStartUpPageContainer: (page: CreateStartUpPageContainer) => Promise<unknown>;
@@ -126,12 +139,13 @@ function createContainerObjects(
   tiles: readonly Tile[],
   eventPadding = 0,
   explicitZOrder = false,
+  geometry: EventLayerGeometry = FULLSCREEN_EVENT_LAYER,
 ) {
   const eventLayer = new TextContainerProperty({
-    xPosition: 0,
-    yPosition: 0,
-    width: 576,
-    height: 288,
+    xPosition: geometry.x,
+    yPosition: geometry.y,
+    width: geometry.width,
+    height: geometry.height,
     borderWidth: 0,
     borderColor: 0,
     paddingLength: eventPadding,
@@ -159,6 +173,15 @@ function createContainerObjects(
   return { eventLayer, imageObject };
 }
 
+function createLayeredContainerObjects(tiles: readonly Tile[]) {
+  return createContainerObjects(
+    tiles,
+    HYBRID_TEXT_CONSOLE.padding,
+    true,
+    HYBRID_TEXT_CONSOLE,
+  );
+}
+
 export function createGlassesPage(
   tiles: readonly Tile[] = G2_TILES,
   eventPadding = 0,
@@ -178,7 +201,7 @@ export function createGlassesPage(
 export function createLayeredGlassesPage(
   tiles: readonly Tile[] = G2_TILES,
 ) {
-  const { eventLayer, imageObject } = createContainerObjects(tiles, 8, true);
+  const { eventLayer, imageObject } = createLayeredContainerObjects(tiles);
   return new CreateStartUpPageContainer({
     containerTotalNum: tiles.length + 1,
     textObject: [eventLayer],
@@ -403,11 +426,9 @@ export async function transmitHybridCanvas(
   );
   if (created === StartUpPageCreateResult.invalid) {
     onProgress("기존 하이브리드 페이지 재구성 중");
-    const { eventLayer, imageObject } = createContainerObjects(
-      tiles,
-      8,
-      explicitZOrder,
-    );
+    const { eventLayer, imageObject } = explicitZOrder
+      ? createLayeredContainerObjects(tiles)
+      : createContainerObjects(tiles, 8);
     const rebuildFailure = explicitZOrder
       ? "레이어 하이브리드 안경 페이지 재구성 실패"
       : "하이브리드 안경 페이지 재구성 실패";
