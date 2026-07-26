@@ -1,6 +1,6 @@
 # G2 Fast Split Canvas HUD Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add an isolated `/hud-canvas-fast` experiment with fully styled Canvas text and a two-tile scroll update while preserving `/hud-canvas`.
 
@@ -16,7 +16,7 @@
 - Modify: `src/glasses.test.ts`
 - Modify: `src/glasses.ts`
 
-- [ ] **Step 1: Write the failing fast transport test**
+- [x] **Step 1: Write the failing fast transport test**
 
 Add a test that captures the bridge listener and records the tile list passed to
 the encoder:
@@ -66,7 +66,7 @@ it("starts fast Canvas with four tiles and scrolls with the right two", async ()
 });
 ```
 
-- [ ] **Step 2: Run the focused transport test and verify RED**
+- [x] **Step 2: Run the focused transport test and verify RED**
 
 Run:
 
@@ -76,7 +76,7 @@ node node_modules/vitest/vitest.mjs run src/glasses.test.ts
 
 Expected: FAIL because `G2_RIGHT_TILES` and `transmitFastCanvas` do not exist.
 
-- [ ] **Step 3: Implement optional navigation tiles**
+- [x] **Step 3: Implement optional navigation tiles**
 
 Export the proven right-side container references:
 
@@ -146,7 +146,7 @@ export function transmitFastCanvas(
 }
 ```
 
-- [ ] **Step 4: Run the focused transport test and verify GREEN**
+- [x] **Step 4: Run the focused transport test and verify GREEN**
 
 Run:
 
@@ -156,7 +156,7 @@ node node_modules/vitest/vitest.mjs run src/glasses.test.ts
 
 Expected: PASS, including the existing full four-tile navigation tests.
 
-- [ ] **Step 5: Commit the transport contract**
+- [x] **Step 5: Commit the transport contract**
 
 ```bash
 git add src/glasses.ts src/glasses.test.ts
@@ -169,7 +169,7 @@ git commit -m "feat: update only right Canvas tiles on scroll"
 - Create: `src/fast-canvas-hud.test.ts`
 - Create: `src/fast-canvas-hud.ts`
 
-- [ ] **Step 1: Write the failing renderer contract**
+- [x] **Step 1: Write the failing renderer contract**
 
 Create a Canvas recorder equivalent to the existing dense HUD recorder, but
 include `x` and `y` on text records. Load `drawFastCanvasHud()` dynamically and
@@ -219,7 +219,7 @@ expect(pages[3].values).toEqual(expect.arrayContaining([
 `leftSnapshot()` must include rectangles fully inside `x < 288`, text records
 with `x < 288`, and paths whose every point is left of `288`.
 
-- [ ] **Step 2: Run the renderer test and verify RED**
+- [x] **Step 2: Run the renderer test and verify RED**
 
 Run:
 
@@ -230,7 +230,7 @@ node node_modules/vitest/vitest.mjs run src/fast-canvas-hud.test.ts
 Expected: FAIL because `src/fast-canvas-hud.ts` and `drawFastCanvasHud()` do not
 exist.
 
-- [ ] **Step 3: Implement the split renderer**
+- [x] **Step 3: Implement the split renderer**
 
 Create `src/fast-canvas-hud.ts` with:
 
@@ -298,7 +298,7 @@ export function drawFastCanvasHud(
 }
 ```
 
-- [ ] **Step 4: Run the renderer test and verify GREEN**
+- [x] **Step 4: Run the renderer test and verify GREEN**
 
 Run:
 
@@ -308,7 +308,7 @@ node node_modules/vitest/vitest.mjs run src/fast-canvas-hud.test.ts
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the renderer**
+- [x] **Step 5: Commit the renderer**
 
 ```bash
 git add src/fast-canvas-hud.ts src/fast-canvas-hud.test.ts
@@ -321,7 +321,7 @@ git commit -m "feat: draw high-contrast split Canvas HUD"
 - Modify: `src/App.test.tsx`
 - Modify: `src/App.tsx`
 
-- [ ] **Step 1: Write the failing route test**
+- [x] **Step 1: Write the failing route test**
 
 Add:
 
@@ -340,7 +340,7 @@ it("isolates the two-tile fast Canvas experiment", () => {
 
 Keep the existing `/hud-canvas` assertions unchanged.
 
-- [ ] **Step 2: Run the route test and verify RED**
+- [x] **Step 2: Run the route test and verify RED**
 
 Run:
 
@@ -350,7 +350,7 @@ node node_modules/vitest/vitest.mjs run src/App.test.tsx
 
 Expected: FAIL because `/hud-canvas-fast` has no route metadata.
 
-- [ ] **Step 3: Wire the renderer and transport**
+- [x] **Step 3: Wire the renderer and transport**
 
 Import `drawFastCanvasHud` and `transmitFastCanvas`. Add:
 
@@ -374,7 +374,7 @@ data-layout={fastCanvasHudMode
 data-update-tiles={fastCanvasHudMode ? "2" : undefined}
 ```
 
-- [ ] **Step 4: Run the route test and verify GREEN**
+- [x] **Step 4: Run the route test and verify GREEN**
 
 Run:
 
@@ -384,7 +384,7 @@ node node_modules/vitest/vitest.mjs run src/App.test.tsx
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit the route**
+- [x] **Step 5: Commit the route**
 
 ```bash
 git add src/App.tsx src/App.test.tsx
@@ -398,13 +398,13 @@ git commit -m "feat: add fast split Canvas HUD route"
 - Modify: `AGENTS.md`
 - Modify: `docs/hardware/2026-07-26-first-g2-image-success.md`
 
-- [ ] **Step 1: Document the candidate**
+- [x] **Step 1: Document the candidate**
 
 Record build `fast-canvas-008`, the preserved `/hud-canvas` baseline, initial
 four-tile transfer, scroll IDs `3, 5`, high-contrast palette, and unchecked G2
 latency and seam checks.
 
-- [ ] **Step 2: Run complete verification**
+- [x] **Step 2: Run complete verification**
 
 Run:
 
@@ -420,7 +420,7 @@ git diff --check
 Expected: all commands exit `0`, all Vitest and Sites tests pass, Vite creates
 the three required Sites files, and the installed SDK remains `0.0.10`.
 
-- [ ] **Step 3: Verify the Tailscale candidate**
+- [x] **Step 3: Verify the Tailscale candidate**
 
 Keep the feature server on port `4174` and verify both URLs respond:
 
@@ -429,14 +429,14 @@ http://100.96.68.73:4174/hud-canvas?sdk=0.0.10&build=paged-hud-004
 http://100.96.68.73:4174/hud-canvas-fast?sdk=0.0.10&build=fast-canvas-008
 ```
 
-- [ ] **Step 4: Commit the hardware checkpoint**
+- [x] **Step 4: Commit the hardware checkpoint**
 
 ```bash
 git add README.md AGENTS.md docs/hardware/2026-07-26-first-g2-image-success.md docs/superpowers/plans/2026-07-26-g2-fast-split-canvas-hud.md
 git commit -m "docs: prepare fast Canvas HUD hardware test"
 ```
 
-- [ ] **Step 5: Stop before integration**
+- [x] **Step 5: Stop before integration**
 
 Report both A/B links. Do not merge or push until the user confirms that the
 new route is faster enough and the two right tiles do not show a distracting

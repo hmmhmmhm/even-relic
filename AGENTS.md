@@ -33,6 +33,12 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   text paging only on `/hud-hybrid`: send a text-free four-tile background once,
   then reuse the full-screen event-capture Text container for one in-place text
   update per scroll.
+- Preserve `/hud-canvas` unchanged when testing `/hud-canvas-fast`. The fast
+  route keeps the left 288 x 288 map identical on every page, puts every
+  page-dependent pixel on the right, sends all four tiles initially, and sends
+  only right-side container IDs 3 and 5 after scroll.
+- Use the high-contrast Canvas palette `#ffffff`, `#d0d0d0`, `#808080`, and
+  `#000000` on `/hud-canvas-fast`, with 20–28 px core information.
 - Preserve `/hud-hybrid` as the hardware-proven missing-z-order diagnosis.
   Test SDK `0.0.10` z-order backport only on `/hud-hybrid-z`: image layers
   1–4, Text layer 5, and no image resend during scroll.
