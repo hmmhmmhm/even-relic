@@ -10,6 +10,12 @@ const COLOR = {
 type HudColor = typeof COLOR[keyof typeof COLOR];
 type Point = readonly [number, number];
 
+function formatTime(now: Date) {
+  return [now.getHours(), now.getMinutes(), now.getSeconds()]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":");
+}
+
 function drawFrame(
   context: CanvasRenderingContext2D,
   x: number,
@@ -82,6 +88,27 @@ function drawPath(
   context.stroke();
 }
 
+function drawCheckbox(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  checked: boolean,
+) {
+  context.fillStyle = checked ? COLOR.secondary : COLOR.primary;
+  context.fillRect(x, y, size, size);
+  context.fillStyle = COLOR.background;
+  context.fillRect(x + 3, y + 3, size - 6, size - 6);
+
+  if (checked) {
+    drawPath(context, [
+      [x + 2, y + 5],
+      [x + 4, y + 8],
+      [x + 9, y + 2],
+    ], COLOR.primary, 2);
+  }
+}
+
 function fillPolygon(
   context: CanvasRenderingContext2D,
   points: readonly Point[],
@@ -96,11 +123,10 @@ function fillPolygon(
   context.fill();
 }
 
-function drawHeader(context: CanvasRenderingContext2D) {
+function drawHeader(context: CanvasRenderingContext2D, now: Date) {
   drawFrame(context, 8, 8, 132, 54);
-  drawFrameIndex(context, "01", 108, 48);
-  drawText(context, "14:37", 16, 10, 26, COLOR.primary, "bold");
-  drawText(context, "HONGDAE", 16, 43, 10, COLOR.secondary, "bold");
+  drawText(context, formatTime(now), 16, 11, 22, COLOR.primary, "bold");
+  drawText(context, "HONGDAE  23°C 맑음", 16, 42, 9, COLOR.secondary, "bold");
 
   drawFrame(context, 148, 8, 276, 54, "top-right");
   drawFrameIndex(context, "AZIMUTH", 156, 47);
@@ -221,21 +247,19 @@ function drawRightRail(context: CanvasRenderingContext2D) {
 
   drawFrame(context, 404, 142, 164, 138, "top-right");
   drawText(context, "NEWS // 02", 416, 151, 11, COLOR.primary, "bold");
-  drawText(context, "MISSION ACTIVE", 416, 168, 9, COLOR.secondary, "bold");
-  drawText(context, "지하철역으로", 416, 190, 17, COLOR.primary, "bold");
-  drawText(context, "이동", 416, 214, 24, COLOR.primary, "bold");
-  drawText(context, "ROUTE UPDATED", 416, 257, 9, COLOR.secondary, "bold");
-  drawText(context, "02:14", 520, 257, 9, COLOR.primary, "bold");
-
-  context.fillStyle = COLOR.secondary;
-  context.fillRect(408, 166, 2, 76);
-  for (let index = 0; index < 5; index += 1) {
-    context.fillStyle = index < 3 ? COLOR.primary : COLOR.dim;
-    context.fillRect(407, 172 + index * 14, 4, 2);
-  }
+  drawText(context, "TODO // ACTIVE", 416, 168, 9, COLOR.secondary, "bold");
+  drawCheckbox(context, 416, 190, 12, false);
+  drawText(context, "지하철역으로", 434, 187, 16, COLOR.primary, "bold");
+  drawText(context, "이동", 434, 210, 24, COLOR.primary, "bold");
+  drawCheckbox(context, 416, 255, 10, true);
+  drawText(context, "경로 확인", 432, 254, 9, COLOR.secondary, "bold");
+  drawText(context, "02:14", 520, 254, 9, COLOR.primary, "bold");
 }
 
-export function drawDenseCanvasHud(canvas: HTMLCanvasElement) {
+export function drawDenseCanvasHud(
+  canvas: HTMLCanvasElement,
+  now = new Date(),
+) {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
 
@@ -245,7 +269,7 @@ export function drawDenseCanvasHud(canvas: HTMLCanvasElement) {
   context.fillStyle = COLOR.background;
   context.fillRect(0, 0, WIDTH, HEIGHT);
 
-  drawHeader(context);
+  drawHeader(context, now);
   drawMap(context);
   drawNavigation(context);
   drawRightRail(context);
