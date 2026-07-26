@@ -33,4 +33,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   text paging only on `/hud-hybrid`: send a text-free four-tile background once,
   then reuse the full-screen event-capture Text container for one in-place text
   update per scroll.
+- Preserve `/hud-hybrid` as the hardware-proven missing-z-order diagnosis.
+  Test SDK `0.0.10` z-order backport only on `/hud-hybrid-z`: image layers
+  1–4, full-screen Text layer 5, and no image resend during scroll.
 - Keep custom TypeScript/TSX/CSS implementation code at or below 450 lines in total.
