@@ -8,6 +8,7 @@ type Rectangle = {
 };
 type TextRecord = {
   style: string;
+  font: string;
   value: string;
 };
 type PathRecord = {
@@ -17,7 +18,7 @@ type PathRecord = {
 };
 
 describe("dense Canvas HUD", () => {
-  it("fills the 576 by 288 display with fixed panels and readable mock data", () => {
+  it("fills the 576 by 288 display with a readable tactical mission layout", () => {
     const rectangles: Rectangle[] = [];
     const texts: TextRecord[] = [];
     const strokedPaths: PathRecord[] = [];
@@ -56,7 +57,7 @@ describe("dense Canvas HUD", () => {
         rectangles.push({ style: fillStyle, args: [x, y, width, height] });
       },
       fillText: (value: string) => {
-        texts.push({ style: fillStyle, value });
+        texts.push({ style: fillStyle, font: context.font, value });
       },
       beginPath: () => {
         currentPath = [];
@@ -102,9 +103,11 @@ describe("dense Canvas HUD", () => {
     expect(canvas.height).toBe(288);
     expect(rectangles).toEqual(expect.arrayContaining([
       { style: "#000000", args: [0, 0, 576, 288] },
-      { style: "#555555", args: [8, 72, 184, 1] },
-      { style: "#555555", args: [204, 72, 188, 1] },
-      { style: "#555555", args: [404, 72, 164, 1] },
+      { style: "#555555", args: [8, 72, 16, 1] },
+      { style: "#555555", args: [204, 72, 16, 1] },
+      { style: "#555555", args: [404, 72, 16, 1] },
+      { style: "#555555", args: [404, 142, 16, 1] },
+      { style: "#555555", args: [552, 279, 16, 1] },
     ]));
     expect(new Set(paintedStyles)).toEqual(new Set([
       "#000000",
@@ -112,21 +115,40 @@ describe("dense Canvas HUD", () => {
       "#aaaaaa",
       "#555555",
     ]));
-    expect(texts.map(({ value }) => value)).toEqual(expect.arrayContaining([
+    const values = texts.map(({ value }) => value);
+    expect(values).toEqual(expect.arrayContaining([
       "14:37",
       "HONGDAE",
       "NE 047°",
-      "NEXT 120m",
+      "NAV // ROUTE 01",
+      "120m",
       "우회전",
       "-24 dBFS",
+      "다음 교차로",
+      "NEWS // 02",
+      "MISSION ACTIVE",
+      "지하철역으로",
+      "이동",
+      "ROUTE UPDATED",
+    ]));
+    expect(values).not.toEqual(expect.arrayContaining([
+      "ACC",
       "X +0.12",
       "Y -0.03",
       "Z +0.98",
-      "다음 교차로에서",
-      "Q. 지하철역으로 이동",
-      "NEWS 02",
+    ]));
+
+    const newsBody = texts.find(({ value }) => value === "지하철역으로");
+    const missionAction = texts.find(({ value }) => value === "이동");
+    expect(newsBody?.font).toContain("17px");
+    expect(missionAction?.font).toContain("24px");
+    expect(strokedPaths).toEqual(expect.arrayContaining([
+      expect.objectContaining({ style: "#aaaaaa", width: 6 }),
+      expect.objectContaining({ style: "#ffffff", width: 2 }),
+      expect.objectContaining({ style: "#aaaaaa", width: 8 }),
+      expect.objectContaining({ style: "#ffffff", width: 3 }),
     ]));
     expect(strokedPaths.length).toBeGreaterThanOrEqual(8);
-    expect(filledPaths.length).toBeGreaterThanOrEqual(2);
+    expect(filledPaths.length).toBeGreaterThanOrEqual(1);
   });
 });
