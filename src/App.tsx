@@ -17,6 +17,7 @@ import {
 } from "./canvas-hud";
 import {
   drawHybridHudBackground,
+  drawLayeredHybridHudBackground,
   formatHybridHudText,
 } from "./hybrid-hud";
 
@@ -61,7 +62,8 @@ export function App({ autoStart = true }: AppProps) {
       } else if (canvasHudMode) {
         drawCurrentPage();
       } else if (hybridHudMode) {
-        drawHybridHudBackground(canvas);
+        if (layeredHybridHudMode) drawLayeredHybridHudBackground(canvas);
+        else drawHybridHudBackground(canvas);
       } else {
         await drawHudReference(canvas, hudReferenceUrl);
       }
@@ -151,6 +153,9 @@ export function App({ autoStart = true }: AppProps) {
                   : "image"
         }
         data-layering={layeredHybridHudMode ? "explicit" : undefined}
+        data-layout={
+          layeredHybridHudMode ? "map-text-console" : undefined
+        }
         data-text-containers={diagnosticMode ? "2" : "1"}
         data-image-containers={diagnosticMode ? "1" : "4"}
         data-pages={

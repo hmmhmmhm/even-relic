@@ -66,6 +66,7 @@ describe("RELIC peripheral HUD", () => {
     expect(hud.dataset.textContainers).toBe("1");
     expect(hud.dataset.imageContainers).toBe("4");
     expect(hud.dataset.pages).toBe("4");
+    expect(hud.dataset.layout).toBeUndefined();
     expect(screen.getByText(/SCROLL · 4 PAGES/)).toBeTruthy();
   });
 
@@ -79,6 +80,7 @@ describe("RELIC peripheral HUD", () => {
     expect(hud.dataset.textContainers).toBe("1");
     expect(hud.dataset.imageContainers).toBe("4");
     expect(hud.dataset.pages).toBe("4");
+    expect(hud.dataset.layout).toBeUndefined();
   });
 
   it("isolates the explicit z-order hybrid experiment", () => {
@@ -94,5 +96,6 @@ describe("RELIC peripheral HUD", () => {
     expect(hud.dataset.textContainers).toBe("1");
     expect(hud.dataset.imageContainers).toBe("4");
     expect(hud.dataset.pages).toBe("4");
+    expect(hud.dataset.layout).toBe("map-text-console");
   });
 });
