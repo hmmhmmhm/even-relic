@@ -100,6 +100,11 @@ Even 앱 브리지가 실제 G2의 네이티브 Text로 그린다. 실제
 http://100.96.68.73:4173/hud-hybrid-z?sdk=0.0.10&build=hybrid-zorder-006
 ```
 
+실제 G2에서는 Text가 Canvas 레이아웃 앞에 정상 표시되고, 스크롤 문구도
+즉시 바뀌는 것을 확인했다. 현재 남은 과제는 한 개의 전체 화면 Text가
+문서처럼 흐르기 때문에 여러 Canvas 패널의 좌표와 정확히 맞지 않는
+배치 문제다.
+
 기존 `/hud-canvas`와 `/hud-hybrid`는 비교 기준으로 그대로 보존한다.
 
 ## Windows와 실제 G2에서 실행
