@@ -7,7 +7,7 @@ import {
   transmitOfficialSample,
 } from "./glasses";
 import { drawCalibrationPattern } from "./calibration";
-import { drawDenseCanvasHud } from "./canvas-hud";
+import { drawDenseCanvasHud, HUD_PAGES } from "./canvas-hud";
 
 type AppProps = {
   autoStart?: boolean;
@@ -29,24 +29,43 @@ export function App({ autoStart = true }: AppProps) {
 
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
+    let pageIndex = 0;
+    const canvas = canvasRef.current;
     const report = (message: string) => {
       if (!cancelled) setStatus(message);
+    };
+    const drawCurrentPage = () => {
+      drawDenseCanvasHud(canvas, new Date(), HUD_PAGES[pageIndex]);
     };
 
     void (async () => {
       if (calibrationMode) {
-        drawCalibrationPattern(canvasRef.current!);
+        drawCalibrationPattern(canvas);
       } else if (canvasHudMode) {
-        drawDenseCanvasHud(canvasRef.current!);
+        drawCurrentPage();
       } else {
-        await drawHudReference(canvasRef.current!, hudReferenceUrl);
+        await drawHudReference(canvas, hudReferenceUrl);
       }
       report("Even 앱 브리지 연결 대기 중 · Safari에서는 미리보기만 표시됩니다");
       unsubscribe = hardwareBmpMode
         ? await transmitHardwareBmp(report)
         : diagnosticMode
           ? await transmitOfficialSample(report)
-          : await transmitCanvas(canvasRef.current!, report);
+          : await transmitCanvas(
+              canvas,
+              report,
+              undefined,
+              undefined,
+              canvasHudMode
+                ? async (direction) => {
+                    const delta = direction === "next" ? 1 : -1;
+                    pageIndex = (
+                      pageIndex + delta + HUD_PAGES.length
+                    ) % HUD_PAGES.length;
+                    drawCurrentPage();
+                  }
+                : undefined,
+            );
     })().catch((error: unknown) => {
       report(error instanceof Error ? error.message : String(error));
     });
@@ -70,7 +89,7 @@ export function App({ autoStart = true }: AppProps) {
                 : calibrationMode
                   ? "576×288 MAX BOUNDARY"
                   : canvasHudMode
-                    ? "576×288 · CANVAS HUD"
+                    ? "576×288 · CANVAS HUD · SCROLL · 4 PAGES"
                     : "576×288 · 4 IMAGE TILES"}
             {" · STATIC MOCK"}
           </span>
@@ -85,6 +104,7 @@ export function App({ autoStart = true }: AppProps) {
         data-renderer={canvasHudMode ? "canvas" : calibrationMode ? "calibration" : "image"}
         data-text-containers={diagnosticMode ? "2" : "1"}
         data-image-containers={diagnosticMode ? "1" : "4"}
+        data-pages={canvasHudMode ? HUD_PAGES.length : undefined}
         aria-label="RELIC 이미지 전송 시안"
       >
         <canvas
@@ -104,7 +124,7 @@ export function App({ autoStart = true }: AppProps) {
             : calibrationMode
               ? "외곽 띠, 보조 테두리, 중앙 십자와 32px 눈금을 네 타일로 전송합니다."
               : canvasHudMode
-                ? "이미지 원본 없이 Canvas에서 직접 그린 HUD를 네 타일로 전송합니다."
+                ? "기본 뉴스 화면에서 아래 스크롤은 다음, 위 스크롤은 이전 페이지를 네 타일로 전송합니다."
                 : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
       </p>
     </main>

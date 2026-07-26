@@ -65,5 +65,7 @@ describe("RELIC peripheral HUD", () => {
     expect(hud.dataset.renderer).toBe("canvas");
     expect(hud.dataset.textContainers).toBe("1");
     expect(hud.dataset.imageContainers).toBe("4");
+    expect(hud.dataset.pages).toBe("4");
+    expect(screen.getByText(/SCROLL · 4 PAGES/)).toBeTruthy();
   });
 });
