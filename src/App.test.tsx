@@ -68,4 +68,16 @@ describe("RELIC peripheral HUD", () => {
     expect(hud.dataset.pages).toBe("4");
     expect(screen.getByText(/SCROLL · 4 PAGES/)).toBeTruthy();
   });
+
+  it("isolates the static Canvas plus native Text experiment", () => {
+    window.history.replaceState({}, "", "/hud-hybrid");
+    render(<App autoStart={false} />);
+
+    const hud = screen.getByTestId("hud-frame");
+    expect(screen.getByText(/STATIC CANVAS \+ NATIVE TEXT/)).toBeTruthy();
+    expect(hud.dataset.renderer).toBe("hybrid");
+    expect(hud.dataset.textContainers).toBe("1");
+    expect(hud.dataset.imageContainers).toBe("4");
+    expect(hud.dataset.pages).toBe("4");
+  });
 });
