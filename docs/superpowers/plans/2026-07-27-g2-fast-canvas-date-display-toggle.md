@@ -337,7 +337,7 @@ git add README.md AGENTS.md docs/hardware/2026-07-26-first-g2-image-success.md
 git commit -m "docs: prepare fast display toggle hardware test"
 ```
 
-- [ ] **Step 4: Start and verify the isolated server**
+- [x] **Step 4: Start and verify the isolated server**
 
 Run:
 
@@ -349,7 +349,7 @@ curl --fail --max-time 5 \
 
 Expected: Vite reports the Tailscale URL and the request returns HTTP 200.
 
-- [ ] **Step 5: Preserve the branch for physical testing**
+- [x] **Step 5: Preserve the branch for physical testing**
 
 Do not merge or push before G2/R1 confirms hide, hidden-scroll suppression,
 restore, date readability, and unchanged page speed.
