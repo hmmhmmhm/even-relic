@@ -344,7 +344,7 @@ git commit -m "docs: prepare fast Canvas content hardware test"
 **Files:**
 - No source changes
 
-- [ ] **Step 1: Start the isolated feature server**
+- [x] **Step 1: Start the isolated feature server**
 
 Run:
 
@@ -355,7 +355,7 @@ npm run dev -- --host 0.0.0.0 --port 4175
 Expected: Vite listens on port `4175` without replacing the existing baseline
 server.
 
-- [ ] **Step 2: Verify local and Tailscale responses**
+- [x] **Step 2: Verify local and Tailscale responses**
 
 Run:
 
@@ -368,7 +368,7 @@ curl --fail --max-time 5 \
 
 Expected: both requests return the Vite app with HTTP 200.
 
-- [ ] **Step 3: Preserve the worktree for physical testing**
+- [x] **Step 3: Preserve the worktree for physical testing**
 
 Keep the feature worktree and server alive until the user approves the content
 on G2. Do not merge or push the implementation before the hardware checkpoint.
