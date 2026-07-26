@@ -1,4 +1,5 @@
 import type { HudPage } from "./canvas-hud";
+import type { FastCanvasBattery } from "./glasses";
 
 const WIDTH = 576;
 const HEIGHT = 288;
@@ -196,17 +197,23 @@ function drawDynamicHeader(
   );
 }
 
-function drawOverview(context: CanvasRenderingContext2D) {
-  drawText(context, "NEWS // OVERVIEW", 308, 82, 11, COLOR.secondary, "bold");
-  drawText(context, "2호선 정상 운행", 308, 106, 22, COLOR.primary, "bold");
+function drawOverview(
+  context: CanvasRenderingContext2D,
+  battery?: FastCanvasBattery,
+) {
+  const batteryText = battery?.level === undefined
+    ? "BATTERY --"
+    : `${battery.label} ${battery.level}%${battery.charging ? " +" : ""}`;
+  drawText(context, "SYSTEM // OVERVIEW", 308, 82, 11, COLOR.secondary, "bold");
+  drawText(context, batteryText, 308, 106, 22, COLOR.primary, "bold");
   context.fillStyle = COLOR.dim;
   context.fillRect(308, 140, 248, 1);
-  drawText(context, "홍대입구역", 308, 152, 12, COLOR.secondary, "bold");
-  drawText(context, "혼잡도  보통", 308, 170, 20, COLOR.primary, "bold");
+  drawText(context, "WEATHER // NOW", 308, 152, 11, COLOR.secondary, "bold");
+  drawText(context, "23°C  맑음", 308, 172, 20, COLOR.primary, "bold");
 
-  drawText(context, "STATUS // NOW", 308, 226, 10, COLOR.secondary, "bold");
-  drawText(context, "TODO  01", 308, 244, 18, COLOR.primary, "bold");
-  drawText(context, "MIC -24", 474, 249, 10, COLOR.dim, "bold");
+  drawText(context, "TODAY // TODO", 308, 226, 10, COLOR.secondary, "bold");
+  drawText(context, "완료 1 / 3", 308, 244, 18, COLOR.primary, "bold");
+  drawText(context, "남은 2", 494, 249, 10, COLOR.dim, "bold");
 }
 
 function drawNavigation(context: CanvasRenderingContext2D) {
@@ -261,10 +268,11 @@ function drawTodo(context: CanvasRenderingContext2D) {
 function drawDynamicPage(
   context: CanvasRenderingContext2D,
   page: HudPage,
+  battery?: FastCanvasBattery,
 ) {
   drawFrame(context, 296, 72, 272, 134);
   drawFrame(context, 296, 216, 272, 64);
-  if (page === "overview") drawOverview(context);
+  if (page === "overview") drawOverview(context, battery);
   if (page === "navigation") drawNavigation(context);
   if (page === "news") drawNews(context);
   if (page === "todo") drawTodo(context);
@@ -274,6 +282,7 @@ export function drawFastCanvasHud(
   canvas: HTMLCanvasElement,
   now = new Date(),
   page: HudPage = "overview",
+  battery?: FastCanvasBattery,
 ) {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
@@ -284,5 +293,5 @@ export function drawFastCanvasHud(
   context.fillRect(0, 0, WIDTH, HEIGHT);
   drawStaticMap(context);
   drawDynamicHeader(context, now, page);
-  drawDynamicPage(context, page);
+  drawDynamicPage(context, page, battery);
 }

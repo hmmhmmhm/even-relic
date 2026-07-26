@@ -2,6 +2,11 @@
 import { describe, expect, it } from "vitest";
 
 type HudPage = "overview" | "navigation" | "news" | "todo";
+type FastCanvasBattery = {
+  label: "G1" | "G2" | "R1";
+  level?: number;
+  charging?: boolean;
+};
 type Rectangle = {
   style: string;
   args: [number, number, number, number];
@@ -28,6 +33,7 @@ type FastHudModule = {
     canvas: HTMLCanvasElement,
     now?: Date,
     page?: HudPage,
+    battery?: FastCanvasBattery,
   ) => void;
 };
 
@@ -40,7 +46,11 @@ async function loadFastHud() {
   return module as FastHudModule | null;
 }
 
-function renderFastHud(module: FastHudModule, page: HudPage) {
+function renderFastHud(
+  module: FastHudModule,
+  page: HudPage,
+  battery?: FastCanvasBattery,
+) {
   const rectangles: Rectangle[] = [];
   const texts: TextRecord[] = [];
   const strokedPaths: PathRecord[] = [];
@@ -115,6 +125,7 @@ function renderFastHud(module: FastHudModule, page: HudPage) {
     canvas,
     new Date(2026, 6, 26, 14, 37, 42),
     page,
+    battery,
   );
   return {
     canvas,
@@ -225,5 +236,17 @@ describe("fast split Canvas HUD", () => {
     ]));
     expect(pages[2].values).not.toContain("CONNECTED");
     expect(pages[2].values).not.toContain("LINK // G2 + R1");
+  });
+
+  it("renders one SDK battery snapshot with a safe fallback", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+
+    expect(renderFastHud(module, "overview", {
+      label: "G2",
+      level: 82,
+      charging: true,
+    }).values).toContain("G2 82% +");
+    expect(renderFastHud(module, "overview").values).toContain("BATTERY --");
   });
 });

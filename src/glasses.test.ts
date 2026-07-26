@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  DeviceModel,
   OsEventTypeList,
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
@@ -285,7 +286,19 @@ describe("G2 raster transport", () => {
     let listener: ((event: EvenHubEvent) => void) | undefined;
     const encodedTileIds: number[][] = [];
     const imageIds: number[] = [];
+    const order: string[] = [];
+    const batteries: unknown[] = [];
     const bridge = {
+      getDeviceInfo: async () => {
+        order.push("device");
+        return {
+          model: DeviceModel.G2,
+          status: {
+            batteryLevel: 82,
+            isCharging: true,
+          },
+        };
+      },
       createStartUpPageContainer: async () => 0,
       rebuildPageContainer: async () => true,
       updateImageRawData: async (update: { containerID?: number }) => {
@@ -304,15 +317,19 @@ describe("G2 raster transport", () => {
       () => undefined,
       async () => undefined,
       {
-        waitForBridge: async () => bridge,
-        encode: async (
-          _source: HTMLCanvasElement,
-          _factory: unknown,
-          tiles = module.G2_TILES,
-        ) => {
-          encodedTileIds.push(tiles.map(({ id }) => id));
-          return tiles.map(({ id }) => new Uint8Array([id]));
+        dependencies: {
+          waitForBridge: async () => bridge,
+          encode: async (
+            _source: HTMLCanvasElement,
+            _factory: unknown,
+            tiles = module.G2_TILES,
+          ) => {
+            order.push("encode");
+            encodedTileIds.push(tiles.map(({ id }) => id));
+            return tiles.map(({ id }) => new Uint8Array([id]));
+          },
         },
+        onBattery: (battery: unknown) => batteries.push(battery),
       },
     );
     listener!({
@@ -322,6 +339,60 @@ describe("G2 raster transport", () => {
 
     expect(encodedTileIds).toEqual([[2, 3, 4, 5], [3, 5]]);
     expect(imageIds).toEqual([2, 3, 4, 5, 3, 5]);
+    expect(order.indexOf("device")).toBeLessThan(order.indexOf("encode"));
+    expect(batteries).toEqual([{
+      label: "G2",
+      level: 82,
+      charging: true,
+    }]);
+  });
+
+  it("keeps fast Canvas transmission alive when battery lookup fails", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+    const transmitFastCanvas = (
+      module as unknown as {
+        transmitFastCanvas?: (...args: unknown[]) => Promise<() => void>;
+      }
+    ).transmitFastCanvas;
+    expect(transmitFastCanvas).toBeTypeOf("function");
+    if (!transmitFastCanvas) return;
+
+    const imageIds: number[] = [];
+    const batteries: unknown[] = [];
+    const bridge = {
+      getDeviceInfo: async () => {
+        throw new Error("battery unavailable");
+      },
+      createStartUpPageContainer: async () => 0,
+      rebuildPageContainer: async () => true,
+      updateImageRawData: async (update: { containerID?: number }) => {
+        imageIds.push(update.containerID!);
+        return "success";
+      },
+      onEvenHubEvent: () => () => undefined,
+      shutDownPageContainer: async () => true,
+    };
+
+    await transmitFastCanvas(
+      {} as HTMLCanvasElement,
+      () => undefined,
+      async () => undefined,
+      {
+        dependencies: {
+          waitForBridge: async () => bridge,
+          encode: async (
+            _source: HTMLCanvasElement,
+            _factory: unknown,
+            tiles = module.G2_TILES,
+          ) => tiles.map(({ id }) => new Uint8Array([id])),
+        },
+        onBattery: (battery: unknown) => batteries.push(battery),
+      },
+    );
+
+    expect(batteries).toEqual([undefined]);
+    expect(imageIds).toEqual([2, 3, 4, 5]);
   });
 
   it("sends the hybrid background once and pages with native Text only", async () => {

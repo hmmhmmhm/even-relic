@@ -8,6 +8,7 @@ import {
   transmitHybridCanvas,
   transmitLayeredHybridCanvas,
   transmitOfficialSample,
+  type FastCanvasBattery,
 } from "./glasses";
 import { drawCalibrationPattern } from "./calibration";
 import {
@@ -52,12 +53,15 @@ export function App({ autoStart = true }: AppProps) {
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
     let page: HudPage = HUD_PAGES[0];
+    let battery: FastCanvasBattery | undefined;
     const canvas = canvasRef.current;
     const report = (message: string) => {
       if (!cancelled) setStatus(message);
     };
     const drawCurrentPage = () => {
-      if (fastCanvasHudMode) drawFastCanvasHud(canvas, new Date(), page);
+      if (fastCanvasHudMode) {
+        drawFastCanvasHud(canvas, new Date(), page, battery);
+      }
       else drawDenseCanvasHud(canvas, new Date(), page);
     };
     const navigateCanvas = async (direction: "next" | "previous") => {
@@ -101,6 +105,12 @@ export function App({ autoStart = true }: AppProps) {
                 canvas,
                 report,
                 navigateCanvas,
+                {
+                  onBattery: (nextBattery) => {
+                    battery = nextBattery;
+                    drawCurrentPage();
+                  },
+                },
               )
           : await transmitCanvas(
               canvas,

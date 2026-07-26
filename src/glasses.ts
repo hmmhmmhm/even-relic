@@ -1,5 +1,6 @@
 import {
   CreateStartUpPageContainer,
+  DeviceModel,
   ImageContainerProperty,
   ImageRawDataUpdate,
   ImageRawDataUpdateResult,
@@ -9,6 +10,7 @@ import {
   TextContainerProperty,
   TextContainerUpgrade,
   waitForEvenAppBridge,
+  type DeviceInfo,
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
 import { HYBRID_TEXT_CONSOLE } from "./hybrid-hud";
@@ -64,6 +66,7 @@ const FULLSCREEN_EVENT_LAYER: EventLayerGeometry = {
 };
 type Bridge = {
   createStartUpPageContainer: (page: CreateStartUpPageContainer) => Promise<unknown>;
+  getDeviceInfo?: () => Promise<DeviceInfo | null>;
   rebuildPageContainer: (page: RebuildPageContainer) => Promise<boolean>;
   updateImageRawData: (update: ImageRawDataUpdate) => Promise<unknown>;
   onEvenHubEvent: (listener: (event: EvenHubEvent) => void) => () => void;
@@ -90,6 +93,33 @@ type HybridDependencies = {
   encode: typeof encodeCanvasTiles;
 };
 export type PageDirection = "next" | "previous";
+export type FastCanvasBattery = {
+  readonly label: "G1" | "G2" | "R1";
+  readonly level?: number;
+  readonly charging?: boolean;
+};
+type FastCanvasOptions = {
+  readonly dependencies?: TransportDependencies;
+  readonly onBattery?: (
+    battery: FastCanvasBattery | undefined,
+  ) => void;
+};
+
+export function toFastCanvasBattery(
+  device: DeviceInfo | null | undefined,
+): FastCanvasBattery | undefined {
+  if (!device) return undefined;
+  const label = device.model === DeviceModel.Ring1
+    ? "R1"
+    : device.model === DeviceModel.G2
+      ? "G2"
+      : "G1";
+  return {
+    label,
+    level: device.status.batteryLevel,
+    charging: device.status.isCharging,
+  };
+}
 
 async function loadImage(url: string): Promise<HTMLImageElement> {
   const image = new Image();
@@ -417,11 +447,28 @@ export function transmitFastCanvas(
   source: HTMLCanvasElement,
   onProgress: (message: string) => void,
   onNavigate: (direction: PageDirection) => void | Promise<void>,
-  dependencies: TransportDependencies = {
+  options: FastCanvasOptions = {},
+) {
+  const baseDependencies = options.dependencies ?? {
     waitForBridge: waitForEvenAppBridge,
     encode: encodeCanvasTiles,
-  },
-) {
+  };
+  const dependencies: TransportDependencies = {
+    ...baseDependencies,
+    waitForBridge: async () => {
+      const bridge = await baseDependencies.waitForBridge();
+      if (options.onBattery) {
+        try {
+          options.onBattery(toFastCanvasBattery(
+            await bridge.getDeviceInfo?.(),
+          ));
+        } catch {
+          options.onBattery(undefined);
+        }
+      }
+      return bridge;
+    },
+  };
   return transmitCanvas(
     source,
     onProgress,
