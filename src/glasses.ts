@@ -119,7 +119,10 @@ export async function drawHudReference(
   context.putImageData(frame, 0, 0);
 }
 
-function createContainerObjects(tiles: readonly Tile[]) {
+function createContainerObjects(
+  tiles: readonly Tile[],
+  eventPadding = 0,
+) {
   const eventLayer = new TextContainerProperty({
     xPosition: 0,
     yPosition: 0,
@@ -127,7 +130,7 @@ function createContainerObjects(tiles: readonly Tile[]) {
     height: 288,
     borderWidth: 0,
     borderColor: 0,
-    paddingLength: 0,
+    paddingLength: eventPadding,
     containerID: 1,
     containerName: "eventLayer",
     content: " ",
@@ -144,8 +147,14 @@ function createContainerObjects(tiles: readonly Tile[]) {
   return { eventLayer, imageObject };
 }
 
-export function createGlassesPage(tiles: readonly Tile[] = G2_TILES) {
-  const { eventLayer, imageObject } = createContainerObjects(tiles);
+export function createGlassesPage(
+  tiles: readonly Tile[] = G2_TILES,
+  eventPadding = 0,
+) {
+  const { eventLayer, imageObject } = createContainerObjects(
+    tiles,
+    eventPadding,
+  );
 
   return new CreateStartUpPageContainer({
     containerTotalNum: tiles.length + 1,
@@ -363,11 +372,11 @@ export async function transmitHybridCanvas(
   onProgress("하이브리드 안경 페이지 연결 중");
   const bridge = await dependencies.waitForBridge();
   const created = StartUpPageCreateResult.normalize(
-    await bridge.createStartUpPageContainer(createGlassesPage(tiles)),
+    await bridge.createStartUpPageContainer(createGlassesPage(tiles, 8)),
   );
   if (created === StartUpPageCreateResult.invalid) {
     onProgress("기존 하이브리드 페이지 재구성 중");
-    const { eventLayer, imageObject } = createContainerObjects(tiles);
+    const { eventLayer, imageObject } = createContainerObjects(tiles, 8);
     const rebuilt = await bridge.rebuildPageContainer(new RebuildPageContainer({
       containerTotalNum: tiles.length + 1,
       textObject: [eventLayer],

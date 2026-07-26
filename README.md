@@ -71,6 +71,24 @@ BLE로 이미지를 매초 재전송하지 않으므로 같은 페이지에 머�
 `/diagnostic-v10`은 클릭 뒤 작은 1-bit BMP를 보내는 전송 진단이다. 네
 경로 모두 검증된 SDK `0.0.10` 계약을 유지한다.
 
+## 하이브리드 네이티브 Text 실험
+
+`/hud-hybrid`는 페이지 전환 지연을 줄이기 위한 별도 A/B 경로다. 프레임,
+지도선과 장식만 있는 텍스트 없는 Canvas 배경을 네 타일로 최초 한 번
+전송한다. 그 뒤 `OVERVIEW`, `NAVIGATION`, `NEWS`, `TODO` 전환은 전체
+화면 이벤트 Text 컨테이너 ID 1의 콘텐츠만 `textContainerUpgrade()`로
+한 번 갱신한다.
+
+```text
+http://100.96.68.73:4173/hud-hybrid?sdk=0.0.10&build=hybrid-text-005
+```
+
+휴대폰 브라우저의 Canvas 미리보기에는 정적 배경만 보인다. 동적 문구는
+Even 앱 브리지가 실제 G2의 네이티브 Text로 그린다. SDK `0.0.10`에는
+명시적인 z-order 설정이 없으므로 Text가 이미지 위에 표시되는지, 한글과
+기호가 읽히는지, 전환이 한 번에 보이는지는 이 실기기 경로에서 판정한다.
+기존 `/hud-canvas`는 비교 기준으로 그대로 보존한다.
+
 ## Windows와 실제 G2에서 실행
 
 PC와 아이폰에서 Tailscale을 켠 뒤 PowerShell에서 실행한다.

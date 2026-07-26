@@ -240,6 +240,7 @@ describe("G2 raster transport", () => {
         containerID?: number;
         content?: string;
         isEventCapture?: number;
+        paddingLength?: number;
       }>;
     } | undefined;
     let createCount = 0;
@@ -286,6 +287,7 @@ describe("G2 raster transport", () => {
       containerID: 1,
       content: " ",
       isEventCapture: 1,
+      paddingLength: 8,
     });
     expect(imageIds).toEqual([2, 3, 4, 5]);
     expect(textContents).toEqual(["OVERVIEW 01 / 04"]);
