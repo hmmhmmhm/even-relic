@@ -95,8 +95,9 @@ npm run build
 npm run test:sites
 ```
 
-Expected: all commands exit `0`; `glasses.test.ts` still asserts startup IDs
-`2/3/4/5`, scroll IDs `3/5`, and four-tile hide/restore.
+Expected: all commands exit `0`; `glasses.test.ts` asserts fast startup IDs
+`3/5/2/4`, scroll IDs `3/5`, and `3/5/2/4` hide/restore while legacy full
+transfers remain row-major.
 
 - [ ] **Step 5: Commit the isolated gate build**
 
@@ -128,12 +129,16 @@ http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=fast-live-011
 Confirm in this order:
 
 1. both lenses show the same `576 x 288` HUD;
-2. startup completes with all four quadrants;
+2. startup completes with all four quadrants in right-top, right-bottom,
+   left-top, left-bottom order (`3/5/2/4`);
 3. bottom scroll moves exactly one page and feels as fast as build `008`;
 4. top scroll moves exactly one page backward;
 5. double tap sends a black frame without closing the app;
 6. a second double tap restores the current page;
 7. no `SENDFAILED` appears.
+
+The send-order correction does not change scroll meaning: user-forward paging
+remains 1→2→3→4, and no SDK event-direction inversion is needed.
 
 - [ ] **Step 3: Record the observed result**
 

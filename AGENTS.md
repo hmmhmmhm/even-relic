@@ -36,19 +36,23 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   update per scroll.
 - Preserve `/hud-canvas` unchanged when testing `/hud-canvas-fast`. The fast
   route keeps the left 288 x 288 map identical on every page, puts every
-  page-dependent pixel on the right, sends all four tiles initially, and sends
-  only right-side container IDs 3 and 5 after scroll.
+  page-dependent pixel on the right, sends full frames in right-top,
+  right-bottom, left-top, left-bottom order (IDs 3/5/2/4), and sends only
+  right-side container IDs 3 and 5 after scroll.
 - Use the high-contrast Canvas palette `#ffffff`, `#d0d0d0`, `#808080`, and
   `#000000` on `/hud-canvas-fast`, with 20–28 px core information.
 - Hardware feedback approves the `/hud-canvas-fast` structure: preserve its
   large fixed map on the left and page-focused information area on the right.
 - Hardware confirms the two-right-tile scroll transition feels very fast.
-  Preserve that initial four-tile and navigation IDs 3/5 transport contract.
+  Preserve the fast full-frame IDs 3/5/2/4 and navigation IDs 3/5 transport
+  contract.
 - Hardware accepts `fast-canvas-008` as the technical and visual baseline. Do
   not alter the split layout or transport contract without new hardware
   evidence.
 - On `/hud-canvas-fast`, use the circular order overview, news, TODO, and
-  navigation. Keep `/hud-canvas` on its original order.
+  navigation. User-forward scroll still advances pages 1→2→3→4, and no
+  event-direction inversion is needed. Keep `/hud-canvas` on its original
+  order.
 - Show minute-only time plus `YYYY.MM.DD` and the Korean weekday. Fetch one SDK
   `0.0.10` `DeviceInfo` before initial fast-Canvas encoding and show its
   G1/G2/R1 battery on overview. Fall back to `BATTERY --` without blocking
@@ -57,10 +61,10 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Keep six general-article samples on news, the three-item checklist plus daily
   progress on TODO, and the approved turn instruction on navigation.
 - On `/hud-canvas-fast` only, replace double-tap shutdown with a serialized
-  display toggle: send black IDs 2–5 to hide, ignore scroll while hidden, and
-  resend the current IDs 2–5 to restore. Keep the event layer and app alive,
-  update visibility only after successful transmission, and preserve legacy
-  shutdown behavior on every other route.
+  display toggle: send black IDs 3/5/2/4 to hide, ignore scroll while hidden,
+  and resend the current IDs 3/5/2/4 to restore. Keep the event layer and app
+  alive, update visibility only after successful transmission, and preserve
+  legacy shutdown behavior on every other route.
 - Tint only the WebView preview with a flat `#91ff73` multiply layer. Keep the
   transmitted grayscale Canvas palette unchanged and do not add preview
   shadows or radial glow.

@@ -22,6 +22,12 @@ export const G2_TILES = [
   { id: 4, name: "relicBL", x: 0, y: 144, width: 288, height: 144 },
   { id: 5, name: "relicBR", x: 288, y: 144, width: 288, height: 144 },
 ] as const;
+export const G2_FAST_TILES = [
+  G2_TILES[1],
+  G2_TILES[3],
+  G2_TILES[0],
+  G2_TILES[2],
+] as const;
 export const G2_RIGHT_TILES = [G2_TILES[1], G2_TILES[3]] as const;
 
 export const DIAGNOSTIC_TILES = [
@@ -522,7 +528,7 @@ export function transmitFastCanvas(
     source,
     onProgress,
     dependencies,
-    G2_TILES,
+    G2_FAST_TILES,
     onNavigate,
     G2_RIGHT_TILES,
     {

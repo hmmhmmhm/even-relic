@@ -25,6 +25,15 @@ describe("G2 raster transport", () => {
     ]);
   });
 
+  it("keeps generic tiles row-major while fast full transfers start on the right", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+
+    expect(module.G2_TILES.map(({ id }) => id)).toEqual([2, 3, 4, 5]);
+    expect(module.G2_FAST_TILES?.map(({ id }) => id)).toEqual([3, 5, 2, 4]);
+    expect(module.G2_RIGHT_TILES.map(({ id }) => id)).toEqual([3, 5]);
+  });
+
   it("builds four image containers plus one blank event layer", async () => {
     const module = await loadGlasses();
     if (!module) return;
@@ -373,8 +382,8 @@ describe("G2 raster transport", () => {
     } as EvenHubEvent);
     await vi.waitFor(() => expect(imageIds).toHaveLength(6));
 
-    expect(encodedTileIds).toEqual([[2, 3, 4, 5], [3, 5]]);
-    expect(imageIds).toEqual([2, 3, 4, 5, 3, 5]);
+    expect(encodedTileIds).toEqual([[3, 5, 2, 4], [3, 5]]);
+    expect(imageIds).toEqual([3, 5, 2, 4, 3, 5]);
     expect(order.indexOf("device")).toBeLessThan(order.indexOf("encode"));
     expect(batteries).toEqual([{
       label: "G2",
@@ -463,10 +472,16 @@ describe("G2 raster transport", () => {
     await vi.waitFor(() => expect(imageIds).toHaveLength(14));
 
     expect(encodes).toEqual([
-      { source: "hud", ids: [2, 3, 4, 5] },
-      { source: "black", ids: [2, 3, 4, 5] },
-      { source: "hud", ids: [2, 3, 4, 5] },
+      { source: "hud", ids: [3, 5, 2, 4] },
+      { source: "black", ids: [3, 5, 2, 4] },
+      { source: "hud", ids: [3, 5, 2, 4] },
       { source: "hud", ids: [3, 5] },
+    ]);
+    expect(imageIds).toEqual([
+      3, 5, 2, 4,
+      3, 5, 2, 4,
+      3, 5, 2, 4,
+      3, 5,
     ]);
     expect(shutdownCalls).toBe(0);
     expect(navigationCalls).toEqual(["next"]);
@@ -627,7 +642,7 @@ describe("G2 raster transport", () => {
     );
 
     expect(batteries).toEqual([undefined]);
-    expect(imageIds).toEqual([2, 3, 4, 5]);
+    expect(imageIds).toEqual([3, 5, 2, 4]);
   });
 
   it("sends the hybrid background once and pages with native Text only", async () => {

@@ -295,11 +295,15 @@ origin.
 
 One serialized image-update coordinator owns all G2 image sends.
 
-- Startup: IDs 2, 3, 4, 5.
+- Startup: IDs 3, 5, 2, 4 (right top, right bottom, left top, left bottom).
 - Page scroll: IDs 3 and 5.
 - Map refresh: IDs 2 and 4.
-- Display hide: black IDs 2, 3, 4, 5.
-- Display restore: current IDs 2, 3, 4, 5.
+- Display hide: black IDs 3, 5, 2, 4.
+- Display restore: current IDs 3, 5, 2, 4.
+
+The send-order change does not alter navigation semantics: user-forward scroll
+still advances pages 1→2→3→4, backward scroll reverses that sequence, and no
+SDK event-direction inversion is needed.
 
 State changes may coalesce while a send is in flight. The newest state wins;
 obsolete intermediate frames may be dropped. A failed send reports the error
@@ -332,7 +336,7 @@ Automated tests cover:
 - map request bounds, projection, layer ordering, and attribution;
 - ORS-disabled response and secret non-exposure;
 - optional route normalization and maneuver selection;
-- initial `2/3/4/5`, page `3/5`, and map `2/4` tile contracts;
+- initial `3/5/2/4`, page `3/5`, and map `2/4` tile contracts;
 - serialization across page, map, hide, and restore sends;
 - existing legacy route behavior.
 

@@ -429,8 +429,8 @@ requestRefresh!("right");
 
 await vi.waitFor(() => expect(encodedTileIds).toHaveLength(2));
 expect(encodedTileIds).toEqual([
-  [2, 3, 4, 5],
-  [2, 3, 4, 5],
+  [3, 5, 2, 4],
+  [3, 5, 2, 4],
 ]);
 expect(maximumConcurrentImageSends).toBe(1);
 ```
@@ -444,7 +444,7 @@ requestRefresh!("right");
 expect(encodedTileIds).not.toContainEqual([3, 5]);
 emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
 await restoreFinished;
-expect(encodedTileIds.at(-1)).toEqual([2, 3, 4, 5]);
+expect(encodedTileIds.at(-1)).toEqual([3, 5, 2, 4]);
 ```
 
 - [ ] **Step 2: Run and verify RED**
@@ -477,13 +477,16 @@ Inside the same `operationQueue` used by scroll and hide/restore:
 - merge `left + right` into `all`;
 - keep one pending external refresh operation;
 - call `beforeExternalRefresh` immediately before encoding;
-- map `left` to IDs `2/4`, `right` to `3/5`, and `all` to `2/3/4/5`;
+- map `left` to IDs `2/4`, `right` to `3/5`, and `all` to `3/5/2/4`;
 - skip sends while hidden;
 - release the scheduled flag in `finally`, even after `SENDFAILED`;
 - if a new target arrived during the send, schedule one newest-state follow-up.
 
 Do not create another promise queue or call `updateImageRawData` outside
 `refreshImages()`.
+
+Keep user-forward page order `1→2→3→4`; full-frame tile order does not require
+SDK event-direction inversion.
 
 - [ ] **Step 4: Verify the transport contract**
 

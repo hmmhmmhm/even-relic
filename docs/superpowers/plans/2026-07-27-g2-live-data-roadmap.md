@@ -4,7 +4,7 @@
 
 **Goal:** Deliver a hardware-verified RELIC HUD whose location, weather, news, and local map work without API keys, while OpenRouteService navigation activates only when a server secret exists.
 
-**Architecture:** Preserve `/hud-canvas-fast`, its `576 x 288` Canvas, and its proven initial `2/3/4/5` and page `3/5` image contracts. Execute five independently testable plans in strict order; every phase leaves the keyless app usable and ends with automated verification plus a physical-G2 checkpoint where transport behavior changes.
+**Architecture:** Preserve `/hud-canvas-fast`, its `576 x 288` Canvas, and its hardware-required full-frame `3/5/2/4` and page `3/5` image contracts. Execute five independently testable plans in strict order; every phase leaves the keyless app usable and ends with automated verification plus a physical-G2 checkpoint where transport behavior changes.
 
 **Tech Stack:** React 19, TypeScript 5.9, Canvas 2D, Even Hub SDK `0.0.11`, Open-Meteo, SBS RSS, OpenStreetMap/Overpass, OpenRouteService, Vite 6, Sites Worker, Vitest, Node test runner
 
@@ -37,11 +37,13 @@
 - Never install SDK `0.0.12` or add its LZ4 transport flag.
 - Never send two G2 image updates concurrently.
 - Page scroll redraws and sends only IDs `3` and `5`.
+- User-forward scroll keeps page order `1→2→3→4`; the tile-send order does not
+  require SDK event-direction inversion.
 - Map-only refresh redraws and sends only IDs `2` and `4`.
 - Weather/news-only refresh redraws and sends only IDs `3` and `5`.
-- A simultaneous left/right refresh coalesces to IDs `2`, `3`, `4`, and `5`.
+- A simultaneous left/right refresh coalesces to IDs `3`, `5`, `2`, and `4`.
 - While hidden, live state may update but no image is sent; restore sends the
-  newest state to all four containers.
+  newest state to all four containers in `3/5/2/4` order.
 - `ORS_API_KEY` appears only in server environment access and tests with a fake
   value. It never enters `VITE_*`, `app.json`, client code, logs, or commits.
 - Every provider keeps the last successful cache on a refresh failure.
