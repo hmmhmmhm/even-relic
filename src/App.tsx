@@ -5,6 +5,7 @@ import {
   transmitCanvas,
   transmitHardwareBmp,
   transmitHybridCanvas,
+  transmitLayeredHybridCanvas,
   transmitOfficialSample,
 } from "./glasses";
 import { drawCalibrationPattern } from "./calibration";
@@ -26,7 +27,9 @@ type AppProps = {
 export function App({ autoStart = true }: AppProps) {
   const calibrationMode = window.location.pathname === "/calibration-max";
   const canvasHudMode = window.location.pathname === "/hud-canvas";
-  const hybridHudMode = window.location.pathname === "/hud-hybrid";
+  const legacyHybridHudMode = window.location.pathname === "/hud-hybrid";
+  const layeredHybridHudMode = window.location.pathname === "/hud-hybrid-z";
+  const hybridHudMode = legacyHybridHudMode || layeredHybridHudMode;
   const hardwareBmpMode = window.location.pathname === "/diagnostic-v10";
   const diagnosticMode = window.location.pathname.startsWith("/diagnostic-v")
     || new URLSearchParams(window.location.search).get("mode") === "diagnostic";
@@ -48,6 +51,9 @@ export function App({ autoStart = true }: AppProps) {
     const drawCurrentPage = () => {
       drawDenseCanvasHud(canvas, new Date(), page);
     };
+    const transmitHybrid = layeredHybridHudMode
+      ? transmitLayeredHybridCanvas
+      : transmitHybridCanvas;
 
     void (async () => {
       if (calibrationMode) {
@@ -65,7 +71,7 @@ export function App({ autoStart = true }: AppProps) {
         : diagnosticMode
           ? await transmitOfficialSample(report)
           : hybridHudMode
-            ? await transmitHybridCanvas(
+            ? await transmitHybrid(
                 canvas,
                 formatHybridHudText(page),
                 report,
@@ -101,6 +107,7 @@ export function App({ autoStart = true }: AppProps) {
     diagnosticMode,
     hardwareBmpMode,
     hybridHudMode,
+    layeredHybridHudMode,
   ]);
 
   return (
@@ -115,11 +122,13 @@ export function App({ autoStart = true }: AppProps) {
                 ? "OFFICIAL SAMPLE.PNG · RAW BYTES"
                 : calibrationMode
                   ? "576×288 MAX BOUNDARY"
-                  : hybridHudMode
-                    ? "STATIC CANVAS + NATIVE TEXT · SCROLL · 4 PAGES"
-                  : canvasHudMode
-                    ? "576×288 · CANVAS HUD · SCROLL · 4 PAGES"
-                    : "576×288 · 4 IMAGE TILES"}
+                  : layeredHybridHudMode
+                    ? "STATIC CANVAS + NATIVE TEXT + Z-ORDER · SCROLL · 4 PAGES"
+                    : hybridHudMode
+                      ? "STATIC CANVAS + NATIVE TEXT · SCROLL · 4 PAGES"
+                      : canvasHudMode
+                        ? "576×288 · CANVAS HUD · SCROLL · 4 PAGES"
+                        : "576×288 · 4 IMAGE TILES"}
             {" · STATIC MOCK"}
           </span>
         </div>
@@ -131,14 +140,17 @@ export function App({ autoStart = true }: AppProps) {
         data-testid="hud-frame"
         data-logical-size="576x288"
         data-renderer={
-          hybridHudMode
-            ? "hybrid"
-            : canvasHudMode
-              ? "canvas"
-              : calibrationMode
-                ? "calibration"
-                : "image"
+          layeredHybridHudMode
+            ? "hybrid-z"
+            : hybridHudMode
+              ? "hybrid"
+              : canvasHudMode
+                ? "canvas"
+                : calibrationMode
+                  ? "calibration"
+                  : "image"
         }
+        data-layering={layeredHybridHudMode ? "explicit" : undefined}
         data-text-containers={diagnosticMode ? "2" : "1"}
         data-image-containers={diagnosticMode ? "1" : "4"}
         data-pages={
@@ -162,11 +174,13 @@ export function App({ autoStart = true }: AppProps) {
             ? "진단 모드에서는 Even Realities 공식 sample.png 원본 바이트를 그대로 전송합니다."
             : calibrationMode
               ? "외곽 띠, 보조 테두리, 중앙 십자와 32px 눈금을 네 타일로 전송합니다."
-              : hybridHudMode
-                ? "Canvas에는 정적 배경만 보이며, 실제 안경 문구는 네이티브 Text로 한 번에 전환됩니다."
-              : canvasHudMode
-                ? "기본 뉴스 화면에서 아래 스크롤은 다음, 위 스크롤은 이전 페이지를 네 타일로 전송합니다."
-                : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
+              : layeredHybridHudMode
+                ? "Canvas 배경 위에 명시적 최상위 레이어의 네이티브 Text를 표시합니다."
+                : hybridHudMode
+                  ? "Canvas에는 정적 배경만 보이며, 실제 안경 문구는 네이티브 Text로 한 번에 전환됩니다."
+                  : canvasHudMode
+                    ? "기본 뉴스 화면에서 아래 스크롤은 다음, 위 스크롤은 이전 페이지를 네 타일로 전송합니다."
+                    : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
       </p>
     </main>
   );

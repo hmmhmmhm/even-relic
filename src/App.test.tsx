@@ -80,4 +80,19 @@ describe("RELIC peripheral HUD", () => {
     expect(hud.dataset.imageContainers).toBe("4");
     expect(hud.dataset.pages).toBe("4");
   });
+
+  it("isolates the explicit z-order hybrid experiment", () => {
+    window.history.replaceState({}, "", "/hud-hybrid-z");
+    render(<App autoStart={false} />);
+
+    const hud = screen.getByTestId("hud-frame");
+    expect(screen.getByText(
+      /STATIC CANVAS \+ NATIVE TEXT \+ Z-ORDER/,
+    )).toBeTruthy();
+    expect(hud.dataset.renderer).toBe("hybrid-z");
+    expect(hud.dataset.layering).toBe("explicit");
+    expect(hud.dataset.textContainers).toBe("1");
+    expect(hud.dataset.imageContainers).toBe("4");
+    expect(hud.dataset.pages).toBe("4");
+  });
 });
