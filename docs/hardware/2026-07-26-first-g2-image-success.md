@@ -1,0 +1,147 @@
+# G2 이미지 전송 최초 성공 기록
+
+## 요약
+
+2026-07-26에 RELIC이 실제 Even G2로 이미지를 처음 전송했다. 현재 확인된
+작동 조건은 `@evenrealities/even_hub_sdk` `0.0.10`이다.
+
+다음 두 경로가 같은 기기와 Even 앱 세션에서 연속으로 성공했다.
+
+1. `/diagnostic-v10`: 사용자가 한 번 클릭한 뒤 `200×100` 1-bit BMP 전송
+2. `/`: `288×144` PNG 네 장을 전송해 `576×288` 전체 HUD 구성
+
+진단 BMP에서는 작은 도트 패턴이 보였다. 전체 HUD에서는 네 타일이 모두
+표시됐으며 사용자는 화면이 매우 잘 보이고 진단 BMP보다 크게 느껴진다고
+확인했다.
+
+## 최초 실패와 성공 비교
+
+| 순서 | SDK | 경로 | 이미지와 시점 | 실제 G2 결과 |
+|---:|---|---|---|---|
+| 1 | `0.0.12` | `/` | 시작 직후 `288×144` Canvas PNG 네 장 | 첫 `relicTL`에서 `SENDFAILED` |
+| 2 | `0.0.12` | `/diagnostic-v10` | 클릭 뒤 `200×100` 1-bit BMP | `SENDFAILED` |
+| 3 | `0.0.10` | `/diagnostic-v10` | 같은 클릭과 같은 BMP | `success`, 작은 도트 패턴 표시 |
+| 4 | `0.0.10` | `/` | 같은 4타일 전체 HUD | 네 타일 모두 표시, 화면이 매우 선명함 |
+
+두 번째 실험으로 자동 전송 시점과 큰 PNG만의 문제를 배제했다. 세 번째
+실험에서는 이미지, 컨테이너, 클릭 시점과 기기를 그대로 두고 SDK 버전만
+바꿨다.
+
+## 성공을 만든 변경
+
+SDK를 정확히 `0.0.10`으로 고정하고 관련 메타데이터를 함께 맞췄다.
+
+```json
+{
+  "dependencies": {
+    "@evenrealities/even_hub_sdk": "0.0.10"
+  }
+}
+```
+
+```json
+{
+  "min_sdk_version": "0.0.10"
+}
+```
+
+`0.0.12`는 `ImageRawDataUpdate.toJson()` 결과에 다음 필드를 추가한다.
+
+```json
+{
+  "compressMode": 2
+}
+```
+
+`0.0.10`은 같은 이미지 요청을 다음처럼 직렬화한다.
+
+```json
+{
+  "containerID": 3,
+  "containerName": "frame",
+  "imageData": [1, 2, 3]
+}
+```
+
+저장소의 `src/sdk-version.test.ts`가 SDK, 앱 매니페스트, QR 메타데이터의
+`0.0.10` 일치와 `compressMode` 부재를 검사한다. 이 계약 테스트를 제거하지
+않고서는 SDK 버전을 올리지 않는다.
+
+## 재현 절차
+
+### 1. 의존성과 검증 상태 준비
+
+```bash
+npm ci
+npm ls @evenrealities/even_hub_sdk
+npm test
+npm run typecheck
+npm run build
+npm run test:sites
+```
+
+`npm ls` 결과는 `@evenrealities/even_hub_sdk@0.0.10`이어야 한다.
+
+### 2. Tailscale 서버 실행
+
+Mac과 아이폰에서 Tailscale을 켠 뒤 실행한다.
+
+```bash
+npm run dev -- --host 0.0.0.0 --port 4173 --strictPort
+```
+
+최초 성공 당시 Mac의 Tailscale IPv4는 `100.96.68.73`이었다. 주소가
+바뀌었으면 `tailscale ip -4` 결과로 아래 URL을 바꾼다.
+
+### 3. 작은 수동 전송 확인
+
+```bash
+npx evenhub qr \
+  --url "http://100.96.68.73:4173/diagnostic-v10?sdk=0.0.10&build=sdk-0010-ab" \
+  --external
+```
+
+Even 앱의 `Even Hub` 개발자 영역에서 QR을 스캔한다.
+`TEXT READY - CLICK TO SEND`가 보이면 G2 터치바나 R1을 한 번 누른다.
+성공 상태는 `1-bit BMP 전송 완료`다.
+
+### 4. 전체 HUD 확인
+
+```bash
+npx evenhub qr \
+  --url "http://100.96.68.73:4173/?sdk=0.0.10&build=hud-4tile-sdk0010" \
+  --external
+```
+
+전체 HUD는 클릭 없이 자동 전송된다. `relicTL`, `relicTR`, `relicBL`,
+`relicBR` 순서로 네 장이 모두 성공해야 한다.
+
+## 현재 결론
+
+현재 Even 앱과 G2 펌웨어 조합에서 SDK `0.0.10`의 이미지 경로는 작동하고
+`0.0.12`의 이미지 경로는 `SENDFAILED`를 반환한다. A/B 결과는
+`0.0.12`에서 추가된 이미지 전송 방식이 현재 호스트 환경과 호환되지 않는다는
+강한 근거다.
+
+이 기록만으로 Even 앱과 G2 펌웨어 중 어느 쪽이 새 전송 방식을 지원하지
+않는지는 구분할 수 없다. 최초 성공 시점의 정확한 Even 앱 버전과 G2 펌웨어
+버전은 수집하지 못했다.
+
+## 안전한 다음 단계
+
+- 현재 작동 기준선은 SDK `0.0.10`으로 유지한다.
+- Even 앱과 G2 펌웨어 버전을 기록한 뒤 업데이트한다.
+- 별도 진단 브랜치에서만 SDK `0.0.12`를 다시 시험한다.
+- `0.0.12`에서 수동 BMP와 전체 HUD가 모두 성공하기 전에는 기본 브랜치의
+  SDK를 올리지 않는다.
+
+## 관련 커밋
+
+- `f094089`: SDK `0.0.10` A/B 계약과 직렬화 테스트
+- `ca81e0a`: 수동 BMP 하드웨어 성공 기록
+- `a1a1dcf`: 4타일 전체 HUD 성공 기록
+
+## 참고 자료
+
+- [Even Realities 공식 이미지 템플릿](https://github.com/even-realities/evenhub-templates/tree/main/image)
+- [SDK `0.0.12` npm 패키지](https://www.npmjs.com/package/@evenrealities/even_hub_sdk/v/0.0.12)
