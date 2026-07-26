@@ -68,6 +68,10 @@ type HardwareBmpDependencies = {
   waitForBridge: () => Promise<OfficialBridge>;
   waitForTrigger: typeof waitForImageClick;
 };
+type HybridDependencies = {
+  waitForBridge: () => Promise<OfficialBridge>;
+  encode: typeof encodeCanvasTiles;
+};
 export type PageDirection = "next" | "previous";
 
 async function loadImage(url: string): Promise<HTMLImageElement> {
@@ -325,6 +329,89 @@ export async function transmitCanvas(
         onProgress("HUD 페이지 전환 중");
         await onNavigate(direction);
         await refreshImages("페이지 전송 완료");
+      })
+      .catch((error: unknown) => {
+        onProgress(error instanceof Error ? error.message : String(error));
+      });
+  };
+
+  return bridge.onEvenHubEvent((event) => {
+    const eventType = event.sysEvent?.eventType
+      ?? event.textEvent?.eventType
+      ?? null;
+    if (eventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
+      void bridge.shutDownPageContainer(1);
+    } else if (eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
+      queueNavigation("next");
+    } else if (eventType === OsEventTypeList.SCROLL_TOP_EVENT) {
+      queueNavigation("previous");
+    }
+  });
+}
+
+export async function transmitHybridCanvas(
+  source: HTMLCanvasElement,
+  initialContent: string,
+  onProgress: (message: string) => void,
+  onNavigate: (direction: PageDirection) => string | Promise<string>,
+  dependencies: HybridDependencies = {
+    waitForBridge: waitForEvenAppBridge,
+    encode: encodeCanvasTiles,
+  },
+  tiles: readonly Tile[] = G2_TILES,
+) {
+  onProgress("하이브리드 안경 페이지 연결 중");
+  const bridge = await dependencies.waitForBridge();
+  const created = StartUpPageCreateResult.normalize(
+    await bridge.createStartUpPageContainer(createGlassesPage(tiles)),
+  );
+  if (created === StartUpPageCreateResult.invalid) {
+    onProgress("기존 하이브리드 페이지 재구성 중");
+    const { eventLayer, imageObject } = createContainerObjects(tiles);
+    const rebuilt = await bridge.rebuildPageContainer(new RebuildPageContainer({
+      containerTotalNum: tiles.length + 1,
+      textObject: [eventLayer],
+      imageObject,
+    }));
+    if (!rebuilt) throw new Error("하이브리드 안경 페이지 재구성 실패");
+  } else if (created !== StartUpPageCreateResult.success) {
+    throw new Error(`하이브리드 안경 페이지 생성 실패: ${created}`);
+  }
+
+  const encodedTiles = await dependencies.encode(source, undefined, tiles);
+  await sendTilesSequentially(encodedTiles, async (bytes, index) => {
+    const tile = tiles[index];
+    const result = ImageRawDataUpdateResult.normalize(
+      await bridge.updateImageRawData(new ImageRawDataUpdate({
+        containerID: tile.id,
+        containerName: tile.name,
+        imageData: bytes,
+      })),
+    );
+    if (!ImageRawDataUpdateResult.isSuccess(result)) {
+      throw new Error(`${tile.name} 배경 전송 실패: ${result}`);
+    }
+    onProgress(`정적 배경 전송 중 ${index + 1}/${tiles.length}`);
+  });
+
+  const updateText = async (content: string) => {
+    const updated = await bridge.textContainerUpgrade(new TextContainerUpgrade({
+      containerID: 1,
+      containerName: "eventLayer",
+      content,
+    }));
+    if (!updated) throw new Error("네이티브 HUD 텍스트 전송 실패");
+  };
+  await updateText(initialContent);
+  onProgress("하이브리드 HUD 전송 완료");
+
+  let textQueue = Promise.resolve();
+  const queueNavigation = (direction: PageDirection) => {
+    textQueue = textQueue
+      .then(async () => {
+        onProgress("네이티브 페이지 전환 중");
+        await updateText(await onNavigate(direction));
+        onProgress("네이티브 페이지 전환 완료");
       })
       .catch((error: unknown) => {
         onProgress(error instanceof Error ? error.message : String(error));

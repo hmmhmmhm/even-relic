@@ -223,6 +223,171 @@ describe("G2 raster transport", () => {
     expect(calls).toEqual(["create", "image:2", "image:3", "image:4", "image:5"]);
   });
 
+  it("sends the hybrid background once and pages with native Text only", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+    const transmitHybridCanvas = (
+      module as unknown as {
+        transmitHybridCanvas?: (...args: unknown[]) => Promise<() => void>;
+      }
+    ).transmitHybridCanvas;
+    expect(transmitHybridCanvas).toBeTypeOf("function");
+    if (!transmitHybridCanvas) return;
+
+    let listener: ((event: EvenHubEvent) => void) | undefined;
+    let startupPage: {
+      textObject?: Array<{
+        containerID?: number;
+        content?: string;
+        isEventCapture?: number;
+      }>;
+    } | undefined;
+    let createCount = 0;
+    let rebuildCount = 0;
+    const imageIds: number[] = [];
+    const textContents: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async (page: typeof startupPage) => {
+        startupPage = page;
+        createCount += 1;
+        return 0;
+      },
+      rebuildPageContainer: async () => {
+        rebuildCount += 1;
+        return true;
+      },
+      updateImageRawData: async (update: { containerID?: number }) => {
+        imageIds.push(update.containerID!);
+        return "success";
+      },
+      textContainerUpgrade: async (update: { content?: string }) => {
+        textContents.push(update.content!);
+        return true;
+      },
+      onEvenHubEvent: (next: (event: EvenHubEvent) => void) => {
+        listener = next;
+        return () => undefined;
+      },
+      shutDownPageContainer: async () => true,
+    };
+
+    const unsubscribe = await transmitHybridCanvas(
+      {} as HTMLCanvasElement,
+      "OVERVIEW 01 / 04",
+      () => undefined,
+      async (direction: string) => `${direction} PAGE`,
+      {
+        waitForBridge: async () => bridge,
+        encode: async () => module.G2_TILES.map(({ id }) => new Uint8Array([id])),
+      },
+    );
+
+    expect(startupPage?.textObject?.[0]).toMatchObject({
+      containerID: 1,
+      content: " ",
+      isEventCapture: 1,
+    });
+    expect(imageIds).toEqual([2, 3, 4, 5]);
+    expect(textContents).toEqual(["OVERVIEW 01 / 04"]);
+
+    listener!({
+      sysEvent: { eventType: OsEventTypeList.SCROLL_BOTTOM_EVENT },
+    } as EvenHubEvent);
+    await vi.waitFor(() => expect(textContents).toHaveLength(2));
+    listener!({
+      textEvent: { eventType: OsEventTypeList.SCROLL_TOP_EVENT },
+    } as EvenHubEvent);
+    await vi.waitFor(() => expect(textContents).toHaveLength(3));
+
+    expect(imageIds).toEqual([2, 3, 4, 5]);
+    expect(textContents).toEqual([
+      "OVERVIEW 01 / 04",
+      "next PAGE",
+      "previous PAGE",
+    ]);
+    expect(createCount).toBe(1);
+    expect(rebuildCount).toBe(0);
+    unsubscribe();
+  });
+
+  it("serializes rapid native Text page updates without resending images", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+    const transmitHybridCanvas = (
+      module as unknown as {
+        transmitHybridCanvas?: (...args: unknown[]) => Promise<() => void>;
+      }
+    ).transmitHybridCanvas;
+    expect(transmitHybridCanvas).toBeTypeOf("function");
+    if (!transmitHybridCanvas) return;
+
+    let listener: ((event: EvenHubEvent) => void) | undefined;
+    let blockText = false;
+    let activeTextUpdates = 0;
+    let maximumActiveTextUpdates = 0;
+    let pageNumber = 0;
+    const releases: Array<() => void> = [];
+    const imageIds: number[] = [];
+    const textContents: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => 0,
+      rebuildPageContainer: async () => true,
+      updateImageRawData: async (update: { containerID?: number }) => {
+        imageIds.push(update.containerID!);
+        return "success";
+      },
+      textContainerUpgrade: async (update: { content?: string }) => {
+        textContents.push(update.content!);
+        if (!blockText) return true;
+        activeTextUpdates += 1;
+        maximumActiveTextUpdates = Math.max(
+          maximumActiveTextUpdates,
+          activeTextUpdates,
+        );
+        await new Promise<void>((resolve) => {
+          releases.push(() => {
+            activeTextUpdates -= 1;
+            resolve();
+          });
+        });
+        return true;
+      },
+      onEvenHubEvent: (next: (event: EvenHubEvent) => void) => {
+        listener = next;
+        return () => undefined;
+      },
+      shutDownPageContainer: async () => true,
+    };
+
+    await transmitHybridCanvas(
+      {} as HTMLCanvasElement,
+      "INITIAL",
+      () => undefined,
+      async (direction: string) => `${direction}:${++pageNumber}`,
+      {
+        waitForBridge: async () => bridge,
+        encode: async () => module.G2_TILES.map(({ id }) => new Uint8Array([id])),
+      },
+    );
+    blockText = true;
+    listener!({
+      sysEvent: { eventType: OsEventTypeList.SCROLL_BOTTOM_EVENT },
+    } as EvenHubEvent);
+    listener!({
+      sysEvent: { eventType: OsEventTypeList.SCROLL_BOTTOM_EVENT },
+    } as EvenHubEvent);
+
+    for (let index = 0; index < 2; index += 1) {
+      await vi.waitFor(() => expect(releases.length).toBeGreaterThan(0));
+      releases.shift()!();
+    }
+    await vi.waitFor(() => expect(textContents).toHaveLength(3));
+
+    expect(maximumActiveTextUpdates).toBe(1);
+    expect(textContents).toEqual(["INITIAL", "next:1", "next:2"]);
+    expect(imageIds).toEqual([2, 3, 4, 5]);
+  });
+
   it("updates the same four containers for bottom and top scroll paging", async () => {
     const module = await loadGlasses();
     if (!module) return;
