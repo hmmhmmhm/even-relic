@@ -14,6 +14,16 @@ export const HUD_PAGES = [
   "todo",
 ] as const;
 export type HudPage = typeof HUD_PAGES[number];
+export type HudPageDirection = "next" | "previous";
+
+export function getAdjacentHudPage(
+  page: HudPage,
+  direction: HudPageDirection,
+) {
+  const offset = direction === "next" ? 1 : -1;
+  const index = HUD_PAGES.indexOf(page);
+  return HUD_PAGES[(index + offset + HUD_PAGES.length) % HUD_PAGES.length];
+}
 
 type HudColor = typeof COLOR[keyof typeof COLOR];
 type Point = readonly [number, number];

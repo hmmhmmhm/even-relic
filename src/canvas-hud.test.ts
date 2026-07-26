@@ -110,7 +110,7 @@ describe("dense Canvas HUD", () => {
   it("defaults to a non-navigation news overview", () => {
     const hud = renderHud();
 
-    expect((canvasHud as unknown as { HUD_PAGES: string[] }).HUD_PAGES).toEqual([
+    expect(canvasHud.HUD_PAGES).toEqual([
       "overview",
       "navigation",
       "news",
@@ -134,6 +134,23 @@ describe("dense Canvas HUD", () => {
     expect(hud.values).not.toContain("NAV // ROUTE 01");
     expect(hud.values).not.toContain("다음 교차로");
     expect(hud.values).not.toContain("우회전");
+  });
+
+  it("wraps page navigation in both directions", () => {
+    const getAdjacentHudPage = (
+      canvasHud as unknown as {
+        getAdjacentHudPage?: (
+          page: HudPage,
+          direction: "next" | "previous",
+        ) => HudPage;
+      }
+    ).getAdjacentHudPage;
+
+    expect(getAdjacentHudPage).toBeTypeOf("function");
+    if (!getAdjacentHudPage) return;
+    expect(getAdjacentHudPage("overview", "next")).toBe("navigation");
+    expect(getAdjacentHudPage("todo", "next")).toBe("overview");
+    expect(getAdjacentHudPage("overview", "previous")).toBe("todo");
   });
 
   it("keeps the approved navigation dashboard on its own page", () => {

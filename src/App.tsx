@@ -7,7 +7,12 @@ import {
   transmitOfficialSample,
 } from "./glasses";
 import { drawCalibrationPattern } from "./calibration";
-import { drawDenseCanvasHud, HUD_PAGES } from "./canvas-hud";
+import {
+  drawDenseCanvasHud,
+  getAdjacentHudPage,
+  HUD_PAGES,
+  type HudPage,
+} from "./canvas-hud";
 
 type AppProps = {
   autoStart?: boolean;
@@ -29,13 +34,13 @@ export function App({ autoStart = true }: AppProps) {
 
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
-    let pageIndex = 0;
+    let page: HudPage = HUD_PAGES[0];
     const canvas = canvasRef.current;
     const report = (message: string) => {
       if (!cancelled) setStatus(message);
     };
     const drawCurrentPage = () => {
-      drawDenseCanvasHud(canvas, new Date(), HUD_PAGES[pageIndex]);
+      drawDenseCanvasHud(canvas, new Date(), page);
     };
 
     void (async () => {
@@ -58,10 +63,7 @@ export function App({ autoStart = true }: AppProps) {
               undefined,
               canvasHudMode
                 ? async (direction) => {
-                    const delta = direction === "next" ? 1 : -1;
-                    pageIndex = (
-                      pageIndex + delta + HUD_PAGES.length
-                    ) % HUD_PAGES.length;
+                    page = getAdjacentHudPage(page, direction);
                     drawCurrentPage();
                   }
                 : undefined,
