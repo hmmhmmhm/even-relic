@@ -148,6 +148,42 @@ describe("G2 raster transport", () => {
     expect(tiles.every((tile) => tile.byteLength > 0)).toBe(true);
   });
 
+  it("creates a full-size black Canvas for hidden display pixels", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+    const createBlackCanvas = (
+      module as unknown as {
+        createBlackCanvas?: (
+          factory: () => HTMLCanvasElement,
+        ) => HTMLCanvasElement;
+      }
+    ).createBlackCanvas;
+    expect(createBlackCanvas).toBeTypeOf("function");
+    if (!createBlackCanvas) return;
+
+    let fillStyle = "";
+    const fills: number[][] = [];
+    const canvas = {
+      width: 0,
+      height: 0,
+      getContext: () => ({
+        get fillStyle() {
+          return fillStyle;
+        },
+        set fillStyle(value: string | CanvasGradient | CanvasPattern) {
+          fillStyle = String(value);
+        },
+        fillRect: (...args: number[]) => fills.push(args),
+      }),
+    } as unknown as HTMLCanvasElement;
+
+    expect(createBlackCanvas(() => canvas)).toBe(canvas);
+    expect(canvas.width).toBe(576);
+    expect(canvas.height).toBe(288);
+    expect(fillStyle).toBe("#000000");
+    expect(fills).toEqual([[0, 0, 576, 288]]);
+  });
+
   it("draws the selected reference into the exact G2 canvas", async () => {
     const module = await loadGlasses();
     if (!module) return;
@@ -345,6 +381,205 @@ describe("G2 raster transport", () => {
       level: 82,
       charging: true,
     }]);
+  });
+
+  it("toggles fast Canvas pixels while keeping the app event layer alive", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+    const transmitFastCanvas = (
+      module as unknown as {
+        transmitFastCanvas?: (...args: unknown[]) => Promise<() => void>;
+      }
+    ).transmitFastCanvas;
+    expect(transmitFastCanvas).toBeTypeOf("function");
+    if (!transmitFastCanvas) return;
+
+    const hudSource = { name: "hud" } as unknown as HTMLCanvasElement;
+    const blackSource = { name: "black" } as unknown as HTMLCanvasElement;
+    let listener: ((event: EvenHubEvent) => void) | undefined;
+    let shutdownCalls = 0;
+    let beforeRestoreCalls = 0;
+    const navigationCalls: string[] = [];
+    const encodes: Array<{ source: string; ids: number[] }> = [];
+    const imageIds: number[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => 0,
+      rebuildPageContainer: async () => true,
+      updateImageRawData: async (update: { containerID?: number }) => {
+        imageIds.push(update.containerID!);
+        return "success";
+      },
+      onEvenHubEvent: (next: (event: EvenHubEvent) => void) => {
+        listener = next;
+        return () => undefined;
+      },
+      shutDownPageContainer: async () => {
+        shutdownCalls += 1;
+        return true;
+      },
+    };
+    const emit = (eventType: OsEventTypeList) => listener!({
+      sysEvent: { eventType },
+    } as EvenHubEvent);
+
+    await transmitFastCanvas(
+      hudSource,
+      () => undefined,
+      async (direction: string) => {
+        navigationCalls.push(direction);
+      },
+      {
+        dependencies: {
+          waitForBridge: async () => bridge,
+          encode: async (
+            source: HTMLCanvasElement,
+            _factory: unknown,
+            tiles = module.G2_TILES,
+          ) => {
+            encodes.push({
+              source: source === blackSource ? "black" : "hud",
+              ids: tiles.map(({ id }) => id),
+            });
+            return tiles.map(({ id }) => new Uint8Array([id]));
+          },
+        },
+        createHiddenSource: () => blackSource,
+        beforeRestore: async () => {
+          beforeRestoreCalls += 1;
+        },
+      },
+    );
+
+    emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(imageIds).toHaveLength(8));
+    emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await Promise.resolve();
+    expect(imageIds).toHaveLength(8);
+    expect(navigationCalls).toEqual([]);
+
+    emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(imageIds).toHaveLength(12));
+    emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await vi.waitFor(() => expect(imageIds).toHaveLength(14));
+
+    expect(encodes).toEqual([
+      { source: "hud", ids: [2, 3, 4, 5] },
+      { source: "black", ids: [2, 3, 4, 5] },
+      { source: "hud", ids: [2, 3, 4, 5] },
+      { source: "hud", ids: [3, 5] },
+    ]);
+    expect(shutdownCalls).toBe(0);
+    expect(navigationCalls).toEqual(["next"]);
+    expect(beforeRestoreCalls).toBe(1);
+  });
+
+  it("retries failed hide and restore without corrupting visibility state", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+    const transmitFastCanvas = (
+      module as unknown as {
+        transmitFastCanvas?: (...args: unknown[]) => Promise<() => void>;
+      }
+    ).transmitFastCanvas;
+    expect(transmitFastCanvas).toBeTypeOf("function");
+    if (!transmitFastCanvas) return;
+
+    const hudSource = { name: "hud" } as unknown as HTMLCanvasElement;
+    const blackSource = { name: "black" } as unknown as HTMLCanvasElement;
+    let listener: ((event: EvenHubEvent) => void) | undefined;
+    let activeTransfer = "";
+    let blackAttempts = 0;
+    let fullHudAttempts = 0;
+    const transfers: string[] = [];
+    const progress: string[] = [];
+    const navigationCalls: string[] = [];
+    const bridge = {
+      createStartUpPageContainer: async () => 0,
+      rebuildPageContainer: async () => true,
+      updateImageRawData: async (update: { containerID?: number }) => {
+        if (
+          update.containerID === 2
+          && (activeTransfer === "black:1" || activeTransfer === "hud:2")
+        ) return "sendFailed";
+        return "success";
+      },
+      onEvenHubEvent: (next: (event: EvenHubEvent) => void) => {
+        listener = next;
+        return () => undefined;
+      },
+      shutDownPageContainer: async () => true,
+    };
+    const emit = (eventType: OsEventTypeList) => listener!({
+      sysEvent: { eventType },
+    } as EvenHubEvent);
+
+    await transmitFastCanvas(
+      hudSource,
+      (message: string) => progress.push(message),
+      async (direction: string) => {
+        navigationCalls.push(direction);
+      },
+      {
+        dependencies: {
+          waitForBridge: async () => bridge,
+          encode: async (
+            source: HTMLCanvasElement,
+            _factory: unknown,
+            tiles = module.G2_TILES,
+          ) => {
+            if (source === blackSource) {
+              blackAttempts += 1;
+              activeTransfer = `black:${blackAttempts}`;
+            } else if (tiles.length === 4) {
+              fullHudAttempts += 1;
+              activeTransfer = `hud:${fullHudAttempts}`;
+            } else {
+              activeTransfer = "scroll";
+            }
+            transfers.push(activeTransfer);
+            return tiles.map(({ id }) => new Uint8Array([id]));
+          },
+        },
+        createHiddenSource: () => blackSource,
+      },
+    );
+
+    emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(
+      progress.filter((message) => message.includes("sendFailed")),
+    ).toHaveLength(1));
+    emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await vi.waitFor(() => expect(transfers).toHaveLength(3));
+
+    emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(transfers).toHaveLength(4));
+    emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await Promise.resolve();
+    expect(transfers).toHaveLength(4);
+
+    emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(
+      progress.filter((message) => message.includes("sendFailed")),
+    ).toHaveLength(2));
+    emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await Promise.resolve();
+    expect(transfers).toHaveLength(5);
+
+    emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(transfers).toHaveLength(6));
+    emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await vi.waitFor(() => expect(transfers).toHaveLength(7));
+
+    expect(transfers).toEqual([
+      "hud:1",
+      "black:1",
+      "scroll",
+      "black:2",
+      "hud:2",
+      "hud:3",
+      "scroll",
+    ]);
+    expect(navigationCalls).toEqual(["next", "next"]);
   });
 
   it("keeps fast Canvas transmission alive when battery lookup fails", async () => {

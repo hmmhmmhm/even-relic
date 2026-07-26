@@ -99,10 +99,16 @@ export type FastCanvasBattery = {
   readonly charging?: boolean;
 };
 type FastCanvasOptions = {
+  readonly beforeRestore?: () => void | Promise<void>;
+  readonly createHiddenSource?: () => HTMLCanvasElement;
   readonly dependencies?: TransportDependencies;
   readonly onBattery?: (
     battery: FastCanvasBattery | undefined,
   ) => void;
+};
+type DisplayToggle = {
+  readonly beforeRestore?: () => void | Promise<void>;
+  readonly createHiddenSource: () => HTMLCanvasElement;
 };
 
 export function toFastCanvasBattery(
@@ -126,6 +132,19 @@ async function loadImage(url: string): Promise<HTMLImageElement> {
   image.src = url;
   await image.decode();
   return image;
+}
+
+export function createBlackCanvas(
+  canvasFactory: CanvasFactory = () => document.createElement("canvas"),
+) {
+  const canvas = canvasFactory();
+  canvas.width = 576;
+  canvas.height = 288;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("검정 Canvas를 만들 수 없습니다.");
+  context.fillStyle = "#000000";
+  context.fillRect(0, 0, 576, 288);
+  return canvas;
 }
 
 export function quantizeForG2Pixels(source: Uint8ClampedArray) {
@@ -367,6 +386,7 @@ export async function transmitCanvas(
   tiles: readonly Tile[] = G2_TILES,
   onNavigate?: (direction: PageDirection) => void | Promise<void>,
   navigationTiles: readonly Tile[] = tiles,
+  displayToggle?: DisplayToggle,
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();
@@ -389,11 +409,12 @@ export async function transmitCanvas(
   }
 
   const refreshImages = async (
+    imageSource: HTMLCanvasElement,
     targetTiles: readonly Tile[],
     completionMessage: string,
   ) => {
     const encodedTiles = await dependencies.encode(
-      source,
+      imageSource,
       undefined,
       targetTiles,
     );
@@ -414,19 +435,47 @@ export async function transmitCanvas(
     onProgress(completionMessage);
   };
 
-  await refreshImages(tiles, "안경 전송 완료");
-  let navigationQueue = Promise.resolve();
-  const queueNavigation = (direction: PageDirection) => {
-    if (!onNavigate) return;
-    navigationQueue = navigationQueue
-      .then(async () => {
-        onProgress("HUD 페이지 전환 중");
-        await onNavigate(direction);
-        await refreshImages(navigationTiles, "페이지 전송 완료");
-      })
+  await refreshImages(source, tiles, "안경 전송 완료");
+  let hidden = false;
+  let hiddenSource: HTMLCanvasElement | undefined;
+  let operationQueue = Promise.resolve();
+  const queueOperation = (operation: () => void | Promise<void>) => {
+    operationQueue = operationQueue
+      .then(operation)
       .catch((error: unknown) => {
         onProgress(error instanceof Error ? error.message : String(error));
       });
+  };
+  const queueNavigation = (direction: PageDirection) => {
+    if (!onNavigate || hidden) return;
+    queueOperation(async () => {
+      if (hidden) return;
+      onProgress("HUD 페이지 전환 중");
+      await onNavigate(direction);
+      await refreshImages(source, navigationTiles, "페이지 전송 완료");
+    });
+  };
+  const queueDisplayToggle = () => {
+    if (!displayToggle) {
+      void bridge.shutDownPageContainer(1);
+      return;
+    }
+    queueOperation(async () => {
+      if (hidden) {
+        onProgress("HUD 표시 복원 중");
+        await displayToggle.beforeRestore?.();
+        await refreshImages(source, tiles, "HUD 표시 복원 완료");
+        hidden = false;
+      } else {
+        onProgress("HUD 표시 숨기는 중");
+        await refreshImages(
+          hiddenSource ??= displayToggle.createHiddenSource(),
+          tiles,
+          "HUD 표시 숨김 완료",
+        );
+        hidden = true;
+      }
+    });
   };
 
   return bridge.onEvenHubEvent((event) => {
@@ -434,7 +483,7 @@ export async function transmitCanvas(
       ?? event.textEvent?.eventType
       ?? null;
     if (eventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
-      void bridge.shutDownPageContainer(1);
+      queueDisplayToggle();
     } else if (eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
       queueNavigation("next");
     } else if (eventType === OsEventTypeList.SCROLL_TOP_EVENT) {
@@ -476,6 +525,10 @@ export function transmitFastCanvas(
     G2_TILES,
     onNavigate,
     G2_RIGHT_TILES,
+    {
+      createHiddenSource: options.createHiddenSource ?? createBlackCanvas,
+      beforeRestore: options.beforeRestore,
+    },
   );
 }
 

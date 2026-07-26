@@ -106,6 +106,7 @@ export function App({ autoStart = true }: AppProps) {
                 report,
                 navigateCanvas,
                 {
+                  beforeRestore: drawCurrentPage,
                   onBattery: (nextBattery) => {
                     battery = nextBattery;
                     drawCurrentPage();
