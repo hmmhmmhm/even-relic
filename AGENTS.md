@@ -10,12 +10,20 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 
 ## RELIC design direction
 
+- Before changing the G2 image path, read
+  `docs/2026-07-26-g2-image-debugging-handoff.md`.
 - The selected visual target is `docs/design/selected-peripheral-focus.png`.
 - Preserve a mostly empty center so the real world remains readable.
 - Use a black/off background and monochrome green only.
 - The first hardware prototype is static. Connect only the Even Hub image
   pipeline; do not connect sensors, maps, STT, news, or other live data yet.
-- Render the selected visual as one 576 x 288 Canvas frame, split it into four
-  288 x 144 image containers, and keep the required event-capture text layer
-  visually blank.
-- Keep custom TypeScript/TSX/CSS implementation code at or below 450 lines in total.
+- The current hardware diagnostic uses four 200 x 100 PNG tiles centered as a
+  400 x 200 HUD. Do not change image format or density again until a fresh
+  one-image startup page returns `success`.
+- Keep `@evenrealities/even_hub_sdk` pinned to 0.0.11 for image tests. Version
+  0.0.12 sends `compressMode: 2` and returned `SENDFAILED` on the tested
+  iPhone and G2.
+- Register exit handling before operations that can fail so a failed page does
+  not become an unclosable stale session.
+- Keep each custom TypeScript, TSX, or CSS implementation file at or below
+  450 lines.
