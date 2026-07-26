@@ -6,12 +6,14 @@ import {
   transmitHardwareBmp,
   transmitOfficialSample,
 } from "./glasses";
+import { drawCalibrationPattern } from "./calibration";
 
 type AppProps = {
   autoStart?: boolean;
 };
 
 export function App({ autoStart = true }: AppProps) {
+  const calibrationMode = window.location.pathname === "/calibration-max";
   const hardwareBmpMode = window.location.pathname === "/diagnostic-v10";
   const diagnosticMode = window.location.pathname.startsWith("/diagnostic-v")
     || new URLSearchParams(window.location.search).get("mode") === "diagnostic";
@@ -30,7 +32,11 @@ export function App({ autoStart = true }: AppProps) {
     };
 
     void (async () => {
-      await drawHudReference(canvasRef.current!, hudReferenceUrl);
+      if (calibrationMode) {
+        drawCalibrationPattern(canvasRef.current!);
+      } else {
+        await drawHudReference(canvasRef.current!, hudReferenceUrl);
+      }
       report("Even 앱 브리지 연결 대기 중 · Safari에서는 미리보기만 표시됩니다");
       unsubscribe = hardwareBmpMode
         ? await transmitHardwareBmp(report)
@@ -45,7 +51,7 @@ export function App({ autoStart = true }: AppProps) {
       cancelled = true;
       unsubscribe?.();
     };
-  }, [autoStart, diagnosticMode, hardwareBmpMode]);
+  }, [autoStart, calibrationMode, diagnosticMode, hardwareBmpMode]);
 
   return (
     <main className="preview-stage">
@@ -57,7 +63,9 @@ export function App({ autoStart = true }: AppProps) {
               ? "1-BIT BMP · CLICK TO SEND"
               : diagnosticMode
                 ? "OFFICIAL SAMPLE.PNG · RAW BYTES"
-                : "576×288 · 4 IMAGE TILES"}
+                : calibrationMode
+                  ? "576×288 MAX BOUNDARY"
+                  : "576×288 · 4 IMAGE TILES"}
             {" · STATIC MOCK"}
           </span>
         </div>
@@ -86,7 +94,9 @@ export function App({ autoStart = true }: AppProps) {
           ? "안경에 준비 문구를 표시한 뒤 링/터치바를 클릭하면 200×100 1-bit BMP를 전송합니다."
           : diagnosticMode
             ? "진단 모드에서는 Even Realities 공식 sample.png 원본 바이트를 그대로 전송합니다."
-            : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
+            : calibrationMode
+              ? "외곽 띠, 보조 테두리, 중앙 십자와 32px 눈금을 네 타일로 전송합니다."
+              : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
       </p>
     </main>
   );

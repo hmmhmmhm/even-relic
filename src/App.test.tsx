@@ -45,4 +45,14 @@ describe("RELIC peripheral HUD", () => {
 
     expect(screen.getByText(/1-BIT BMP · CLICK TO SEND/)).toBeTruthy();
   });
+
+  it("selects the four-tile maximum-boundary calibration route", () => {
+    window.history.replaceState({}, "", "/calibration-max");
+    render(<App autoStart={false} />);
+
+    const hud = screen.getByTestId("hud-frame");
+    expect(screen.getByText(/576×288 MAX BOUNDARY/)).toBeTruthy();
+    expect(hud.dataset.textContainers).toBe("1");
+    expect(hud.dataset.imageContainers).toBe("4");
+  });
 });
