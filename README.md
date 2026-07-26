@@ -71,7 +71,7 @@ BLE로 이미지를 매초 재전송하지 않으므로 같은 페이지에 머�
 
 `/hud-canvas-fast`는 기존 `/hud-canvas`를 수정하지 않는 별도 실험이다.
 왼쪽 `288×288`은 네 페이지에서 같은 대형 지도이고, 오른쪽 `288×288`에
-초 단위 시각, 날씨와 페이지별 정보를 모두 배치한다. Canvas 글자는
+분 단위 시각, 날씨와 페이지별 정보를 모두 배치한다. Canvas 글자는
 `20–28px`까지 키우고 보조 정보와 구조선 명도도 높였다.
 
 시작할 때는 기존처럼 이미지 ID `2, 3, 4, 5`를 모두 보낸다. 스크롤
@@ -84,8 +84,16 @@ BLE로 이미지를 매초 재전송하지 않으므로 같은 페이지에 머�
 아니라 페이지별 콘텐츠 선정에 집중한다.
 
 ```text
-http://100.96.68.73:4174/hud-canvas-fast?sdk=0.0.10&build=fast-canvas-008
+기준선: http://100.96.68.73:4174/hud-canvas-fast?sdk=0.0.10&build=fast-canvas-008
+콘텐츠: http://100.96.68.73:4175/hud-canvas-fast?sdk=0.0.10&build=fast-content-009
 ```
+
+`fast-content-009`의 스크롤 순서는 `OVERVIEW`, `NEWS`, `TODO`,
+`NAVIGATION`이다. OVERVIEW는 SDK `getDeviceInfo()`가 반환한 단일
+G1/G2/R1 기기의 배터리 잔량과 충전 상태를 최초 전송 전에 표시한다. 현재
+SDK에는 여러 기기를 한 번에 열거하는 공개 API가 없으며, 조회할 수 없으면
+`BATTERY --`를 표시하고 이미지 전송을 계속한다. NEWS는 일반 기사 제목
+여섯 개, TODO는 체크리스트와 오늘 진행률을 표시한다.
 
 `/calibration-max`는 최대 표시 외곽을 비교하는 교정 화면이며
 `/diagnostic-v10`은 클릭 뒤 작은 1-bit BMP를 보내는 전송 진단이다. 네

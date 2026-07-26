@@ -43,9 +43,17 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   large fixed map on the left and page-focused information area on the right.
 - Hardware confirms the two-right-tile scroll transition feels very fast.
   Preserve that initial four-tile and navigation IDs 3/5 transport contract.
-- Hardware accepts `fast-canvas-008` as the technical and visual baseline; the
-  remaining product work is page content selection. Do not alter the split
-  layout or transport contract without new hardware evidence.
+- Hardware accepts `fast-canvas-008` as the technical and visual baseline. Do
+  not alter the split layout or transport contract without new hardware
+  evidence.
+- On `/hud-canvas-fast`, use the circular order overview, news, TODO, and
+  navigation. Keep `/hud-canvas` on its original order.
+- Show minute-only time. Fetch one SDK `0.0.10` `DeviceInfo` before initial
+  fast-Canvas encoding and show its G1/G2/R1 battery on overview. Fall back to
+  `BATTERY --` without blocking image transmission. Do not resend tiles every
+  second or on device-status events.
+- Keep six general-article samples on news, the three-item checklist plus daily
+  progress on TODO, and the approved turn instruction on navigation.
 - Preserve `/hud-hybrid` as the hardware-proven missing-z-order diagnosis.
   Test SDK `0.0.10` z-order backport only on `/hud-hybrid-z`: image layers
   1–4, Text layer 5, and no image resend during scroll.

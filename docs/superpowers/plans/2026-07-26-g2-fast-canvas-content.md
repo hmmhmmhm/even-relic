@@ -17,7 +17,7 @@
 - Modify: `src/fast-canvas-hud.ts`
 - Modify: `src/App.tsx`
 
-- [ ] **Step 1: Write failing page-order and content tests**
+- [x] **Step 1: Write failing page-order and content tests**
 
 Extend the fast HUD module type and renderer helper in
 `src/fast-canvas-hud.test.ts`:
@@ -76,7 +76,7 @@ expect(todo.values).not.toContain("CONNECTED");
 expect(todo.values).not.toContain("LINK // G2 + R1");
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 Run:
 
@@ -87,7 +87,7 @@ npx vitest run src/fast-canvas-hud.test.ts
 Expected: FAIL because `FAST_HUD_PAGES`, the fast navigation helper, minute-only
 time, six headlines, and TODO progress do not exist yet.
 
-- [ ] **Step 3: Implement the fast-only order and content**
+- [x] **Step 3: Implement the fast-only order and content**
 
 Add to `src/fast-canvas-hud.ts` without changing `HUD_PAGES`:
 
@@ -128,7 +128,7 @@ const navigateCanvas = async (direction: "next" | "previous") => {
 };
 ```
 
-- [ ] **Step 4: Run focused and legacy tests and verify GREEN**
+- [x] **Step 4: Run focused and legacy tests and verify GREEN**
 
 Run:
 
@@ -139,7 +139,7 @@ npx vitest run src/fast-canvas-hud.test.ts src/canvas-hud.test.ts src/App.test.t
 Expected: PASS. The legacy Canvas test must retain
 `overview → navigation → news → todo`.
 
-- [ ] **Step 5: Commit the page and content change**
+- [x] **Step 5: Commit the page and content change**
 
 ```bash
 git add src/fast-canvas-hud.test.ts src/fast-canvas-hud.ts src/App.tsx
@@ -155,7 +155,7 @@ git commit -m "feat: refresh fast Canvas page content"
 - Modify: `src/fast-canvas-hud.ts`
 - Modify: `src/App.tsx`
 
-- [ ] **Step 1: Write failing battery renderer tests**
+- [x] **Step 1: Write failing battery renderer tests**
 
 Make `renderFastHud()` accept a battery and add:
 
@@ -174,7 +174,7 @@ it("renders one SDK battery snapshot with a safe fallback", async () => {
 });
 ```
 
-- [ ] **Step 2: Write failing transport-order and fallback tests**
+- [x] **Step 2: Write failing transport-order and fallback tests**
 
 Add a fast Canvas transport test in `src/glasses.test.ts` whose bridge records
 `"device"` from `getDeviceInfo()`, whose encoder records `"encode"`, and whose
@@ -193,7 +193,7 @@ expect(imageIds).toEqual([2, 3, 4, 5]);
 Add a second case where `getDeviceInfo()` rejects and assert that `onBattery`
 receives `undefined` while image IDs `2, 3, 4, 5` are still transmitted.
 
-- [ ] **Step 3: Run the battery tests and verify RED**
+- [x] **Step 3: Run the battery tests and verify RED**
 
 Run:
 
@@ -204,7 +204,7 @@ npx vitest run src/fast-canvas-hud.test.ts src/glasses.test.ts
 Expected: FAIL because the renderer has no battery argument and fast transport
 has no device lookup or callback.
 
-- [ ] **Step 4: Implement battery normalization and pre-encode lookup**
+- [x] **Step 4: Implement battery normalization and pre-encode lookup**
 
 Import `DeviceInfo` and `DeviceModel` in `src/glasses.ts`, extend the internal
 bridge with optional `getDeviceInfo()`, and add:
@@ -247,7 +247,7 @@ Wrap `waitForBridge()` so it calls `getDeviceInfo()` and `onBattery()` before
 `undefined` to the callback, and return the bridge so image transmission
 continues.
 
-- [ ] **Step 5: Wire the snapshot into the fast renderer**
+- [x] **Step 5: Wire the snapshot into the fast renderer**
 
 In `src/fast-canvas-hud.ts`, import the `FastCanvasBattery` type, accept it as
 the fourth argument of `drawFastCanvasHud()`, and format:
@@ -270,7 +270,7 @@ In `src/App.tsx`, hold the latest snapshot inside the effect, pass it to
 }
 ```
 
-- [ ] **Step 6: Run the focused tests and verify GREEN**
+- [x] **Step 6: Run the focused tests and verify GREEN**
 
 Run:
 
@@ -280,7 +280,7 @@ npx vitest run src/fast-canvas-hud.test.ts src/glasses.test.ts src/App.test.tsx
 
 Expected: PASS, including initial IDs `2, 3, 4, 5` and scroll IDs `3, 5`.
 
-- [ ] **Step 7: Commit the battery integration**
+- [x] **Step 7: Commit the battery integration**
 
 ```bash
 git add src/glasses.test.ts src/glasses.ts src/fast-canvas-hud.test.ts src/fast-canvas-hud.ts src/App.tsx
@@ -294,7 +294,7 @@ git commit -m "feat: show SDK battery on fast Canvas overview"
 - Modify: `AGENTS.md`
 - Modify: `docs/hardware/2026-07-26-first-g2-image-success.md`
 
-- [ ] **Step 1: Document the content build**
+- [x] **Step 1: Document the content build**
 
 Record the order `OVERVIEW → NEWS → TODO → NAVIGATION`, minute-only clock,
 six static general-news samples, TODO progress footer, and single-device
@@ -306,7 +306,7 @@ Add a new hardware URL using build marker `fast-content-009`:
 http://100.96.68.73:4175/hud-canvas-fast?sdk=0.0.10&build=fast-content-009
 ```
 
-- [ ] **Step 2: Check documentation and source diffs**
+- [x] **Step 2: Check documentation and source diffs**
 
 Run:
 
@@ -318,7 +318,7 @@ rg -n "fast-content-009|OVERVIEW.*NEWS.*TODO.*NAVIGATION|BATTERY --" \
 
 Expected: no whitespace errors and all durable decisions present.
 
-- [ ] **Step 3: Run complete verification**
+- [x] **Step 3: Run complete verification**
 
 Run:
 
@@ -332,7 +332,7 @@ npm run test:sites
 Expected: all Vitest files pass, TypeScript emits no errors, Vite produces
 `dist/client`, and all four Sites worker tests pass.
 
-- [ ] **Step 4: Commit documentation**
+- [x] **Step 4: Commit documentation**
 
 ```bash
 git add README.md AGENTS.md docs/hardware/2026-07-26-first-g2-image-success.md
