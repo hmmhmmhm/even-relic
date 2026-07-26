@@ -18,8 +18,8 @@
   route/navigation, remove ACC, and render the combined mission card.
 - Modify `README.md`: point the Canvas hardware test at build
   `tactical-hud-002`.
-- Modify `docs/g2-image-send-success.md`: record the new hardware candidate and
-  its visual acceptance criteria.
+- Modify `docs/hardware/2026-07-26-first-g2-image-success.md`: record the new
+  hardware candidate and its visual acceptance criteria.
 
 ### Task 1: Lock the tactical rendering contract
 
@@ -241,7 +241,7 @@ git commit -m "feat: polish Canvas HUD with tactical mission layout"
 
 **Files:**
 - Modify: `README.md`
-- Modify: `docs/g2-image-send-success.md`
+- Modify: `docs/hardware/2026-07-26-first-g2-image-success.md`
 
 - [ ] **Step 1: Update the Canvas URL**
 
@@ -255,7 +255,8 @@ Describe the ACC removal, larger news typography, open frames, and layered route
 
 - [ ] **Step 2: Add a hardware checklist**
 
-Record these unresolved checks in `docs/g2-image-send-success.md`:
+Record these unresolved checks in
+`docs/hardware/2026-07-26-first-g2-image-success.md`:
 
 ```markdown
 - [ ] 뉴스 본문이 기존 10픽셀 문구보다 확실히 크게 읽힌다.
@@ -267,7 +268,7 @@ Record these unresolved checks in `docs/g2-image-send-success.md`:
 - [ ] **Step 3: Commit the documentation**
 
 ```bash
-git add README.md docs/g2-image-send-success.md \
+git add README.md docs/hardware/2026-07-26-first-g2-image-success.md \
   docs/superpowers/specs/2026-07-26-g2-tactical-hud-polish-design.md \
   docs/superpowers/plans/2026-07-26-g2-tactical-hud-polish.md
 git commit -m "docs: define tactical HUD hardware candidate"
