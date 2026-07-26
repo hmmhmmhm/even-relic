@@ -131,12 +131,14 @@ describe("dense Canvas HUD", () => {
       "이동",
       "ROUTE UPDATED",
     ]));
-    expect(values).not.toEqual(expect.arrayContaining([
+    for (const forbiddenValue of [
       "ACC",
       "X +0.12",
       "Y -0.03",
       "Z +0.98",
-    ]));
+    ]) {
+      expect(values).not.toContain(forbiddenValue);
+    }
 
     const newsBody = texts.find(({ value }) => value === "지하철역으로");
     const missionAction = texts.find(({ value }) => value === "이동");
