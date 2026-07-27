@@ -2,6 +2,46 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+import {
+  createInitialLiveDashboardState,
+  type LiveDashboardState,
+} from "./live-state";
+
+type RefreshTarget = "left" | "right" | "all";
+type FastTestOptions = {
+  readonly beforeExternalRefresh?: () => void | Promise<void>;
+  readonly onRefreshReady?: (
+    request: (target: RefreshTarget) => void,
+  ) => void;
+};
+type SessionTestOptions = {
+  readonly onUpdate: (update: {
+    readonly state: LiveDashboardState;
+    readonly target: RefreshTarget;
+  }) => void;
+};
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((next) => {
+    resolve = next;
+  });
+  return { promise, resolve };
+}
+
+function fastOptions(): FastTestOptions {
+  const calls = mocks.transmitFast.mock.calls as unknown as Array<
+    [unknown, unknown, unknown, FastTestOptions]
+  >;
+  return calls[0][3];
+}
+
+function sessionOptions(): SessionTestOptions {
+  const calls = mocks.createSession.mock.calls as unknown as Array<
+    [SessionTestOptions]
+  >;
+  return calls[0][0];
+}
 
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
@@ -31,7 +71,10 @@ vi.mock("./live-dashboard", async (importOriginal) => ({
 }));
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  mocks.createSession.mockReset();
+  mocks.drawFast.mockReset();
+  mocks.transmitFast.mockReset();
+  mocks.waitForBridge.mockReset();
 });
 
 afterEach(() => {
@@ -113,8 +156,9 @@ describe("RELIC peripheral HUD", () => {
     expect(screen.getByText(/LIVE DATA/)).toBeTruthy();
     expect(screen.queryByText(/STATIC MOCK/)).toBeNull();
     expect(screen.getByText(
-      "날씨: Open-Meteo · 지도 데이터: OpenStreetMap contributors",
+      "날씨: Open-Meteo · 지도: 데모 스키매틱",
     )).toBeTruthy();
+    expect(screen.queryByText(/OpenStreetMap contributors/)).toBeNull();
   });
 
   it("does not show live-data credits outside the fast route", () => {
@@ -122,8 +166,91 @@ describe("RELIC peripheral HUD", () => {
     render(<App autoStart={false} />);
 
     expect(screen.queryByText(
-      "날씨: Open-Meteo · 지도 데이터: OpenStreetMap contributors",
+      "날씨: Open-Meteo · 지도: 데모 스키매틱",
     )).toBeNull();
+  });
+
+  it("renders the newest live snapshot before requesting its target refresh", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    const transportCleanup = vi.fn();
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return transportCleanup;
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledTimes(1));
+    const newest: LiveDashboardState = {
+      ...createInitialLiveDashboardState(),
+      weather: {
+        status: "fresh",
+        fetchedAt: 1_800_000_000_000,
+        value: {
+          temperature: 30,
+          apparentTemperature: 31,
+          humidity: 67,
+          windSpeed: 8,
+          precipitationProbability: 20,
+          weatherCode: 2,
+          condition: "대체로 맑음",
+        },
+      },
+    };
+
+    sessionOptions().onUpdate({ state: newest, target: "right" });
+    expect(requestRefresh).toHaveBeenCalledWith("right");
+    await fastOptions().beforeExternalRefresh?.();
+    expect(mocks.drawFast).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.any(Date),
+      "overview",
+      { battery: undefined, live: newest },
+    );
+    view.unmount();
+  });
+
+  it("does not start bridge or session after unmounting during transport", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const transport = deferred<() => void>();
+    const transportCleanup = vi.fn();
+    mocks.transmitFast.mockReturnValue(transport.promise);
+    const view = render(<App />);
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledTimes(1));
+
+    view.unmount();
+    view.unmount();
+    transport.resolve(transportCleanup);
+    await vi.waitFor(() => expect(transportCleanup).toHaveBeenCalledTimes(1));
+
+    expect(mocks.waitForBridge).not.toHaveBeenCalled();
+    expect(mocks.createSession).not.toHaveBeenCalled();
+  });
+
+  it("disposes transport and skips session after unmounting during bridge wait", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const transportCleanup = vi.fn();
+    const bridge = deferred<object>();
+    mocks.transmitFast.mockResolvedValue(transportCleanup);
+    mocks.waitForBridge.mockReturnValue(bridge.promise);
+    const view = render(<App />);
+    await vi.waitFor(() => expect(mocks.waitForBridge).toHaveBeenCalledTimes(1));
+
+    view.unmount();
+    view.unmount();
+    expect(transportCleanup).toHaveBeenCalledTimes(1);
+    bridge.resolve({});
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(mocks.createSession).not.toHaveBeenCalled();
+    expect(transportCleanup).toHaveBeenCalledTimes(1);
   });
 
   it("starts one live session after fast transport and cleans both up", async () => {

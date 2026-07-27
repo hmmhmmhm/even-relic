@@ -152,7 +152,7 @@ describe("createLiveDashboardSession", () => {
     expect(updates[1].state.weather.value?.temperature).toBe(24);
   });
 
-  it("emits both accepted stale cache and the final stale failure result", async () => {
+  it("does not emit the same stale cache again after a failed refresh", async () => {
     const bridge = new TestBridge();
     bridge.values.set("relic:weather:v1", JSON.stringify({
       value: {
@@ -181,6 +181,38 @@ describe("createLiveDashboardSession", () => {
 
     await session.start();
 
+    expect(updates.map(({ target }) => target)).toEqual(["left", "right"]);
+    expect(updates[1].state.weather.status).toBe("stale");
+  });
+
+  it("emits stale cache followed by different fresh network weather", async () => {
+    const bridge = new TestBridge();
+    bridge.values.set("relic:weather:v1", JSON.stringify({
+      value: {
+        temperature: 24,
+        apparentTemperature: 25,
+        humidity: 50,
+        windSpeed: 3,
+        precipitationProbability: 0,
+        weatherCode: 0,
+        condition: "맑음",
+      },
+      fetchedAt: NOW - WEATHER_MAX_AGE_MS - 1,
+      coordinate: {
+        latitude: LOCATION.latitude,
+        longitude: LOCATION.longitude,
+      },
+    }));
+    const updates: LiveDashboardUpdate[] = [];
+    const session = createLiveDashboardSession({
+      bridge,
+      fetchImpl: vi.fn(async () => weatherResponse()) as unknown as typeof fetch,
+      now: () => NOW,
+      onUpdate: (update) => updates.push(update),
+    });
+
+    await session.start();
+
     expect(updates.map(({ target }) => target)).toEqual([
       "left",
       "right",
@@ -188,8 +220,9 @@ describe("createLiveDashboardSession", () => {
     ]);
     expect(updates.slice(1).map(({ state }) => state.weather.status)).toEqual([
       "stale",
-      "stale",
+      "fresh",
     ]);
+    expect(updates.at(-1)?.state.weather.value?.temperature).toBe(29.4);
   });
 
   it("does not let visibility refresh demo weather before location resolves", async () => {

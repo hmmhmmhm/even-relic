@@ -32,12 +32,26 @@ function cloneState(state: LiveDashboardState): LiveDashboardState {
   return JSON.parse(JSON.stringify(state)) as LiveDashboardState;
 }
 
-function isUnchangedFreshCache(
+function isSameWeatherState(
   left: DataState<WeatherValue> | undefined,
   right: DataState<WeatherValue>,
 ): boolean {
-  return left?.status === "fresh"
-    && JSON.stringify(left) === JSON.stringify(right);
+  if (
+    !left
+    || left.status !== right.status
+    || left.fetchedAt !== right.fetchedAt
+  ) {
+    return false;
+  }
+  if (!left.value || !right.value) return left.value === right.value;
+  return left.value.temperature === right.value.temperature
+    && left.value.apparentTemperature === right.value.apparentTemperature
+    && left.value.humidity === right.value.humidity
+    && left.value.windSpeed === right.value.windSpeed
+    && left.value.precipitationProbability
+      === right.value.precipitationProbability
+    && left.value.weatherCode === right.value.weatherCode
+    && left.value.condition === right.value.condition;
 }
 
 export function createLiveDashboardSession(
@@ -99,7 +113,7 @@ export function createLiveDashboardSession(
       } catch {
         result = { status: "unavailable" };
       }
-      if (disposed || isUnchangedFreshCache(cachedWeather, result)) return;
+      if (disposed || isSameWeatherState(cachedWeather, result)) return;
       setWeather(result);
       emit("right");
     })().finally(() => {

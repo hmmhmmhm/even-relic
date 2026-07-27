@@ -155,9 +155,9 @@ function drawCheckbox(
 
 function mapHeader(live: LiveDashboardState) {
   const source = live.location.value?.source;
-  if (source === "live") return "MAP // LIVE";
-  if (source === "cache") return "MAP // LAST FIX";
-  return "MAP // DEMO";
+  if (source === "live") return "LOC // LIVE · MAP DEMO";
+  if (source === "cache") return "LOC // LAST FIX · MAP DEMO";
+  return "LOC // DEMO · MAP DEMO";
 }
 
 function drawStaticMap(
@@ -166,7 +166,6 @@ function drawStaticMap(
 ) {
   drawFrame(context, 8, 8, 272, 272);
   drawText(context, mapHeader(live), 18, 16, 11, COLOR.secondary, "bold");
-  drawText(context, "RELIC // LOCAL", 170, 16, 9, COLOR.dim, "bold");
 
   const roads: readonly Point[][] = [
     [[18, 52], [78, 42], [130, 64], [202, 48], [270, 62]],
@@ -210,15 +209,6 @@ function drawStaticMap(
   context.fillRect(12, 250, 264, 25);
   context.fillStyle = COLOR.dim;
   context.fillRect(12, 249, 264, 1);
-  drawText(
-    context,
-    live.map.value?.attribution ?? "© OSM CONTRIBUTORS",
-    18,
-    238,
-    7,
-    COLOR.dim,
-    "bold",
-  );
   drawText(context, "DEST 0.8km", 18, 256, 12, COLOR.primary, "bold");
   drawText(context, "N ↑", 235, 256, 12, COLOR.secondary, "bold");
 }

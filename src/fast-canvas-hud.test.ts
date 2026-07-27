@@ -212,9 +212,9 @@ describe("fast split Canvas HUD", () => {
         "2026.07.27 월요일",
         "WEATHER --",
         `0${index + 1} / 04`,
-        "MAP // DEMO",
-        "© OSM CONTRIBUTORS",
+        "LOC // DEMO · MAP DEMO",
       ]));
+      expect(hud.values).not.toContain("© OSM CONTRIBUTORS");
       expect(hud.texts.find(
         ({ value }) => value === "2026.07.27 월요일",
       )).toMatchObject({ x: 306, y: 40 });
@@ -287,13 +287,13 @@ describe("fast split Canvas HUD", () => {
 
     expect(renderFastHud(module, "overview", {
       live: withSource("live"),
-    }).values).toContain("MAP // LIVE");
+    }).values).toContain("LOC // LIVE · MAP DEMO");
     expect(renderFastHud(module, "overview", {
       live: withSource("cache"),
-    }).values).toContain("MAP // LAST FIX");
+    }).values).toContain("LOC // LAST FIX · MAP DEMO");
     expect(renderFastHud(module, "overview", {
       live: withSource("demo"),
-    }).values).toContain("MAP // DEMO");
+    }).values).toContain("LOC // DEMO · MAP DEMO");
   });
 
   it("shows rounded live weather details and an unavailable fallback", async () => {
