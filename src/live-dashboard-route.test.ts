@@ -69,6 +69,19 @@ class StreamingBridge extends TestBridge {
   }
 }
 
+class BlockingRouteStorageBridge extends StreamingBridge {
+  readonly routeWriteStarted = deferred<void>();
+  readonly releaseRouteWrite = deferred<void>();
+
+  override async setLocalStorage(key: string, value: string) {
+    if (key === "relic:active-route:v1" && value !== "") {
+      this.routeWriteStarted.resolve();
+      await this.releaseRouteWrite.promise;
+    }
+    return super.setLocalStorage(key, value);
+  }
+}
+
 function weatherResponse(): Response {
   return {
     ok: true,
@@ -284,6 +297,33 @@ describe("live dashboard optional routing", () => {
 
     expect(session.getState().route).toEqual({ status: "fresh" });
     expect(bridge.values.get("relic:active-route:v1")).toBe("");
+    session.dispose();
+  });
+
+  it("does not let a late route cache write undo an explicit end", async () => {
+    const bridge = new BlockingRouteStorageBridge();
+    const session = createLiveDashboardSession({
+      bridge,
+      fetchImpl: liveFetch(),
+      routingStatus: { enabled: true },
+      now: () => NOW,
+      onUpdate: vi.fn(),
+    });
+    await session.start();
+
+    const starting = session.startRoute(DESTINATION, "foot-walking");
+    await bridge.routeWriteStarted.promise;
+    const ending = session.endRoute();
+    bridge.releaseRouteWrite.resolve();
+    await Promise.all([starting, ending]);
+
+    expect(session.getState().route).toEqual({ status: "fresh" });
+    expect(bridge.values.get("relic:active-route:v1")).toBe("");
+    expect(bridge.startCalls.at(-1)).toEqual({
+      accuracy: AppLocationAccuracy.Medium,
+      intervalMs: 15_000,
+      distanceFilter: 15,
+    });
     session.dispose();
   });
 

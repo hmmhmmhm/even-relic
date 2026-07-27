@@ -11,13 +11,13 @@ import {
   layoutMapLabels,
   type MapLabelViewport,
 } from "./map-label-layout";
-
-const COLOR = {
-  background: "#000000",
-  primary: "#ffffff",
-  secondary: "#d0d0d0",
-  dim: "#808080",
-} as const;
+import {
+  drawFastCanvasPath as drawPath,
+  drawFastCanvasText as drawText,
+  FAST_CANVAS_COLOR as COLOR,
+  type FastCanvasColor as HudColor,
+  type FastCanvasPoint as Point,
+} from "./fast-canvas-style";
 export const EMBEDDED_MAP_VIEWPORT: MapLabelViewport = {
   minX: 18,
   maxX: 270,
@@ -36,43 +36,6 @@ export const FULLSCREEN_MAP_VIEWPORT: MapLabelViewport = {
   centerY: 144,
   pixelRadius: 112,
 };
-
-type Point = readonly [number, number];
-type HudColor = typeof COLOR[keyof typeof COLOR];
-
-function drawText(
-  context: CanvasRenderingContext2D,
-  value: string,
-  x: number,
-  y: number,
-  size: number,
-  color: HudColor = COLOR.primary,
-  weight: "normal" | "bold" = "normal",
-) {
-  context.fillStyle = color;
-  context.font = `${weight} ${size}px "SFMono-Regular", Consolas, monospace`;
-  context.textAlign = "left";
-  context.textBaseline = "top";
-  context.fillText(value, x, y);
-}
-
-function drawPath(
-  context: CanvasRenderingContext2D,
-  points: readonly Point[],
-  color: HudColor,
-  width: number,
-) {
-  const [first, ...rest] = points;
-  if (!first || rest.length === 0) return;
-  context.beginPath();
-  context.moveTo(...first);
-  for (const point of rest) context.lineTo(...point);
-  context.strokeStyle = color;
-  context.lineWidth = width;
-  context.lineCap = "square";
-  context.lineJoin = "miter";
-  context.stroke();
-}
 
 function fillPolygon(
   context: CanvasRenderingContext2D,

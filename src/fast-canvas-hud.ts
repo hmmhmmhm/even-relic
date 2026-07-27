@@ -7,18 +7,14 @@ import {
   type LiveDashboardState,
   type RouteValue,
 } from "./live-state";
+import {
+  drawFastCanvasPath as drawPath,
+  drawFastCanvasText as drawText,
+  FAST_CANVAS_COLOR as COLOR,
+} from "./fast-canvas-style";
 
 const WIDTH = 576;
 const HEIGHT = 288;
-const COLOR = {
-  background: "#000000",
-  primary: "#ffffff",
-  secondary: "#d0d0d0",
-  dim: "#808080",
-} as const;
-
-type HudColor = typeof COLOR[keyof typeof COLOR];
-type Point = readonly [number, number];
 const WEEKDAYS = [
   "일요일",
   "월요일",
@@ -66,39 +62,6 @@ function formatDate(now: Date) {
     String(now.getDate()).padStart(2, "0"),
   ].join(".");
   return `${date} ${WEEKDAYS[now.getDay()]}`;
-}
-
-function drawText(
-  context: CanvasRenderingContext2D,
-  value: string,
-  x: number,
-  y: number,
-  size: number,
-  color: HudColor = COLOR.primary,
-  weight: "normal" | "bold" = "normal",
-) {
-  context.fillStyle = color;
-  context.font = `${weight} ${size}px "SFMono-Regular", Consolas, monospace`;
-  context.textAlign = "left";
-  context.textBaseline = "top";
-  context.fillText(value, x, y);
-}
-
-function drawPath(
-  context: CanvasRenderingContext2D,
-  points: readonly Point[],
-  color: HudColor,
-  width: number,
-) {
-  const [first, ...rest] = points;
-  context.beginPath();
-  context.moveTo(...first);
-  for (const point of rest) context.lineTo(...point);
-  context.strokeStyle = color;
-  context.lineWidth = width;
-  context.lineCap = "square";
-  context.lineJoin = "miter";
-  context.stroke();
 }
 
 function drawFrame(
