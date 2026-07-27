@@ -153,6 +153,7 @@ export async function resolveInitialLocation(
   const cached = await readCache(bridge, "location", isLocationCache);
   if (
     cached &&
+    cached.fetchedAt <= now &&
     now - cached.fetchedAt <= LOCATION_CACHE_MAX_AGE_MS
   ) {
     return {

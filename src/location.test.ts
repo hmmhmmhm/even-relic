@@ -258,6 +258,26 @@ describe("resolveInitialLocation", () => {
     });
   });
 
+  it("rejects a cache timestamp later than now", async () => {
+    const now = 1_800_000_000_000;
+    const bridge = bridgeReturning(null);
+    setLocationCache(bridge, {
+      value: {
+        coordinate: { latitude: 37.5, longitude: 127 },
+        source: "live",
+      },
+      fetchedAt: now + 1,
+    });
+
+    await expect(resolveInitialLocation(bridge, now)).resolves.toEqual({
+      status: "unavailable",
+      value: {
+        coordinate: { ...DEMO_COORDINATE },
+        source: "demo",
+      },
+    });
+  });
+
   it.each([
     {
       value: {
