@@ -83,6 +83,18 @@ node --test --test-concurrency=1 \
 `git grep -n "ORS_API_KEY" -- src app.json package.json` returns no client
 matches.
 
+The committed branch was also started without a key on a temporary local
+Vite server. Runtime HTTP observations:
+
+- `/hud-canvas-fast?...build=ors-local-review`: `200`, HTML app shell;
+- `/api/routing-status`: `200`, `{ "enabled": false }`;
+- `/api/geocode?q=서울역`: `503`, `ROUTING_DISABLED`;
+- `/api/route`: `503`, `ROUTING_DISABLED`.
+
+The temporary server was stopped after this serial check. The in-app browser
+surface was not available in this session, so visual browser inspection was
+not claimed.
+
 ## Current physical gate
 
 The existing fullscreen-map build remains isolated and running at:
