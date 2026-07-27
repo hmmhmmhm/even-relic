@@ -323,6 +323,17 @@ describe("fast split Canvas HUD", () => {
       "체감 31°  습도 67%",
       "강수 20%  바람 8km/h",
     ]));
+    const headerWeather = weather.texts.find(
+      ({ value, y }) => value === "29°C 대체로 맑음" && y === 40,
+    );
+    expect(headerWeather).toMatchObject({ x: 468, y: 40 });
+    expect(headerWeather?.font).toMatch(/\b10px\b/);
+    const estimatedHeaderWidth = [...headerWeather!.value].reduce(
+      (width, character) =>
+        width + (/^[\x00-\x7F]$/.test(character) ? 6 : 10),
+      0,
+    );
+    expect(headerWeather!.x + estimatedHeaderWidth).toBeLessThanOrEqual(576);
     expect(renderFastHud(module, "overview", {
       live: {
         ...initial,

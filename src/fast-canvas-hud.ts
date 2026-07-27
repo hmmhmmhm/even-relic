@@ -235,9 +235,9 @@ function drawDynamicHeader(
   drawText(
     context,
     weatherSummary(live),
-    458,
+    468,
     40,
-    8,
+    10,
     COLOR.secondary,
     "bold",
   );
