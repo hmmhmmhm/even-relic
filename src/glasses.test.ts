@@ -54,6 +54,7 @@ async function createFastRefreshHarness(
   let currentEncodeAttempt = 0;
   let refreshRequest: ((target: TestRefreshTarget) => void) | undefined;
   let listener: ((event: EvenHubEvent) => void) | undefined;
+  let sdkUnsubscribeCalls = 0;
 
   const bridge = {
     createStartUpPageContainer: async () => 0,
@@ -78,7 +79,9 @@ async function createFastRefreshHarness(
     },
     onEvenHubEvent: (next: (event: EvenHubEvent) => void) => {
       listener = next;
-      return () => undefined;
+      return () => {
+        sdkUnsubscribeCalls += 1;
+      };
     },
     shutDownPageContainer: async () => true,
   };
@@ -104,7 +107,7 @@ async function createFastRefreshHarness(
     },
   ) => Promise<() => void>;
 
-  await transmitFastCanvas(
+  const cleanup = await transmitFastCanvas(
     hudSource,
     (message) => progress.push(message),
     async () => undefined,
@@ -141,6 +144,7 @@ async function createFastRefreshHarness(
     throw new Error("fast refresh harness did not become ready");
   }
   return {
+    cleanup,
     encodedTileIds,
     emit: (eventType: OsEventTypeList) => listener!({
       sysEvent: { eventType },
@@ -151,6 +155,9 @@ async function createFastRefreshHarness(
     imageIds,
     progress,
     request: refreshRequest,
+    get sdkUnsubscribeCalls() {
+      return sdkUnsubscribeCalls;
+    },
   };
 }
 
@@ -535,7 +542,7 @@ describe("G2 raster transport", () => {
     }]);
   });
 
-  it("coalesces synchronous left and right refreshes into one serialized full send", async () => {
+  it("live refresh coalesces synchronous left and right requests into one serialized full send", async () => {
     const harness = await createFastRefreshHarness();
 
     harness.request("left");
@@ -553,7 +560,7 @@ describe("G2 raster transport", () => {
     expect(harness.maximumActiveImageSends).toBe(1);
   });
 
-  it("maps independent external refreshes to their requested display halves", async () => {
+  it("live refresh maps independent requests to their display halves", async () => {
     const harness = await createFastRefreshHarness();
 
     harness.request("left");
@@ -569,7 +576,7 @@ describe("G2 raster transport", () => {
     expect(harness.imageIds).toEqual([3, 5, 2, 4, 2, 4, 3, 5]);
   });
 
-  it("deduplicates same-side refreshes and lets all dominate a pending batch", async () => {
+  it("live refresh deduplicates one side and lets all dominate", async () => {
     const harness = await createFastRefreshHarness();
 
     harness.request("left");
@@ -587,7 +594,7 @@ describe("G2 raster transport", () => {
     ]);
   });
 
-  it("redraws immediately before an external refresh is encoded", async () => {
+  it("live refresh redraws immediately before encoding", async () => {
     const order: string[] = [];
     let initialized = false;
     const harness = await createFastRefreshHarness({
@@ -607,7 +614,7 @@ describe("G2 raster transport", () => {
     expect(order).toEqual(["redraw", "encode:3,5"]);
   });
 
-  it("queues one follow-up refresh when requests arrive during an active send", async () => {
+  it("live refresh queues one follow-up during an active send", async () => {
     const firstExternalSend = deferred();
     let blocked = false;
     const harness = await createFastRefreshHarness({
@@ -636,7 +643,7 @@ describe("G2 raster transport", () => {
     expect(harness.maximumActiveImageSends).toBe(1);
   });
 
-  it("releases the external scheduler after encode failure", async () => {
+  it("live refresh releases its scheduler after encode failure", async () => {
     let failNextExternalEncode = true;
     const harness = await createFastRefreshHarness({
       encode: async (ids, attempt) => {
@@ -661,7 +668,7 @@ describe("G2 raster transport", () => {
     expect(harness.imageIds).toEqual([3, 5, 2, 4, 2, 4]);
   });
 
-  it("releases the external scheduler after SENDFAILED", async () => {
+  it("live refresh releases its scheduler after SENDFAILED", async () => {
     let failNextExternalSend = true;
     const harness = await createFastRefreshHarness({
       update: async (_id, _call, encodeAttempt) => {
@@ -688,7 +695,7 @@ describe("G2 raster transport", () => {
     expect(harness.imageIds).toEqual([3, 5, 2, 4, 3, 2, 4]);
   });
 
-  it("skips external work while hidden and restores the newest full HUD", async () => {
+  it("live refresh skips hidden work and restores the newest full HUD", async () => {
     const order: string[] = [];
     const harness = await createFastRefreshHarness({
       beforeExternalRefresh: async () => {
@@ -721,6 +728,113 @@ describe("G2 raster transport", () => {
     ]);
   });
 
+  it("live refresh ignores captured requests after cleanup", async () => {
+    const harness = await createFastRefreshHarness();
+
+    harness.cleanup();
+    harness.request("all");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(harness.encodedTileIds).toEqual([[3, 5, 2, 4]]);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4]);
+    expect(harness.sdkUnsubscribeCalls).toBe(1);
+  });
+
+  it("live refresh cancels queued work on synchronous cleanup", async () => {
+    const harness = await createFastRefreshHarness();
+
+    harness.request("right");
+    harness.cleanup();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(harness.encodedTileIds).toEqual([[3, 5, 2, 4]]);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4]);
+  });
+
+  it("live refresh does not encode when cleaned up during redraw", async () => {
+    const redrawGate = deferred();
+    let redrawStarted = false;
+    let redrawFinished = false;
+    const harness = await createFastRefreshHarness({
+      beforeExternalRefresh: async () => {
+        redrawStarted = true;
+        await redrawGate.promise;
+        redrawFinished = true;
+      },
+    });
+
+    harness.request("left");
+    await vi.waitFor(() => expect(redrawStarted).toBe(true));
+    harness.cleanup();
+    redrawGate.resolve();
+    await vi.waitFor(() => expect(redrawFinished).toBe(true));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(harness.encodedTileIds).toEqual([[3, 5, 2, 4]]);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4]);
+  });
+
+  it("live refresh unsubscribes and neutralizes work when ready throws", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+    const encodedTileIds: number[][] = [];
+    const imageIds: number[] = [];
+    let sdkUnsubscribeCalls = 0;
+    const bridge = {
+      createStartUpPageContainer: async () => 0,
+      rebuildPageContainer: async () => true,
+      updateImageRawData: async (update: { containerID?: number }) => {
+        imageIds.push(update.containerID!);
+        return "success";
+      },
+      onEvenHubEvent: () => () => {
+        sdkUnsubscribeCalls += 1;
+      },
+      shutDownPageContainer: async () => true,
+    };
+
+    await expect(module.transmitFastCanvas(
+      {} as HTMLCanvasElement,
+      () => undefined,
+      async () => undefined,
+      {
+        dependencies: {
+          waitForBridge: async () => bridge,
+          encode: async (
+            _source,
+            _factory,
+            tiles = module.G2_TILES,
+          ) => {
+            const ids = tiles.map(({ id }) => id);
+            encodedTileIds.push(ids);
+            return ids.map((id) => new Uint8Array([id]));
+          },
+        },
+        onRefreshReady: (request) => {
+          request("all");
+          throw new Error("ready exploded");
+        },
+      },
+    )).rejects.toThrow("ready exploded");
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(sdkUnsubscribeCalls).toBe(1);
+    expect(encodedTileIds).toEqual([[3, 5, 2, 4]]);
+    expect(imageIds).toEqual([3, 5, 2, 4]);
+  });
+
+  it("live refresh keeps its disposer idempotent", async () => {
+    const harness = await createFastRefreshHarness();
+
+    harness.cleanup();
+    harness.cleanup();
+
+    expect(harness.sdkUnsubscribeCalls).toBe(1);
+  });
   it("toggles fast Canvas pixels while keeping the app event layer alive", async () => {
     const module = await loadGlasses();
     if (!module) return;

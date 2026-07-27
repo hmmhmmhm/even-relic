@@ -433,13 +433,17 @@ export async function transmitCanvas(
     imageSource: HTMLCanvasElement,
     targetTiles: readonly Tile[],
     completionMessage: string,
+    shouldContinue: () => boolean = () => true,
   ) => {
+    if (!shouldContinue()) return;
     const encodedTiles = await dependencies.encode(
       imageSource,
       undefined,
       targetTiles,
     );
+    if (!shouldContinue()) return;
     await sendTilesSequentially(encodedTiles, async (bytes, index) => {
+      if (!shouldContinue()) return;
       const tile = targetTiles[index];
       const result = ImageRawDataUpdateResult.normalize(
         await bridge.updateImageRawData(new ImageRawDataUpdate({
@@ -453,38 +457,47 @@ export async function transmitCanvas(
       }
       onProgress(`안경 이미지 전송 중 ${index + 1}/${targetTiles.length}`);
     });
+    if (!shouldContinue()) return;
     onProgress(completionMessage);
   };
 
   await refreshImages(source, tiles, "안경 전송 완료");
+  let disposed = false;
   let hidden = false;
   let hiddenSource: HTMLCanvasElement | undefined;
   let operationQueue = Promise.resolve();
   const queueOperation = (operation: () => void | Promise<void>) => {
+    if (disposed) return;
     operationQueue = operationQueue
-      .then(operation)
+      .then(() => {
+        if (!disposed) return operation();
+      })
       .catch((error: unknown) => {
         onProgress(error instanceof Error ? error.message : String(error));
       });
   };
   const queueNavigation = (direction: PageDirection) => {
-    if (!onNavigate || hidden) return;
+    if (!onNavigate || hidden || disposed) return;
     queueOperation(async () => {
-      if (hidden) return;
+      if (hidden || disposed) return;
       onProgress("HUD 페이지 전환 중");
       await onNavigate(direction);
+      if (disposed) return;
       await refreshImages(source, navigationTiles, "페이지 전송 완료");
     });
   };
   const queueDisplayToggle = () => {
+    if (disposed) return;
     if (!displayToggle) {
       void bridge.shutDownPageContainer(1);
       return;
     }
     queueOperation(async () => {
+      if (disposed) return;
       if (hidden) {
         onProgress("HUD 표시 복원 중");
         await displayToggle.beforeRestore?.();
+        if (disposed) return;
         await refreshImages(source, tiles, "HUD 표시 복원 완료");
         hidden = false;
       } else {
@@ -501,28 +514,31 @@ export async function transmitCanvas(
   let pendingRefreshTarget: FastCanvasRefreshTarget | undefined;
   let externalRefreshScheduled = false;
   const scheduleExternalRefresh = () => {
-    if (!externalRefresh || externalRefreshScheduled) return;
+    if (!externalRefresh || externalRefreshScheduled || disposed) return;
     externalRefreshScheduled = true;
     queueOperation(async () => {
       try {
         const target = pendingRefreshTarget;
         pendingRefreshTarget = undefined;
-        if (!target || hidden) return;
+        if (!target || hidden || disposed) return;
         onProgress("라이브 HUD 갱신 중");
+        if (disposed) return;
         await externalRefresh.beforeExternalRefresh?.();
-        if (hidden) return;
+        if (hidden || disposed) return;
         await refreshImages(
           source,
           externalRefresh.targetTiles[target],
           "라이브 HUD 갱신 완료",
+          () => !disposed && !hidden,
         );
       } finally {
         externalRefreshScheduled = false;
-        if (pendingRefreshTarget) scheduleExternalRefresh();
+        if (!disposed && pendingRefreshTarget) scheduleExternalRefresh();
       }
     });
   };
   const requestExternalRefresh: FastCanvasRefreshRequest = (target) => {
+    if (disposed) return;
     if (
       pendingRefreshTarget === "all"
       || target === "all"
@@ -535,7 +551,8 @@ export async function transmitCanvas(
     scheduleExternalRefresh();
   };
 
-  const unsubscribe = bridge.onEvenHubEvent((event) => {
+  const sdkUnsubscribe = bridge.onEvenHubEvent((event) => {
+    if (disposed) return;
     const eventType = event.sysEvent?.eventType
       ?? event.textEvent?.eventType
       ?? null;
@@ -547,8 +564,20 @@ export async function transmitCanvas(
       queueNavigation("previous");
     }
   });
-  externalRefresh?.onRefreshReady?.(requestExternalRefresh);
-  return unsubscribe;
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    pendingRefreshTarget = undefined;
+    externalRefreshScheduled = false;
+    sdkUnsubscribe();
+  };
+  try {
+    externalRefresh?.onRefreshReady?.(requestExternalRefresh);
+  } catch (error) {
+    dispose();
+    throw error;
+  }
+  return dispose;
 }
 
 export function transmitFastCanvas(
