@@ -28,6 +28,7 @@ type FastTestOptions = {
     readonly level?: number;
     readonly charging?: boolean;
   } | undefined) => void;
+  readonly onDisplayCommitted?: (minute: number) => void;
   readonly onInput?: (
     input: FastInput,
   ) => FastInputResult | Promise<FastInputResult>;
@@ -291,8 +292,8 @@ describe("RELIC peripheral HUD", () => {
     window.history.replaceState({}, "", "/hud-canvas-fast");
     const requestRefresh = vi.fn();
     const stopMinuteRefresh = vi.fn();
-    let onMinute: (() => void) | undefined;
-    mocks.minuteStart.mockImplementation((callback: () => void) => {
+    let onMinute: ((minute: number) => void) | undefined;
+    mocks.minuteStart.mockImplementation((callback: (minute: number) => void) => {
       onMinute = callback;
       return stopMinuteRefresh;
     });
@@ -314,19 +315,83 @@ describe("RELIC peripheral HUD", () => {
     await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
     expect(mocks.minuteStart).toHaveBeenCalledOnce();
 
-    onMinute?.();
+    onMinute?.(1_234);
     expect(requestRefresh).toHaveBeenCalledWith("right-top");
 
     view.unmount();
     expect(stopMinuteRefresh).toHaveBeenCalledOnce();
   });
 
+  it("skips clock refresh when another transfer committed this minute", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    let onMinute: ((minute: number) => void) | undefined;
+    mocks.minuteStart.mockImplementation((callback: (minute: number) => void) => {
+      onMinute = callback;
+      return vi.fn();
+    });
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return vi.fn();
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+    fastOptions().onDisplayCommitted?.(1_234);
+
+    onMinute?.(1_234);
+    expect(requestRefresh).not.toHaveBeenCalled();
+    onMinute?.(1_235);
+    expect(requestRefresh).toHaveBeenCalledOnce();
+    expect(requestRefresh).toHaveBeenCalledWith("right-top");
+    view.unmount();
+  });
+
+  it("does not retry one minute refresh in the same minute", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    let onMinute: ((minute: number) => void) | undefined;
+    mocks.minuteStart.mockImplementation((callback: (minute: number) => void) => {
+      onMinute = callback;
+      return vi.fn();
+    });
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return vi.fn();
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    mocks.createSession.mockReturnValue({
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    });
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(mocks.createSession).toHaveBeenCalledOnce());
+    onMinute?.(1_235);
+    onMinute?.(1_235);
+    onMinute?.(1_235);
+
+    expect(requestRefresh).toHaveBeenCalledOnce();
+    expect(requestRefresh).toHaveBeenCalledWith("right-top");
+    view.unmount();
+  });
+
   it("traces fast HUD lifecycle without changing refresh behavior", async () => {
     window.history.replaceState({}, "", "/hud-canvas-fast");
     diagnosticLogger.clear();
     const requestRefresh = vi.fn();
-    let onMinute: (() => void) | undefined;
-    mocks.minuteStart.mockImplementation((callback: () => void) => {
+    let onMinute: ((minute: number) => void) | undefined;
+    mocks.minuteStart.mockImplementation((callback: (minute: number) => void) => {
       onMinute = callback;
       return vi.fn();
     });
@@ -355,7 +420,7 @@ describe("RELIC peripheral HUD", () => {
       state: createInitialLiveDashboardState(),
       target: "right",
     });
-    onMinute?.();
+    onMinute?.(1_234);
     const errorEvent = new ErrorEvent("error", {
       cancelable: true,
       error: new TypeError("private route destination"),
@@ -645,8 +710,8 @@ describe("RELIC peripheral HUD", () => {
     window.history.replaceState({}, "", "/hud-canvas-fast");
     const requestRefresh = vi.fn();
     const transportCleanup = vi.fn();
-    let onMinute: (() => void) | undefined;
-    mocks.minuteStart.mockImplementation((callback: () => void) => {
+    let onMinute: ((minute: number) => void) | undefined;
+    mocks.minuteStart.mockImplementation((callback: (minute: number) => void) => {
       onMinute = callback;
       return vi.fn();
     });
@@ -739,7 +804,7 @@ describe("RELIC peripheral HUD", () => {
       level: 79,
       charging: false,
     });
-    onMinute?.();
+    onMinute?.(1_234);
     expect(requestRefresh).not.toHaveBeenCalled();
 
     await fastOptions().onInput?.("double-tap");

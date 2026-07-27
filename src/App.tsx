@@ -103,6 +103,8 @@ export function App({ autoStart = true }: AppProps) {
     let live: LiveDashboardState = createInitialLiveDashboardState();
     let requestLiveRefresh: FastCanvasRefreshRequest | undefined;
     let stopMinuteRefresh: (() => void) | undefined;
+    let lastSuccessfulDisplayMinute: number | undefined;
+    let lastMinuteAttempt: number | undefined;
     let stopDiagnosticHeartbeat: (() => void) | undefined;
     const canvas = canvasRef.current;
     const onWindowError = (event: ErrorEvent) => {
@@ -216,6 +218,13 @@ export function App({ autoStart = true }: AppProps) {
                 drawCurrentPage();
               }
             },
+            onDisplayCommitted: (minute) => {
+              lastSuccessfulDisplayMinute = minute;
+              logDiagnostic(
+                "REFRESH",
+                `display committed · minute ${minute}`,
+              );
+            },
             onInput: async (input) => {
               const transition = reduceFastHudInput(
                 view,
@@ -253,7 +262,16 @@ export function App({ autoStart = true }: AppProps) {
               requestLiveRefresh = request;
               logDiagnostic("APP", "transport refresh ready");
               stopMinuteRefresh ??= startMinuteRefresh(
-                () => {
+                (minute) => {
+                  if (lastMinuteAttempt === minute) return;
+                  lastMinuteAttempt = minute;
+                  if (lastSuccessfulDisplayMinute === minute) {
+                    logDiagnostic(
+                      "TIMER",
+                      "minute refresh skipped · already rendered",
+                    );
+                    return;
+                  }
                   logDiagnostic(
                     "TIMER",
                     `minute refresh · mode ${view.mode}`,
