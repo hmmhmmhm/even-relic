@@ -207,7 +207,7 @@ git commit -m "feat: proxy bounded OSM road geometry"
 - Modify: `src/live-dashboard.ts`
 - Modify: `src/live-dashboard.test.ts`
 
-- [ ] **Step 1: Write parsing, projection, and cache-cell tests**
+- [x] **Step 1: Write parsing, projection, and cache-cell tests**
 
 Assert:
 
@@ -233,13 +233,13 @@ Assert two coordinates in the same `0.005` cell cause one request and crossing
 the cell boundary causes a second request. Assert a failed refresh keeps the
 last map as `stale`.
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 ```bash
 npx vitest run src/map.test.ts src/live-dashboard.test.ts
 ```
 
-- [ ] **Step 3: Implement client map helpers**
+- [x] **Step 3: Implement client map helpers**
 
 Export:
 
@@ -288,7 +288,7 @@ only when the location cell differs from the valid cached map cell.
 Call `onCached` before refreshing a stale matching cell so the last map is
 visible while Overpass responds.
 
-- [ ] **Step 4: Integrate map resolution**
+- [x] **Step 4: Integrate map resolution**
 
 After initial location resolves, start weather and map independently:
 
@@ -307,7 +307,7 @@ void resolveMap(
 Map failure must not alter location or weather. Late results after `dispose()`
 must not emit.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```bash
 npx vitest run src/map.test.ts src/live-dashboard.test.ts

@@ -51,11 +51,24 @@ function newsResponse(): Response {
   } as Response;
 }
 
+function mapResponse(): Response {
+  return {
+    ok: true,
+    json: async () => ({
+      cell: "37.565,126.975",
+      attribution: "© OSM CONTRIBUTORS",
+      roads: [],
+    }),
+  } as Response;
+}
+
 function liveFetch(weatherTemperature = 29.4): typeof fetch {
-  return vi.fn(async (input: RequestInfo | URL) =>
-    String(input).startsWith("/api/news")
-      ? newsResponse()
-      : weatherResponse(weatherTemperature)) as unknown as typeof fetch;
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.startsWith("/api/news")) return newsResponse();
+    if (url.startsWith("/api/map")) return mapResponse();
+    return weatherResponse(weatherTemperature);
+  }) as unknown as typeof fetch;
 }
 
 class TestBridge implements LocationBridge {
@@ -131,11 +144,9 @@ describe("createLiveDashboardSession", () => {
 
     expect(documentTarget.added).toHaveLength(1);
     expect(bridge.locationCalls).toHaveLength(1);
-    expect(updates.map(({ target }) => target)).toEqual([
-      "left",
-      "right",
-      "right",
-    ]);
+    expect(updates[0].target).toBe("left");
+    expect(updates.filter(({ target }) => target === "left")).toHaveLength(2);
+    expect(updates.filter(({ target }) => target === "right")).toHaveLength(2);
     expect(updates[0].state.location.value?.source).toBe("live");
     expect(updates.at(-1)?.state.weather).toMatchObject({
       status: "fresh",
@@ -178,15 +189,15 @@ describe("createLiveDashboardSession", () => {
 
     await session.start();
 
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
     expect(String(vi.mocked(fetchImpl).mock.calls[0][0])).toBe(
       "/api/news?feed=sbs-latest",
     );
-    expect(updates.map(({ target }) => target)).toEqual([
-      "left",
-      "right",
-      "right",
-    ]);
+    expect(String(vi.mocked(fetchImpl).mock.calls[1][0])).toMatch(
+      /^\/api\/map/,
+    );
+    expect(updates.filter(({ target }) => target === "left")).toHaveLength(2);
+    expect(updates.filter(({ target }) => target === "right")).toHaveLength(2);
     expect(updates[1].state.weather.value?.temperature).toBe(24);
   });
 
@@ -209,10 +220,12 @@ describe("createLiveDashboardSession", () => {
       },
     }));
     const updates: LiveDashboardUpdate[] = [];
-    const fetchImpl = vi.fn(async (input: RequestInfo | URL) =>
-      String(input).startsWith("/api/news")
-        ? newsResponse()
-        : ({ ok: false } as Response)) as unknown as typeof fetch;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.startsWith("/api/news")) return newsResponse();
+      if (url.startsWith("/api/map")) return mapResponse();
+      return { ok: false } as Response;
+    }) as unknown as typeof fetch;
     const session = createLiveDashboardSession({
       bridge,
       fetchImpl,
@@ -222,11 +235,8 @@ describe("createLiveDashboardSession", () => {
 
     await session.start();
 
-    expect(updates.map(({ target }) => target)).toEqual([
-      "left",
-      "right",
-      "right",
-    ]);
+    expect(updates.filter(({ target }) => target === "left")).toHaveLength(2);
+    expect(updates.filter(({ target }) => target === "right")).toHaveLength(2);
     expect(updates[1].state.weather.status).toBe("stale");
     expect(updates.at(-1)?.state.news.status).toBe("fresh");
   });
@@ -259,12 +269,8 @@ describe("createLiveDashboardSession", () => {
 
     await session.start();
 
-    expect(updates.map(({ target }) => target)).toEqual([
-      "left",
-      "right",
-      "right",
-      "right",
-    ]);
+    expect(updates.filter(({ target }) => target === "left")).toHaveLength(2);
+    expect(updates.filter(({ target }) => target === "right")).toHaveLength(3);
     expect(updates[1].state.weather.status).toBe("stale");
     expect(updates.at(-1)?.state.weather.status).toBe("fresh");
     expect(updates.at(-1)?.state.weather.value?.temperature).toBe(29.4);
@@ -290,7 +296,7 @@ describe("createLiveDashboardSession", () => {
     location.resolve(LOCATION);
     await starting;
     const weatherCalls = vi.mocked(fetchImpl).mock.calls.filter(
-      ([input]) => !String(input).startsWith("/api/news"),
+      ([input]) => String(input).startsWith("https://api.open-meteo"),
     );
     expect(weatherCalls).toHaveLength(1);
     expect(String(weatherCalls[0][0])).toContain(
@@ -304,6 +310,7 @@ describe("createLiveDashboardSession", () => {
     let weatherCalls = 0;
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       if (String(input).startsWith("/api/news")) return newsResponse();
+      if (String(input).startsWith("/api/map")) return mapResponse();
       weatherCalls += 1;
       return weatherCalls === 1 ? weatherResponse() : secondFetch.promise;
     }) as unknown as typeof fetch;
@@ -394,10 +401,12 @@ describe("createLiveDashboardSession", () => {
   });
 
   it("keeps news fresh when weather fails", async () => {
-    const fetchImpl = vi.fn(async (input: RequestInfo | URL) =>
-      String(input).startsWith("/api/news")
-        ? newsResponse()
-        : ({ ok: false } as Response)) as unknown as typeof fetch;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.startsWith("/api/news")) return newsResponse();
+      if (url.startsWith("/api/map")) return mapResponse();
+      return { ok: false } as Response;
+    }) as unknown as typeof fetch;
     const session = createLiveDashboardSession({
       bridge: new TestBridge(),
       fetchImpl,

@@ -2,6 +2,7 @@ import {
   createInitialLiveDashboardState,
   type DataState,
   type LiveDashboardState,
+  type MapValue,
   type NewsItem,
   type WeatherValue,
 } from "./live-state";
@@ -9,6 +10,7 @@ import {
   resolveInitialLocation,
   type LocationBridge,
 } from "./location";
+import { MAP_MAX_AGE_MS, resolveMap } from "./map";
 import { NEWS_MAX_AGE_MS, resolveNews } from "./news";
 import { resolveWeather, WEATHER_MAX_AGE_MS } from "./weather";
 
@@ -78,6 +80,18 @@ function isSameNewsState(
     });
 }
 
+function isSameMapState(
+  left: DataState<MapValue> | undefined,
+  right: DataState<MapValue>,
+): boolean {
+  return Boolean(
+    left
+    && left.status === right.status
+    && left.fetchedAt === right.fetchedAt
+    && left.value?.cell === right.value?.cell,
+  );
+}
+
 export function createLiveDashboardSession(
   options: LiveDashboardSessionOptions,
 ): {
@@ -96,6 +110,7 @@ export function createLiveDashboardSession(
   let startPromise: Promise<void> | undefined;
   let weatherPromise: Promise<void> | undefined;
   let newsPromise: Promise<void> | undefined;
+  let mapPromise: Promise<void> | undefined;
 
   const emit = (target: LiveDashboardUpdate["target"]) => {
     if (disposed) return;
@@ -117,6 +132,12 @@ export function createLiveDashboardSession(
       ...state,
       news,
     }).news };
+  };
+  const setMap = (map: DataState<MapValue>) => {
+    state = { ...state, map: cloneState({
+      ...state,
+      map,
+    }).map };
   };
 
   const refreshWeather = (): Promise<void> => {
@@ -184,6 +205,40 @@ export function createLiveDashboardSession(
     return newsPromise;
   };
 
+  const refreshMap = (): Promise<void> => {
+    if (disposed) return Promise.resolve();
+    if (mapPromise) return mapPromise;
+
+    mapPromise = (async () => {
+      const coordinate = state.location.value?.coordinate;
+      if (!coordinate || disposed) return;
+      let cachedMap: DataState<MapValue> | undefined;
+      let result: DataState<MapValue>;
+      try {
+        result = await resolveMap(
+          options.bridge,
+          coordinate,
+          fetchImpl,
+          now(),
+          (cached) => {
+            if (disposed) return;
+            cachedMap = cached;
+            setMap(cached);
+            emit("left");
+          },
+        );
+      } catch {
+        result = { status: "unavailable" };
+      }
+      if (disposed || isSameMapState(cachedMap, result)) return;
+      setMap(result);
+      emit("left");
+    })().finally(() => {
+      mapPromise = undefined;
+    });
+    return mapPromise;
+  };
+
   const onVisibilityChange = () => {
     if (
       disposed
@@ -206,6 +261,13 @@ export function createLiveDashboardSession(
       || currentTime - newsFetchedAt >= NEWS_MAX_AGE_MS
     ) {
       void refreshNews();
+    }
+    const mapFetchedAt = state.map.fetchedAt;
+    if (
+      mapFetchedAt === undefined
+      || currentTime - mapFetchedAt >= MAP_MAX_AGE_MS
+    ) {
+      void refreshMap();
     }
   };
 
@@ -231,7 +293,7 @@ export function createLiveDashboardSession(
       }).location };
       locationResolved = true;
       emit("left");
-      await Promise.all([refreshWeather(), refreshNews()]);
+      await Promise.all([refreshWeather(), refreshNews(), refreshMap()]);
     })();
     return startPromise;
   };
