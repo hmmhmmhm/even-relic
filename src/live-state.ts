@@ -46,8 +46,15 @@ export type MapRoad = {
   readonly points: readonly Coordinate[];
 };
 
+export type MapLabel = {
+  readonly kind: "place" | "transit" | "landmark" | "road";
+  readonly name: string;
+  readonly point: Coordinate;
+};
+
 export type MapValue = {
   readonly roads: readonly MapRoad[];
+  readonly labels: readonly MapLabel[];
   readonly attribution: "© OSM CONTRIBUTORS";
   readonly cell?: string;
 };
@@ -95,6 +102,7 @@ export function createInitialLiveDashboardState(): LiveDashboardState {
       status: "loading",
       value: {
         roads: [],
+        labels: [],
         attribution: "© OSM CONTRIBUTORS",
       },
     },

@@ -58,6 +58,7 @@ function mapResponse(): Response {
       cell: "37.565,126.975",
       attribution: "© OSM CONTRIBUTORS",
       roads: [],
+      labels: [],
     }),
   } as Response;
 }

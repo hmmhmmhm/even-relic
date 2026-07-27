@@ -47,6 +47,7 @@ function liveState(): LiveDashboardState {
             ],
           },
         ],
+        labels: [],
       },
     },
     route: {

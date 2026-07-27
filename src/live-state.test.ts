@@ -6,6 +6,7 @@ import {
   type DataState,
   type LiveDashboardState,
   type LocationValue,
+  type MapLabel,
   type MapRoad,
   type MapValue,
   type NewsItem,
@@ -39,6 +40,7 @@ describe("live dashboard state", () => {
         status: "loading",
         value: {
           roads: [],
+          labels: [],
           attribution: "© OSM CONTRIBUTORS",
         },
       },
@@ -58,6 +60,7 @@ describe("live dashboard state", () => {
     expect(first.news.value).not.toBe(second.news.value);
     expect(first.map.value).not.toBe(second.map.value);
     expect(first.map.value?.roads).not.toBe(second.map.value?.roads);
+    expect(first.map.value?.labels).not.toBe(second.map.value?.labels);
   });
 
   it("exposes practical typed values for each provider", () => {
@@ -85,8 +88,14 @@ describe("live dashboard state", () => {
       publishedAt: 1_785_120_000_000,
     };
     const road: MapRoad = { kind: "major", points: [coordinate] };
+    const label: MapLabel = {
+      kind: "transit",
+      name: "홍대입구역",
+      point: coordinate,
+    };
     const map: MapValue = {
       roads: [road],
+      labels: [label],
       attribution: "© OSM CONTRIBUTORS",
       cell: "37.5,127.0",
     };
@@ -118,6 +127,7 @@ describe("live dashboard state", () => {
 
     expect(dashboard.weather.value?.precipitationProbability).toBe(20);
     expect(dashboard.map.value?.roads[0]?.points[0]).toBe(coordinate);
+    expect(dashboard.map.value?.labels[0]).toBe(label);
     expect(dashboard.route.value?.maneuvers[0]).toBe(maneuver);
   });
 });

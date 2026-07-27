@@ -74,6 +74,7 @@ function mapResponse(): Response {
         kind: "major",
         points: [[37.55, 126.91], [37.56, 126.92]],
       }],
+      labels: [],
     }),
   } as Response;
 }

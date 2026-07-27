@@ -26,6 +26,13 @@ const VALUE: MapValue = {
       ],
     },
   ],
+  labels: [
+    {
+      kind: "transit",
+      name: "홍대입구역",
+      point: { latitude: 37.5572, longitude: 126.9245 },
+    },
+  ],
 };
 
 class TestStorage implements EvenStorage {
@@ -51,11 +58,17 @@ function mapResponse(
       points: [[37.55, 126.91], [37.56, 126.92]],
     },
   ],
+  labels: unknown = [{
+    kind: "transit",
+    name: "홍대입구역",
+    point: [37.5572, 126.9245],
+  }],
 ): Response {
   return new Response(JSON.stringify({
     cell,
     attribution: "© OSM CONTRIBUTORS",
     roads,
+    labels,
   }));
 }
 
@@ -65,7 +78,7 @@ function setCache(
   fetchedAt: number,
 ) {
   storage.values.set(
-    "relic:map:v1",
+    "relic:map-labels:v1",
     JSON.stringify({ value, fetchedAt, cell: value.cell }),
   );
 }
@@ -81,12 +94,34 @@ describe("map response and projection helpers", () => {
           points: [[37.55, 126.91], [37.56, 126.92]],
         },
       ],
+      labels: [{
+        kind: "transit",
+        name: "홍대입구역",
+        point: [37.5572, 126.9245],
+      }],
     }).roads[0]).toEqual({
       kind: "major",
       points: [
         { latitude: 37.55, longitude: 126.91 },
         { latitude: 37.56, longitude: 126.92 },
       ],
+    });
+    expect(parseMapResponse({
+      cell: "37.555,126.920",
+      attribution: "© OSM CONTRIBUTORS",
+      roads: [],
+      labels: [{
+        kind: "transit",
+        name: "홍대입구역",
+        point: [37.5572, 126.9245],
+      }],
+    }).labels[0]).toEqual({
+      kind: "transit",
+      name: "홍대입구역",
+      point: {
+        latitude: 37.5572,
+        longitude: 126.9245,
+      },
     });
   });
 
@@ -95,11 +130,13 @@ describe("map response and projection helpers", () => {
       cell: "37.555,126.920",
       attribution: "someone else",
       roads: [],
+      labels: [],
     })).toThrow();
     expect(() => parseMapResponse({
       cell: "37.555,126.920",
       attribution: "© OSM CONTRIBUTORS",
       roads: [{ kind: "minor", points: [[91, 127], [37, 127]] }],
+      labels: [],
     })).toThrow();
     expect(() => parseMapResponse({
       cell: "37.555,126.920",
@@ -108,7 +145,27 @@ describe("map response and projection helpers", () => {
         kind: "minor",
         points: [[37, 127], [37.1, 127.1]],
       })),
+      labels: [],
     })).toThrow();
+    for (const labels of [
+      undefined,
+      [{ kind: "shop", name: "상점", point: [37, 127] }],
+      [{ kind: "place", name: "", point: [37, 127] }],
+      [{ kind: "place", name: "가".repeat(41), point: [37, 127] }],
+      [{ kind: "place", name: "장소", point: [91, 127] }],
+      Array.from({ length: 25 }, (_, index) => ({
+        kind: "road",
+        name: `도로 ${index}`,
+        point: [37, 127],
+      })),
+    ]) {
+      expect(() => parseMapResponse({
+        cell: "37.555,126.920",
+        attribution: "© OSM CONTRIBUTORS",
+        roads: [],
+        ...(labels === undefined ? {} : { labels }),
+      })).toThrow();
+    }
   });
 
   it("projects center, north, and east in the expected directions", () => {
@@ -221,7 +278,7 @@ describe("resolveMap", () => {
       fetchedAt: NOW,
     });
     expect(storage.writes).toEqual([[
-      "relic:map:v1",
+      "relic:map-labels:v1",
       JSON.stringify({
         value: VALUE,
         fetchedAt: NOW,
@@ -235,5 +292,24 @@ describe("resolveMap", () => {
       vi.fn(async () => mapResponse("37.560,126.925")) as unknown as typeof fetch,
       NOW,
     )).resolves.toEqual({ status: "unavailable" });
+  });
+
+  it("ignores the old road-only cache contract", async () => {
+    const storage = new TestStorage();
+    storage.values.set("relic:map:v1", JSON.stringify({
+      value: {
+        cell: VALUE.cell,
+        attribution: VALUE.attribution,
+        roads: VALUE.roads,
+      },
+      fetchedAt: NOW,
+      cell: VALUE.cell,
+    }));
+    const fetchImpl = vi.fn(async () => mapResponse()) as unknown as typeof fetch;
+
+    await expect(resolveMap(storage, CENTER, fetchImpl, NOW))
+      .resolves.toMatchObject({ status: "fresh", value: VALUE });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(storage.values.has("relic:map-labels:v1")).toBe(true);
   });
 });

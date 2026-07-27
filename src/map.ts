@@ -2,6 +2,7 @@ import { readCache, writeCache, type EvenStorage } from "./live-cache";
 import type {
   Coordinate,
   DataState,
+  MapLabel,
   MapRoad,
   MapValue,
 } from "./live-state";
@@ -12,6 +13,15 @@ export const MAP_RADIUS_METERS = 650;
 const MAP_TIMEOUT_MS = 8_000;
 const MAP_MAX_ROADS = 180;
 const MAP_MAX_POINTS = 4_000;
+const MAP_MAX_LABELS = 24;
+const MAP_MAX_LABEL_CODE_POINTS = 40;
+const MAP_CACHE_KEY = "map-labels";
+const MAP_LABEL_KINDS = new Set<MapLabel["kind"]>([
+  "place",
+  "transit",
+  "landmark",
+  "road",
+]);
 
 type MapCache = {
   readonly value: MapValue;
@@ -43,6 +53,18 @@ function isMapRoad(value: unknown): value is MapRoad {
     && value.points.every(isFiniteCoordinate);
 }
 
+function isMapLabel(value: unknown): value is MapLabel {
+  return isRecord(value)
+    && typeof value.kind === "string"
+    && MAP_LABEL_KINDS.has(value.kind as MapLabel["kind"])
+    && typeof value.name === "string"
+    && value.name.length > 0
+    && value.name.trim() === value.name
+    && [...value.name].length <= MAP_MAX_LABEL_CODE_POINTS
+    && !/[\u0000-\u001f\u007f]/.test(value.name)
+    && isFiniteCoordinate(value.point);
+}
+
 function isMapValue(value: unknown): value is MapValue {
   if (
     !isRecord(value)
@@ -51,6 +73,9 @@ function isMapValue(value: unknown): value is MapValue {
     || !Array.isArray(value.roads)
     || value.roads.length > MAP_MAX_ROADS
     || !value.roads.every(isMapRoad)
+    || !Array.isArray(value.labels)
+    || value.labels.length > MAP_MAX_LABELS
+    || !value.labels.every(isMapLabel)
   ) {
     return false;
   }
@@ -76,6 +101,11 @@ function cloneMapValue(value: MapValue): MapValue {
     roads: value.roads.map((road) => ({
       kind: road.kind,
       points: road.points.map((point) => ({ ...point })),
+    })),
+    labels: value.labels.map((label) => ({
+      kind: label.kind,
+      name: label.name,
+      point: { ...label.point },
     })),
   };
 }
@@ -104,6 +134,8 @@ export function parseMapResponse(input: unknown): MapValue {
     || typeof input.cell !== "string"
     || !Array.isArray(input.roads)
     || input.roads.length > MAP_MAX_ROADS
+    || !Array.isArray(input.labels)
+    || input.labels.length > MAP_MAX_LABELS
   ) {
     throw new Error("Invalid map response");
   }
@@ -137,11 +169,40 @@ export function parseMapResponse(input: unknown): MapValue {
     }
     return { kind: road.kind, points };
   });
+  const labels: MapLabel[] = input.labels.map((label) => {
+    if (
+      !isRecord(label)
+      || typeof label.kind !== "string"
+      || !MAP_LABEL_KINDS.has(label.kind as MapLabel["kind"])
+      || typeof label.name !== "string"
+      || label.name.length === 0
+      || label.name.trim() !== label.name
+      || [...label.name].length > MAP_MAX_LABEL_CODE_POINTS
+      || /[\u0000-\u001f\u007f]/.test(label.name)
+      || !Array.isArray(label.point)
+      || label.point.length !== 2
+    ) {
+      throw new Error("Invalid map label");
+    }
+    const point = {
+      latitude: label.point[0],
+      longitude: label.point[1],
+    };
+    if (!isFiniteCoordinate(point)) {
+      throw new Error("Invalid map label coordinate");
+    }
+    return {
+      kind: label.kind as MapLabel["kind"],
+      name: label.name,
+      point,
+    };
+  });
 
   return {
     cell: input.cell,
     attribution: "© OSM CONTRIBUTORS",
     roads,
+    labels,
   };
 }
 
@@ -179,7 +240,7 @@ export async function resolveMap(
 ): Promise<DataState<MapValue>> {
   const requestCoordinate = { ...coordinate };
   const cell = clientMapCell(requestCoordinate);
-  const cached = await readCache(storage, "map", isMapCache);
+  const cached = await readCache(storage, MAP_CACHE_KEY, isMapCache);
   const usableCache = cached
     && cached.fetchedAt <= now
     && cached.cell === cell
@@ -221,7 +282,7 @@ export async function resolveMap(
       fetchedAt: now,
       cell,
     };
-    await writeCache(storage, "map", cache);
+    await writeCache(storage, MAP_CACHE_KEY, cache);
     return {
       status: "fresh",
       value: cloneMapValue(value),

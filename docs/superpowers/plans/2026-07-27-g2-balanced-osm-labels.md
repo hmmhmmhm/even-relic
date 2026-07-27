@@ -285,7 +285,7 @@ git commit -m "feat: normalize bounded OSM labels"
 - Modify: `src/live-dashboard.test.ts`
 - Modify: `src/live-dashboard-map.test.ts`
 
-- [ ] **Step 1: Write failing map-label parser tests**
+- [x] **Step 1: Write failing map-label parser tests**
 
 Add:
 
@@ -321,7 +321,7 @@ Change cache assertions from `relic:map:v1` to
 `relic:map-labels:v1`. Add a road-only old cache under `relic:map:v1` and
 assert that it is ignored and a network request occurs.
 
-- [ ] **Step 2: Run client map tests and verify RED**
+- [x] **Step 2: Run client map tests and verify RED**
 
 Run:
 
@@ -332,7 +332,7 @@ npx vitest run src/map.test.ts --no-file-parallelism --maxWorkers=1
 Expected: FAIL because `MapValue` and `parseMapResponse()` have no label
 contract and the cache key remains `map`.
 
-- [ ] **Step 3: Add the shared label types and initial value**
+- [x] **Step 3: Add the shared label types and initial value**
 
 In `src/live-state.ts`, add:
 
@@ -357,7 +357,7 @@ export type MapValue = {
 
 Set `labels: []` in `createInitialLiveDashboardState()` and its unit test.
 
-- [ ] **Step 4: Parse, validate, and clone labels**
+- [x] **Step 4: Parse, validate, and clone labels**
 
 In `src/map.ts`, define:
 
@@ -382,7 +382,7 @@ Parse every normalized label into `MapLabel`, requiring:
 Include labels in `isMapValue()`, `cloneMapValue()`, and
 `parseMapResponse()`. Read and write `MAP_CACHE_KEY` instead of `map`.
 
-- [ ] **Step 5: Update session fixtures without changing transport**
+- [x] **Step 5: Update session fixtures without changing transport**
 
 Add `labels: []` to every normalized map fixture in:
 
@@ -392,7 +392,7 @@ Add `labels: []` to every normalized map fixture in:
 
 Do not change `refreshMap()` or its `"left"` target.
 
-- [ ] **Step 6: Run serial client tests and commit**
+- [x] **Step 6: Run serial client tests and commit**
 
 Run in order:
 
