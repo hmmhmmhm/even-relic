@@ -18,7 +18,7 @@
 - Create: `src/fast-map-view.ts`
 - Create: `src/fast-map-view.test.ts`
 
-- [ ] **Step 1: Write failing state-transition tests**
+- [x] **Step 1: Write failing state-transition tests**
 
 Create tests that establish the public contract:
 
@@ -90,7 +90,7 @@ describe("fast map view state", () => {
 });
 ```
 
-- [ ] **Step 2: Run the state test and verify RED**
+- [x] **Step 2: Run the state test and verify RED**
 
 Run:
 
@@ -101,7 +101,7 @@ npx vitest run src/fast-map-view.test.ts \
 
 Expected: FAIL because `fast-map-view.ts` does not exist.
 
-- [ ] **Step 3: Implement the minimal pure reducer**
+- [x] **Step 3: Implement the minimal pure reducer**
 
 Create:
 
@@ -173,7 +173,7 @@ export function reduceFastMapInput(
 }
 ```
 
-- [ ] **Step 4: Run the state tests and commit**
+- [x] **Step 4: Run the state tests and commit**
 
 Run:
 
