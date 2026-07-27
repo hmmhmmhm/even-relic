@@ -94,6 +94,63 @@ body {
   text-align: center;
 }
 
+.diagnostic-console {
+  width: 100%;
+  border: 1px solid #244d25;
+  color: #83ea6a;
+  background: #010302;
+  display: grid;
+}
+
+.diagnostic-console > header {
+  min-height: 38px;
+  padding: 7px 9px;
+  border-bottom: 1px solid #244d25;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: 0.06em;
+}
+
+.diagnostic-console > header strong {
+  font-size: 0.75rem;
+}
+
+.diagnostic-console > header span {
+  margin-right: auto;
+  color: #4f8f49;
+  font-size: 0.66rem;
+}
+
+.diagnostic-console > header div {
+  display: flex;
+  gap: 6px;
+}
+
+.diagnostic-console button {
+  min-height: 26px;
+  padding: 3px 8px;
+  border: 1px solid #356936;
+  border-radius: 0;
+  color: #91ff73;
+  background: #050906;
+  font: inherit;
+  font-size: 0.66rem;
+  cursor: pointer;
+}
+
+.diagnostic-console pre {
+  height: 240px;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  color: #69bd5d;
+  background: #000;
+  font: 0.68rem/1.5 "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .route-controls {
   width: 100%;
   padding: 14px;
@@ -195,6 +252,16 @@ body {
 
   .preview-header output {
     text-align: left;
+  }
+
+  .diagnostic-console > header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .diagnostic-console > header span {
+    flex-basis: 100%;
+    order: 3;
   }
 
   .route-controls form {

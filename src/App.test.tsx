@@ -219,6 +219,17 @@ describe("RELIC peripheral HUD", () => {
     )).toBeTruthy();
   });
 
+  it("shows the diagnostic console only on the fast HUD", () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const fast = render(<App autoStart={false} />);
+    expect(screen.getByText("WEBVIEW TRACE")).toBeTruthy();
+    fast.unmount();
+
+    window.history.replaceState({}, "", "/hud-canvas");
+    render(<App autoStart={false} />);
+    expect(screen.queryByText("WEBVIEW TRACE")).toBeNull();
+  });
+
   it("does not show live-data credits outside the fast route", () => {
     window.history.replaceState({}, "", "/hud-canvas");
     render(<App autoStart={false} />);

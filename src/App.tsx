@@ -46,6 +46,7 @@ import {
 } from "./live-state";
 import { startMinuteRefresh } from "./minute-refresh";
 import { RouteControls } from "./RouteControls";
+import { DiagnosticConsole } from "./DiagnosticConsole";
 import {
   getRoutingStatus,
   type Destination,
@@ -419,6 +420,7 @@ export function App({ autoStart = true }: AppProps) {
                       ? "기본 뉴스 화면에서 아래 스크롤은 다음, 위 스크롤은 이전 페이지를 네 타일로 전송합니다."
                       : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
       </p>
+      {fastCanvasHudMode && <DiagnosticConsole />}
       {fastCanvasHudMode && (
         <RouteControls
           status={routingStatus}
