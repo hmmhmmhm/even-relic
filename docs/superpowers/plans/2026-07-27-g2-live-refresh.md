@@ -690,7 +690,7 @@ git add src/sdk-version.test.ts package.json \
 git commit -m "chore: prepare live G2 refresh checkpoint"
 ```
 
-- [ ] **Step 6: Restart the local server and open the QR**
+- [x] **Step 6: Restart the local server and open the QR**
 
 Restart only the existing port 4176 Vite process, verify HTTP 200, then run:
 
