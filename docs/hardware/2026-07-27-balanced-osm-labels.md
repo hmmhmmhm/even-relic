@@ -31,8 +31,18 @@ Before this checkpoint:
 
 ## Stage 2: `map-labels-large-016`
 
-Result: PENDING
+Tested commit: `8d3eb6f2cc58860bd5f6e26db6f47d7e1dd526c2`
+URL: `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=map-labels-large-016`
+Result: PASS
 
 The revised build uses 14px transit/place labels and 12px road/landmark
-labels. Physical readability, density, bilateral output, page speed, and
-double-tap restoration remain to be confirmed.
+labels. The user confirmed that the revised physical label size was
+satisfactory:
+
+> 이제 라벨사이즈는 흡족하네요
+
+This is direct physical evidence that the enlarged labels remained visible
+and reached the desired readability. Bilateral output, page speed, and
+double-tap restoration were not re-observed in this exact response; their
+previously verified transport behavior was unchanged by this font-only
+revision.

@@ -835,7 +835,7 @@ node --test --test-concurrency=1 tests/map-api.test.mjs
 git diff --check
 ```
 
-- [ ] **Step 7: Commit and open the revised build**
+- [x] **Step 7: Commit and open the revised build**
 
 Commit:
 
@@ -854,7 +854,7 @@ Open:
 http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=map-labels-large-016
 ```
 
-- [ ] **Step 8: Record final physical approval**
+- [x] **Step 8: Record final physical approval**
 
 After user confirmation, change Stage 2 in
 `docs/hardware/2026-07-27-balanced-osm-labels.md` from `PENDING` to the exact
