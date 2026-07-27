@@ -16,6 +16,7 @@ const MAP_MAX_POINTS = 4_000;
 const MAP_MAX_LABELS = 24;
 const MAP_MAX_LABEL_CODE_POINTS = 40;
 const MAP_CACHE_KEY = "map-labels";
+const MAP_CELL_DEGREES = 0.0018;
 const MAP_LABEL_KINDS = new Set<MapLabel["kind"]>([
   "place",
   "transit",
@@ -122,9 +123,13 @@ function mapState(
 }
 
 export function clientMapCell(coordinate: Coordinate): string {
-  const latitude = Math.floor(coordinate.latitude / 0.005) * 0.005;
-  const longitude = Math.floor(coordinate.longitude / 0.005) * 0.005;
-  return `${latitude.toFixed(3)},${longitude.toFixed(3)}`;
+  const latitude = Math.floor(
+    coordinate.latitude / MAP_CELL_DEGREES,
+  ) * MAP_CELL_DEGREES;
+  const longitude = Math.floor(
+    coordinate.longitude / MAP_CELL_DEGREES,
+  ) * MAP_CELL_DEGREES;
+  return `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
 }
 
 export function parseMapResponse(input: unknown): MapValue {
@@ -241,10 +246,11 @@ export async function resolveMap(
   const requestCoordinate = { ...coordinate };
   const cell = clientMapCell(requestCoordinate);
   const cached = await readCache(storage, MAP_CACHE_KEY, isMapCache);
-  const usableCache = cached
-    && cached.fetchedAt <= now
-    && cached.cell === cell
+  const fallbackCache = cached && cached.fetchedAt <= now
     ? cached
+    : undefined;
+  const usableCache = fallbackCache?.cell === cell
+    ? fallbackCache
     : undefined;
   if (usableCache) {
     const status = now - usableCache.fetchedAt <= MAP_MAX_AGE_MS
@@ -257,6 +263,12 @@ export async function resolveMap(
       // Rendering cached geometry is optional and must not stop refresh.
     }
     if (status === "fresh") return cachedState;
+  } else if (fallbackCache) {
+    try {
+      onCached?.(mapState(fallbackCache, "stale"));
+    } catch {
+      // Rendering fallback geometry is optional and must not stop refresh.
+    }
   }
 
   const controller = new AbortController();
@@ -289,8 +301,8 @@ export async function resolveMap(
       fetchedAt: now,
     };
   } catch {
-    return usableCache
-      ? mapState(usableCache, "stale")
+    return fallbackCache
+      ? mapState(fallbackCache, "stale")
       : { status: "unavailable" };
   } finally {
     globalThis.clearTimeout(timer);

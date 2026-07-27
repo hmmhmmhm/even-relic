@@ -15,7 +15,7 @@ const CENTER: Coordinate = {
   longitude: 126.922,
 };
 const VALUE: MapValue = {
-  cell: "37.555,126.920",
+  cell: "37.5552,126.9216",
   attribution: "© OSM CONTRIBUTORS",
   roads: [
     {
@@ -51,7 +51,7 @@ class TestStorage implements EvenStorage {
 }
 
 function mapResponse(
-  cell = "37.555,126.920",
+  cell = "37.5552,126.9216",
   roads: unknown = [
     {
       kind: "major",
@@ -184,15 +184,15 @@ describe("map response and projection helpers", () => {
   });
 
   it("uses the same deterministic cell contract as the server", () => {
-    expect(clientMapCell(CENTER)).toBe("37.555,126.920");
+    expect(clientMapCell(CENTER)).toBe("37.5552,126.9216");
+    expect(clientMapCell({
+      latitude: 37.5568,
+      longitude: 126.923,
+    })).toBe("37.5552,126.9216");
     expect(clientMapCell({
       latitude: 37.557,
       longitude: 126.924,
-    })).toBe("37.555,126.920");
-    expect(clientMapCell({
-      latitude: 37.56,
-      longitude: 126.925,
-    })).toBe("37.560,126.925");
+    })).toBe("37.5570,126.9234");
   });
 });
 
@@ -209,12 +209,12 @@ describe("resolveMap", () => {
 
     await resolveMap(storage, CENTER, fetchImpl, NOW);
     await resolveMap(storage, {
-      latitude: 37.557,
-      longitude: 126.924,
+      latitude: 37.5568,
+      longitude: 126.923,
     }, fetchImpl, NOW + 1);
     await resolveMap(storage, {
-      latitude: 37.56,
-      longitude: 126.925,
+      latitude: 37.557,
+      longitude: 126.924,
     }, fetchImpl, NOW + 2);
 
     expect(fetchImpl).toHaveBeenCalledTimes(2);
@@ -251,16 +251,27 @@ describe("resolveMap", () => {
     });
   });
 
-  it("does not use geometry from a different cell", async () => {
+  it("uses geometry from a different cell only as stale fallback", async () => {
     const storage = new TestStorage();
     setCache(storage, VALUE, NOW);
+    const cached = vi.fn();
 
     await expect(resolveMap(
       storage,
       { latitude: 37.57, longitude: 126.94 },
       vi.fn(async () => new Response("", { status: 502 })) as unknown as typeof fetch,
       NOW,
-    )).resolves.toEqual({ status: "unavailable" });
+      cached,
+    )).resolves.toEqual({
+      status: "stale",
+      value: VALUE,
+      fetchedAt: NOW,
+    });
+    expect(cached).toHaveBeenCalledWith({
+      status: "stale",
+      value: VALUE,
+      fetchedAt: NOW,
+    });
   });
 
   it("persists a bounded fresh response and rejects a mismatched server cell", async () => {
@@ -289,7 +300,7 @@ describe("resolveMap", () => {
     await expect(resolveMap(
       new TestStorage(),
       CENTER,
-      vi.fn(async () => mapResponse("37.560,126.925")) as unknown as typeof fetch,
+      vi.fn(async () => mapResponse("37.5570,126.9234")) as unknown as typeof fetch,
       NOW,
     )).resolves.toEqual({ status: "unavailable" });
   });

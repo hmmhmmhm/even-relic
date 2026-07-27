@@ -55,7 +55,7 @@ function mapResponse(): Response {
   return {
     ok: true,
     json: async () => ({
-      cell: "37.565,126.975",
+      cell: "37.5660,126.9774",
       attribution: "© OSM CONTRIBUTORS",
       roads: [],
       labels: [],

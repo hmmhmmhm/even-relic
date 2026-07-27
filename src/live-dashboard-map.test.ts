@@ -102,11 +102,11 @@ function newsResponse(): Response {
   } as Response;
 }
 
-function mapResponse(): Response {
+function mapResponse(cell = "37.5552,126.9216"): Response {
   return {
     ok: true,
     json: async () => ({
-      cell: "37.555,126.920",
+      cell,
       attribution: "© OSM CONTRIBUTORS",
       roads: [{
         kind: "major",
@@ -153,7 +153,7 @@ describe("live dashboard map integration", () => {
     expect(session.getState().map).toMatchObject({
       status: "fresh",
       value: {
-        cell: "37.555,126.920",
+        cell: "37.5552,126.9216",
         roads: [{ kind: "major" }],
       },
       fetchedAt: NOW,
@@ -182,7 +182,8 @@ describe("live dashboard map integration", () => {
 
     await session.start();
 
-    expect(session.getState().map.status).toBe("unavailable");
+    expect(session.getState().map.status).toBe("stale");
+    expect(session.getState().map.value).toBeDefined();
     expect(session.getState().weather.status).toBe("fresh");
     expect(session.getState().news.status).toBe("fresh");
   });
@@ -317,4 +318,44 @@ describe("live dashboard map integration", () => {
       expect(bridge.stopCalls).toBe(0);
     },
   );
+
+  it("keeps prior geometry stale when a moved cell refresh fails", async () => {
+    const bridge = new StreamingBridge();
+    let mapCalls = 0;
+    let currentTime = NOW;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.startsWith("/api/map")) {
+        mapCalls += 1;
+        return mapCalls === 1 ? mapResponse() : { ok: false } as Response;
+      }
+      if (url.startsWith("/api/news")) return newsResponse();
+      return weatherResponse();
+    }) as unknown as typeof fetch;
+    const session = createLiveDashboardSession({
+      bridge,
+      fetchImpl,
+      now: () => currentTime,
+      onUpdate: vi.fn(),
+    });
+    await session.start();
+    const initialMap = session.getState().map.value;
+    bridge.values.delete("relic:map-labels:v1");
+
+    currentTime += 15_000;
+    bridge.emit({
+      latitude: 37.55705,
+      longitude: 126.922,
+      timestamp: currentTime,
+    });
+    await vi.waitFor(() => {
+      expect(session.getState().location.value?.coordinate.latitude)
+        .toBe(37.55705);
+      expect(mapCalls).toBe(2);
+      expect(session.getState().map.status).toBe("stale");
+    });
+
+    expect(session.getState().map.value).toEqual(initialMap);
+    session.dispose();
+  });
 });

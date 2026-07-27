@@ -13,6 +13,7 @@ const MAX_POINTS = 4_000;
 const MAX_LABELS = 24;
 const MAX_LABEL_CODE_POINTS = 40;
 const TIMEOUT_MS = 8_000;
+const MAP_CELL_DEGREES = 0.0018;
 const MAJOR_HIGHWAYS = new Set([
   "motorway",
   "trunk",
@@ -40,9 +41,9 @@ function coordinateParameter(value, minimum, maximum) {
 }
 
 export function mapCell(latitude, longitude) {
-  const lat = Math.floor(latitude / 0.005) * 0.005;
-  const lng = Math.floor(longitude / 0.005) * 0.005;
-  return `${lat.toFixed(3)},${lng.toFixed(3)}`;
+  const lat = Math.floor(latitude / MAP_CELL_DEGREES) * MAP_CELL_DEGREES;
+  const lng = Math.floor(longitude / MAP_CELL_DEGREES) * MAP_CELL_DEGREES;
+  return `${lat.toFixed(4)},${lng.toFixed(4)}`;
 }
 
 export function buildOverpassQuery(latitude, longitude) {
@@ -200,7 +201,7 @@ function normalizeMapPayload(payload, cell) {
 
 function cacheRequest(cell) {
   return new Request(
-    `https://relic-map-cache.invalid/roads-labels-v2?cell=${encodeURIComponent(cell)}`,
+    `https://relic-map-cache.invalid/roads-labels-v3?cell=${encodeURIComponent(cell)}`,
   );
 }
 

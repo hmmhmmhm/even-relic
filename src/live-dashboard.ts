@@ -229,6 +229,7 @@ export function createLiveDashboardSession(
     mapPromise = (async () => {
       const coordinate = state.location.value?.coordinate;
       if (!coordinate || disposed) return;
+      const previousMap = state.map;
       let cachedMap: DataState<MapValue> | undefined;
       let result: DataState<MapValue>;
       try {
@@ -246,6 +247,13 @@ export function createLiveDashboardSession(
         );
       } catch {
         result = { status: "unavailable" };
+      }
+      if (result.status === "unavailable" && previousMap.value) {
+        result = {
+          status: "stale",
+          value: previousMap.value,
+          fetchedAt: previousMap.fetchedAt,
+        };
       }
       if (disposed || isSameMapState(cachedMap, result)) return;
       setMap(result);

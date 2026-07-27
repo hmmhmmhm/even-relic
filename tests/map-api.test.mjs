@@ -70,7 +70,7 @@ test("builds a bounded labelled Overpass query and normalizes geometry", async (
 
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
-    cell: "37.555,126.920",
+    cell: "37.5552,126.9216",
     attribution: "© OSM CONTRIBUTORS",
     roads: [
       {
@@ -318,7 +318,7 @@ test("caches a normalized response by rounded location cell", async () => {
     dependencies,
   );
   const second = await handleMapRequest(
-    new Request("https://example.test/api/map?lat=37.557&lng=126.924"),
+    new Request("https://example.test/api/map?lat=37.5568&lng=126.923"),
     {},
     dependencies,
   );
@@ -327,7 +327,7 @@ test("caches a normalized response by rounded location cell", async () => {
   assert.equal(second.status, 200);
   assert.equal(calls, 1);
   assert.equal(new Set(cacheKeys).size, 1);
-  assert.match(cacheKeys[0], /roads-labels-v2/);
+  assert.match(cacheKeys[0], /roads-labels-v3/);
 });
 
 test("maps upstream, size, and timeout failures to stable errors", async () => {
@@ -377,7 +377,7 @@ test("maps upstream, size, and timeout failures to stable errors", async () => {
 });
 
 test("cell and query helpers are deterministic", () => {
-  assert.equal(mapCell(37.5563, 126.922), "37.555,126.920");
+  assert.equal(mapCell(37.5563, 126.922), "37.5552,126.9216");
   assert.equal(
     buildOverpassQuery(37.5563, 126.922),
     '[out:json][timeout:8];way["highway"](around:650,37.5563,126.922)->.roads;nwr["name"][~"^(railway|public_transport|place|leisure|tourism|amenity)$"~"^(station|halt|city|town|village|suburb|quarter|neighbourhood|locality|square|park|garden|stadium|museum|attraction|gallery|hospital|university|school|library|marketplace|townhall)$"](around:650,37.5563,126.922)->.named;.roads out geom;.named out center;',

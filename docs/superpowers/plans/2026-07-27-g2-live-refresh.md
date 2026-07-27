@@ -509,7 +509,7 @@ git commit -m "feat: follow meaningful G2 location updates"
 - Modify: `src/live-dashboard.test.ts`
 - Modify: `src/fast-map.test.ts`
 
-- [ ] **Step 1: Write failing cell and stale-fallback tests**
+- [x] **Step 1: Write failing cell and stale-fallback tests**
 
 Define the new expected cell contract:
 
@@ -527,7 +527,7 @@ dashboard test: an accepted fix in a new cell issues one new map request;
 when that request fails, `state.map.value` still equals the previous geometry
 and its status is `stale`.
 
-- [ ] **Step 2: Run client and server map tests and verify RED**
+- [x] **Step 2: Run client and server map tests and verify RED**
 
 Run separately:
 
@@ -539,7 +539,7 @@ node --test --test-concurrency=1 tests/map-api.test.mjs
 
 Expected: FAIL on the old `0.005` cell and unavailable cross-cell fallback.
 
-- [ ] **Step 3: Implement the shared 0.0018-degree contract**
+- [x] **Step 3: Implement the shared 0.0018-degree contract**
 
 In both client and server:
 
@@ -565,7 +565,7 @@ to:
 
 and use `clientMapCell()`/`mapCell()` in dynamic test responses where possible.
 
-- [ ] **Step 4: Preserve the last valid client map across cells**
+- [x] **Step 4: Preserve the last valid client map across cells**
 
 In `resolveMap()`, distinguish:
 
@@ -587,7 +587,7 @@ In dashboard `refreshMap()`, also retain an already visible map as stale when
 the provider has no usable cache. Never replace a visible map with an
 unavailable state during movement.
 
-- [ ] **Step 5: Run focused map tests and commit**
+- [x] **Step 5: Run focused map tests and commit**
 
 Run separately:
 
