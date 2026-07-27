@@ -551,7 +551,7 @@ git commit -m "feat: lay out collision-safe OSM labels"
 - Modify: `src/fast-map.test.ts`
 - Modify: `src/fast-canvas-hud.test.ts`
 
-- [ ] **Step 1: Write failing Canvas order and style tests**
+- [x] **Step 1: Write failing Canvas order and style tests**
 
 Extend the test context to record ordered `fillRect`, `fillText`, `stroke`, and
 polygon `fill` operations. Given transit, road, and colliding labels, assert:
@@ -570,7 +570,7 @@ immediately before its text.
 
 Retain the existing four-page identical-left-snapshot assertion.
 
-- [ ] **Step 2: Run Canvas tests and verify RED**
+- [x] **Step 2: Run Canvas tests and verify RED**
 
 Run:
 
@@ -581,7 +581,7 @@ npx vitest run src/fast-map.test.ts \
 
 Expected: FAIL because no map labels are painted.
 
-- [ ] **Step 3: Paint accepted labels between roads and route**
+- [x] **Step 3: Paint accepted labels between roads and route**
 
 Import `layoutMapLabels` into `src/fast-map.ts` and add:
 
@@ -612,7 +612,7 @@ function drawMapLabels(
 Call it after `drawRoads()` and before `drawRoute()`. Do not paint labels for
 the schematic fallback.
 
-- [ ] **Step 4: Run serial Canvas and transport regression tests**
+- [x] **Step 4: Run serial Canvas and transport regression tests**
 
 Run in order:
 
@@ -627,7 +627,7 @@ npx vitest run src/App.test.tsx --no-file-parallelism --maxWorkers=1
 Expected: every command exits 0 and the transport tests retain `3/5/2/4`,
 `3/5`, left-only refresh, bilateral output, and double-tap restoration.
 
-- [ ] **Step 5: Commit Canvas labels**
+- [x] **Step 5: Commit Canvas labels**
 
 Run:
 

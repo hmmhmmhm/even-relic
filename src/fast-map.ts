@@ -7,6 +7,7 @@ import type {
   RouteValue,
 } from "./live-state";
 import { projectCoordinate } from "./map";
+import { layoutMapLabels } from "./map-label-layout";
 
 const COLOR = {
   background: "#000000",
@@ -159,6 +160,33 @@ function drawRoads(
   }
 }
 
+function drawMapLabels(
+  context: CanvasRenderingContext2D,
+  map: MapValue,
+  center: Coordinate,
+) {
+  for (const label of layoutMapLabels(map.labels, center)) {
+    context.fillStyle = COLOR.background;
+    context.fillRect(
+      label.x - 2,
+      label.y - 1,
+      label.width + 4,
+      label.height + 2,
+    );
+    drawText(
+      context,
+      label.text,
+      label.x,
+      label.y,
+      label.fontSize,
+      label.kind === "transit" || label.kind === "place"
+        ? COLOR.primary
+        : COLOR.secondary,
+      "bold",
+    );
+  }
+}
+
 function activeRoute(
   route: DataState<RouteValue>,
 ): RouteValue | undefined {
@@ -248,8 +276,12 @@ export function drawFastMap(
   const map = live.map.status === "fresh" || live.map.status === "stale"
     ? live.map.value
     : undefined;
-  if (center && map) drawRoads(context, map, center);
-  else drawSchematicRoads(context);
+  if (center && map) {
+    drawRoads(context, map, center);
+    drawMapLabels(context, map, center);
+  } else {
+    drawSchematicRoads(context);
+  }
 
   const route = activeRoute(live.route);
   if (center && route) drawRoute(context, route, center);
