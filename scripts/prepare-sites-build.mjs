@@ -8,7 +8,13 @@ const dist = path.join(root, "dist");
 const index = path.join(dist, "client", "index.html");
 const worker = path.join(root, "worker", "index.js");
 const hosting = path.join(root, ".openai", "hosting.json");
-const serverFiles = ["http.js", "api-router.js", "news.js", "map.js"];
+const serverFiles = [
+  "http.js",
+  "api-router.js",
+  "news.js",
+  "map.js",
+  "route.js",
+];
 
 for (const file of [
   index,

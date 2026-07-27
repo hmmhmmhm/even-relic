@@ -1,6 +1,11 @@
 import { jsonResponse } from "./http.js";
 import { handleMapRequest } from "./map.js";
 import { handleNewsRequest } from "./news.js";
+import {
+  handleGeocodeRequest,
+  handleRouteRequest,
+  handleRoutingStatus,
+} from "./route.js";
 
 export async function handleApiRequest(request, env, dependencies = {}) {
   const url = new URL(request.url);
@@ -10,6 +15,15 @@ export async function handleApiRequest(request, env, dependencies = {}) {
   }
   if (url.pathname === "/api/map" && request.method === "GET") {
     return handleMapRequest(request, env, dependencies);
+  }
+  if (url.pathname === "/api/routing-status" && request.method === "GET") {
+    return handleRoutingStatus(request, env);
+  }
+  if (url.pathname === "/api/geocode" && request.method === "GET") {
+    return handleGeocodeRequest(request, env, dependencies);
+  }
+  if (url.pathname === "/api/route" && request.method === "POST") {
+    return handleRouteRequest(request, env, dependencies);
   }
 
   return jsonResponse(
