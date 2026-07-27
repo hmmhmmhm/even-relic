@@ -2,12 +2,14 @@ import {
   createInitialLiveDashboardState,
   type DataState,
   type LiveDashboardState,
+  type NewsItem,
   type WeatherValue,
 } from "./live-state";
 import {
   resolveInitialLocation,
   type LocationBridge,
 } from "./location";
+import { NEWS_MAX_AGE_MS, resolveNews } from "./news";
 import { resolveWeather, WEATHER_MAX_AGE_MS } from "./weather";
 
 export type LiveDashboardUpdate = {
@@ -54,6 +56,28 @@ function isSameWeatherState(
     && left.value.condition === right.value.condition;
 }
 
+function isSameNewsState(
+  left: DataState<readonly NewsItem[]> | undefined,
+  right: DataState<readonly NewsItem[]>,
+): boolean {
+  if (
+    !left
+    || left.status !== right.status
+    || left.fetchedAt !== right.fetchedAt
+  ) {
+    return false;
+  }
+  if (!left.value || !right.value) return left.value === right.value;
+  return left.value.length === right.value.length
+    && left.value.every((item, index) => {
+      const other = right.value?.[index];
+      return item.id === other?.id
+        && item.title === other.title
+        && item.url === other.url
+        && item.publishedAt === other.publishedAt;
+    });
+}
+
 export function createLiveDashboardSession(
   options: LiveDashboardSessionOptions,
 ): {
@@ -71,6 +95,7 @@ export function createLiveDashboardSession(
   let locationResolved = false;
   let startPromise: Promise<void> | undefined;
   let weatherPromise: Promise<void> | undefined;
+  let newsPromise: Promise<void> | undefined;
 
   const emit = (target: LiveDashboardUpdate["target"]) => {
     if (disposed) return;
@@ -86,6 +111,12 @@ export function createLiveDashboardSession(
       ...state,
       weather,
     }).weather };
+  };
+  const setNews = (news: DataState<readonly NewsItem[]>) => {
+    state = { ...state, news: cloneState({
+      ...state,
+      news,
+    }).news };
   };
 
   const refreshWeather = (): Promise<void> => {
@@ -122,18 +153,59 @@ export function createLiveDashboardSession(
     return weatherPromise;
   };
 
+  const refreshNews = (): Promise<void> => {
+    if (disposed) return Promise.resolve();
+    if (newsPromise) return newsPromise;
+
+    newsPromise = (async () => {
+      let cachedNews: DataState<readonly NewsItem[]> | undefined;
+      let result: DataState<readonly NewsItem[]>;
+      try {
+        result = await resolveNews(
+          options.bridge,
+          fetchImpl,
+          now(),
+          (cached) => {
+            if (disposed) return;
+            cachedNews = cached;
+            setNews(cached);
+            emit("right");
+          },
+        );
+      } catch {
+        result = { status: "unavailable" };
+      }
+      if (disposed || isSameNewsState(cachedNews, result)) return;
+      setNews(result);
+      emit("right");
+    })().finally(() => {
+      newsPromise = undefined;
+    });
+    return newsPromise;
+  };
+
   const onVisibilityChange = () => {
     if (
       disposed
       || !locationResolved
       || documentTarget?.visibilityState !== "visible"
-      || weatherPromise
     ) {
       return;
     }
-    const fetchedAt = state.weather.fetchedAt;
-    if (fetchedAt === undefined || now() - fetchedAt >= WEATHER_MAX_AGE_MS) {
+    const currentTime = now();
+    const weatherFetchedAt = state.weather.fetchedAt;
+    if (
+      weatherFetchedAt === undefined
+      || currentTime - weatherFetchedAt >= WEATHER_MAX_AGE_MS
+    ) {
       void refreshWeather();
+    }
+    const newsFetchedAt = state.news.fetchedAt;
+    if (
+      newsFetchedAt === undefined
+      || currentTime - newsFetchedAt >= NEWS_MAX_AGE_MS
+    ) {
+      void refreshNews();
     }
   };
 
@@ -159,7 +231,7 @@ export function createLiveDashboardSession(
       }).location };
       locationResolved = true;
       emit("left");
-      await refreshWeather();
+      await Promise.all([refreshWeather(), refreshNews()]);
     })();
     return startPromise;
   };

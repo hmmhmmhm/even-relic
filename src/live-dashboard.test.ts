@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
 import type { AppLocation, AppLocationOptions } from "@evenrealities/even_hub_sdk";
 import type { LocationBridge } from "./location";
@@ -14,6 +15,14 @@ const LOCATION: AppLocation = {
   accuracy: 4,
   timestamp: NOW - 1_000,
 };
+const NEWS_RSS = `<?xml version="1.0"?>
+<rss><channel>
+  <item>
+    <title>실시간 첫 뉴스</title>
+    <guid>live-one</guid>
+    <pubDate>Mon, 27 Jul 2026 05:00:00 GMT</pubDate>
+  </item>
+</channel></rss>`;
 
 function weatherResponse(temperature = 29.4): Response {
   return {
@@ -33,6 +42,20 @@ function weatherResponse(temperature = 29.4): Response {
       },
     }),
   } as Response;
+}
+
+function newsResponse(): Response {
+  return {
+    ok: true,
+    text: async () => NEWS_RSS,
+  } as Response;
+}
+
+function liveFetch(weatherTemperature = 29.4): typeof fetch {
+  return vi.fn(async (input: RequestInfo | URL) =>
+    String(input).startsWith("/api/news")
+      ? newsResponse()
+      : weatherResponse(weatherTemperature)) as unknown as typeof fetch;
 }
 
 class TestBridge implements LocationBridge {
@@ -89,11 +112,10 @@ function deferred<T>() {
 }
 
 describe("createLiveDashboardSession", () => {
-  it("does no work at construction, then emits live location left and weather right", async () => {
+  it("does no work at construction, then resolves location, weather, and news", async () => {
     const bridge = new TestBridge();
     const updates: LiveDashboardUpdate[] = [];
-    const fetchImpl = vi.fn(async (_input: RequestInfo | URL) =>
-      weatherResponse());
+    const fetchImpl = liveFetch();
     const documentTarget = new TestDocument();
     const session = createLiveDashboardSession({
       bridge,
@@ -109,11 +131,20 @@ describe("createLiveDashboardSession", () => {
 
     expect(documentTarget.added).toHaveLength(1);
     expect(bridge.locationCalls).toHaveLength(1);
-    expect(updates.map(({ target }) => target)).toEqual(["left", "right"]);
+    expect(updates.map(({ target }) => target)).toEqual([
+      "left",
+      "right",
+      "right",
+    ]);
     expect(updates[0].state.location.value?.source).toBe("live");
-    expect(updates[1].state.weather).toMatchObject({
+    expect(updates.at(-1)?.state.weather).toMatchObject({
       status: "fresh",
       value: { temperature: 29.4, condition: "대체로 맑음" },
+      fetchedAt: NOW,
+    });
+    expect(updates.at(-1)?.state.news).toMatchObject({
+      status: "fresh",
+      value: [{ id: "guid:live-one", title: "실시간 첫 뉴스" }],
       fetchedAt: NOW,
     });
   });
@@ -137,7 +168,7 @@ describe("createLiveDashboardSession", () => {
       },
     }));
     const updates: LiveDashboardUpdate[] = [];
-    const fetchImpl = vi.fn();
+    const fetchImpl = liveFetch();
     const session = createLiveDashboardSession({
       bridge,
       fetchImpl: fetchImpl as typeof fetch,
@@ -147,8 +178,15 @@ describe("createLiveDashboardSession", () => {
 
     await session.start();
 
-    expect(fetchImpl).not.toHaveBeenCalled();
-    expect(updates.map(({ target }) => target)).toEqual(["left", "right"]);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(String(vi.mocked(fetchImpl).mock.calls[0][0])).toBe(
+      "/api/news?feed=sbs-latest",
+    );
+    expect(updates.map(({ target }) => target)).toEqual([
+      "left",
+      "right",
+      "right",
+    ]);
     expect(updates[1].state.weather.value?.temperature).toBe(24);
   });
 
@@ -171,18 +209,26 @@ describe("createLiveDashboardSession", () => {
       },
     }));
     const updates: LiveDashboardUpdate[] = [];
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) =>
+      String(input).startsWith("/api/news")
+        ? newsResponse()
+        : ({ ok: false } as Response)) as unknown as typeof fetch;
     const session = createLiveDashboardSession({
       bridge,
-      fetchImpl: vi.fn(async () => ({ ok: false } as Response)) as unknown as
-        typeof fetch,
+      fetchImpl,
       now: () => NOW,
       onUpdate: (update) => updates.push(update),
     });
 
     await session.start();
 
-    expect(updates.map(({ target }) => target)).toEqual(["left", "right"]);
+    expect(updates.map(({ target }) => target)).toEqual([
+      "left",
+      "right",
+      "right",
+    ]);
     expect(updates[1].state.weather.status).toBe("stale");
+    expect(updates.at(-1)?.state.news.status).toBe("fresh");
   });
 
   it("emits stale cache followed by different fresh network weather", async () => {
@@ -206,7 +252,7 @@ describe("createLiveDashboardSession", () => {
     const updates: LiveDashboardUpdate[] = [];
     const session = createLiveDashboardSession({
       bridge,
-      fetchImpl: vi.fn(async () => weatherResponse()) as unknown as typeof fetch,
+      fetchImpl: liveFetch(),
       now: () => NOW,
       onUpdate: (update) => updates.push(update),
     });
@@ -217,19 +263,17 @@ describe("createLiveDashboardSession", () => {
       "left",
       "right",
       "right",
+      "right",
     ]);
-    expect(updates.slice(1).map(({ state }) => state.weather.status)).toEqual([
-      "stale",
-      "fresh",
-    ]);
+    expect(updates[1].state.weather.status).toBe("stale");
+    expect(updates.at(-1)?.state.weather.status).toBe("fresh");
     expect(updates.at(-1)?.state.weather.value?.temperature).toBe(29.4);
   });
 
   it("does not let visibility refresh demo weather before location resolves", async () => {
     const location = deferred<AppLocation | null>();
     const documentTarget = new TestDocument();
-    const fetchImpl = vi.fn(async (_input: RequestInfo | URL) =>
-      weatherResponse());
+    const fetchImpl = liveFetch();
     const session = createLiveDashboardSession({
       bridge: new TestBridge(() => location.promise),
       fetchImpl: fetchImpl as typeof fetch,
@@ -245,23 +289,29 @@ describe("createLiveDashboardSession", () => {
 
     location.resolve(LOCATION);
     await starting;
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
-    expect(String(fetchImpl.mock.calls[0][0])).toContain(
+    const weatherCalls = vi.mocked(fetchImpl).mock.calls.filter(
+      ([input]) => !String(input).startsWith("/api/news"),
+    );
+    expect(weatherCalls).toHaveLength(1);
+    expect(String(weatherCalls[0][0])).toContain(
       `latitude=${LOCATION.latitude}`,
     );
   });
 
-  it("refreshes stale visible weather and coalesces concurrent visibility events", async () => {
+  it("refreshes stale visible services and coalesces concurrent visibility events", async () => {
     let now = NOW;
     const secondFetch = deferred<Response>();
-    const fetchImpl = vi.fn()
-      .mockResolvedValueOnce(weatherResponse())
-      .mockReturnValueOnce(secondFetch.promise);
+    let weatherCalls = 0;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).startsWith("/api/news")) return newsResponse();
+      weatherCalls += 1;
+      return weatherCalls === 1 ? weatherResponse() : secondFetch.promise;
+    }) as unknown as typeof fetch;
     const documentTarget = new TestDocument();
     const updates: LiveDashboardUpdate[] = [];
     const session = createLiveDashboardSession({
       bridge: new TestBridge(),
-      fetchImpl: fetchImpl as typeof fetch,
+      fetchImpl,
       now: () => now,
       documentTarget,
       onUpdate: (update) => updates.push(update),
@@ -271,12 +321,12 @@ describe("createLiveDashboardSession", () => {
     documentTarget.visibilityState = "hidden";
     now += WEATHER_MAX_AGE_MS + 1;
     documentTarget.dispatchVisibility();
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(weatherCalls).toBe(1);
 
     documentTarget.visibilityState = "visible";
     documentTarget.dispatchVisibility();
     documentTarget.dispatchVisibility();
-    await vi.waitFor(() => expect(fetchImpl).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(weatherCalls).toBe(2));
     secondFetch.resolve(weatherResponse(30.4));
     await vi.waitFor(() => {
       expect(updates.at(-1)?.state.weather.value?.temperature).toBe(30.4);
@@ -315,7 +365,7 @@ describe("createLiveDashboardSession", () => {
     const updates: LiveDashboardUpdate[] = [];
     const session = createLiveDashboardSession({
       bridge: new TestBridge(),
-      fetchImpl: vi.fn(async () => weatherResponse()) as unknown as typeof fetch,
+      fetchImpl: liveFetch(),
       now: () => NOW,
       onUpdate: (update) => updates.push(update),
     });
@@ -336,6 +386,31 @@ describe("createLiveDashboardSession", () => {
       latitude: LOCATION.latitude,
       longitude: LOCATION.longitude,
     });
-    expect(session.getState().news.value).toEqual([]);
+    expect(session.getState().news.value).toEqual([{
+      id: "guid:live-one",
+      title: "실시간 첫 뉴스",
+      publishedAt: Date.parse("2026-07-27T05:00:00Z"),
+    }]);
+  });
+
+  it("keeps news fresh when weather fails", async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) =>
+      String(input).startsWith("/api/news")
+        ? newsResponse()
+        : ({ ok: false } as Response)) as unknown as typeof fetch;
+    const session = createLiveDashboardSession({
+      bridge: new TestBridge(),
+      fetchImpl,
+      now: () => NOW,
+      onUpdate: vi.fn(),
+    });
+
+    await session.start();
+
+    expect(session.getState().weather.status).toBe("unavailable");
+    expect(session.getState().news).toMatchObject({
+      status: "fresh",
+      value: [{ title: "실시간 첫 뉴스" }],
+    });
   });
 });
