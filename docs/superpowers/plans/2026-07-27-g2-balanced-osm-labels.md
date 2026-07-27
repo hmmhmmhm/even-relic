@@ -643,7 +643,7 @@ git commit -m "feat: render balanced OSM labels on G2"
 - Modify: `src/sdk-version.test.ts`
 - Create: `docs/hardware/2026-07-27-balanced-osm-labels.md`
 
-- [ ] **Step 1: Write the failing QR identity assertion**
+- [x] **Step 1: Write the failing QR identity assertion**
 
 Change the expected QR script to:
 
@@ -662,7 +662,7 @@ npx vitest run src/sdk-version.test.ts \
 
 Expected: FAIL while `package.json` still points to `live-map-014`.
 
-- [ ] **Step 2: Update and verify the QR build**
+- [x] **Step 2: Update and verify the QR build**
 
 Set:
 
@@ -679,7 +679,7 @@ npx vitest run src/sdk-version.test.ts \
 
 Expected: 2/2 tests pass.
 
-- [ ] **Step 3: Run the complete serial verification gate**
+- [x] **Step 3: Run the complete serial verification gate**
 
 Run these commands one at a time:
 
@@ -696,7 +696,7 @@ git diff --check
 
 Expected: every command exits 0.
 
-- [ ] **Step 4: Verify the live Tailscale endpoint**
+- [x] **Step 4: Verify the live Tailscale endpoint**
 
 Restart Vite on port 4176. Run:
 
@@ -709,7 +709,7 @@ curl -sS --max-time 20 \
 Expected: the response contains a valid cell, roads, no more than 24 labels,
 and at least one named candidate when OSM supplies one for the test cell.
 
-- [ ] **Step 5: Commit the physical build identity**
+- [x] **Step 5: Commit the physical build identity**
 
 Run:
 
