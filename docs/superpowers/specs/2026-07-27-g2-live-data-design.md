@@ -362,11 +362,20 @@ npm run test:sites
    startup, `3/5/2/4` full transfers, `3/5` scrolling, and double-tap
    hide/restore. SDK `0.0.11` is approved as the live-data baseline.
 
-2. **Keyless live-data gate**
+2. **Keyless location/weather sub-gate**
+   Completed on physical G2 build `live-weather-012` at tested commit
+   `1da29615713c6e3f730ad0c61341d7dbe0e88435`. The user confirmed the presented
+   initial-display, bilateral four-tile, location/fallback, live-weather,
+   scroll, right-refresh, and hide/restore checklist as a whole. Exact location
+   label and weather numbers were not transcribed. This pre-OSM build truthfully
+   renders `LOC // ... · MAP DEMO` and the phone credit
+   `날씨: Open-Meteo · 지도: 데모 스키매틱`.
+
+3. **Remaining keyless live-data gate**
    Confirm real or clearly labeled fallback location, current weather, six RSS
    headlines, map readability, refresh latency, and unchanged fast paging.
 
-3. **Optional ORS gate**
+4. **Optional ORS gate**
    After a key is provided, confirm destination selection, route geometry,
    maneuver transitions, map throttling, off-route behavior, and clean stop.
 

@@ -8,6 +8,21 @@
 
 **Tech Stack:** TypeScript, Even Hub SDK `0.0.11`, Open-Meteo Forecast API, Canvas 2D, Vitest
 
+## As-run audit note
+
+Tasks 1–5 were implemented in commits `51f6e59`, `53ee757`, `1021fed`,
+`95a2201`, and `065ee6c`, with follow-up fixes and transport extraction through
+tested commit `1da29615713c6e3f730ad0c61341d7dbe0e88435`.
+
+The original Task 5 wording assumed that live OSM data and attribution would
+arrive with location and weather. OSM belongs to the following dedicated plan
+and was not present at this checkpoint. To avoid presenting the schematic as a
+live map, the as-run HUD uses `LOC // LIVE · MAP DEMO`,
+`LOC // LAST FIX · MAP DEMO`, or `LOC // DEMO · MAP DEMO`; the phone WebView
+uses `날씨: Open-Meteo · 지도: 데모 스키매틱`. The original intent is recorded
+here as a deviation rather than silently treating the OSM acceptance criteria
+as complete.
+
 ---
 
 ### Task 1: Define live state and safe cache primitives
@@ -18,7 +33,7 @@
 - Create: `src/live-cache.ts`
 - Create: `src/live-cache.test.ts`
 
-- [ ] **Step 1: Write failing state and cache tests**
+- [x] **Step 1: Write failing state and cache tests**
 
 Assert these contracts:
 
@@ -47,7 +62,7 @@ expect(await writeCache(failingBridge, "weather", valid)).toBe(false);
 expect(await clearCache(bridge, "weather")).toBe(true);
 ```
 
-- [ ] **Step 2: Run tests and verify RED**
+- [x] **Step 2: Run tests and verify RED**
 
 ```bash
 npx vitest run src/live-state.test.ts src/live-cache.test.ts
@@ -55,7 +70,7 @@ npx vitest run src/live-state.test.ts src/live-cache.test.ts
 
 Expected: FAIL because the modules do not exist.
 
-- [ ] **Step 3: Add the normalized state model**
+- [x] **Step 3: Add the normalized state model**
 
 Define these exported types in `src/live-state.ts`:
 
@@ -163,7 +178,7 @@ export function createInitialLiveDashboardState(): LiveDashboardState {
 }
 ```
 
-- [ ] **Step 4: Add cache isolation**
+- [x] **Step 4: Add cache isolation**
 
 In `src/live-cache.ts`, export:
 
@@ -215,7 +230,7 @@ export async function clearCache(
 }
 ```
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```bash
 npx vitest run src/live-state.test.ts src/live-cache.test.ts
@@ -231,7 +246,7 @@ Expected: focused tests pass.
 - Create: `src/location.ts`
 - Create: `src/location.test.ts`
 
-- [ ] **Step 1: Write the fallback-order tests**
+- [x] **Step 1: Write the fallback-order tests**
 
 Use a fake bridge and assert:
 
@@ -248,7 +263,7 @@ expect((await resolveInitialLocation(failingBridge, 2000)).value).toEqual({
 Also reject latitude outside `[-90, 90]`, longitude outside `[-180, 180]`,
 non-finite values, and cache timestamps older than seven days.
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 ```bash
 npx vitest run src/location.test.ts
@@ -256,7 +271,7 @@ npx vitest run src/location.test.ts
 
 Expected: FAIL because `location.ts` does not exist.
 
-- [ ] **Step 3: Implement one-shot location**
+- [x] **Step 3: Implement one-shot location**
 
 Define:
 
@@ -308,7 +323,7 @@ Write successful fixes to `relic:location:v1`. On null/error, read the cache;
 if valid and no older than seven days return it with source `cache` and status
 `stale`. Otherwise return the demo coordinate with status `unavailable`.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 ```bash
 npx vitest run src/location.test.ts src/live-cache.test.ts
@@ -322,7 +337,7 @@ git commit -m "feat: resolve keyless Even Hub location"
 - Create: `src/weather.ts`
 - Create: `src/weather.test.ts`
 
-- [ ] **Step 1: Write weather URL, parsing, and stale-cache tests**
+- [x] **Step 1: Write weather URL, parsing, and stale-cache tests**
 
 Assert that the URL contains:
 
@@ -357,13 +372,13 @@ Expected condition is `대체로 맑음` and precipitation probability is `20`.
 Also assert a failed refresh returns the prior cache as `stale`, while no cache
 returns `unavailable`.
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 ```bash
 npx vitest run src/weather.test.ts
 ```
 
-- [ ] **Step 3: Implement the provider**
+- [x] **Step 3: Implement the provider**
 
 Export:
 
@@ -404,7 +419,7 @@ fresh cache without a request when it is younger than 15 minutes. Otherwise
 fetch with an `AbortController` eight-second timeout, persist success, retain
 stale cache on error, and never throw to the dashboard session.
 
-- [ ] **Step 4: Verify and commit**
+- [x] **Step 4: Verify and commit**
 
 ```bash
 npx vitest run src/weather.test.ts src/location.test.ts
@@ -418,7 +433,7 @@ git commit -m "feat: add keyless Open-Meteo weather"
 - Modify: `src/glasses.ts`
 - Modify: `src/glasses.test.ts`
 
-- [ ] **Step 1: Write failing refresh serialization tests**
+- [x] **Step 1: Write failing refresh serialization tests**
 
 Add a test that captures the callback exposed by `onRefreshReady`, then requests
 `left` and `right` before the queued operation begins:
@@ -447,13 +462,13 @@ await restoreFinished;
 expect(encodedTileIds.at(-1)).toEqual([3, 5, 2, 4]);
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 ```bash
 npx vitest run src/glasses.test.ts -t "live refresh"
 ```
 
-- [ ] **Step 3: Extend the fast transport contract**
+- [x] **Step 3: Extend the fast transport contract**
 
 Export:
 
@@ -488,7 +503,7 @@ Do not create another promise queue or call `updateImageRawData` outside
 Keep user-forward page order `1→2→3→4`; full-frame tile order does not require
 SDK event-direction inversion.
 
-- [ ] **Step 4: Verify the transport contract**
+- [x] **Step 4: Verify the transport contract**
 
 ```bash
 npx vitest run src/glasses.test.ts
@@ -497,7 +512,7 @@ npx vitest run src/glasses.test.ts
 Expected: all existing startup, scroll, display-toggle, retry, and new live
 refresh tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/glasses.ts src/glasses.test.ts
@@ -515,7 +530,7 @@ git commit -m "feat: queue live fast Canvas refreshes"
 - Modify: `src/App.test.tsx`
 - Modify: `app.json`
 
-- [ ] **Step 1: Write failing dashboard and rendering tests**
+- [x] **Step 1: Write failing dashboard and rendering tests**
 
 The session test must observe:
 
@@ -529,7 +544,7 @@ The renderer test must assert:
 
 ```ts
 expect(hud.values).toEqual(expect.arrayContaining([
-  "MAP // LIVE",
+  "LOC // LIVE · MAP DEMO",
   "29°C 대체로 맑음",
   "체감 31°  습도 67%",
   "강수 20%  바람 8km/h",
@@ -545,16 +560,18 @@ expect(hud.values).toContain("WEATHER --");
 The App test must assert the fast-route WebView credits contain:
 
 ```ts
-expect(screen.getByText(/날씨: Open-Meteo/)).toBeTruthy();
+expect(screen.getByText(
+  "날씨: Open-Meteo · 지도: 데모 스키매틱",
+)).toBeTruthy();
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 ```bash
 npx vitest run src/live-dashboard.test.ts src/fast-canvas-hud.test.ts src/App.test.tsx
 ```
 
-- [ ] **Step 3: Implement the dashboard session**
+- [x] **Step 3: Implement the dashboard session**
 
 Export:
 
@@ -594,7 +611,7 @@ Register `visibilitychange`; when the document becomes visible, refresh weather
 only if its cache is older than 15 minutes. `dispose()` removes the listener
 and prevents late async results from emitting.
 
-- [ ] **Step 4: Render normalized values**
+- [x] **Step 4: Render normalized values**
 
 Change the fourth `drawFastCanvasHud()` argument to:
 
@@ -605,13 +622,14 @@ export type FastCanvasHudData = {
 };
 ```
 
-Keep a default snapshot so tests and the WebView preview render safely. Replace
-the fixed map header with `MAP // LIVE`, `MAP // LAST FIX`, or `MAP // DEMO`.
-Replace both fixed weather strings with live values; round displayed numbers.
-Keep all coordinates, frame geometry, page order, font sizes, and palette
-unchanged.
+Keep a default snapshot so tests and the WebView preview render safely. In the
+as-run pre-OSM build, replace the fixed map header with
+`LOC // LIVE · MAP DEMO`, `LOC // LAST FIX · MAP DEMO`, or
+`LOC // DEMO · MAP DEMO`. Replace both fixed weather strings with live values;
+round displayed numbers. Keep all coordinates, frame geometry, page order,
+font sizes, and palette unchanged.
 
-- [ ] **Step 5: Wire the session after the initial G2 send**
+- [x] **Step 5: Wire the session after the initial G2 send**
 
 In the fast route:
 
@@ -628,13 +646,13 @@ Do not start the session on legacy routes.
 Below the fast-route preview note, render a phone-only credit:
 
 ```text
-날씨: Open-Meteo · 지도 데이터: OpenStreetMap contributors
+날씨: Open-Meteo · 지도: 데모 스키매틱
 ```
 
-Do not transmit this credit to the G2 Canvas. The OSM attribution is also drawn
-inside the map in the map phase.
+Do not transmit this credit to the G2 Canvas. OSM attribution is deferred until
+the OSM map phase actually supplies OSM-derived geometry.
 
-- [ ] **Step 6: Declare only the required permissions**
+- [x] **Step 6: Declare only the required permissions**
 
 Set `app.json` permissions to:
 
@@ -652,7 +670,7 @@ Set `app.json` permissions to:
 ]
 ```
 
-- [ ] **Step 7: Verify and commit**
+- [x] **Step 7: Verify and commit**
 
 ```bash
 npm test
@@ -671,27 +689,29 @@ Expected: all commands exit `0`.
 **Files:**
 - Create: `docs/hardware/2026-07-27-keyless-location-weather.md`
 
-- [ ] **Step 1: Open the Tailscale build**
+- [x] **Step 1: Open the Tailscale build**
 
 ```text
 http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=live-weather-012
 ```
 
-- [ ] **Step 2: Verify on the G2**
+- [x] **Step 2: Verify on the G2**
 
 Confirm:
 
 - initial HUD appears before any five-second location timeout;
-- map header changes to `LIVE`, `LAST FIX`, or `DEMO`;
+- header remains truthfully `LOC // LIVE · MAP DEMO`,
+  `LOC // LAST FIX · MAP DEMO`, or `LOC // DEMO · MAP DEMO`;
 - weather values replace the sample without a key;
 - a weather refresh sends only right IDs `3/5`;
 - scroll remains immediate;
 - hide suppresses refresh sends and restore shows the newest values.
 
-- [ ] **Step 3: Record and commit the result**
+- [x] **Step 3: Record and commit the result**
 
-Document the exact observed source label, weather values, and transfer behavior,
-then:
+Document the exact observed source label, weather values, and transfer behavior
+when they are transcribed. Otherwise explicitly record which details were not
+transcribed, without inferring them, then:
 
 ```bash
 git add docs/hardware/2026-07-27-keyless-location-weather.md
