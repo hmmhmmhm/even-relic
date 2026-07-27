@@ -1,210 +1,185 @@
 # even-relic
 
-Even Realities G2용 다국어 HUD를 탐색하는 팬메이드 프로토타입이다.
-현재 버전은 실제 기능보다 `Peripheral Focus` 화면의 정보 밀도를 안경에서
-검증하는 데 집중한다.
+Even Realities G2에서 빠르게 읽을 수 있는 개인용 전술 HUD를 만드는
+팬메이드 프로토타입이다. 현재 기준 화면은 `/hud-canvas-fast`이며,
+576×288 Canvas 한 장을 네 개의 288×144 이미지로 나누어 G2에 직렬
+전송한다.
 
-## 현재 하드웨어 프로토타입
+SDK는 `@evenrealities/even_hub_sdk` `0.0.11`로 고정한다. 실제 G2에서
+`0.0.12`의 LZ4 이미지 전송이 `SENDFAILED`를 일으켰기 때문에 별도의
+실제 기기 검증 전에는 올리지 않는다.
 
-- 선택한 HUD 시안을 WebView의 576 x 288 Canvas에 렌더링한다.
-- Canvas를 288 x 144 PNG 네 장으로 분할한다.
-- Even Hub SDK의 Image 컨테이너 네 개로 BLE 순차 전송한다.
-- 입력 수신에 필요한 Text 컨테이너 하나는 공백이라 보이지 않는다.
-- G2나 R1에서 아래로 스크롤하면 다음 HUD 페이지, 위로 스크롤하면 이전
-  페이지를 같은 네 컨테이너에 순차 전송한다.
-- 더블 탭하면 플러그인 종료 요청을 보낸다.
+## 현재 HUD
 
-시간, 지도, 위치, 음성 레벨과 미션·뉴스 값은 모두 고정된 목업이다. 최초 네
-이미지 전송과 각 페이지 갱신에는 수 초가 걸릴 수 있으며 애니메이션이나
-자동 갱신은 없다.
+왼쪽 288×288 영역은 모든 페이지에서 공통으로 사용하는 실시간 지도이고,
+오른쪽 288×288 영역만 페이지 전환 때 갱신한다.
 
-## 현재 검증된 하드웨어 상태
+페이지 순서는 다음과 같다.
 
-2026-07-26에 SDK `0.0.10`으로 실제 G2 이미지 전송에 처음 성공했다.
+1. `OVERVIEW`: 시각, 날짜, 날씨, 연결된 단일 기기의 배터리
+2. `NEWS`: SBS 최신 뉴스 제목 최대 여섯 개
+3. `TODO`: 체크리스트 세 개와 오늘 진행률
+4. `NAVIGATION`: ORS 상태, 남은 거리, 다음 동작과 목적지
 
-- 클릭 뒤 `200×100` 1-bit BMP가 표시됐다.
-- `288×144` PNG 네 장으로 구성한 `576×288` 전체 HUD가 표시됐다.
-- `576×288` 최대영역 교정 패턴과 시스템 대시보드의 보이는 외곽 크기가
-  같았다.
-- 같은 기기에서 SDK `0.0.12`는 두 경로 모두 `SENDFAILED`를 반환했다.
+G2 전송 계약은 다음과 같다.
 
-SDK 버전별 차이, 정확한 재현 명령과 성공 증거는
-[G2 이미지 전송 최초 성공 기록](docs/hardware/2026-07-26-first-g2-image-success.md)에
-보존한다.
+- 최초 화면, 복원, 전체 화면 지도: `3 → 5 → 2 → 4`
+- 페이지 전환: 오른쪽 `3 → 5`
+- 지도 이동: 왼쪽 `2 → 4`
+- 시계와 보이는 배터리 변경: 오른쪽 위 `3`
+- 모든 이미지 전송은 하나의 큐에서 직렬 실행
+- 서로 다른 영역의 갱신이 겹치면 최신 상태의 네 타일로 통합
 
-## 전술 Canvas HUD 실험
+## 키 없이 동작하는 기능
 
-기존 `/`는 선택한 PNG 시안을 전송하는 하드웨어 기준선으로 보존한다.
-새 `/hud-canvas`는 원본 이미지를 사용하지 않고 시간, 나침반, 지도, 경로
-안내, 마이크와 미션·뉴스를 `576×288` Canvas에 직접 크게 그린다.
+| 기능 | 데이터 소스 | 갱신 방식 |
+| --- | --- | --- |
+| 현재 위치 | Even Hub SDK | 최초 1회, 이후 `15초 / 15m` |
+| 날씨 | Open-Meteo | 15분 캐시와 포그라운드 재확인 |
+| 뉴스 | allowlist 기반 SBS RSS 프록시 | 10분 클라이언트 캐시 |
+| 도로와 지명 | OpenStreetMap, Overpass | 위치 셀 변경 시 |
+| 시계 | 로컬 시각 | 매분 경계 |
+| 배터리 | Even SDK 기기 상태 이벤트 | 값이 바뀔 때 |
 
-첫 Canvas 버전은 실제 G2에서 기존 대시보드와 같은 외곽 크기로 보였고,
-시간과 지도도 선명하게 읽혔다. 현재 후보는 ACC 칸을 제거한 자리에 큰
-뉴스·미션 카드를 배치하고, 반복되는 닫힌 사각형을 열린 코너 프레임으로
-바꿨다. 지도 경로와 중앙 방향 지시는 중간 밝기 아래선과 흰색 중심선을
-겹쳐 전술 게임 HUD처럼 표현한다. 현재 후보는 실행 시점의 실제 시각을
-`HH:MM:SS`로 표시하고, 지역·온도·날씨 목업과 Canvas 체크박스 기반 TODO
-카드를 추가한다. 날씨와 나머지 HUD 값은 아직 정적 목업이다.
+현재 위치를 얻지 못하면 최근 위치를 사용하고, 최근 위치도 없으면 `DEMO`로
+표시한 홍대 좌표를 사용한다. 날씨, 뉴스, 지도 요청이 실패하면 마지막으로
+성공한 값을 `stale` 상태로 유지한다.
 
-현재 HUD는 다음 네 페이지를 원형으로 순환한다.
+RSS와 Overpass는 임의의 외부 URL을 받지 않는 같은 출처 서버 API를
+거친다. 공개 서비스의 현재 사용 범위는 개인·비상업 프로토타입이다.
 
-1. `OVERVIEW`: 지도와 큰 뉴스 헤드라인·브리핑을 보여주는 기본 화면
-2. `NAVIGATION`: 지도와 120m 우회전·다음 교차로 안내
-3. `NEWS`: 헤드라인과 날씨를 큰 카드로 분산한 집중 화면
-4. `TODO`: 큰 체크리스트와 오디오·G2/R1 연결 상태
+## 전체 화면 지도
 
-기본 `OVERVIEW`에는 내비게이션 상태가 아닐 때 불필요한 `우회전`과
-`다음 교차로`를 표시하지 않는다. 페이지 전환은 컨테이너를 다시 만들지
-않고 기존 ID 2–5의 이미지 데이터만 직렬 갱신한다.
+`OVERVIEW`에서 G2나 R1을 한 번 탭하면 지도가 네 타일 전체로 열린다.
 
-2026-07-26 Tailscale 하드웨어 테스트 URL은 다음과 같다.
+- 아래로 스크롤: 확대
+- 위로 스크롤: 축소
+- 줌 반경: 850m, 650m, 500m, 375m, 280m
+- 빠르게 두 번 탭: `OVERVIEW`로 복귀
 
-```text
-http://100.96.68.73:4173/hud-canvas?sdk=0.0.10&build=paged-hud-004
-```
+선택한 줌은 대시보드와 전체 화면 지도, 위치 이동 사이에서 유지된다.
+줌 한계의 추가 스크롤은 페이지 이동으로 전달하지 않는다.
 
-초는 최초 전송 또는 페이지 전환 때 Canvas를 다시 그린 순간의 값이다.
-BLE로 이미지를 매초 재전송하지 않으므로 같은 페이지에 머무는 동안에는
-자동으로 흐르지 않는다.
+대시보드에서 빠르게 두 번 탭하면 앱을 종료하지 않고 검정 이미지 네 장을
+보내 표시 픽셀만 끈다. 다시 두 번 탭하면 최신 시각, 배터리, 위치와
+페이지를 복원한다. 이는 G2의 공식 절전 모드가 아니므로 앱과 이벤트
+리스너는 계속 실행된다.
 
-### 빠른 분할 Canvas A/B
+## 선택형 ORS 길찾기
 
-`/hud-canvas-fast`는 기존 `/hud-canvas`를 수정하지 않는 별도 실험이다.
-왼쪽 `288×288`은 네 페이지에서 같은 대형 지도이고, 오른쪽 `288×288`에
-분 단위 시각, 날씨와 페이지별 정보를 모두 배치한다. Canvas 글자는
-`20–28px`까지 키우고 보조 정보와 구조선 명도도 높였다.
+목적지 검색과 경로 계산만 OpenRouteService 서버 키가 필요하다. 키는
+서버 환경 변수 `ORS_API_KEY`로만 읽으며 Vite 클라이언트 변수나 소스,
+EHPK, 응답, 로그에는 포함하지 않는다.
 
-시작할 때는 기존처럼 이미지 ID `2, 3, 4, 5`를 모두 보낸다. 스크롤
-이후에는 오른쪽 위와 아래인 ID `3, 5`만 직렬 전송한다.
+키가 없으면 다음 상태가 정상이다.
 
-실제 G2에서 사용자는 고정 대형 지도와 오른쪽 정보 영역으로 나눈 신규
-구조를 선호했고, 스크롤 전환도 매우 빠르다고 확인했다. 최종 확인에서는
-콘텐츠만 정하면 될 정도로 구조, 가독성, 전환 품질이 충분하다고 평가했다.
-따라서 이 빌드를 기술·디자인 기준선으로 보존하고, 다음 작업은 전송 구조가
-아니라 페이지별 콘텐츠 선정에 집중한다.
+- 위치, 날씨, 뉴스와 OSM 지도는 계속 동작
+- 폰 화면에는 목적지 입력창을 표시하지 않음
+- G2 `NAVIGATION` 페이지는 `경로 키 필요` 표시
+- 검색과 경로 API는 `ROUTING_DISABLED` 반환
 
-```text
-기준선: http://100.96.68.73:4174/hud-canvas-fast?sdk=0.0.10&build=fast-canvas-008
-콘텐츠: http://100.96.68.73:4175/hud-canvas-fast?sdk=0.0.10&build=fast-content-009
-표시 토글: http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.10&build=fast-sleep-010
-```
+키가 있으면 폰 화면에서 한국 목적지를 검색하고 도보, 자전거, 자동차 중
+하나를 선택할 수 있다. 활성 경로는 OSM 도로 위에 표시되며 G2에는 남은
+거리와 다음 동작이 나온다.
 
-`fast-content-009`의 스크롤 순서는 `OVERVIEW`, `NEWS`, `TODO`,
-`NAVIGATION`이다. OVERVIEW는 SDK `getDeviceInfo()`가 반환한 단일
-G1/G2/R1 기기의 배터리 잔량과 충전 상태를 최초 전송 전에 표시한다. 현재
-SDK에는 여러 기기를 한 번에 열거하는 공개 API가 없으며, 조회할 수 없으면
-`BATTERY --`를 표시하고 이미지 전송을 계속한다. NEWS는 일반 기사 제목
-여섯 개, TODO는 체크리스트와 오늘 진행률을 표시한다.
+길찾기 중에는 위치 조건을 `2초 / 5m`로 높인다. 경로에서 35m 이상
+벗어난 위치가 세 번 이어지면 경로를 다시 계산한다. 재탐색은 30초에 한
+번만 허용하고 동시에 하나만 요청한다. 길찾기를 종료하면 경로를 지우고
+일반 지도 조건인 `15초 / 15m`로 돌아간다.
 
-`fast-sleep-010`은 시계 아래에 `YYYY.MM.DD 요일`을 표시한다. fast
-Canvas에서 G2 또는 R1을 더블 탭하면 종료 패널 대신 검정 이미지 ID
-`2, 3, 4, 5`를 전송해 표시 픽셀을 끈다. 숨김 중 스크롤은 무시하며 다시
-더블 탭하면 현재 페이지 네 타일을 복원한다. SDK의 공식 절전 모드는
-아니므로 앱과 이벤트 캡처 레이어는 계속 실행된다. 다른 경로의 더블 탭
-종료 동작은 그대로다.
+최근 경로는 최대 여섯 시간 보존한다. 앱을 다시 열었을 때는 자동 안내를
+시작하지 않고 `stale`로 표시하며, 폰 화면에서 다시 시작하거나 종료할 수
+있다.
 
-WebView 미리보기는 CSS 합성으로만 기본 글자색 `#91ff73`을 사용한다.
-그림자와 방사형 배경 글로우는 제거했다. 안경에 인코딩되는 Canvas의
-흰색·회색 명도 팔레트는 변경하지 않았다.
+## 로컬 실행
 
-`/calibration-max`는 최대 표시 외곽을 비교하는 교정 화면이며
-`/diagnostic-v10`은 클릭 뒤 작은 1-bit BMP를 보내는 전송 진단이다. 네
-경로 모두 검증된 SDK `0.0.10` 계약을 유지한다.
+Node.js 의존성을 설치한다.
 
-## 하이브리드 네이티브 Text 실험
-
-`/hud-hybrid`는 페이지 전환 지연을 줄이기 위한 별도 A/B 경로다. 프레임,
-지도선과 장식만 있는 텍스트 없는 Canvas 배경을 네 타일로 최초 한 번
-전송한다. 그 뒤 `OVERVIEW`, `NAVIGATION`, `NEWS`, `TODO` 전환은 전체
-화면 이벤트 Text 컨테이너 ID 1의 콘텐츠만 `textContainerUpgrade()`로
-한 번 갱신한다.
-
-```text
-http://100.96.68.73:4173/hud-hybrid?sdk=0.0.10&build=hybrid-text-005
-```
-
-휴대폰 브라우저의 Canvas 미리보기에는 정적 배경만 보인다. 동적 문구는
-Even 앱 브리지가 실제 G2의 네이티브 Text로 그린다. 실제
-`hybrid-text-005`에서는 평상시에 Canvas 레이아웃만 보였다. Text는 시스템
-닫기 패널이 열린 동안 나타났고, 패널을 취소하면 즉시 다시 사라졌다. Text가
-이미지보다 뒤에 합성되는 레이어 순서 문제로 판정했으며 이 경로는 진단
-증거로 보존한다.
-
-### 명시적 z-order 백포트
-
-`/hud-hybrid-z`는 성공한 SDK `0.0.10` 이미지 전송을 그대로 유지하면서
-다섯 컨테이너 JSON에 이미지 레이어 1–4와 Text 레이어 5를 명시한다.
-값이 가장 큰 Text를 네 이미지보다 앞에 두는 실기기 A/B다.
-
-```text
-http://100.96.68.73:4174/hud-hybrid-z?sdk=0.0.10&build=hybrid-console-007
-```
-
-실제 G2에서는 Text가 Canvas 레이아웃 앞에 정상 표시되고, 스크롤 문구도
-즉시 바뀌는 것을 확인했다. `hybrid-console-007`은 이 전송 구조를 유지하며
-왼쪽 `180px`을 고정 지도, 오른쪽 `372px`을 한 개의 Text 콘솔로
-재구성한다. Text와 Canvas는 `(196, 8, 372, 272)` 좌표를 공유하고,
-줄 높이에 의존하는 내부 칸막이는 사용하지 않는다.
-
-기존 `/hud-canvas`와 `/hud-hybrid`는 비교 기준으로 그대로 보존한다.
-
-## Windows와 실제 G2에서 실행
-
-PC와 아이폰에서 Tailscale을 켠 뒤 PowerShell에서 실행한다.
-
-```powershell
+```bash
 npm install
-npm run dev -- --host 0.0.0.0 --port 4173 --strictPort
 ```
 
-다른 PowerShell 창에서 QR을 띄운다.
+Tailscale에서 접근할 개발 서버를 연다.
 
-```powershell
-npm run qr
+```bash
+npm run dev -- --host 0.0.0.0 --port 4176 --strictPort
 ```
 
-아이폰의 일반 카메라가 아니라 다음 경로에서 QR을 스캔한다.
+ORS를 시험할 때만 같은 서버 프로세스에 키를 전달한다.
 
-1. Even Realities 앱을 연다.
-2. `Even Hub`의 개발자 영역으로 이동한다.
-3. `Scan QR`을 선택한다.
-4. PC 화면의 QR을 스캔하고 이미지 네 장의 전송이 끝날 때까지 기다린다.
-
-현재 `npm run qr`은 최초 성공 진단에 사용한 Mac의 Tailscale 주소
-`http://100.96.68.73:4173`과 SDK `0.0.10`을 사용한다. 주소가 바뀌면
-다음 명령으로 새 QR을 만든다.
-
-```powershell
-npx evenhub qr --url http://<TAILSCALE-IP>:4173 --external
+```bash
+ORS_API_KEY='<server-only-key>' \
+  npm run dev -- --host 0.0.0.0 --port 4176 --strictPort
 ```
 
-Safari로 같은 주소를 열면 휴대폰 미리보기만 표시되고 안경 전송은
-일어나지 않는다. 반드시 Even 앱의 QR 사이드로드로 열어야 SDK 브리지가
-연결된다.
+Even 앱의 `Even Hub → Scan QR`에서 다음 형태의 주소를 연다.
 
-## 검증과 패키징
+```text
+http://<TAILSCALE-IP>:4176/hud-canvas-fast?sdk=0.0.11&build=<BUILD-ID>
+```
 
-```powershell
+일반 Safari에서는 Canvas 미리보기만 보이며 안경 전송은 일어나지 않는다.
+G2 전송은 Even 앱 브리지로 열었을 때만 시작한다.
+
+현재 물리 테스트에 고정된 전체 화면 지도 빌드는 다음과 같다.
+
+```text
+http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=fullscreen-map-018
+```
+
+## 검증
+
+프로젝트 테스트는 G2 개발 환경의 자원 경합을 막기 위해 항상 파일 단위로
+직렬 실행한다.
+
+```bash
 npm test
 npm run typecheck
 npm run build
 npm run test:sites
+node --test --test-concurrency=1 \
+  tests/api-router.test.mjs \
+  tests/map-api.test.mjs \
+  tests/news-api.test.mjs \
+  tests/route-api.test.mjs
+git diff --check
+```
+
+클라이언트에 ORS 키 접근이 없는지는 다음 명령으로 확인한다.
+
+```bash
+git grep -n "ORS_API_KEY" -- src app.json package.json
+```
+
+배포 패키지를 만들려면 다음 명령을 사용한다.
+
+```bash
 npm run pack
 ```
 
-Vitest는 G2 개발 환경의 자원 경합을 피하도록 파일을 항상 한 개씩
-직렬 실행한다.
+## 보존된 비교 및 진단 경로
 
-## 문서
+- `/hud-canvas`: 기존 네 타일 전체 갱신 Canvas HUD
+- `/hud-hybrid`: Canvas와 네이티브 Text 레이어 실험
+- `/hud-hybrid-z`: 명시적 Text z-order 실험
+- `/calibration-max`: 576×288 최대 표시 영역 교정
+- `/diagnostic-v10`: 탭 후 1-bit BMP를 보내는 전송 진단
 
-- [G2 이미지 전송 최초 성공 기록](docs/hardware/2026-07-26-first-g2-image-success.md)
-- [전체 Even Hub 개발 조사](docs/research/2026-07-25-even-hub-development-research.md)
-- [G2 화면과 컴포넌트 제약](docs/research/2026-07-25-g2-display-ui-constraints.md)
-- [G2 이미지 밀도 테스트 설계](docs/superpowers/specs/2026-07-25-g2-raster-density-test-design.md)
-- [선택한 HUD 디자인](docs/design/README.md)
-- [초기 구현 계획](docs/plans/2026-07-25-relic-hud-prototype.md)
+현재 제품 후보는 `/hud-canvas-fast`다. 나머지 경로는 G2 전송 문제를
+재현하거나 과거 디자인과 비교하기 위해 보존한다.
 
-## 범위
+## 주요 기록
 
-이 저장소는 비공식 팬메이드 실험이며 Even Realities 또는 CD PROJEKT와
-관련이 없다. 브랜드 자산, 게임 로고와 원본 UI 리소스를 포함하지 않는다.
+- [최초 G2 이미지 전송 성공](docs/hardware/2026-07-26-first-g2-image-success.md)
+- [SDK 0.0.11 전송 성공](docs/hardware/2026-07-27-sdk-0011-transport-success.md)
+- [실시간 시계, 배터리, 이동 지도](docs/hardware/2026-07-27-g2-live-refresh.md)
+- [OSM 지명 가독성](docs/hardware/2026-07-27-balanced-osm-labels.md)
+- [전체 화면 지도 체크포인트](docs/hardware/2026-07-27-g2-fullscreen-map.md)
+- [선택형 ORS 체크포인트](docs/hardware/2026-07-27-optional-ors-routing.md)
+- [프로젝트 완료 기준표](docs/hardware/2026-07-27-project-completion-audit.md)
+
+## 범위와 고지
+
+이 저장소는 Even Realities 또는 CD PROJEKT와 관련 없는 비공식 팬메이드
+프로토타입이다. 브랜드 자산, 게임 로고와 원본 게임 UI 리소스를 포함하지
+않는다.
