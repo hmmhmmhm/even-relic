@@ -1,0 +1,103 @@
+export type DataStatus =
+  | "loading"
+  | "fresh"
+  | "stale"
+  | "unavailable"
+  | "disabled";
+
+export type Coordinate = {
+  readonly latitude: number;
+  readonly longitude: number;
+};
+
+export type DataState<T> = {
+  readonly status: DataStatus;
+  readonly value?: T;
+  readonly fetchedAt?: number;
+};
+
+export type LocationValue = {
+  readonly coordinate: Coordinate;
+  readonly source: "live" | "cache" | "demo";
+  readonly accuracy?: number;
+  readonly heading?: number;
+  readonly speed?: number;
+};
+
+export type WeatherValue = {
+  readonly temperature: number;
+  readonly apparentTemperature: number;
+  readonly humidity: number;
+  readonly windSpeed: number;
+  readonly precipitationProbability: number;
+  readonly weatherCode: number;
+  readonly condition: string;
+};
+
+export type NewsItem = {
+  readonly id: string;
+  readonly title: string;
+  readonly url?: string;
+  readonly publishedAt?: number;
+};
+
+export type MapRoad = {
+  readonly kind: "major" | "minor";
+  readonly points: readonly Coordinate[];
+};
+
+export type MapValue = {
+  readonly roads: readonly MapRoad[];
+  readonly attribution: "© OSM CONTRIBUTORS";
+  readonly cell?: string;
+};
+
+export type RouteManeuver = {
+  readonly instruction: string;
+  readonly distance: number;
+  readonly wayPoints: readonly [number, number];
+};
+
+export type RouteValue = {
+  readonly destinationName: string;
+  readonly geometry: readonly Coordinate[];
+  readonly maneuvers: readonly RouteManeuver[];
+  readonly activeManeuverIndex: number;
+  readonly remainingDistance: number;
+  readonly profile: "foot-walking" | "cycling-regular" | "driving-car";
+};
+
+export type LiveDashboardState = {
+  readonly location: DataState<LocationValue>;
+  readonly weather: DataState<WeatherValue>;
+  readonly news: DataState<readonly NewsItem[]>;
+  readonly map: DataState<MapValue>;
+  readonly route: DataState<RouteValue>;
+};
+
+export const DEMO_COORDINATE = {
+  latitude: 37.5563,
+  longitude: 126.922,
+} as const;
+
+export function createInitialLiveDashboardState(): LiveDashboardState {
+  return {
+    location: {
+      status: "loading",
+      value: {
+        coordinate: { ...DEMO_COORDINATE },
+        source: "demo",
+      },
+    },
+    weather: { status: "loading" },
+    news: { status: "loading", value: [] },
+    map: {
+      status: "loading",
+      value: {
+        roads: [],
+        attribution: "© OSM CONTRIBUTORS",
+      },
+    },
+    route: { status: "disabled" },
+  };
+}
