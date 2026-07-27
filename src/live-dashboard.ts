@@ -27,6 +27,7 @@ import type {
   RouteProfile,
   RoutingStatus,
 } from "./routing";
+import { resolveTodos, toggleTodo, writeTodos } from "./todos";
 import { WEATHER_MAX_AGE_MS } from "./weather";
 
 export type LiveDashboardUpdate = {
@@ -60,6 +61,19 @@ function mergeTarget(
   return "all";
 }
 
+function todosMatch(
+  left: LiveDashboardState["todos"]["value"],
+  right: LiveDashboardState["todos"]["value"],
+): boolean {
+  if (!left || !right || left.length !== right.length) return false;
+  return left.every((item, index) => {
+    const other = right[index];
+    return item.id === other.id
+      && item.title === other.title
+      && item.completed === other.completed;
+  });
+}
+
 export function createLiveDashboardSession(
   options: LiveDashboardSessionOptions,
 ): {
@@ -70,6 +84,7 @@ export function createLiveDashboardSession(
   ): Promise<void>;
   resumeRoute(): Promise<void>;
   endRoute(): Promise<void>;
+  toggleTodo(index: number): Promise<boolean>;
   getState(): LiveDashboardState;
   dispose(): void;
 } {
@@ -267,6 +282,16 @@ export function createLiveDashboardSession(
       listenerRegistered = true;
     }
     startPromise = (async () => {
+      const todos = await resolveTodos(options.bridge);
+      if (disposed) return;
+      if (!todosMatch(state.todos.value, todos)) {
+        state = {
+          ...state,
+          todos: { status: "fresh", value: clone(todos) },
+        };
+        emit("right");
+      }
+
       let location = state.location;
       try {
         location = await resolveInitialLocation(options.bridge, now());
@@ -300,11 +325,26 @@ export function createLiveDashboardSession(
     setLocationMode: startLocationUpdates,
   });
 
+  const toggleTodoAt = async (index: number): Promise<boolean> => {
+    if (disposed) return false;
+    const current = state.todos.value ?? [];
+    const next = toggleTodo(current, index);
+    if (next === current) return false;
+    state = {
+      ...state,
+      todos: { status: "fresh", value: clone(next) },
+    };
+    emit("right");
+    await writeTodos(options.bridge, next);
+    return true;
+  };
+
   return {
     start,
     startRoute: routeSession.startRoute,
     resumeRoute: routeSession.resumeRoute,
     endRoute: routeSession.endRoute,
+    toggleTodo: toggleTodoAt,
     getState: () => clone(state),
     dispose: () => {
       if (disposed) return;
