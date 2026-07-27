@@ -728,7 +728,7 @@ Create the hardware record with:
 
 Commit the code and pending record without pushing.
 
-- [ ] **Step 6: Restart only port 4176 and open the QR**
+- [x] **Step 6: Restart only port 4176 and open the QR**
 
 Restart the current Vite process with:
 
