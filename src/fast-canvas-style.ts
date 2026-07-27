@@ -42,3 +42,25 @@ export function drawFastCanvasPath(
   context.lineJoin = "miter";
   context.stroke();
 }
+
+export function drawFastCanvasOpenFrame(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: FastCanvasColor = FAST_CANVAS_COLOR.dim,
+) {
+  const corner = 18;
+  const right = x + width;
+  const bottom = y + height;
+  context.fillStyle = color;
+  context.fillRect(x, y, corner, 1);
+  context.fillRect(x, y, 1, corner);
+  context.fillRect(right - corner, y, corner, 1);
+  context.fillRect(right - 1, y, 1, corner);
+  context.fillRect(x, bottom - 1, corner, 1);
+  context.fillRect(x, bottom - corner, 1, corner);
+  context.fillRect(right - corner, bottom - 1, corner, 1);
+  context.fillRect(right - 1, bottom - corner, 1, corner);
+}
