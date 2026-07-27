@@ -5,6 +5,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
+import { OsEventTypeList } from "@evenrealities/even_hub_sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import {
@@ -29,6 +30,13 @@ type FastTestOptions = {
   readonly onInput?: (
     input: FastInput,
   ) => FastInputResult | Promise<FastInputResult>;
+  readonly onRawEvent?: (event: {
+    readonly count: number;
+    readonly hidden: boolean;
+    readonly sysEventType?: OsEventTypeList;
+    readonly textEventType?: OsEventTypeList;
+    readonly eventSource?: number;
+  }) => void;
   readonly onRefreshReady?: (
     request: (target: RefreshTarget) => void,
   ) => void;
@@ -299,6 +307,32 @@ describe("RELIC peripheral HUD", () => {
 
     view.unmount();
     expect(stopMinuteRefresh).toHaveBeenCalledOnce();
+  });
+
+  it("shows raw hidden input only in the phone status", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    mocks.transmitFast.mockImplementation(async () => vi.fn());
+    mocks.waitForBridge.mockResolvedValue({});
+    mocks.createSession.mockReturnValue({
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    });
+
+    render(<App />);
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+
+    fastOptions().onRawEvent?.({
+      count: 7,
+      hidden: true,
+      sysEventType: undefined,
+      textEventType: OsEventTypeList.DOUBLE_CLICK_EVENT,
+      eventSource: 2,
+    });
+
+    await vi.waitFor(() => expect(screen.getByText(
+      "숨김 입력 #7 · SYS - · TEXT 3 · SRC 2",
+    )).toBeTruthy());
   });
 
   it("refreshes a visible overview battery change and retains it on other pages", async () => {

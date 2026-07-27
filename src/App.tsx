@@ -194,6 +194,16 @@ export function App({ autoStart = true }: AppProps) {
               if (transition.result === "redraw") drawCurrentPage();
               return transition.result;
             },
+            onRawEvent: (event) => {
+              if (!event.hidden) return;
+              const field = (value: number | undefined) => value ?? "-";
+              report(
+                `숨김 입력 #${event.count}`
+                  + ` · SYS ${field(event.sysEventType)}`
+                  + ` · TEXT ${field(event.textEventType)}`
+                  + ` · SRC ${field(event.eventSource)}`,
+              );
+            },
             onRefreshReady: (request) => {
               if (cancelled) return;
               requestLiveRefresh = request;
