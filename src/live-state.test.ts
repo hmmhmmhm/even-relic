@@ -36,6 +36,14 @@ describe("live dashboard state", () => {
       },
       weather: { status: "loading" },
       news: { status: "loading", value: [] },
+      todos: {
+        status: "fresh",
+        value: [
+          { id: "station", title: "지하철역으로 이동", completed: false },
+          { id: "umbrella", title: "우산 챙기기", completed: false },
+          { id: "route", title: "경로 확인", completed: true },
+        ],
+      },
       map: {
         status: "loading",
         value: {
@@ -121,6 +129,7 @@ describe("live dashboard state", () => {
       location: locationState,
       weather: { status: "fresh", value: weather, fetchedAt: 1 },
       news: { status: "fresh", value: [news], fetchedAt: 1 },
+      todos: createInitialLiveDashboardState().todos,
       map: { status: "fresh", value: map, fetchedAt: 1 },
       route: { status: "fresh", value: route, fetchedAt: 1 },
     };

@@ -42,6 +42,12 @@ export type NewsItem = {
   readonly summary?: string;
 };
 
+export type TodoItem = {
+  readonly id: string;
+  readonly title: string;
+  readonly completed: boolean;
+};
+
 export type MapRoad = {
   readonly kind: "major" | "minor";
   readonly points: readonly Coordinate[];
@@ -79,6 +85,7 @@ export type LiveDashboardState = {
   readonly location: DataState<LocationValue>;
   readonly weather: DataState<WeatherValue>;
   readonly news: DataState<readonly NewsItem[]>;
+  readonly todos: DataState<readonly TodoItem[]>;
   readonly map: DataState<MapValue>;
   readonly route: DataState<RouteValue>;
 };
@@ -87,6 +94,12 @@ export const DEMO_COORDINATE = {
   latitude: 37.5563,
   longitude: 126.922,
 } as const;
+
+export const DEFAULT_TODOS: readonly TodoItem[] = [
+  { id: "station", title: "지하철역으로 이동", completed: false },
+  { id: "umbrella", title: "우산 챙기기", completed: false },
+  { id: "route", title: "경로 확인", completed: true },
+];
 
 export function createInitialLiveDashboardState(): LiveDashboardState {
   return {
@@ -99,6 +112,10 @@ export function createInitialLiveDashboardState(): LiveDashboardState {
     },
     weather: { status: "loading" },
     news: { status: "loading", value: [] },
+    todos: {
+      status: "fresh",
+      value: DEFAULT_TODOS.map((item) => ({ ...item })),
+    },
     map: {
       status: "loading",
       value: {
