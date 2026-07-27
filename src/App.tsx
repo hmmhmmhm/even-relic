@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { waitForEvenAppBridge } from "@evenrealities/even_hub_sdk";
 import hudReferenceUrl from "../docs/design/selected-peripheral-focus.png";
 import {
   drawHudReference,
@@ -9,6 +10,7 @@ import {
   transmitLayeredHybridCanvas,
   transmitOfficialSample,
   type FastCanvasBattery,
+  type FastCanvasRefreshRequest,
 } from "./glasses";
 import { drawCalibrationPattern } from "./calibration";
 import {
@@ -26,6 +28,11 @@ import {
   drawLayeredHybridHudBackground,
   formatHybridHudText,
 } from "./hybrid-hud";
+import { createLiveDashboardSession } from "./live-dashboard";
+import {
+  createInitialLiveDashboardState,
+  type LiveDashboardState,
+} from "./live-state";
 
 type AppProps = {
   autoStart?: boolean;
@@ -52,15 +59,18 @@ export function App({ autoStart = true }: AppProps) {
 
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
+    let liveSession: ReturnType<typeof createLiveDashboardSession> | undefined;
     let page: HudPage = HUD_PAGES[0];
     let battery: FastCanvasBattery | undefined;
+    let live: LiveDashboardState = createInitialLiveDashboardState();
+    let requestLiveRefresh: FastCanvasRefreshRequest | undefined;
     const canvas = canvasRef.current;
     const report = (message: string) => {
       if (!cancelled) setStatus(message);
     };
     const drawCurrentPage = () => {
       if (fastCanvasHudMode) {
-        drawFastCanvasHud(canvas, new Date(), page, battery);
+        drawFastCanvasHud(canvas, new Date(), page, { battery, live });
       }
       else drawDenseCanvasHud(canvas, new Date(), page);
     };
@@ -86,6 +96,46 @@ export function App({ autoStart = true }: AppProps) {
         await drawHudReference(canvas, hudReferenceUrl);
       }
       report("Even 앱 브리지 연결 대기 중 · Safari에서는 미리보기만 표시됩니다");
+      if (fastCanvasHudMode) {
+        const transportCleanup = await transmitFastCanvas(
+          canvas,
+          report,
+          navigateCanvas,
+          {
+            beforeExternalRefresh: drawCurrentPage,
+            beforeRestore: drawCurrentPage,
+            onBattery: (nextBattery) => {
+              battery = nextBattery;
+              drawCurrentPage();
+            },
+            onRefreshReady: (request) => {
+              requestLiveRefresh = request;
+            },
+          },
+        );
+        if (cancelled) {
+          transportCleanup();
+          return;
+        }
+        unsubscribe = transportCleanup;
+        const bridge = await waitForEvenAppBridge();
+        if (cancelled) return;
+        liveSession = createLiveDashboardSession({
+          bridge,
+          onUpdate: (update) => {
+            if (cancelled) return;
+            live = update.state;
+            requestLiveRefresh?.(update.target);
+          },
+        });
+        if (cancelled) {
+          liveSession.dispose();
+          liveSession = undefined;
+          return;
+        }
+        await liveSession.start();
+        return;
+      }
       unsubscribe = hardwareBmpMode
         ? await transmitHardwareBmp(report)
         : diagnosticMode
@@ -98,19 +148,6 @@ export function App({ autoStart = true }: AppProps) {
                 async (direction) => {
                   page = getAdjacentHudPage(page, direction);
                   return formatHybridHudText(page);
-                },
-              )
-          : fastCanvasHudMode
-            ? await transmitFastCanvas(
-                canvas,
-                report,
-                navigateCanvas,
-                {
-                  beforeRestore: drawCurrentPage,
-                  onBattery: (nextBattery) => {
-                    battery = nextBattery;
-                    drawCurrentPage();
-                  },
                 },
               )
           : await transmitCanvas(
@@ -126,6 +163,7 @@ export function App({ autoStart = true }: AppProps) {
 
     return () => {
       cancelled = true;
+      liveSession?.dispose();
       unsubscribe?.();
     };
   }, [
@@ -157,11 +195,11 @@ export function App({ autoStart = true }: AppProps) {
                     : hybridHudMode
                       ? "STATIC CANVAS + NATIVE TEXT · SCROLL · 4 PAGES"
                       : fastCanvasHudMode
-                        ? "576×288 · CANVAS HUD · FAST 2-TILE · SCROLL · 4 PAGES"
+                        ? "576×288 · CANVAS HUD · FAST 2-TILE · SCROLL · 4 PAGES · LIVE DATA"
                         : canvasHudMode
                           ? "576×288 · CANVAS HUD · SCROLL · 4 PAGES"
                           : "576×288 · 4 IMAGE TILES"}
-            {" · STATIC MOCK"}
+            {!fastCanvasHudMode && " · STATIC MOCK"}
           </span>
         </div>
         <output aria-live="polite">{status}</output>
@@ -221,7 +259,7 @@ export function App({ autoStart = true }: AppProps) {
                 : hybridHudMode
                   ? "Canvas에는 정적 배경만 보이며, 실제 안경 문구는 네이티브 Text로 한 번에 전환됩니다."
                   : fastCanvasHudMode
-                    ? "왼쪽 지도는 유지하고, 스크롤할 때 오른쪽 위·아래 두 타일만 전송합니다."
+                    ? "날씨: Open-Meteo · 지도 데이터: OpenStreetMap contributors"
                     : canvasHudMode
                       ? "기본 뉴스 화면에서 아래 스크롤은 다음, 위 스크롤은 이전 페이지를 네 타일로 전송합니다."
                       : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}

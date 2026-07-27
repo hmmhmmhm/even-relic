@@ -1,5 +1,9 @@
 import type { HudPage } from "./canvas-hud";
 import type { FastCanvasBattery } from "./glasses";
+import {
+  createInitialLiveDashboardState,
+  type LiveDashboardState,
+} from "./live-state";
 
 const WIDTH = 576;
 const HEIGHT = 288;
@@ -28,6 +32,11 @@ export const FAST_HUD_PAGES = [
   "todo",
   "navigation",
 ] as const satisfies readonly HudPage[];
+
+export type FastCanvasHudData = {
+  readonly battery?: FastCanvasBattery;
+  readonly live: LiveDashboardState;
+};
 
 export function getAdjacentFastHudPage(
   page: HudPage,
@@ -144,9 +153,19 @@ function drawCheckbox(
   }
 }
 
-function drawStaticMap(context: CanvasRenderingContext2D) {
+function mapHeader(live: LiveDashboardState) {
+  const source = live.location.value?.source;
+  if (source === "live") return "MAP // LIVE";
+  if (source === "cache") return "MAP // LAST FIX";
+  return "MAP // DEMO";
+}
+
+function drawStaticMap(
+  context: CanvasRenderingContext2D,
+  live: LiveDashboardState,
+) {
   drawFrame(context, 8, 8, 272, 272);
-  drawText(context, "MAP // HONGDAE", 18, 16, 11, COLOR.secondary, "bold");
+  drawText(context, mapHeader(live), 18, 16, 11, COLOR.secondary, "bold");
   drawText(context, "RELIC // LOCAL", 170, 16, 9, COLOR.dim, "bold");
 
   const roads: readonly Point[][] = [
@@ -191,6 +210,15 @@ function drawStaticMap(context: CanvasRenderingContext2D) {
   context.fillRect(12, 250, 264, 25);
   context.fillStyle = COLOR.dim;
   context.fillRect(12, 249, 264, 1);
+  drawText(
+    context,
+    live.map.value?.attribution ?? "© OSM CONTRIBUTORS",
+    18,
+    238,
+    7,
+    COLOR.dim,
+    "bold",
+  );
   drawText(context, "DEST 0.8km", 18, 256, 12, COLOR.primary, "bold");
   drawText(context, "N ↑", 235, 256, 12, COLOR.secondary, "bold");
 }
@@ -199,11 +227,20 @@ function drawDynamicHeader(
   context: CanvasRenderingContext2D,
   now: Date,
   page: HudPage,
+  live: LiveDashboardState,
 ) {
   drawFrame(context, 296, 8, 272, 54);
   drawText(context, formatTime(now), 306, 12, 22, COLOR.primary, "bold");
   drawText(context, formatDate(now), 306, 40, 10, COLOR.secondary, "bold");
-  drawText(context, "23°C 맑음", 468, 40, 10, COLOR.secondary, "bold");
+  drawText(
+    context,
+    weatherSummary(live),
+    458,
+    40,
+    8,
+    COLOR.secondary,
+    "bold",
+  );
   const pageNumber = FAST_HUD_PAGES.indexOf(page) + 1;
   drawText(
     context,
@@ -218,8 +255,9 @@ function drawDynamicHeader(
 
 function drawOverview(
   context: CanvasRenderingContext2D,
-  battery?: FastCanvasBattery,
+  data: FastCanvasHudData,
 ) {
+  const { battery, live } = data;
   const batteryText = battery?.level === undefined
     ? "BATTERY --"
     : `${battery.label} ${battery.level}%${battery.charging ? " +" : ""}`;
@@ -228,11 +266,47 @@ function drawOverview(
   context.fillStyle = COLOR.dim;
   context.fillRect(308, 140, 248, 1);
   drawText(context, "WEATHER // NOW", 308, 152, 11, COLOR.secondary, "bold");
-  drawText(context, "23°C  맑음", 308, 172, 20, COLOR.primary, "bold");
+  drawText(context, weatherSummary(live), 308, 172, 20, COLOR.primary, "bold");
 
-  drawText(context, "TODAY // TODO", 308, 226, 10, COLOR.secondary, "bold");
-  drawText(context, "완료 1 / 3", 308, 244, 18, COLOR.primary, "bold");
-  drawText(context, "남은 2", 494, 249, 10, COLOR.dim, "bold");
+  const weather = usableWeather(live);
+  if (weather) {
+    drawText(
+      context,
+      `체감 ${Math.round(weather.apparentTemperature)}°  습도 ${Math.round(weather.humidity)}%`,
+      308,
+      226,
+      11,
+      COLOR.secondary,
+      "bold",
+    );
+    drawText(
+      context,
+      `강수 ${Math.round(weather.precipitationProbability)}%  바람 ${Math.round(weather.windSpeed)}km/h`,
+      308,
+      248,
+      11,
+      COLOR.primary,
+      "bold",
+    );
+    if (live.weather.status === "stale") {
+      drawText(context, "LAST", 522, 226, 8, COLOR.dim, "bold");
+    }
+  } else {
+    drawText(context, "LIVE DATA UNAVAILABLE", 308, 244, 11, COLOR.dim, "bold");
+  }
+}
+
+function usableWeather(live: LiveDashboardState) {
+  return (live.weather.status === "fresh" || live.weather.status === "stale")
+    ? live.weather.value
+    : undefined;
+}
+
+function weatherSummary(live: LiveDashboardState) {
+  const weather = usableWeather(live);
+  return weather
+    ? `${Math.round(weather.temperature)}°C ${weather.condition}`
+    : "WEATHER --";
 }
 
 function drawNavigation(context: CanvasRenderingContext2D) {
@@ -287,11 +361,11 @@ function drawTodo(context: CanvasRenderingContext2D) {
 function drawDynamicPage(
   context: CanvasRenderingContext2D,
   page: HudPage,
-  battery?: FastCanvasBattery,
+  data: FastCanvasHudData,
 ) {
   drawFrame(context, 296, 72, 272, 134);
   drawFrame(context, 296, 216, 272, 64);
-  if (page === "overview") drawOverview(context, battery);
+  if (page === "overview") drawOverview(context, data);
   if (page === "navigation") drawNavigation(context);
   if (page === "news") drawNews(context);
   if (page === "todo") drawTodo(context);
@@ -301,7 +375,9 @@ export function drawFastCanvasHud(
   canvas: HTMLCanvasElement,
   now = new Date(),
   page: HudPage = "overview",
-  battery?: FastCanvasBattery,
+  data: FastCanvasHudData = {
+    live: createInitialLiveDashboardState(),
+  },
 ) {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
@@ -310,7 +386,7 @@ export function drawFastCanvasHud(
   context.imageSmoothingEnabled = false;
   context.fillStyle = COLOR.background;
   context.fillRect(0, 0, WIDTH, HEIGHT);
-  drawStaticMap(context);
-  drawDynamicHeader(context, now, page);
-  drawDynamicPage(context, page, battery);
+  drawStaticMap(context, data.live);
+  drawDynamicHeader(context, now, page, data.live);
+  drawDynamicPage(context, page, data);
 }

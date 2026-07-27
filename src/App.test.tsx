@@ -1,7 +1,38 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
+
+const mocks = vi.hoisted(() => ({
+  createSession: vi.fn(),
+  drawFast: vi.fn(),
+  transmitFast: vi.fn(),
+  waitForBridge: vi.fn(),
+}));
+
+vi.mock("./fast-canvas-hud", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./fast-canvas-hud")>(),
+  drawFastCanvasHud: mocks.drawFast,
+}));
+
+vi.mock("./glasses", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./glasses")>(),
+  transmitFastCanvas: mocks.transmitFast,
+}));
+
+vi.mock("@evenrealities/even_hub_sdk", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@evenrealities/even_hub_sdk")>(),
+  waitForEvenAppBridge: mocks.waitForBridge,
+}));
+
+vi.mock("./live-dashboard", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./live-dashboard")>(),
+  createLiveDashboardSession: mocks.createSession,
+}));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+});
 
 afterEach(() => {
   cleanup();
@@ -79,6 +110,54 @@ describe("RELIC peripheral HUD", () => {
     expect(hud.dataset.layout).toBe("static-left-dynamic-right");
     expect(hud.dataset.updateTiles).toBe("2");
     expect(screen.getByText(/CANVAS HUD · FAST 2-TILE/)).toBeTruthy();
+    expect(screen.getByText(/LIVE DATA/)).toBeTruthy();
+    expect(screen.queryByText(/STATIC MOCK/)).toBeNull();
+    expect(screen.getByText(
+      "날씨: Open-Meteo · 지도 데이터: OpenStreetMap contributors",
+    )).toBeTruthy();
+  });
+
+  it("does not show live-data credits outside the fast route", () => {
+    window.history.replaceState({}, "", "/hud-canvas");
+    render(<App autoStart={false} />);
+
+    expect(screen.queryByText(
+      "날씨: Open-Meteo · 지도 데이터: OpenStreetMap contributors",
+    )).toBeNull();
+  });
+
+  it("starts one live session after fast transport and cleans both up", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    let finishTransport!: (cleanup: () => void) => void;
+    const transportCleanup = vi.fn();
+    mocks.transmitFast.mockReturnValue(new Promise<() => void>((resolve) => {
+      finishTransport = resolve;
+    }));
+    const bridge = {};
+    mocks.waitForBridge.mockResolvedValue(bridge);
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledTimes(1));
+    expect(mocks.waitForBridge).not.toHaveBeenCalled();
+    expect(mocks.createSession).not.toHaveBeenCalled();
+
+    finishTransport(transportCleanup);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledTimes(1));
+    expect(mocks.waitForBridge).toHaveBeenCalledTimes(1);
+    expect(mocks.createSession).toHaveBeenCalledWith(expect.objectContaining({
+      bridge,
+      onUpdate: expect.any(Function),
+    }));
+
+    view.unmount();
+    expect(session.dispose).toHaveBeenCalledTimes(1);
+    expect(transportCleanup).toHaveBeenCalledTimes(1);
   });
 
   it("isolates the static Canvas plus native Text experiment", () => {

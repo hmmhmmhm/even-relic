@@ -1,11 +1,19 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
+import {
+  createInitialLiveDashboardState,
+  type LiveDashboardState,
+} from "./live-state";
 
 type HudPage = "overview" | "navigation" | "news" | "todo";
 type FastCanvasBattery = {
   label: "G1" | "G2" | "R1";
   level?: number;
   charging?: boolean;
+};
+type FastCanvasHudData = {
+  readonly battery?: FastCanvasBattery;
+  readonly live: LiveDashboardState;
 };
 type Rectangle = {
   style: string;
@@ -33,7 +41,7 @@ type FastHudModule = {
     canvas: HTMLCanvasElement,
     now?: Date,
     page?: HudPage,
-    battery?: FastCanvasBattery,
+    data?: FastCanvasHudData,
   ) => void;
 };
 
@@ -49,7 +57,7 @@ async function loadFastHud() {
 function renderFastHud(
   module: FastHudModule,
   page: HudPage,
-  battery?: FastCanvasBattery,
+  data?: Partial<FastCanvasHudData>,
 ) {
   const rectangles: Rectangle[] = [];
   const texts: TextRecord[] = [];
@@ -125,7 +133,10 @@ function renderFastHud(
     canvas,
     new Date(2026, 6, 27, 14, 37, 42),
     page,
-    battery,
+    {
+      live: createInitialLiveDashboardState(),
+      ...data,
+    },
   );
   return {
     canvas,
@@ -199,9 +210,10 @@ describe("fast split Canvas HUD", () => {
       expect(hud.values).toEqual(expect.arrayContaining([
         "14:37",
         "2026.07.27 월요일",
-        "23°C 맑음",
+        "WEATHER --",
         `0${index + 1} / 04`,
-        "MAP // HONGDAE",
+        "MAP // DEMO",
+        "© OSM CONTRIBUTORS",
       ]));
       expect(hud.texts.find(
         ({ value }) => value === "2026.07.27 월요일",
@@ -247,10 +259,75 @@ describe("fast split Canvas HUD", () => {
     if (!module?.drawFastCanvasHud) return;
 
     expect(renderFastHud(module, "overview", {
-      label: "G2",
-      level: 82,
-      charging: true,
+      battery: {
+        label: "G2",
+        level: 82,
+        charging: true,
+      },
     }).values).toContain("G2 82% +");
     expect(renderFastHud(module, "overview").values).toContain("BATTERY --");
+  });
+
+  it("labels map provenance from the current location source", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+    const initial = createInitialLiveDashboardState();
+    const withSource = (
+      source: "live" | "cache" | "demo",
+    ): LiveDashboardState => ({
+      ...initial,
+      location: {
+        status: source === "live" ? "fresh" : "stale",
+        value: {
+          coordinate: { latitude: 37.5665, longitude: 126.978 },
+          source,
+        },
+      },
+    });
+
+    expect(renderFastHud(module, "overview", {
+      live: withSource("live"),
+    }).values).toContain("MAP // LIVE");
+    expect(renderFastHud(module, "overview", {
+      live: withSource("cache"),
+    }).values).toContain("MAP // LAST FIX");
+    expect(renderFastHud(module, "overview", {
+      live: withSource("demo"),
+    }).values).toContain("MAP // DEMO");
+  });
+
+  it("shows rounded live weather details and an unavailable fallback", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+    const initial = createInitialLiveDashboardState();
+    const live: LiveDashboardState = {
+      ...initial,
+      weather: {
+        status: "fresh",
+        fetchedAt: 1_800_000_000_000,
+        value: {
+          temperature: 29.4,
+          apparentTemperature: 31.2,
+          humidity: 67,
+          windSpeed: 8.2,
+          precipitationProbability: 20,
+          weatherCode: 2,
+          condition: "대체로 맑음",
+        },
+      },
+    };
+    const weather = renderFastHud(module, "overview", { live });
+
+    expect(weather.values).toEqual(expect.arrayContaining([
+      "29°C 대체로 맑음",
+      "체감 31°  습도 67%",
+      "강수 20%  바람 8km/h",
+    ]));
+    expect(renderFastHud(module, "overview", {
+      live: {
+        ...initial,
+        weather: { status: "unavailable" },
+      },
+    }).values).toContain("WEATHER --");
   });
 });
