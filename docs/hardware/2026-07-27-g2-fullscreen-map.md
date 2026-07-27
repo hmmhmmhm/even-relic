@@ -2,7 +2,7 @@
 
 Date: 2026-07-27
 Branch: `feature/g2-fast-content`
-Tested implementation commit: `9759d7b9368ce5f6c49ed0acf9f160ae3ee10860`
+Tested implementation commit: `3637e3f0f65b80d3c113ed1c03257670d28a0328`
 SDK: `0.0.11`
 Build: `fullscreen-map-018`
 URL: `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=fullscreen-map-018`
@@ -26,7 +26,7 @@ Result: PENDING
 
 The implementation commit passed these commands one at a time:
 
-- `npm test`: 22 files, 240 tests passed;
+- `npm test`: 22 files, 241 tests passed;
 - `npm run typecheck`: exit 0;
 - `npm run build`: 50 modules transformed, production build completed;
 - `npm run test:sites`: 4/4 tests passed;
