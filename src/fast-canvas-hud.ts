@@ -386,17 +386,27 @@ function drawNews(
   drawText(context, "NEWS // MORE", 308, 222, 10, COLOR.secondary, "bold");
 }
 
-function drawTodo(context: CanvasRenderingContext2D) {
+function drawTodo(context: CanvasRenderingContext2D, live: LiveDashboardState) {
+  const items = live.todos.value ?? [];
+  const completed = items.filter((item) => item.completed).length;
   drawText(context, "TODO // ACTIVE", 308, 82, 11, COLOR.secondary, "bold");
-  drawCheckbox(context, 308, 108, false);
-  drawText(context, "지하철역으로 이동", 332, 103, 18, COLOR.primary, "bold");
-  drawCheckbox(context, 308, 150, false);
-  drawText(context, "우산 챙기기", 332, 145, 18, COLOR.primary, "bold");
-  drawCheckbox(context, 308, 188, true);
-  drawText(context, "경로 확인", 332, 183, 16, COLOR.secondary, "bold");
+  const positions = [108, 150, 188] as const;
+  items.slice(0, positions.length).forEach((item, index) => {
+    drawCheckbox(context, 308, positions[index], item.completed);
+    drawText(
+      context,
+      truncateHudTitle(item.title, 24),
+      332,
+      positions[index] - 5,
+      index < 2 ? 18 : 16,
+      item.completed ? COLOR.secondary : COLOR.primary,
+      "bold",
+    );
+  });
 
   drawText(context, "PROGRESS // TODAY", 308, 226, 10, COLOR.secondary, "bold");
-  drawText(context, "완료 1 / 3", 308, 244, 18, COLOR.primary, "bold");
+  const progress = `완료 ${completed} / ${items.length}`;
+  drawText(context, progress, 308, 244, 18, COLOR.primary, "bold");
 }
 
 function drawDynamicPage(
@@ -409,7 +419,7 @@ function drawDynamicPage(
   if (page === "overview") drawOverview(context, data);
   if (page === "navigation") drawNavigation(context, data.live.route);
   if (page === "news") drawNews(context, data.live);
-  if (page === "todo") drawTodo(context);
+  if (page === "todo") drawTodo(context, data.live);
 }
 
 export function drawFastCanvasHud(

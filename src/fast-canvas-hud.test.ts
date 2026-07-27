@@ -404,6 +404,33 @@ describe("fast split Canvas HUD", () => {
     }).values).toContain("NEWS UNAVAILABLE");
   });
 
+  it("renders the restored TODO state on its dashboard page", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+    const initial = createInitialLiveDashboardState();
+    const live: LiveDashboardState = {
+      ...initial,
+      todos: {
+        status: "fresh",
+        value: [
+          { id: "coffee", title: "커피 사기", completed: true },
+          { id: "train", title: "열차 타기", completed: false },
+          { id: "route", title: "경로 확인", completed: true },
+        ],
+      },
+    };
+
+    const todo = renderFastHud(module, "todo", { live });
+
+    expect(todo.values).toEqual(expect.arrayContaining([
+      "커피 사기",
+      "열차 타기",
+      "경로 확인",
+      "완료 2 / 3",
+    ]));
+    expect(todo.values).not.toContain("지하철역으로 이동");
+  });
+
   it("truncates mixed-width titles without exceeding HUD units", async () => {
     const module = await loadFastHud();
     expect(module?.truncateHudTitle).toBeTypeOf("function");
