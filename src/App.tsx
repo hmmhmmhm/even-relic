@@ -11,6 +11,7 @@ import {
   transmitOfficialSample,
   type FastCanvasBattery,
   type FastCanvasRefreshRequest,
+  type FastCanvasRefreshTarget,
 } from "./glasses";
 import { drawCalibrationPattern } from "./calibration";
 import {
@@ -23,6 +24,12 @@ import {
   drawFastCanvasHud,
   getAdjacentFastHudPage,
 } from "./fast-canvas-hud";
+import { drawFastFullscreenMap } from "./fast-map";
+import {
+  FAST_MAP_ZOOM_RADII,
+  createFastMapViewState,
+  reduceFastMapInput,
+} from "./fast-map-view";
 import {
   drawHybridHudBackground,
   drawLayeredHybridHudBackground,
@@ -62,6 +69,7 @@ export function App({ autoStart = true }: AppProps) {
     let unsubscribe: (() => void) | undefined;
     let liveSession: ReturnType<typeof createLiveDashboardSession> | undefined;
     let page: HudPage = HUD_PAGES[0];
+    let mapView = createFastMapViewState();
     let battery: FastCanvasBattery | undefined;
     let live: LiveDashboardState = createInitialLiveDashboardState();
     let requestLiveRefresh: FastCanvasRefreshRequest | undefined;
@@ -70,11 +78,26 @@ export function App({ autoStart = true }: AppProps) {
     const report = (message: string) => {
       if (!cancelled) setStatus(message);
     };
+    const currentMapRadius = () => FAST_MAP_ZOOM_RADII[mapView.zoomIndex];
     const drawCurrentPage = () => {
-      if (fastCanvasHudMode) {
-        drawFastCanvasHud(canvas, new Date(), page, { battery, live });
+      if (fastCanvasHudMode && mapView.mode === "fullscreen") {
+        drawFastFullscreenMap(canvas, live, currentMapRadius());
+      } else if (fastCanvasHudMode) {
+        drawFastCanvasHud(canvas, new Date(), page, {
+          battery,
+          live,
+          mapRadiusMeters: currentMapRadius(),
+        });
       }
       else drawDenseCanvasHud(canvas, new Date(), page);
+    };
+    const requestVisibleRefresh = (target: FastCanvasRefreshTarget) => {
+      if (!requestLiveRefresh) return;
+      if (mapView.mode === "dashboard") {
+        requestLiveRefresh(target);
+      } else if (target === "left") {
+        requestLiveRefresh("all");
+      }
     };
     const navigateCanvas = async (direction: "next" | "previous") => {
       page = fastCanvasHudMode
@@ -108,17 +131,27 @@ export function App({ autoStart = true }: AppProps) {
             beforeRestore: drawCurrentPage,
             onBattery: (nextBattery) => {
               battery = nextBattery;
-              if (requestLiveRefresh && page === "overview") {
-                requestLiveRefresh("right-top");
+              if (
+                requestLiveRefresh
+                && page === "overview"
+                && mapView.mode === "dashboard"
+              ) {
+                requestVisibleRefresh("right-top");
               } else if (!requestLiveRefresh) {
                 drawCurrentPage();
               }
+            },
+            onInput: (input) => {
+              const transition = reduceFastMapInput(mapView, page, input);
+              mapView = transition.state;
+              if (transition.result === "redraw") drawCurrentPage();
+              return transition.result;
             },
             onRefreshReady: (request) => {
               if (cancelled) return;
               requestLiveRefresh = request;
               stopMinuteRefresh ??= startMinuteRefresh(
-                () => requestLiveRefresh?.("right-top"),
+                () => requestVisibleRefresh("right-top"),
               );
             },
           },
@@ -135,7 +168,7 @@ export function App({ autoStart = true }: AppProps) {
           onUpdate: (update) => {
             if (cancelled) return;
             live = update.state;
-            requestLiveRefresh?.(update.target);
+            requestVisibleRefresh(update.target);
           },
         });
         if (cancelled) {

@@ -8,6 +8,12 @@ import {
 } from "./live-state";
 
 type RefreshTarget = "left" | "right" | "right-top" | "all";
+type FastInput =
+  | "tap"
+  | "double-tap"
+  | "scroll-next"
+  | "scroll-previous";
+type FastInputResult = "unhandled" | "consume" | "redraw";
 type FastTestOptions = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly onBattery?: (battery: {
@@ -15,6 +21,9 @@ type FastTestOptions = {
     readonly level?: number;
     readonly charging?: boolean;
   } | undefined) => void;
+  readonly onInput?: (
+    input: FastInput,
+  ) => FastInputResult | Promise<FastInputResult>;
   readonly onRefreshReady?: (
     request: (target: RefreshTarget) => void,
   ) => void;
@@ -51,6 +60,7 @@ function sessionOptions(): SessionTestOptions {
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
   drawFast: vi.fn(),
+  drawFullscreen: vi.fn(),
   minuteStart: vi.fn(),
   transmitFast: vi.fn(),
   waitForBridge: vi.fn(),
@@ -59,6 +69,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock("./fast-canvas-hud", async (importOriginal) => ({
   ...await importOriginal<typeof import("./fast-canvas-hud")>(),
   drawFastCanvasHud: mocks.drawFast,
+}));
+
+vi.mock("./fast-map", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./fast-map")>(),
+  drawFastFullscreenMap: mocks.drawFullscreen,
 }));
 
 vi.mock("./glasses", async (importOriginal) => ({
@@ -83,6 +98,7 @@ vi.mock("./minute-refresh", () => ({
 beforeEach(() => {
   mocks.createSession.mockReset();
   mocks.drawFast.mockReset();
+  mocks.drawFullscreen.mockReset();
   mocks.minuteStart.mockReset();
   mocks.transmitFast.mockReset();
   mocks.waitForBridge.mockReset();
@@ -222,7 +238,7 @@ describe("RELIC peripheral HUD", () => {
       expect.any(HTMLCanvasElement),
       expect.any(Date),
       "overview",
-      { battery: undefined, live: newest },
+      { battery: undefined, live: newest, mapRadiusMeters: 650 },
     );
     view.unmount();
   });
@@ -314,6 +330,147 @@ describe("RELIC peripheral HUD", () => {
       {
         battery: { label: "G2", level: 80, charging: true },
         live: expect.any(Object),
+        mapRadiusMeters: 650,
+      },
+    );
+    view.unmount();
+  });
+
+  it("opens, zooms, and closes the fullscreen map from overview input", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    const transportCleanup = vi.fn();
+    let navigate:
+      | ((direction: "next" | "previous") => Promise<void>)
+      | undefined;
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      navigate = args[2] as typeof navigate;
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return transportCleanup;
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+    expect(await fastOptions().onInput?.("tap")).toBe("redraw");
+    expect(mocks.drawFullscreen).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.any(Object),
+      650,
+    );
+
+    expect(await fastOptions().onInput?.("scroll-next")).toBe("redraw");
+    expect(mocks.drawFullscreen).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.any(Object),
+      500,
+    );
+
+    expect(await fastOptions().onInput?.("double-tap")).toBe("redraw");
+    expect(mocks.drawFast).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.any(Date),
+      "overview",
+      expect.objectContaining({ mapRadiusMeters: 500 }),
+    );
+    expect(await fastOptions().onInput?.("double-tap")).toBe("unhandled");
+
+    await navigate?.("next");
+    mocks.drawFullscreen.mockClear();
+    expect(await fastOptions().onInput?.("tap")).toBe("unhandled");
+    expect(mocks.drawFullscreen).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("routes only map-side live refreshes while fullscreen", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    const transportCleanup = vi.fn();
+    let onMinute: (() => void) | undefined;
+    mocks.minuteStart.mockImplementation((callback: () => void) => {
+      onMinute = callback;
+      return vi.fn();
+    });
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return transportCleanup;
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+    await fastOptions().onInput?.("tap");
+    await fastOptions().onInput?.("scroll-next");
+    requestRefresh.mockClear();
+
+    const moved: LiveDashboardState = {
+      ...createInitialLiveDashboardState(),
+      location: {
+        status: "fresh",
+        value: {
+          coordinate: { latitude: 37.557, longitude: 126.923 },
+          source: "live",
+        },
+      },
+    };
+    sessionOptions().onUpdate({ state: moved, target: "left" });
+    expect(requestRefresh).toHaveBeenCalledWith("all");
+    await fastOptions().beforeExternalRefresh?.();
+    expect(mocks.drawFullscreen).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      moved,
+      500,
+    );
+
+    requestRefresh.mockClear();
+    const weather: LiveDashboardState = {
+      ...moved,
+      weather: {
+        status: "fresh",
+        fetchedAt: 1,
+        value: {
+          temperature: 28,
+          apparentTemperature: 29,
+          humidity: 60,
+          windSpeed: 5,
+          precipitationProbability: 10,
+          weatherCode: 1,
+          condition: "맑음",
+        },
+      },
+    };
+    sessionOptions().onUpdate({ state: weather, target: "right" });
+    fastOptions().onBattery?.({
+      label: "G2",
+      level: 79,
+      charging: false,
+    });
+    onMinute?.();
+    expect(requestRefresh).not.toHaveBeenCalled();
+
+    await fastOptions().onInput?.("double-tap");
+    expect(mocks.drawFast).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.any(Date),
+      "overview",
+      {
+        battery: { label: "G2", level: 79, charging: false },
+        live: weather,
+        mapRadiusMeters: 500,
       },
     );
     view.unmount();

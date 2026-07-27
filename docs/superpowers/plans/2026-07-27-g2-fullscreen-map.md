@@ -543,7 +543,7 @@ git commit -m "feat: serialize G2 fullscreen map gestures"
 - Modify: `src/App.tsx`
 - Modify: `src/App.test.tsx`
 
-- [ ] **Step 1: Write failing App interaction tests**
+- [x] **Step 1: Write failing App interaction tests**
 
 Extend `FastTestOptions` with `onInput`. Capture the callback and assert:
 
@@ -582,7 +582,7 @@ expect(requestRefresh).not.toHaveBeenCalled();
 Assert minute and battery `right-top` sends are also suppressed in fullscreen,
 then exit and confirm the latest state is rendered.
 
-- [ ] **Step 2: Run App tests and verify RED**
+- [x] **Step 2: Run App tests and verify RED**
 
 Run:
 
@@ -593,7 +593,7 @@ npx vitest run src/App.test.tsx -t "fullscreen map" \
 
 Expected: FAIL because App has no fullscreen mode or input callback.
 
-- [ ] **Step 3: Add App-owned view state and renderer selection**
+- [x] **Step 3: Add App-owned view state and renderer selection**
 
 Initialize inside the effect:
 
@@ -626,7 +626,7 @@ onInput: (input) => {
 },
 ```
 
-- [ ] **Step 4: Route external updates by visible mode**
+- [x] **Step 4: Route external updates by visible mode**
 
 Add one wrapper:
 
@@ -645,7 +645,7 @@ Use it for dashboard session updates, minute ticks, and battery changes. Keep
 the existing initial draw behavior before the transport exposes its request
 function.
 
-- [ ] **Step 5: Run focused App and integration tests**
+- [x] **Step 5: Run focused App and integration tests**
 
 Run separately:
 
@@ -661,7 +661,7 @@ npm run typecheck
 
 Expected: every command exits 0.
 
-- [ ] **Step 6: Commit App integration**
+- [x] **Step 6: Commit App integration**
 
 ```bash
 git add src/App.tsx src/App.test.tsx
