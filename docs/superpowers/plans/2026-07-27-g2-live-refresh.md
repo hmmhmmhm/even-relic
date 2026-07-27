@@ -671,7 +671,7 @@ Expected:
 - no test worker runs files in parallel;
 - no whitespace errors remain.
 
-- [ ] **Step 5: Record automated evidence and commit**
+- [x] **Step 5: Record automated evidence and commit**
 
 Create `docs/hardware/2026-07-27-g2-live-refresh.md` with:
 
