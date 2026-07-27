@@ -11,8 +11,9 @@ Result: PASS
 
 This final PASS covers the combined SDK/send-order build, not an SDK-only
 artifact. The preceding `fast-live-011` stage isolated SDK `0.0.11` and
-established bilateral display, all four tiles, normal scrolling, and no
-`SENDFAILED`. The user then requested right-column-first loading. Commit
+established bilateral display, row-major `2/3/4/5` full rendering, normal
+scrolling, and no `SENDFAILED`. The user then requested right-column-first
+loading. Commit
 `df19655a40dc72a088fb702c8d3e1cade7e0274d` produced
 `fast-right-first-011`, combining SDK `0.0.11` with the fast-only `3/5/2/4`
 full-send order used for final approval.
@@ -23,6 +24,8 @@ full-send order used for final approval.
 - All four quadrants of the `576 x 288` frame render: PASS
 - Bottom scroll advances exactly one page in the existing 1→2→3→4 direction
   with the fast right-two-tile transition: PASS
+- Right-two-tile paging retained the previously approved build-008-class
+  immediate transition: PASS
 - Top scroll moves exactly one page backward: PASS
 - Full transfer visibly loads right-top, right-bottom, left-top, left-bottom
   (`3/5/2/4`): PASS

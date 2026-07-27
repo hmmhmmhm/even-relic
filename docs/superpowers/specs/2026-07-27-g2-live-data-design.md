@@ -33,8 +33,9 @@ therefore provides the official location bridge while retaining the pre-LZ4
 image path closest to the proven `0.0.10` transport.
 
 The hardware gate ran in two stages. SDK-only build `fast-live-011` first
-established bilateral display, four-tile rendering, normal scrolling, and no
-`SENDFAILED`. After the user requested right-column-first loading,
+established bilateral display, row-major `2/3/4/5` four-tile rendering, normal
+scrolling, and no `SENDFAILED`. After the user requested right-column-first
+loading,
 `fast-right-first-011` at commit
 `df19655a40dc72a088fb702c8d3e1cade7e0274d` combined SDK `0.0.11` with
 `3/5/2/4` fast full transfers. The physical G2 approved that combined build,

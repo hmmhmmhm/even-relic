@@ -13,7 +13,7 @@ describe("Even Hub SDK compatibility", () => {
       "http://100.96.68.73:4176/hud-canvas-fast",
     );
     expect(packageManifest.scripts.qr).toContain("sdk=0.0.11");
-    expect(packageManifest.scripts.qr).toContain("build=fast-live-011");
+    expect(packageManifest.scripts.qr).toContain("build=fast-right-first-011");
   });
 
   it("serializes image bytes without the 0.0.12 LZ4 transport flag", () => {
