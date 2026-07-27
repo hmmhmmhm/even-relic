@@ -1,4 +1,8 @@
 import {
+  AppLocationAccuracy,
+  type AppLocation,
+} from "@evenrealities/even_hub_sdk";
+import {
   createInitialLiveDashboardState,
   type DataState,
   type LiveDashboardState,
@@ -7,10 +11,19 @@ import {
   type WeatherValue,
 } from "./live-state";
 import {
+  haversineMeters,
+  LOCATION_UPDATE_DISTANCE_METERS,
+  LOCATION_UPDATE_INTERVAL_MS,
+  normalizeLiveLocation,
+  persistLiveLocation,
   resolveInitialLocation,
   type LocationBridge,
 } from "./location";
-import { MAP_MAX_AGE_MS, resolveMap } from "./map";
+import {
+  clientMapCell,
+  MAP_MAX_AGE_MS,
+  resolveMap,
+} from "./map";
 import { NEWS_MAX_AGE_MS, resolveNews } from "./news";
 import { resolveWeather, WEATHER_MAX_AGE_MS } from "./weather";
 
@@ -111,6 +124,10 @@ export function createLiveDashboardSession(
   let weatherPromise: Promise<void> | undefined;
   let newsPromise: Promise<void> | undefined;
   let mapPromise: Promise<void> | undefined;
+  let locationUpdatesStarted = false;
+  let locationUpdatesStopped = false;
+  let unsubscribeLocation: (() => void) | undefined;
+  let locationQueue = Promise.resolve();
 
   const emit = (target: LiveDashboardUpdate["target"]) => {
     if (disposed) return;
@@ -239,6 +256,91 @@ export function createLiveDashboardSession(
     return mapPromise;
   };
 
+  const stopLocationUpdates = () => {
+    unsubscribeLocation?.();
+    unsubscribeLocation = undefined;
+    if (
+      !locationUpdatesStarted
+      || locationUpdatesStopped
+      || !options.bridge.stopAppLocationUpdates
+    ) {
+      return;
+    }
+    locationUpdatesStopped = true;
+    void options.bridge.stopAppLocationUpdates().catch(() => false);
+  };
+
+  const queueLocation = (location: AppLocation) => {
+    locationQueue = locationQueue
+      .then(async () => {
+        if (disposed) return;
+        const next = normalizeLiveLocation(location, now());
+        const previousCoordinate = state.location.value?.coordinate;
+        const nextCoordinate = next?.value?.coordinate;
+        if (
+          !next
+          || !nextCoordinate
+          || (previousCoordinate
+            && haversineMeters(previousCoordinate, nextCoordinate)
+              < LOCATION_UPDATE_DISTANCE_METERS)
+        ) {
+          return;
+        }
+
+        state = { ...state, location: cloneState({
+          ...state,
+          location: next,
+        }).location };
+        emit("left");
+        void persistLiveLocation(options.bridge, next);
+        if (state.map.value?.cell !== clientMapCell(nextCoordinate)) {
+          await refreshMap();
+        }
+      })
+      .catch(() => undefined);
+  };
+
+  const startLocationUpdates = async () => {
+    const {
+      onAppLocationChanged,
+      startAppLocationUpdates,
+      stopAppLocationUpdates,
+    } = options.bridge;
+    if (
+      disposed
+      || !onAppLocationChanged
+      || !startAppLocationUpdates
+      || !stopAppLocationUpdates
+    ) {
+      return;
+    }
+
+    let started = false;
+    try {
+      started = await startAppLocationUpdates.call(options.bridge, {
+        accuracy: AppLocationAccuracy.Medium,
+        intervalMs: LOCATION_UPDATE_INTERVAL_MS,
+        distanceFilter: LOCATION_UPDATE_DISTANCE_METERS,
+      });
+    } catch {
+      return;
+    }
+    if (!started) return;
+    locationUpdatesStarted = true;
+    if (disposed) {
+      stopLocationUpdates();
+      return;
+    }
+    try {
+      unsubscribeLocation = onAppLocationChanged.call(
+        options.bridge,
+        queueLocation,
+      );
+    } catch {
+      stopLocationUpdates();
+    }
+  };
+
   const onVisibilityChange = () => {
     if (
       disposed
@@ -294,6 +396,7 @@ export function createLiveDashboardSession(
       locationResolved = true;
       emit("left");
       await Promise.all([refreshWeather(), refreshNews(), refreshMap()]);
+      await startLocationUpdates();
     })();
     return startPromise;
   };
@@ -304,6 +407,7 @@ export function createLiveDashboardSession(
     dispose: () => {
       if (disposed) return;
       disposed = true;
+      stopLocationUpdates();
       if (documentTarget && listenerRegistered) {
         documentTarget.removeEventListener(
           "visibilitychange",

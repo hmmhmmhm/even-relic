@@ -6,7 +6,10 @@ import {
 import { describe, expect, it } from "vitest";
 import { DEMO_COORDINATE } from "./live-state";
 import {
+  haversineMeters,
   LOCATION_CACHE_MAX_AGE_MS,
+  normalizeLiveLocation,
+  persistLiveLocation,
   resolveInitialLocation,
   type LocationBridge,
   type LocationCache,
@@ -445,5 +448,64 @@ describe("resolveInitialLocation", () => {
     expect(second.value?.coordinate).not.toBe(first.value?.coordinate);
     expect(second.value?.coordinate).toEqual(DEMO_COORDINATE);
     expect(DEMO_COORDINATE.latitude).toBe(37.5563);
+  });
+});
+
+describe("continuous location helpers", () => {
+  it("measures Haversine movement in meters", () => {
+    const point = { latitude: 37.5665, longitude: 126.978 };
+
+    expect(haversineMeters(point, point)).toBe(0);
+    expect(haversineMeters(point, {
+      latitude: 37.566635,
+      longitude: 126.978,
+    })).toBeGreaterThanOrEqual(15);
+  });
+
+  it("normalizes a valid live fix and rejects invalid coordinates", () => {
+    const now = 1_800_000_000_000;
+
+    expect(normalizeLiveLocation({
+      latitude: 37.5665,
+      longitude: 126.978,
+      accuracy: 4,
+      heading: 90,
+      speed: 1.2,
+      timestamp: now - 1_000,
+    }, now)).toEqual({
+      status: "fresh",
+      value: {
+        coordinate: { latitude: 37.5665, longitude: 126.978 },
+        source: "live",
+        accuracy: 4,
+        heading: 90,
+        speed: 1.2,
+      },
+      fetchedAt: now - 1_000,
+    });
+    expect(normalizeLiveLocation({
+      latitude: 91,
+      longitude: 126.978,
+    }, now)).toBeUndefined();
+  });
+
+  it("persists only the normalized latest fix", async () => {
+    const bridge = bridgeReturning(null);
+    const state = normalizeLiveLocation({
+      latitude: 37.5665,
+      longitude: 126.978,
+      timestamp: 1_800_000_000_000,
+    }, 1_800_000_000_000);
+    expect(state).toBeDefined();
+    if (!state) return;
+
+    await expect(persistLiveLocation(bridge, state)).resolves.toBe(true);
+    expect(bridge.writes).toEqual([[
+      "relic:location:v1",
+      JSON.stringify({
+        value: state.value,
+        fetchedAt: state.fetchedAt,
+      }),
+    ]]);
   });
 });

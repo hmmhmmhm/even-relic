@@ -371,7 +371,7 @@ git commit -m "feat: refresh changed G2 battery status"
 - Modify: `src/live-dashboard.test.ts`
 - Modify: `src/live-dashboard-map.test.ts`
 
-- [ ] **Step 1: Write failing location helper tests**
+- [x] **Step 1: Write failing location helper tests**
 
 Add tests for:
 
@@ -388,7 +388,7 @@ accuracy/heading/speed, normalizes timestamps with the existing seven-day
 rule, and returns a fresh `DataState<LocationValue>`. Test
 `persistLiveLocation()` writes only `relic:location:v1`.
 
-- [ ] **Step 2: Write failing dashboard lifecycle tests**
+- [x] **Step 2: Write failing dashboard lifecycle tests**
 
 Use a bridge that records and controls:
 
@@ -412,7 +412,7 @@ each called once. Add a failed-start test proving a `false` or thrown
 `startAppLocationUpdates()` leaves the one-shot location usable and does not
 call stop.
 
-- [ ] **Step 3: Run location/dashboard tests and verify RED**
+- [x] **Step 3: Run location/dashboard tests and verify RED**
 
 Run separately:
 
@@ -425,7 +425,7 @@ npx vitest run src/live-dashboard.test.ts src/live-dashboard-map.test.ts \
 
 Expected: FAIL because continuous location helpers and lifecycle are absent.
 
-- [ ] **Step 4: Extract reusable location normalization**
+- [x] **Step 4: Extract reusable location normalization**
 
 In `src/location.ts`, extend `LocationBridge` with optional continuous APIs.
 Export:
@@ -453,7 +453,7 @@ export function persistLiveLocation(
 Reuse these helpers inside `resolveInitialLocation()` so the initial and
 streaming paths share coordinate, telemetry, timestamp, and cache behavior.
 
-- [ ] **Step 5: Add the continuous dashboard lifecycle**
+- [x] **Step 5: Add the continuous dashboard lifecycle**
 
 After initial providers finish, call `startAppLocationUpdates()` with the exact
 approved options. Subscribe only after a successful start. Queue location
@@ -474,7 +474,7 @@ Disposal immediately unsubscribes. If the SDK start completed successfully,
 call `stopAppLocationUpdates()` exactly once. A late successful start after
 disposal must stop itself without registering a live callback.
 
-- [ ] **Step 6: Run focused tests and commit**
+- [x] **Step 6: Run focused tests and commit**
 
 Run separately:
 

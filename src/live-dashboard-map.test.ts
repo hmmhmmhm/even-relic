@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from "vitest";
-import type {
-  AppLocation,
-  AppLocationOptions,
+import {
+  AppLocationAccuracy,
+  type AppLocation,
+  type AppLocationOptions,
 } from "@evenrealities/even_hub_sdk";
 import type { LocationBridge } from "./location";
 import {
@@ -32,6 +33,43 @@ class TestBridge implements LocationBridge {
   async setLocalStorage(key: string, value: string) {
     this.values.set(key, value);
     return true;
+  }
+}
+
+class StreamingBridge extends TestBridge {
+  readonly startCalls: Array<AppLocationOptions | undefined> = [];
+  stopCalls = 0;
+  unsubscribeCalls = 0;
+  private listener: ((location: AppLocation) => void) | undefined;
+
+  constructor(
+    private readonly startBehavior: "success" | "false" | "throw" = "success",
+  ) {
+    super();
+  }
+
+  async startAppLocationUpdates(options?: AppLocationOptions) {
+    this.startCalls.push(options);
+    if (this.startBehavior === "throw") {
+      throw new Error("continuous location failed");
+    }
+    return this.startBehavior === "success";
+  }
+
+  async stopAppLocationUpdates() {
+    this.stopCalls += 1;
+    return true;
+  }
+
+  onAppLocationChanged(listener: (location: AppLocation) => void) {
+    this.listener = listener;
+    return () => {
+      this.unsubscribeCalls += 1;
+    };
+  }
+
+  emit(location: AppLocation) {
+    this.listener?.(location);
   }
 }
 
@@ -180,4 +218,103 @@ describe("live dashboard map integration", () => {
     expect(onUpdate).toHaveBeenCalledTimes(callsAtDispose);
     expect(session.getState().map.status).toBe("loading");
   });
+
+  it("accepts only meaningful streamed movement and stops exactly once", async () => {
+    const bridge = new StreamingBridge();
+    const updates: LiveDashboardUpdate[] = [];
+    let currentTime = NOW;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.startsWith("/api/map")) return mapResponse();
+      if (url.startsWith("/api/news")) return newsResponse();
+      return weatherResponse();
+    }) as unknown as typeof fetch;
+    const session = createLiveDashboardSession({
+      bridge,
+      fetchImpl,
+      now: () => currentTime,
+      onUpdate: (update) => updates.push(update),
+    });
+    await session.start();
+    const mapCallsAtStart = vi.mocked(fetchImpl).mock.calls.filter(
+      ([input]) => String(input).startsWith("/api/map"),
+    ).length;
+    const updatesAtStart = updates.length;
+
+    bridge.emit({ latitude: 91, longitude: 126.922 });
+    bridge.emit({ latitude: 37.55634, longitude: 126.922 });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(updates).toHaveLength(updatesAtStart);
+
+    currentTime = NOW + 15_000;
+    bridge.emit({
+      latitude: 37.55645,
+      longitude: 126.922,
+      heading: 50,
+      timestamp: NOW + 15_000,
+    });
+    await vi.waitFor(() => {
+      expect(session.getState().location.value?.coordinate.latitude)
+        .toBe(37.55645);
+    });
+
+    expect(bridge.startCalls).toEqual([{
+      accuracy: AppLocationAccuracy.Medium,
+      intervalMs: 15_000,
+      distanceFilter: 15,
+    }]);
+    expect(updates.at(-1)?.target).toBe("left");
+    expect(vi.mocked(fetchImpl).mock.calls.filter(
+      ([input]) => String(input).startsWith("/api/map"),
+    )).toHaveLength(mapCallsAtStart);
+    expect(JSON.parse(bridge.values.get("relic:location:v1") ?? "{}"))
+      .toMatchObject({
+        value: {
+          coordinate: { latitude: 37.55645, longitude: 126.922 },
+          source: "live",
+        },
+        fetchedAt: NOW + 15_000,
+      });
+
+    session.dispose();
+    session.dispose();
+    await vi.waitFor(() => expect(bridge.stopCalls).toBe(1));
+    expect(bridge.unsubscribeCalls).toBe(1);
+  });
+
+  it.each(["false", "throw"] as const)(
+    "keeps the one-shot fix when continuous location returns %s",
+    async (startBehavior) => {
+      const bridge = new StreamingBridge(startBehavior);
+      const session = createLiveDashboardSession({
+        bridge,
+        fetchImpl: vi.fn(async (input: RequestInfo | URL) => {
+          const url = String(input);
+          if (url.startsWith("/api/map")) return mapResponse();
+          if (url.startsWith("/api/news")) return newsResponse();
+          return weatherResponse();
+        }) as unknown as typeof fetch,
+        now: () => NOW,
+        onUpdate: vi.fn(),
+      });
+
+      await session.start();
+      expect(session.getState().location).toMatchObject({
+        status: "fresh",
+        value: {
+          coordinate: {
+            latitude: LOCATION.latitude,
+            longitude: LOCATION.longitude,
+          },
+        },
+      });
+      session.dispose();
+      await Promise.resolve();
+
+      expect(bridge.startCalls).toHaveLength(1);
+      expect(bridge.unsubscribeCalls).toBe(0);
+      expect(bridge.stopCalls).toBe(0);
+    },
+  );
 });

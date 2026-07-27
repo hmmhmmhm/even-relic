@@ -6,12 +6,20 @@ import {
 import { readCache, writeCache, type EvenStorage } from "./live-cache";
 import {
   DEMO_COORDINATE,
+  type Coordinate,
   type DataState,
   type LocationValue,
 } from "./live-state";
 
 export type LocationBridge = EvenStorage & {
   getAppLocation(options?: AppLocationOptions): Promise<AppLocation | null>;
+  startAppLocationUpdates?(
+    options?: AppLocationOptions,
+  ): Promise<boolean>;
+  stopAppLocationUpdates?(): Promise<boolean>;
+  onAppLocationChanged?(
+    listener: (location: AppLocation) => void,
+  ): () => void;
 };
 
 export type LocationCache = {
@@ -20,6 +28,8 @@ export type LocationCache = {
 };
 
 export const LOCATION_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1_000;
+export const LOCATION_UPDATE_INTERVAL_MS = 15_000;
+export const LOCATION_UPDATE_DISTANCE_METERS = 15;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -139,6 +149,45 @@ function normalizeFetchedAt(timestamp: unknown, now: number): number {
     : now;
 }
 
+export function haversineMeters(
+  left: Coordinate,
+  right: Coordinate,
+): number {
+  const radians = (degrees: number) => degrees * Math.PI / 180;
+  const latitudeDelta = radians(right.latitude - left.latitude);
+  const longitudeDelta = radians(right.longitude - left.longitude);
+  const leftLatitude = radians(left.latitude);
+  const rightLatitude = radians(right.latitude);
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(leftLatitude)
+    * Math.cos(rightLatitude)
+    * Math.sin(longitudeDelta / 2) ** 2;
+  return 2 * 6_371_000 * Math.asin(Math.sqrt(a));
+}
+
+export function normalizeLiveLocation(
+  location: AppLocation,
+  now = Date.now(),
+): DataState<LocationValue> | undefined {
+  if (!isCoordinate(location)) return undefined;
+  return {
+    status: "fresh",
+    value: normalizeLocationValue(location, "live"),
+    fetchedAt: normalizeFetchedAt(location.timestamp, now),
+  };
+}
+
+export async function persistLiveLocation(
+  bridge: LocationBridge,
+  state: DataState<LocationValue>,
+): Promise<boolean> {
+  if (!state.value || state.fetchedAt === undefined) return false;
+  return writeCache<LocationCache>(bridge, "location", {
+    value: state.value,
+    fetchedAt: state.fetchedAt,
+  });
+}
+
 export async function resolveInitialLocation(
   bridge: LocationBridge,
   now = Date.now(),
@@ -154,19 +203,12 @@ export async function resolveInitialLocation(
     liveLocation = null;
   }
 
-  if (isCoordinate(liveLocation)) {
-    const value = normalizeLocationValue(liveLocation, "live");
-    const fetchedAt = normalizeFetchedAt(liveLocation.timestamp, now);
-    await writeCache<LocationCache>(bridge, "location", {
-      value,
-      fetchedAt,
-    });
-
-    return {
-      status: "fresh",
-      value,
-      fetchedAt,
-    };
+  if (liveLocation) {
+    const liveState = normalizeLiveLocation(liveLocation, now);
+    if (liveState) {
+      await persistLiveLocation(bridge, liveState);
+      return liveState;
+    }
   }
 
   const cached = await readCache(bridge, "location", isLocationCache);
