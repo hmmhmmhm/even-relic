@@ -1,23 +1,13 @@
 import {
-  DeviceModel,
   ImageRawDataUpdate,
   ImageRawDataUpdateResult,
   OsEventTypeList,
   RebuildPageContainer,
   StartUpPageCreateResult,
   waitForEvenAppBridge,
-  type CreateStartUpPageContainer,
-  type DeviceInfo,
-  type DeviceStatus,
-  type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
 import {
-  G2_FAST_TILES,
-  G2_LEFT_TILES,
-  G2_RIGHT_TILES,
-  G2_RIGHT_TOP_TILES,
   G2_TILES,
-  createBlackCanvas,
   createContainerObjects,
   createGlassesPage,
   encodeCanvasTiles,
@@ -25,6 +15,29 @@ import {
   type Tile,
 } from "./g2-canvas";
 import { logDiagnostic } from "./diagnostic-log";
+import type {
+  Bridge,
+  DisplayToggle,
+  ExternalRefresh,
+  FastCanvasInput,
+  FastCanvasInputResult,
+  FastCanvasRawEvent,
+  FastCanvasRefreshRequest,
+  FastCanvasRefreshTarget,
+  PageDirection,
+  TransportDependencies,
+} from "./fast-canvas-types";
+
+export type {
+  FastCanvasBattery,
+  FastCanvasInput,
+  FastCanvasInputResult,
+  FastCanvasOptions,
+  FastCanvasRawEvent,
+  FastCanvasRefreshRequest,
+  FastCanvasRefreshTarget,
+  PageDirection,
+} from "./fast-canvas-types";
 
 const diagnosticNow = () => (
   typeof globalThis.performance?.now === "function"
@@ -39,102 +52,6 @@ const diagnosticDuration = (startedAt: number) => (
 const diagnosticError = (error: unknown) => (
   error instanceof Error ? error.message : String(error)
 );
-
-type Bridge = {
-  createStartUpPageContainer: (
-    page: CreateStartUpPageContainer,
-  ) => Promise<unknown>;
-  getDeviceInfo?: () => Promise<DeviceInfo | null>;
-  onDeviceStatusChanged?: (
-    listener: (status: DeviceStatus) => void,
-  ) => () => void;
-  rebuildPageContainer: (page: RebuildPageContainer) => Promise<boolean>;
-  updateImageRawData: (update: ImageRawDataUpdate) => Promise<unknown>;
-  onEvenHubEvent: (listener: (event: EvenHubEvent) => void) => () => void;
-  shutDownPageContainer: (exitMode: number) => Promise<unknown>;
-};
-type TransportDependencies = {
-  waitForBridge: () => Promise<Bridge>;
-  encode: typeof encodeCanvasTiles;
-};
-type DisplayToggle = {
-  readonly beforeRestore?: () => void | Promise<void>;
-  readonly createHiddenSource: () => HTMLCanvasElement;
-};
-type ExternalRefresh = {
-  readonly beforeExternalRefresh?: () => void | Promise<void>;
-  readonly onRefreshReady?: (request: FastCanvasRefreshRequest) => void;
-  readonly targetTiles: Readonly<
-    Record<FastCanvasRefreshTarget, readonly Tile[]>
-  >;
-};
-
-export type PageDirection = "next" | "previous";
-export type FastCanvasInput =
-  | "tap"
-  | "double-tap"
-  | "scroll-next"
-  | "scroll-previous";
-export type FastCanvasInputResult = "unhandled" | "consume" | "redraw";
-export type FastCanvasRawEvent = {
-  readonly count: number;
-  readonly hidden: boolean;
-  readonly sysEventType?: OsEventTypeList;
-  readonly textEventType?: OsEventTypeList;
-  readonly eventSource?: number;
-};
-export type FastCanvasBattery = {
-  readonly label: "G1" | "G2" | "R1";
-  readonly level?: number;
-  readonly charging?: boolean;
-};
-export type FastCanvasRefreshTarget =
-  | "left"
-  | "right"
-  | "right-top"
-  | "all";
-export type FastCanvasRefreshRequest = (
-  target: FastCanvasRefreshTarget,
-) => void;
-export type FastCanvasOptions = {
-  readonly beforeExternalRefresh?: () => void | Promise<void>;
-  readonly beforeRestore?: () => void | Promise<void>;
-  readonly createHiddenSource?: () => HTMLCanvasElement;
-  readonly dependencies?: TransportDependencies;
-  readonly onBattery?: (
-    battery: FastCanvasBattery | undefined,
-  ) => void;
-  readonly onInput?: (
-    input: FastCanvasInput,
-  ) => FastCanvasInputResult | Promise<FastCanvasInputResult>;
-  readonly onRawEvent?: (event: FastCanvasRawEvent) => void;
-  readonly onRefreshReady?: (request: FastCanvasRefreshRequest) => void;
-};
-
-export function toFastCanvasBattery(
-  device: DeviceInfo | null | undefined,
-): FastCanvasBattery | undefined {
-  if (!device) return undefined;
-  const label = device.model === DeviceModel.Ring1
-    ? "R1"
-    : device.model === DeviceModel.G2
-      ? "G2"
-      : "G1";
-  return {
-    label,
-    level: device.status.batteryLevel,
-    charging: device.status.isCharging,
-  };
-}
-
-function isSameFastCanvasBattery(
-  left: FastCanvasBattery | undefined,
-  right: FastCanvasBattery | undefined,
-): boolean {
-  return left?.label === right?.label
-    && left?.level === right?.level
-    && left?.charging === right?.charging;
-}
 
 export async function transmitCanvas(
   source: HTMLCanvasElement,
@@ -470,96 +387,4 @@ export async function transmitCanvas(
     throw error;
   }
   return dispose;
-}
-
-export async function transmitFastCanvas(
-  source: HTMLCanvasElement,
-  onProgress: (message: string) => void,
-  onNavigate: (direction: PageDirection) => void | Promise<void>,
-  options: FastCanvasOptions = {},
-) {
-  const baseDependencies = options.dependencies ?? {
-    waitForBridge: waitForEvenAppBridge,
-    encode: encodeCanvasTiles,
-  };
-  let connectedBridge: Bridge | undefined;
-  let deviceInfo: DeviceInfo | null | undefined;
-  let lastBattery: FastCanvasBattery | undefined;
-  const dependencies: TransportDependencies = {
-    ...baseDependencies,
-    waitForBridge: async () => {
-      const bridge = await baseDependencies.waitForBridge();
-      connectedBridge = bridge;
-      if (options.onBattery) {
-        try {
-          deviceInfo = await bridge.getDeviceInfo?.();
-          lastBattery = toFastCanvasBattery(deviceInfo);
-          options.onBattery(lastBattery);
-        } catch {
-          deviceInfo = undefined;
-          lastBattery = undefined;
-          options.onBattery(undefined);
-        }
-      }
-      return bridge;
-    },
-  };
-  const transportCleanup = await transmitCanvas(
-    source,
-    onProgress,
-    dependencies,
-    G2_FAST_TILES,
-    onNavigate,
-    G2_RIGHT_TILES,
-    {
-      createHiddenSource: options.createHiddenSource ?? createBlackCanvas,
-      beforeRestore: options.beforeRestore,
-    },
-    {
-      beforeExternalRefresh: options.beforeExternalRefresh,
-      onRefreshReady: options.onRefreshReady,
-      targetTiles: {
-        all: G2_FAST_TILES,
-        left: G2_LEFT_TILES,
-        right: G2_RIGHT_TILES,
-        "right-top": G2_RIGHT_TOP_TILES,
-      },
-    },
-    options.onInput,
-    options.onRawEvent,
-  );
-  let cleaned = false;
-  let unsubscribeDeviceStatus: (() => void) | undefined;
-  if (deviceInfo && connectedBridge?.onDeviceStatusChanged) {
-    try {
-      unsubscribeDeviceStatus = connectedBridge.onDeviceStatusChanged(
-        (status) => {
-          if (
-            cleaned
-            || status.sn !== deviceInfo?.sn
-            || !lastBattery
-          ) {
-            return;
-          }
-          const nextBattery: FastCanvasBattery = {
-            label: lastBattery.label,
-            level: status.batteryLevel ?? lastBattery.level,
-            charging: status.isCharging ?? lastBattery.charging,
-          };
-          if (isSameFastCanvasBattery(lastBattery, nextBattery)) return;
-          lastBattery = nextBattery;
-          options.onBattery?.(nextBattery);
-        },
-      );
-    } catch {
-      unsubscribeDeviceStatus = undefined;
-    }
-  }
-
-  return () => {
-    if (cleaned) return;
-    cleaned = true;
-    unsubscribeDeviceStatus?.();
-    transportCleanup();
-  };
 }

@@ -42,10 +42,12 @@ export {
   sendTilesSequentially,
 } from "./g2-canvas";
 export {
-  toFastCanvasBattery,
   transmitCanvas,
-  transmitFastCanvas,
 } from "./fast-canvas-transport";
+export {
+  toFastCanvasBattery,
+  transmitFastCanvas,
+} from "./fast-canvas-session";
 export type {
   FastCanvasBattery,
   FastCanvasInput,
