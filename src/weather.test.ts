@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EvenStorage } from "./live-cache";
-import type { WeatherValue } from "./live-state";
+import type { Coordinate, WeatherValue } from "./live-state";
 import {
   WEATHER_CACHE_MAX_STALE_MS,
   WEATHER_MAX_AGE_MS,
@@ -11,6 +11,9 @@ import {
 } from "./weather";
 
 const NOW = Date.parse("2026-07-27T14:20:00Z");
+const SEOUL: Coordinate = { latitude: 37.5563, longitude: 126.922 };
+const NEARBY: Coordinate = { latitude: 37.5665, longitude: 126.978 };
+const BUSAN: Coordinate = { latitude: 35.1796, longitude: 129.0756 };
 
 const WEATHER: WeatherValue = {
   temperature: 28.4,
@@ -51,26 +54,19 @@ class TestStorage implements EvenStorage {
 
   async getLocalStorage(key: string): Promise<string> {
     this.reads.push(key);
-    if (this.mode === "read-fails") {
-      throw new Error("read failed");
-    }
+    if (this.mode === "read-fails") throw new Error("read failed");
     return this.values.get(key) ?? "";
   }
 
   async setLocalStorage(key: string, value: string): Promise<boolean> {
     this.writes.push([key, value]);
-    if (this.mode === "write-fails") {
-      throw new Error("write failed");
-    }
+    if (this.mode === "write-fails") throw new Error("write failed");
     this.values.set(key, value);
     return true;
   }
 }
 
-function setCache(
-  storage: TestStorage,
-  cache: { value: WeatherValue; fetchedAt: number } | unknown,
-): void {
+function setCache(storage: TestStorage, cache: unknown): void {
   storage.values.set("relic:weather:v1", JSON.stringify(cache));
 }
 
@@ -88,9 +84,7 @@ function jsonFetch(
   })) as unknown as typeof fetch;
 }
 
-afterEach(() => {
-  vi.useRealTimers();
-});
+afterEach(() => vi.useRealTimers());
 
 describe("weatherCodeLabel", () => {
   it.each([
@@ -126,10 +120,7 @@ describe("weatherCodeLabel", () => {
 
 describe("buildWeatherUrl", () => {
   it("builds the exact keyless Open-Meteo request", () => {
-    const url = buildWeatherUrl({
-      latitude: 37.5563,
-      longitude: 126.922,
-    });
+    const url = buildWeatherUrl(SEOUL);
 
     expect(url.origin + url.pathname).toBe(
       "https://api.open-meteo.com/v1/forecast",
@@ -139,9 +130,7 @@ describe("buildWeatherUrl", () => {
     expect(url.searchParams.get("current")).toBe(
       "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m",
     );
-    expect(url.searchParams.get("hourly")).toBe(
-      "precipitation_probability",
-    );
+    expect(url.searchParams.get("hourly")).toBe("precipitation_probability");
     expect(url.searchParams.get("forecast_days")).toBe("1");
     expect(url.searchParams.get("timezone")).toBe("auto");
   });
@@ -160,6 +149,15 @@ describe("parseWeatherResponse", () => {
     };
 
     expect(parseWeatherResponse(input).precipitationProbability).toBe(20);
+  });
+
+  it.each([-1, 0.5, 100])("rejects invalid provider weather code %s", (code) => {
+    const input = responseFixture();
+    input.current = {
+      ...(input.current as Record<string, unknown>),
+      weather_code: code,
+    };
+    expect(() => parseWeatherResponse(input)).toThrow();
   });
 
   it.each([
@@ -213,13 +211,14 @@ describe("resolveWeather", () => {
     setCache(storage, {
       value: WEATHER,
       fetchedAt: NOW - WEATHER_MAX_AGE_MS,
+      coordinate: SEOUL,
     });
     const fetchImpl = jsonFetch(responseFixture());
     const cachedStates: unknown[] = [];
 
     await expect(
-      resolveWeather(storage, { latitude: 37.5, longitude: 127 }, fetchImpl, NOW,
-        (cached) => cachedStates.push(cached)),
+      resolveWeather(storage, NEARBY, fetchImpl, NOW, (cached) =>
+        cachedStates.push(cached)),
     ).resolves.toEqual({
       status: "fresh",
       value: WEATHER,
@@ -240,6 +239,7 @@ describe("resolveWeather", () => {
     setCache(storage, {
       value: { ...WEATHER, temperature: 25 },
       fetchedAt: NOW - WEATHER_MAX_AGE_MS - 1,
+      coordinate: SEOUL,
     });
     const events: string[] = [];
     const fetchImpl = vi.fn(async () => {
@@ -249,7 +249,7 @@ describe("resolveWeather", () => {
 
     const result = await resolveWeather(
       storage,
-      { latitude: 37.5, longitude: 127 },
+      NEARBY,
       fetchImpl,
       NOW,
       (cached) => {
@@ -280,17 +280,17 @@ describe("resolveWeather", () => {
     const stale = {
       value: { ...WEATHER, temperature: 24 },
       fetchedAt: NOW - WEATHER_MAX_AGE_MS - 1,
+      coordinate: SEOUL,
     };
     setCache(storage, stale);
 
     await expect(
-      resolveWeather(
-        storage,
-        { latitude: 37.5, longitude: 127 },
-        fetchImpl,
-        NOW,
-      ),
-    ).resolves.toEqual({ status: "stale", ...stale });
+      resolveWeather(storage, NEARBY, fetchImpl, NOW),
+    ).resolves.toEqual({
+      status: "stale",
+      value: stale.value,
+      fetchedAt: stale.fetchedAt,
+    });
   });
 
   it("returns unavailable when no cache exists and the network fails", async () => {
@@ -298,26 +298,26 @@ describe("resolveWeather", () => {
     const fetchImpl = jsonFetch({}, { ok: false });
 
     await expect(
-      resolveWeather(
-        storage,
-        { latitude: 37.5, longitude: 127 },
-        fetchImpl,
-        NOW,
-      ),
+      resolveWeather(storage, SEOUL, fetchImpl, NOW),
     ).resolves.toEqual({ status: "unavailable" });
   });
 
   it.each([
     ["corrupt", "{not-json"],
     [
+      "legacy coordinate-free",
+      JSON.stringify({ value: WEATHER, fetchedAt: NOW }),
+    ],
+    [
       "future",
-      JSON.stringify({ value: WEATHER, fetchedAt: NOW + 1 }),
+      JSON.stringify({ value: WEATHER, fetchedAt: NOW + 1, coordinate: SEOUL }),
     ],
     [
       "expired",
       JSON.stringify({
         value: WEATHER,
         fetchedAt: NOW - WEATHER_CACHE_MAX_STALE_MS - 1,
+        coordinate: SEOUL,
       }),
     ],
     [
@@ -325,6 +325,27 @@ describe("resolveWeather", () => {
       JSON.stringify({
         value: { ...WEATHER, humidity: -1 },
         fetchedAt: NOW - WEATHER_MAX_AGE_MS - 1,
+        coordinate: SEOUL,
+      }),
+    ],
+    ...[-1, 0.5, 100].map((weatherCode) => [
+      `weather code ${weatherCode}`,
+      JSON.stringify({
+        value: {
+          ...WEATHER,
+          weatherCode,
+          condition: weatherCodeLabel(weatherCode),
+        },
+        fetchedAt: NOW,
+        coordinate: SEOUL,
+      }),
+    ]),
+    [
+      "invalid coordinate",
+      JSON.stringify({
+        value: WEATHER,
+        fetchedAt: NOW,
+        coordinate: { latitude: 91, longitude: 127 },
       }),
     ],
   ])("ignores %s cache data", async (_name, raw) => {
@@ -335,7 +356,7 @@ describe("resolveWeather", () => {
     await expect(
       resolveWeather(
         storage,
-        { latitude: 37.5, longitude: 127 },
+        SEOUL,
         jsonFetch({}, { ok: false }),
         NOW,
         (cached) => cachedStates.push(cached),
@@ -344,20 +365,42 @@ describe("resolveWeather", () => {
     expect(cachedStates).toEqual([]);
   });
 
+  it("does not use or return a distant fresh cache when refresh fails", async () => {
+    const storage = new TestStorage();
+    setCache(storage, {
+      value: { ...WEATHER, temperature: 18 },
+      fetchedAt: NOW,
+      coordinate: BUSAN,
+    });
+    const fetchImpl = jsonFetch({}, { ok: false });
+    const cachedStates: unknown[] = [];
+
+    await expect(
+      resolveWeather(storage, SEOUL, fetchImpl, NOW, (cached) => {
+        cachedStates.push(cached);
+      }),
+    ).resolves.toEqual({ status: "unavailable" });
+    expect(fetchImpl).toHaveBeenCalledOnce();
+    expect(cachedStates).toEqual([]);
+  });
+
   it("persists successful weather using the versioned cache schema", async () => {
     const storage = new TestStorage();
+    const coordinate = { ...SEOUL };
 
-    await resolveWeather(
+    const pending = resolveWeather(
       storage,
-      { latitude: 37.5, longitude: 127 },
+      coordinate,
       jsonFetch(responseFixture()),
       NOW,
     );
+    coordinate.latitude = 0;
+    await pending;
 
     expect(storage.writes).toEqual([
       [
         "relic:weather:v1",
-        JSON.stringify({ value: WEATHER, fetchedAt: NOW }),
+        JSON.stringify({ value: WEATHER, fetchedAt: NOW, coordinate: SEOUL }),
       ],
     ]);
   });
@@ -367,20 +410,10 @@ describe("resolveWeather", () => {
     const writeFailure = new TestStorage("write-fails");
 
     await expect(
-      resolveWeather(
-        readFailure,
-        { latitude: 37.5, longitude: 127 },
-        jsonFetch({}, { ok: false }),
-        NOW,
-      ),
+      resolveWeather(readFailure, SEOUL, jsonFetch({}, { ok: false }), NOW),
     ).resolves.toEqual({ status: "unavailable" });
     await expect(
-      resolveWeather(
-        writeFailure,
-        { latitude: 37.5, longitude: 127 },
-        jsonFetch(responseFixture()),
-        NOW,
-      ),
+      resolveWeather(writeFailure, SEOUL, jsonFetch(responseFixture()), NOW),
     ).resolves.toEqual({
       status: "fresh",
       value: WEATHER,
@@ -402,12 +435,7 @@ describe("resolveWeather", () => {
         }),
     ) as unknown as typeof fetch;
 
-    const pending = resolveWeather(
-      storage,
-      { latitude: 37.5, longitude: 127 },
-      fetchImpl,
-      NOW,
-    );
+    const pending = resolveWeather(storage, SEOUL, fetchImpl, NOW);
     await vi.advanceTimersByTimeAsync(0);
     expect(requestSignal?.aborted).toBe(false);
 

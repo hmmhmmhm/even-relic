@@ -3,14 +3,17 @@ import type { Coordinate, DataState, WeatherValue } from "./live-state";
 
 export const WEATHER_MAX_AGE_MS = 15 * 60 * 1_000;
 export const WEATHER_CACHE_MAX_STALE_MS = 7 * 24 * 60 * 60 * 1_000;
+export const WEATHER_CACHE_MAX_DISTANCE_KM = 25;
 
 const WEATHER_REQUEST_TIMEOUT_MS = 8_000;
+const EARTH_RADIUS_KM = 6_371;
 const WEATHER_CURRENT_FIELDS =
   "temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m";
 
 type WeatherCache = {
   readonly value: WeatherValue;
   readonly fetchedAt: number;
+  readonly coordinate: Coordinate;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -25,6 +28,27 @@ function isPercentage(value: unknown): value is number {
   return isFiniteNumber(value) && value >= 0 && value <= 100;
 }
 
+function isWeatherCode(value: unknown): value is number {
+  return (
+    isFiniteNumber(value) &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= 99
+  );
+}
+
+function isCoordinate(value: unknown): value is Coordinate {
+  return (
+    isRecord(value) &&
+    isFiniteNumber(value.latitude) &&
+    value.latitude >= -90 &&
+    value.latitude <= 90 &&
+    isFiniteNumber(value.longitude) &&
+    value.longitude >= -180 &&
+    value.longitude <= 180
+  );
+}
+
 function isWeatherValue(value: unknown): value is WeatherValue {
   return (
     isRecord(value) &&
@@ -34,7 +58,7 @@ function isWeatherValue(value: unknown): value is WeatherValue {
     isFiniteNumber(value.windSpeed) &&
     value.windSpeed >= 0 &&
     isPercentage(value.precipitationProbability) &&
-    isFiniteNumber(value.weatherCode) &&
+    isWeatherCode(value.weatherCode) &&
     typeof value.condition === "string" &&
     value.condition === weatherCodeLabel(value.weatherCode)
   );
@@ -44,8 +68,41 @@ function isWeatherCache(value: unknown): value is WeatherCache {
   return (
     isRecord(value) &&
     isWeatherValue(value.value) &&
-    isFiniteNumber(value.fetchedAt)
+    isFiniteNumber(value.fetchedAt) &&
+    isCoordinate(value.coordinate)
   );
+}
+
+function toRadians(degrees: number): number {
+  return degrees * (Math.PI / 180);
+}
+
+function isNearby(
+  cachedCoordinate: Coordinate,
+  currentCoordinate: Coordinate,
+): boolean {
+  if (!isCoordinate(currentCoordinate)) {
+    return false;
+  }
+
+  const latitudeDelta = toRadians(
+    currentCoordinate.latitude - cachedCoordinate.latitude,
+  );
+  const longitudeDelta = toRadians(
+    currentCoordinate.longitude - cachedCoordinate.longitude,
+  );
+  const cachedLatitude = toRadians(cachedCoordinate.latitude);
+  const currentLatitude = toRadians(currentCoordinate.latitude);
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(cachedLatitude) *
+      Math.cos(currentLatitude) *
+      Math.sin(longitudeDelta / 2) ** 2;
+  const distance =
+    2 *
+    EARTH_RADIUS_KM *
+    Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+  return distance <= WEATHER_CACHE_MAX_DISTANCE_KM;
 }
 
 function requiredFinite(
@@ -64,6 +121,13 @@ function requiredPercentage(
 ): number {
   if (!isPercentage(value)) {
     throw new Error(`Invalid weather percentage: ${field}`);
+  }
+  return value;
+}
+
+function requiredWeatherCode(value: unknown): number {
+  if (!isWeatherCode(value)) {
+    throw new Error("Invalid weather field: weather_code");
   }
   return value;
 }
@@ -150,7 +214,7 @@ export function parseWeatherResponse(input: unknown): WeatherValue {
     throw new Error("Invalid weather field: wind_speed_10m");
   }
 
-  const weatherCode = requiredFinite(current.weather_code, "weather_code");
+  const weatherCode = requiredWeatherCode(current.weather_code);
   return {
     temperature: requiredFinite(current.temperature_2m, "temperature_2m"),
     apparentTemperature: requiredFinite(
@@ -179,10 +243,15 @@ export async function resolveWeather(
   now = Date.now(),
   onCached?: (cached: DataState<WeatherValue>) => void,
 ): Promise<DataState<WeatherValue>> {
+  const requestCoordinate = { ...coordinate };
   const cache = await readCache(storage, "weather", isWeatherCache);
   let staleState: DataState<WeatherValue> | undefined;
 
-  if (cache && cache.fetchedAt <= now) {
+  if (
+    cache &&
+    cache.fetchedAt <= now &&
+    isNearby(cache.coordinate, requestCoordinate)
+  ) {
     const age = now - cache.fetchedAt;
     if (age <= WEATHER_CACHE_MAX_STALE_MS) {
       const cachedState: DataState<WeatherValue> = {
@@ -212,7 +281,7 @@ export async function resolveWeather(
   );
 
   try {
-    const response = await fetchImpl(buildWeatherUrl(coordinate), {
+    const response = await fetchImpl(buildWeatherUrl(requestCoordinate), {
       signal: controller.signal,
     });
     if (!response.ok) {
@@ -226,8 +295,9 @@ export async function resolveWeather(
       fetchedAt: now,
     };
     await writeCache<WeatherCache>(storage, "weather", {
-      value,
+      value: { ...value },
       fetchedAt: now,
+      coordinate: { ...requestCoordinate },
     });
     return freshState;
   } catch {
