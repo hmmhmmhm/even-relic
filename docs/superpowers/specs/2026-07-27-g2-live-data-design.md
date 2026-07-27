@@ -366,9 +366,12 @@ npm run test:sites
    Completed on physical G2 build `live-weather-012` at tested commit
    `1da29615713c6e3f730ad0c61341d7dbe0e88435`. The user confirmed the presented
    initial-display, bilateral four-tile, location/fallback, live-weather,
-   scroll, right-refresh, and hide/restore checklist as a whole. Exact location
-   label and weather numbers were not transcribed. This pre-OSM build truthfully
-   renders `LOC // ... · MAP DEMO` and the phone credit
+   scroll, and visible hide/restore checklist as a whole. Exact location label
+   and weather numbers were not transcribed. Exact `3/5` weather refresh,
+   hidden-refresh suppression, and newest-frame restore remain automated
+   transport evidence rather than separately instrumented physical
+   observations. This pre-OSM build truthfully renders
+   `LOC // ... · MAP DEMO` and the phone credit
    `날씨: Open-Meteo · 지도: 데모 스키매틱`.
 
 3. **Remaining keyless live-data gate**

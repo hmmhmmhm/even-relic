@@ -12,8 +12,8 @@ Result: PASS
 ## Physical G2 confirmation
 
 The checkpoint asked the user to verify the initial HUD, bilateral four-tile
-output, location source or fallback display, live weather replacement, normal
-page scrolling, right-side refresh behavior, and double-tap hide/restore. The
+output, location source or fallback display, visible live weather replacement
+in the right panel, normal page scrolling, and double-tap hide/restore. The
 user confirmed the checklist as a whole:
 
 > 네 다 잘 동작합니다.
@@ -25,13 +25,14 @@ Recorded results:
 - Location source or fallback display: PASS
 - Live Open-Meteo weather replacement: PASS
 - Normal page scrolling: PASS
-- Right-side refresh behavior: PASS
 - Double-tap black-frame hide and restore: PASS
 
 The exact location label (`LIVE`, `LAST FIX`, or `DEMO`) and numeric weather
-values were not transcribed, so this record does not infer them. No separate
-image-transfer trace was transcribed for the right-side refresh; the PASS above
-records the user's confirmation of the presented physical checklist.
+values were not transcribed, so this record does not infer them. No image
+transfer trace was shown during this checkpoint. Exact `3/5` refresh targeting,
+hidden-state refresh suppression, and restoration of a value changed while
+hidden therefore remain automated transport evidence rather than separate
+physical observations.
 
 ## Truthful pre-OSM scope
 
@@ -56,6 +57,11 @@ The tested build and its documentation/QR update were checked with:
 - `npm run build`: exit 0;
 - `npm run test:sites`: 4/4 tests passed;
 - `git diff --check`: no whitespace errors.
+
+The automated transport suite verifies that weather-only refreshes target IDs
+`3/5`, hidden refreshes do not transmit, and restore sends the newest complete
+frame. Those internal conditions were not separately instrumented in the
+physical checkpoint above.
 
 ## Active QR identity
 

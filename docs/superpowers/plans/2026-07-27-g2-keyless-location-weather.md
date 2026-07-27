@@ -703,9 +703,18 @@ Confirm:
 - header remains truthfully `LOC // LIVE · MAP DEMO`,
   `LOC // LAST FIX · MAP DEMO`, or `LOC // DEMO · MAP DEMO`;
 - weather values replace the sample without a key;
-- a weather refresh sends only right IDs `3/5`;
 - scroll remains immediate;
-- hide suppresses refresh sends and restore shows the newest values.
+- bilateral output and visible double-tap hide/restore continue to work.
+
+The user confirmed these visible checks as a whole. The exact location label and
+weather values were not transcribed.
+
+The following internal transport conditions passed automated tests but were not
+separately instrumented on the physical G2 during this checkpoint:
+
+- a weather-only refresh sends right IDs `3/5`;
+- hidden refreshes do not transmit;
+- restore uses the newest complete frame after a hidden-state update.
 
 - [x] **Step 3: Record and commit the result**
 
