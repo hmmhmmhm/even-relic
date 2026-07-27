@@ -50,8 +50,32 @@ describe("DiagnosticConsole", () => {
     expect(writeText).toHaveBeenCalledWith(
       expect.stringContaining("[LOCATION] raw callback #1"),
     );
+    expect(screen.getByRole("button", { name: "COPIED" })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: "CLEAR" }));
     expect(screen.getByTestId("diagnostic-lines").textContent).toBe("");
+  });
+
+  it("shows COPY FAILED when both copy paths reject", async () => {
+    const logger = createDiagnosticLogger();
+    render(
+      <DiagnosticConsole
+        logger={logger}
+        clipboard={{
+          writeText: vi.fn(async () => {
+            throw new Error("not allowed");
+          }),
+        }}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "COPY" }));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByRole("button", {
+      name: "COPY FAILED",
+    })).toBeTruthy();
   });
 });

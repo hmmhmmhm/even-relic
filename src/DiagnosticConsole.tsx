@@ -3,6 +3,7 @@ import {
   diagnosticLogger,
   type DiagnosticLogger,
 } from "./diagnostic-log";
+import { copyText } from "./copy-text";
 
 type DiagnosticConsoleProps = {
   readonly logger?: DiagnosticLogger;
@@ -14,6 +15,9 @@ export function DiagnosticConsole({
   clipboard,
 }: DiagnosticConsoleProps) {
   const [snapshot, setSnapshot] = useState(logger.snapshot());
+  const [copyResult, setCopyResult] = useState<
+    "idle" | "copied" | "failed"
+  >("idle");
   const outputRef = useRef<HTMLPreElement>(null);
 
   useEffect(() => {
@@ -34,20 +38,21 @@ export function DiagnosticConsole({
   }, [snapshot.version]);
 
   const copy = async () => {
-    try {
-      const target = clipboard ?? navigator.clipboard;
-      if (!target) throw new Error("clipboard unavailable");
-      await target.writeText(logger.text());
-    } catch (error) {
-      logger.append(
-        "ERROR",
-        `clipboard ${error instanceof Error ? error.message : String(error)}`,
-      );
+    const target = clipboard ?? (
+      typeof navigator === "undefined" ? undefined : navigator.clipboard
+    );
+    const copied = await copyText(logger.text(), {
+      clipboard: target,
+    });
+    setCopyResult(copied ? "copied" : "failed");
+    if (!copied) {
+      logger.append("ERROR", "clipboard copy failed");
     }
   };
 
   const clear = () => {
     logger.clear();
+    setCopyResult("idle");
     setSnapshot(logger.snapshot());
   };
 
@@ -60,7 +65,13 @@ export function DiagnosticConsole({
           {" · "}DROPPED {snapshot.dropped}
         </span>
         <div>
-          <button type="button" onClick={() => void copy()}>COPY</button>
+          <button type="button" onClick={() => void copy()}>
+            {copyResult === "copied"
+              ? "COPIED"
+              : copyResult === "failed"
+                ? "COPY FAILED"
+                : "COPY"}
+          </button>
           <button type="button" onClick={clear}>CLEAR</button>
         </div>
       </header>
