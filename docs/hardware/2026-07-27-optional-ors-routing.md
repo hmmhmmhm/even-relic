@@ -1,9 +1,12 @@
 # G2 Optional ORS Routing Checkpoint
 
-Date: 2026-07-27  
-Branch: `feature/g2-ors-routing`  
+Date: 2026-07-27
+
+Branch: `feature/g2-ors-routing`
+
 Server API commit:
-`d0dcef6aeb7132685ce6824a8b219a4ae6319d2d`  
+`d0dcef6aeb7132685ce6824a8b219a4ae6319d2d`
+
 Client and G2 commit:
 `003d318f800d5223dbfa7a32a20cd32c3a47989b`
 
