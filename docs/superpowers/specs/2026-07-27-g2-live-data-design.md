@@ -353,8 +353,9 @@ npm run test:sites
 ## Hardware gates
 
 1. **SDK 0.0.11 transport gate**
-   Confirm initial four tiles, two-tile scrolling, bilateral display, and
-   double-tap hide/restore before connecting live data.
+   Completed on physical G2 build `fast-right-first-011`: bilateral fast
+   startup, `3/5/2/4` full transfers, `3/5` scrolling, and double-tap
+   hide/restore. SDK `0.0.11` is approved as the live-data baseline.
 
 2. **Keyless live-data gate**
    Confirm real or clearly labeled fallback location, current weather, six RSS
