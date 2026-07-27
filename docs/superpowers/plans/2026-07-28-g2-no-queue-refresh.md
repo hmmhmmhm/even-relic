@@ -225,7 +225,7 @@ const startOperation = (
   busy = true;
   logDiagnostic("REFRESH", `${label} accepted`);
   const startedAt = diagnosticNow();
-  void Promise.resolve(operation())
+  void (async () => operation())()
     .catch((error: unknown) => {
       logDiagnostic("ERROR", `${label} failed · ${diagnosticError(error)}`);
       onProgress(diagnosticError(error));
