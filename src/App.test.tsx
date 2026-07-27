@@ -156,9 +156,8 @@ describe("RELIC peripheral HUD", () => {
     expect(screen.getByText(/LIVE DATA/)).toBeTruthy();
     expect(screen.queryByText(/STATIC MOCK/)).toBeNull();
     expect(screen.getByText(
-      "날씨: Open-Meteo · 지도: 데모 스키매틱 · 뉴스: SBS RSS · 개인·비상업",
+      "날씨: Open-Meteo · 지도 데이터: OpenStreetMap contributors · 뉴스: SBS RSS · 개인·비상업",
     )).toBeTruthy();
-    expect(screen.queryByText(/OpenStreetMap contributors/)).toBeNull();
   });
 
   it("does not show live-data credits outside the fast route", () => {
@@ -166,7 +165,7 @@ describe("RELIC peripheral HUD", () => {
     render(<App autoStart={false} />);
 
     expect(screen.queryByText(
-      "날씨: Open-Meteo · 지도: 데모 스키매틱 · 뉴스: SBS RSS · 개인·비상업",
+      "날씨: Open-Meteo · 지도 데이터: OpenStreetMap contributors · 뉴스: SBS RSS · 개인·비상업",
     )).toBeNull();
   });
 

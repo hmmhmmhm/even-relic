@@ -1,5 +1,6 @@
 import type { HudPage } from "./canvas-hud";
 import type { FastCanvasBattery } from "./glasses";
+import { drawFastMap } from "./fast-map";
 import {
   createInitialLiveDashboardState,
   type LiveDashboardState,
@@ -120,20 +121,6 @@ function drawFrame(
   context.fillRect(x, y, 10, 2);
 }
 
-function fillPolygon(
-  context: CanvasRenderingContext2D,
-  points: readonly Point[],
-  color: HudColor,
-) {
-  const [first, ...rest] = points;
-  context.beginPath();
-  context.moveTo(...first);
-  for (const point of rest) context.lineTo(...point);
-  context.closePath();
-  context.fillStyle = color;
-  context.fill();
-}
-
 function drawCheckbox(
   context: CanvasRenderingContext2D,
   x: number,
@@ -151,66 +138,6 @@ function drawCheckbox(
       [x + 13, y + 2],
     ], COLOR.primary, 2);
   }
-}
-
-function mapHeader(live: LiveDashboardState) {
-  const source = live.location.value?.source;
-  if (source === "live") return "LOC // LIVE · MAP DEMO";
-  if (source === "cache") return "LOC // LAST FIX · MAP DEMO";
-  return "LOC // DEMO · MAP DEMO";
-}
-
-function drawStaticMap(
-  context: CanvasRenderingContext2D,
-  live: LiveDashboardState,
-) {
-  drawFrame(context, 8, 8, 272, 272);
-  drawText(context, mapHeader(live), 18, 16, 11, COLOR.secondary, "bold");
-
-  const roads: readonly Point[][] = [
-    [[18, 52], [78, 42], [130, 64], [202, 48], [270, 62]],
-    [[18, 88], [68, 82], [126, 94], [190, 78], [270, 90]],
-    [[18, 126], [76, 114], [134, 132], [198, 118], [270, 128]],
-    [[18, 166], [62, 152], [126, 172], [202, 154], [270, 166]],
-    [[18, 208], [82, 192], [144, 214], [214, 198], [270, 208]],
-    [[46, 34], [52, 244]],
-    [[108, 34], [98, 246]],
-    [[172, 34], [182, 246]],
-    [[234, 34], [226, 246]],
-  ];
-  for (const road of roads) drawPath(context, road, COLOR.dim, 1);
-
-  const activeRoute: readonly Point[] = [
-    [42, 232],
-    [72, 192],
-    [128, 176],
-    [128, 132],
-    [196, 132],
-    [196, 78],
-    [246, 78],
-  ];
-  drawPath(context, activeRoute, COLOR.secondary, 8);
-  drawPath(context, activeRoute, COLOR.primary, 3);
-  fillPolygon(context, [
-    [68, 190],
-    [82, 222],
-    [68, 215],
-    [54, 224],
-  ], COLOR.primary);
-
-  context.fillStyle = COLOR.primary;
-  context.fillRect(238, 70, 18, 18);
-  context.fillStyle = COLOR.background;
-  context.fillRect(242, 74, 10, 10);
-  context.fillStyle = COLOR.primary;
-  context.fillRect(245, 77, 4, 4);
-
-  context.fillStyle = COLOR.background;
-  context.fillRect(12, 250, 264, 25);
-  context.fillStyle = COLOR.dim;
-  context.fillRect(12, 249, 264, 1);
-  drawText(context, "DEST 0.8km", 18, 256, 12, COLOR.primary, "bold");
-  drawText(context, "N ↑", 235, 256, 12, COLOR.secondary, "bold");
 }
 
 function drawDynamicHeader(
@@ -440,7 +367,7 @@ export function drawFastCanvasHud(
   context.imageSmoothingEnabled = false;
   context.fillStyle = COLOR.background;
   context.fillRect(0, 0, WIDTH, HEIGHT);
-  drawStaticMap(context, data.live);
+  drawFastMap(context, data.live);
   drawDynamicHeader(context, now, page, data.live);
   drawDynamicPage(context, page, data);
 }

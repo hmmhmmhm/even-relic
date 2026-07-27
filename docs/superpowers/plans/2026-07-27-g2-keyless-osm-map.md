@@ -321,7 +321,7 @@ git commit -m "feat: cache and project OSM roads"
 - Modify: `src/fast-canvas-hud.ts`
 - Modify: `src/fast-canvas-hud.test.ts`
 
-- [ ] **Step 1: Write Canvas layer tests**
+- [x] **Step 1: Write Canvas layer tests**
 
 Assert:
 
@@ -333,13 +333,13 @@ Assert:
 - `© OSM CONTRIBUTORS` is always present;
 - left snapshots remain identical across the four pages for one state.
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 ```bash
 npx vitest run src/fast-canvas-hud.test.ts
 ```
 
-- [ ] **Step 3: Replace the schematic grid**
+- [x] **Step 3: Replace the schematic grid**
 
 Change `drawStaticMap()` to accept:
 
@@ -364,7 +364,7 @@ Draw in this order:
 Do not draw OSM street labels. If map data are unavailable, draw the existing
 schematic roads and label them `SCHEMATIC`; do not show them as live.
 
-- [ ] **Step 4: Full verification and commit**
+- [x] **Step 4: Full verification and commit**
 
 ```bash
 npm test
