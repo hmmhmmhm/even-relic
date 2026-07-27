@@ -9,6 +9,7 @@ import { resolveMap } from "./map";
 import { resolveNews } from "./news";
 import type { LocationBridge } from "./location";
 import { resolveWeather } from "./weather";
+import { logDiagnostic } from "./diagnostic-log";
 
 export type LiveRefreshTarget = "left" | "right" | "all";
 
@@ -21,6 +22,20 @@ type LiveDashboardRefreshOptions = {
   readonly emit: (target: LiveRefreshTarget) => void;
   readonly isDisposed: () => boolean;
 };
+
+const diagnosticNow = () => (
+  typeof globalThis.performance?.now === "function"
+    ? globalThis.performance.now()
+    : Date.now()
+);
+
+const diagnosticDuration = (startedAt: number) => (
+  diagnosticNow() - startedAt
+);
+
+const diagnosticErrorKind = (error: unknown) => (
+  error instanceof Error ? error.name : typeof error
+);
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -100,11 +115,25 @@ export function createLiveDashboardRefresh(
   };
 
   const refreshWeather = (): Promise<void> => {
-    if (options.isDisposed()) return Promise.resolve();
-    if (weatherPromise) return weatherPromise;
+    if (options.isDisposed()) {
+      logDiagnostic("LIVE", "weather skipped · disposed");
+      return Promise.resolve();
+    }
+    if (weatherPromise) {
+      logDiagnostic("LIVE", "weather joined · active request");
+      return weatherPromise;
+    }
+    const startedAt = diagnosticNow();
+    logDiagnostic("LIVE", "weather start");
     weatherPromise = (async () => {
       const coordinate = options.getState().location.value?.coordinate;
-      if (!coordinate || options.isDisposed()) return;
+      if (!coordinate || options.isDisposed()) {
+        logDiagnostic(
+          "LIVE",
+          `weather skipped · ${coordinate ? "disposed" : "no location"}`,
+        );
+        return;
+      }
       let cachedWeather: DataState<WeatherValue> | undefined;
       let result: DataState<WeatherValue>;
       try {
@@ -118,11 +147,20 @@ export function createLiveDashboardRefresh(
             cachedWeather = cached;
             setWeather(cached);
             options.emit("right");
+            logDiagnostic(
+              "LIVE",
+              `weather cache emitted · right · ${cached.status}`,
+            );
           },
         );
-      } catch {
+      } catch (error) {
+        logDiagnostic(
+          "ERROR",
+          `weather refresh failed · ${diagnosticErrorKind(error)}`,
+        );
         result = { status: "unavailable" };
       }
+      logDiagnostic("LIVE", `weather resolved · ${result.status}`);
       if (
         options.isDisposed()
         || isSameWeatherState(cachedWeather, result)
@@ -131,15 +169,29 @@ export function createLiveDashboardRefresh(
       }
       setWeather(result);
       options.emit("right");
+      logDiagnostic("LIVE", `weather emitted · right · ${result.status}`);
     })().finally(() => {
+      logDiagnostic(
+        "LIVE",
+        "weather complete",
+        diagnosticDuration(startedAt),
+      );
       weatherPromise = undefined;
     });
     return weatherPromise;
   };
 
   const refreshNews = (): Promise<void> => {
-    if (options.isDisposed()) return Promise.resolve();
-    if (newsPromise) return newsPromise;
+    if (options.isDisposed()) {
+      logDiagnostic("LIVE", "news skipped · disposed");
+      return Promise.resolve();
+    }
+    if (newsPromise) {
+      logDiagnostic("LIVE", "news joined · active request");
+      return newsPromise;
+    }
+    const startedAt = diagnosticNow();
+    logDiagnostic("LIVE", "news start");
     newsPromise = (async () => {
       let cachedNews: DataState<readonly NewsItem[]> | undefined;
       let result: DataState<readonly NewsItem[]>;
@@ -153,26 +205,51 @@ export function createLiveDashboardRefresh(
             cachedNews = cached;
             setNews(cached);
             options.emit("right");
+            logDiagnostic(
+              "LIVE",
+              `news cache emitted · right · ${cached.status}`,
+            );
           },
         );
-      } catch {
+      } catch (error) {
+        logDiagnostic(
+          "ERROR",
+          `news refresh failed · ${diagnosticErrorKind(error)}`,
+        );
         result = { status: "unavailable" };
       }
+      logDiagnostic("LIVE", `news resolved · ${result.status}`);
       if (options.isDisposed() || isSameNewsState(cachedNews, result)) return;
       setNews(result);
       options.emit("right");
+      logDiagnostic("LIVE", `news emitted · right · ${result.status}`);
     })().finally(() => {
+      logDiagnostic("LIVE", "news complete", diagnosticDuration(startedAt));
       newsPromise = undefined;
     });
     return newsPromise;
   };
 
   const refreshMap = (): Promise<void> => {
-    if (options.isDisposed()) return Promise.resolve();
-    if (mapPromise) return mapPromise;
+    if (options.isDisposed()) {
+      logDiagnostic("LIVE", "map skipped · disposed");
+      return Promise.resolve();
+    }
+    if (mapPromise) {
+      logDiagnostic("LIVE", "map joined · active request");
+      return mapPromise;
+    }
+    const startedAt = diagnosticNow();
+    logDiagnostic("LIVE", "map start");
     mapPromise = (async () => {
       const coordinate = options.getState().location.value?.coordinate;
-      if (!coordinate || options.isDisposed()) return;
+      if (!coordinate || options.isDisposed()) {
+        logDiagnostic(
+          "LIVE",
+          `map skipped · ${coordinate ? "disposed" : "no location"}`,
+        );
+        return;
+      }
       const previousMap = options.getState().map;
       let cachedMap: DataState<MapValue> | undefined;
       let result: DataState<MapValue>;
@@ -187,9 +264,17 @@ export function createLiveDashboardRefresh(
             cachedMap = cached;
             setMap(cached);
             options.emit("left");
+            logDiagnostic(
+              "LIVE",
+              `map cache emitted · left · ${cached.status}`,
+            );
           },
         );
-      } catch {
+      } catch (error) {
+        logDiagnostic(
+          "ERROR",
+          `map refresh failed · ${diagnosticErrorKind(error)}`,
+        );
         result = { status: "unavailable" };
       }
       if (result.status === "unavailable" && previousMap.value) {
@@ -199,10 +284,13 @@ export function createLiveDashboardRefresh(
           fetchedAt: previousMap.fetchedAt,
         };
       }
+      logDiagnostic("LIVE", `map resolved · ${result.status}`);
       if (options.isDisposed() || isSameMapState(cachedMap, result)) return;
       setMap(result);
       options.emit("left");
+      logDiagnostic("LIVE", `map emitted · left · ${result.status}`);
     })().finally(() => {
+      logDiagnostic("LIVE", "map complete", diagnosticDuration(startedAt));
       mapPromise = undefined;
     });
     return mapPromise;

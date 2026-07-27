@@ -5,6 +5,7 @@ import {
   writeCache,
   type EvenStorage,
 } from "./live-cache";
+import { diagnosticLogger } from "./diagnostic-log";
 
 class MemoryStorage implements EvenStorage {
   readonly values = new Map<string, string>();
@@ -96,6 +97,30 @@ describe("live cache", () => {
     await expect(
       readCache(storage, "weather", (_value): _value is unknown => true),
     ).resolves.toBeUndefined();
+  });
+
+  it("traces storage outcomes without logging stored values", async () => {
+    const storage = new MemoryStorage();
+    diagnosticLogger.clear();
+
+    await writeCache(storage, "weather", {
+      privatePayload: "37.55645,126.922",
+    });
+    await readCache(
+      storage,
+      "weather",
+      (value): value is Record<string, unknown> => Boolean(value),
+    );
+    await clearCache(storage, "weather");
+
+    const trace = diagnosticLogger.text();
+    expect(trace).toContain("[STORAGE] write weather start");
+    expect(trace).toContain("[STORAGE] write weather success");
+    expect(trace).toContain("[STORAGE] read weather hit");
+    expect(trace).toContain("[STORAGE] clear weather success");
+    expect(trace).not.toContain("privatePayload");
+    expect(trace).not.toContain("37.55645");
+    expect(trace).not.toContain("126.922");
   });
 
   it("returns false instead of throwing when clear fails", async () => {

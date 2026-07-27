@@ -29,6 +29,7 @@ import type {
 } from "./routing";
 import { resolveTodos, toggleTodo, writeTodos } from "./todos";
 import { WEATHER_MAX_AGE_MS } from "./weather";
+import { logDiagnostic } from "./diagnostic-log";
 
 export type LiveDashboardUpdate = {
   readonly state: LiveDashboardState;
@@ -48,6 +49,20 @@ type LiveDashboardSessionOptions = {
   readonly documentTarget?: DocumentTarget;
   readonly routingStatus?: RoutingStatus;
 };
+
+const diagnosticNow = () => (
+  typeof globalThis.performance?.now === "function"
+    ? globalThis.performance.now()
+    : Date.now()
+);
+
+const diagnosticDuration = (startedAt: number) => (
+  diagnosticNow() - startedAt
+);
+
+const diagnosticErrorKind = (error: unknown) => (
+  error instanceof Error ? error.name : typeof error
+);
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -106,12 +121,19 @@ export function createLiveDashboardSession(
   let locationUpdateMode: "general" | "navigation" | undefined;
   let unsubscribeLocation: (() => void) | undefined;
   let locationQueue = Promise.resolve();
+  let locationEventCount = 0;
+  let pendingLocationCount = 0;
 
   const emit = (target: LiveRefreshTarget) => {
     if (disposed) return;
     try {
       options.onUpdate({ state: clone(state), target });
-    } catch {
+      logDiagnostic("LIVE", `dashboard emitted · ${target}`);
+    } catch (error) {
+      logDiagnostic(
+        "ERROR",
+        `dashboard update callback failed · ${diagnosticErrorKind(error)}`,
+      );
       // A preview/render callback must not stop the live-data session.
     }
   };
@@ -132,6 +154,7 @@ export function createLiveDashboardSession(
   });
 
   const stopLocationUpdates = async () => {
+    logDiagnostic("LOCATION", "stream stop requested");
     unsubscribeLocation?.();
     unsubscribeLocation = undefined;
     if (
@@ -143,8 +166,16 @@ export function createLiveDashboardSession(
     locationUpdatesStarted = false;
     locationUpdateMode = undefined;
     try {
-      await options.bridge.stopAppLocationUpdates();
-    } catch {
+      const stopped = await options.bridge.stopAppLocationUpdates();
+      logDiagnostic(
+        "LOCATION",
+        `stream stop ${stopped ? "success" : "rejected"}`,
+      );
+    } catch (error) {
+      logDiagnostic(
+        "ERROR",
+        `location stream stop failed · ${diagnosticErrorKind(error)}`,
+      );
       // A failed stop must not block cleanup or a later restart attempt.
     }
   };
@@ -152,45 +183,102 @@ export function createLiveDashboardSession(
   let routeSession: ReturnType<typeof createLiveRouteSession>;
 
   const queueLocation = (location: AppLocation) => {
+    locationEventCount += 1;
+    pendingLocationCount += 1;
+    const eventId = locationEventCount;
+    logDiagnostic(
+      "LOCATION",
+      `raw #${eventId} · pending ${pendingLocationCount}`
+        + ` · accuracy=${Number.isFinite(location.accuracy) ? "yes" : "no"}`
+        + ` · speed=${Number.isFinite(location.speed) ? "yes" : "no"}`
+        + ` · heading=${Number.isFinite(location.heading) ? "yes" : "no"}`,
+    );
     locationQueue = locationQueue
       .then(async () => {
-        if (disposed) return;
-        const next = normalizeLiveLocation(location, now());
-        const previousCoordinate = state.location.value?.coordinate;
-        const nextCoordinate = next?.value?.coordinate;
-        const activeRoute = routeSession.activeRoute();
-        const movement = previousCoordinate && nextCoordinate
-          ? haversineMeters(previousCoordinate, nextCoordinate)
-          : Number.POSITIVE_INFINITY;
-        if (
-          !next
-          || !nextCoordinate
-          || movement < (activeRoute
+        const startedAt = diagnosticNow();
+        logDiagnostic("LOCATION", `process #${eventId} start`);
+        try {
+          if (disposed) {
+            logDiagnostic("LOCATION", `process #${eventId} skipped · disposed`);
+            return;
+          }
+          const next = normalizeLiveLocation(location, now());
+          const previousCoordinate = state.location.value?.coordinate;
+          const nextCoordinate = next?.value?.coordinate;
+          if (!next || !nextCoordinate) {
+            logDiagnostic("LOCATION", "ignored · invalid");
+            return;
+          }
+          const activeRoute = routeSession.activeRoute();
+          const movement = previousCoordinate
+            ? haversineMeters(previousCoordinate, nextCoordinate)
+            : Number.POSITIVE_INFINITY;
+          const minimumMovement = activeRoute
             ? 5
-            : LOCATION_UPDATE_DISTANCE_METERS)
-        ) {
-          return;
-        }
+            : LOCATION_UPDATE_DISTANCE_METERS;
+          if (movement < minimumMovement) {
+            logDiagnostic(
+              "LOCATION",
+              `ignored · movement ${Math.round(movement)}m`
+                + ` < ${minimumMovement}m`,
+            );
+            return;
+          }
 
-        state = { ...state, location: clone(next) };
-        let target: LiveRefreshTarget | undefined;
-        const redrawMap = movement >= LOCATION_UPDATE_DISTANCE_METERS;
-        if (redrawMap) target = "left";
-        if (routeSession.updateProgress(nextCoordinate)) {
-          target = mergeTarget(target, "right");
-        }
+          state = { ...state, location: clone(next) };
+          let target: LiveRefreshTarget | undefined;
+          const redrawMap = movement >= LOCATION_UPDATE_DISTANCE_METERS;
+          if (redrawMap) target = "left";
+          if (routeSession.updateProgress(nextCoordinate)) {
+            target = mergeTarget(target, "right");
+          }
 
-        if (target) emit(target);
-        void persistLiveLocation(options.bridge, next);
-        if (
-          redrawMap
-          && state.map.value?.cell !== clientMapCell(nextCoordinate)
-        ) {
-          await refresh.refreshMap();
+          logDiagnostic(
+            "LOCATION",
+            `accepted · movement ${
+              Number.isFinite(movement) ? `${Math.round(movement)}m` : "initial"
+            } · target ${target ?? "none"}`,
+          );
+          if (target) emit(target);
+          const persistStartedAt = diagnosticNow();
+          logDiagnostic("LOCATION", "persistence queued");
+          void persistLiveLocation(options.bridge, next).then((persisted) => {
+            logDiagnostic(
+              "LOCATION",
+              `persistence ${persisted ? "success" : "rejected"}`,
+              diagnosticDuration(persistStartedAt),
+            );
+          });
+          if (
+            redrawMap
+            && state.map.value?.cell !== clientMapCell(nextCoordinate)
+          ) {
+            logDiagnostic("LOCATION", "map cell refresh requested");
+            await refresh.refreshMap();
+          }
+          await routeSession.maybeReroute(nextCoordinate);
+        } catch (error) {
+          logDiagnostic(
+            "ERROR",
+            `location process #${eventId} failed · ${diagnosticErrorKind(error)}`,
+            diagnosticDuration(startedAt),
+          );
+        } finally {
+          pendingLocationCount -= 1;
+          logDiagnostic(
+            "LOCATION",
+            `process #${eventId} complete · pending ${pendingLocationCount}`,
+            diagnosticDuration(startedAt),
+          );
         }
-        await routeSession.maybeReroute(nextCoordinate);
       })
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        pendingLocationCount = Math.max(0, pendingLocationCount - 1);
+        logDiagnostic(
+          "ERROR",
+          `location queue failed · ${diagnosticErrorKind(error)}`,
+        );
+      });
   };
 
   const startLocationUpdates = async (
@@ -207,11 +295,17 @@ export function createLiveDashboardSession(
       || !startAppLocationUpdates
       || !stopAppLocationUpdates
     ) {
+      logDiagnostic("LOCATION", "stream unavailable");
       return false;
     }
-    if (locationUpdatesStarted && locationUpdateMode === mode) return true;
+    if (locationUpdatesStarted && locationUpdateMode === mode) {
+      logDiagnostic("LOCATION", `stream already active · ${mode}`);
+      return true;
+    }
     if (locationUpdatesStarted) await stopLocationUpdates();
 
+    const startedAt = diagnosticNow();
+    logDiagnostic("LOCATION", `stream start requested · ${mode}`);
     let started = false;
     try {
       started = await startAppLocationUpdates.call(options.bridge, {
@@ -223,10 +317,22 @@ export function createLiveDashboardSession(
           ? 5
           : LOCATION_UPDATE_DISTANCE_METERS,
       });
-    } catch {
+    } catch (error) {
+      logDiagnostic(
+        "ERROR",
+        `location stream start failed · ${diagnosticErrorKind(error)}`,
+        diagnosticDuration(startedAt),
+      );
       return false;
     }
-    if (!started) return false;
+    if (!started) {
+      logDiagnostic(
+        "LOCATION",
+        `stream start rejected · ${mode}`,
+        diagnosticDuration(startedAt),
+      );
+      return false;
+    }
     locationUpdatesStarted = true;
     locationUpdateMode = mode;
     if (disposed) {
@@ -238,10 +344,19 @@ export function createLiveDashboardSession(
         options.bridge,
         queueLocation,
       );
-    } catch {
+    } catch (error) {
+      logDiagnostic(
+        "ERROR",
+        `location listener failed · ${diagnosticErrorKind(error)}`,
+      );
       await stopLocationUpdates();
       return false;
     }
+    logDiagnostic(
+      "LOCATION",
+      `stream active · ${mode}`,
+      diagnosticDuration(startedAt),
+    );
     return true;
   };
 
@@ -253,6 +368,7 @@ export function createLiveDashboardSession(
     ) {
       return;
     }
+    logDiagnostic("LIVE", "visibility refresh check");
     const currentTime = now();
     if (
       state.weather.fetchedAt === undefined
@@ -275,8 +391,15 @@ export function createLiveDashboardSession(
   };
 
   const start = (): Promise<void> => {
-    if (disposed) return Promise.resolve();
-    if (startPromise) return startPromise;
+    if (disposed) {
+      logDiagnostic("LIVE", "session start skipped · disposed");
+      return Promise.resolve();
+    }
+    if (startPromise) {
+      logDiagnostic("LIVE", "session start joined");
+      return startPromise;
+    }
+    logDiagnostic("LIVE", "session start");
     if (documentTarget && !listenerRegistered) {
       documentTarget.addEventListener("visibilitychange", onVisibilityChange);
       listenerRegistered = true;
@@ -295,7 +418,11 @@ export function createLiveDashboardSession(
       let location = state.location;
       try {
         location = await resolveInitialLocation(options.bridge, now());
-      } catch {
+      } catch (error) {
+        logDiagnostic(
+          "ERROR",
+          `initial location failed · ${diagnosticErrorKind(error)}`,
+        );
         // The demo coordinate remains usable when initial location fails.
       }
       if (disposed) return;
@@ -308,6 +435,7 @@ export function createLiveDashboardSession(
         refresh.refreshMap(),
       ]);
       await startLocationUpdates();
+      logDiagnostic("LIVE", "session ready");
     })();
     return startPromise;
   };
@@ -349,6 +477,7 @@ export function createLiveDashboardSession(
     dispose: () => {
       if (disposed) return;
       disposed = true;
+      logDiagnostic("LIVE", "session dispose");
       routeSession.dispose();
       void stopLocationUpdates();
       if (documentTarget && listenerRegistered) {

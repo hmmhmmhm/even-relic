@@ -10,6 +10,7 @@ import {
   createLiveDashboardSession,
   type LiveDashboardUpdate,
 } from "./live-dashboard";
+import { diagnosticLogger } from "./diagnostic-log";
 
 const NOW = Date.parse("2026-07-27T14:20:00Z");
 const LOCATION: AppLocation = {
@@ -282,6 +283,52 @@ describe("live dashboard map integration", () => {
     session.dispose();
     await vi.waitFor(() => expect(bridge.stopCalls).toBe(1));
     expect(bridge.unsubscribeCalls).toBe(1);
+  });
+
+  it("traces live refresh and location flow without coordinates", async () => {
+    const bridge = new StreamingBridge();
+    let currentTime = NOW;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.startsWith("/api/map")) return mapResponse();
+      if (url.startsWith("/api/news")) return newsResponse();
+      return weatherResponse();
+    }) as unknown as typeof fetch;
+    diagnosticLogger.clear();
+    const session = createLiveDashboardSession({
+      bridge,
+      fetchImpl,
+      now: () => currentTime,
+      onUpdate: vi.fn(),
+    });
+    await session.start();
+
+    bridge.emit({ latitude: 91, longitude: 126.922 });
+    currentTime += 15_000;
+    bridge.emit({
+      latitude: 37.55645,
+      longitude: 126.922,
+      accuracy: 8,
+      timestamp: currentTime,
+    });
+    await vi.waitFor(() => {
+      expect(session.getState().location.value?.coordinate.latitude)
+        .toBe(37.55645);
+      expect(diagnosticLogger.text()).toContain(
+        "[STORAGE] write location success",
+      );
+    });
+
+    const trace = diagnosticLogger.text();
+    expect(trace).toContain("[LIVE] weather start");
+    expect(trace).toContain("[LIVE] news start");
+    expect(trace).toContain("[LIVE] map start");
+    expect(trace).toContain("[LOCATION] raw #1");
+    expect(trace).toContain("[LOCATION] ignored · invalid");
+    expect(trace).toContain("[LOCATION] accepted");
+    expect(trace).not.toContain("37.55645");
+    expect(trace).not.toContain("126.922");
+    session.dispose();
   });
 
   it.each(["false", "throw"] as const)(
