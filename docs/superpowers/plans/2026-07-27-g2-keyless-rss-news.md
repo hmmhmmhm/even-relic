@@ -22,7 +22,7 @@
 - Modify: `scripts/prepare-sites-build.mjs`
 - Modify: `tests/sites-worker.test.mjs`
 
-- [ ] **Step 1: Write failing API/static routing tests**
+- [x] **Step 1: Write failing API/static routing tests**
 
 Assert:
 
@@ -47,7 +47,7 @@ await access(new URL("../dist/server/http.js", import.meta.url));
 await access(new URL("../dist/server/api-router.js", import.meta.url));
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 ```bash
 node --test tests/api-router.test.mjs tests/sites-worker.test.mjs
@@ -56,7 +56,7 @@ node --test tests/api-router.test.mjs tests/sites-worker.test.mjs
 Expected: FAIL because the shared API router and packaged server modules do not
 exist.
 
-- [ ] **Step 3: Implement shared HTTP helpers and the router**
+- [x] **Step 3: Implement shared HTTP helpers and the router**
 
 In `server/http.js`, export:
 
@@ -120,7 +120,7 @@ export async function handleApiRequest(request, env, dependencies = {}) {
 }
 ```
 
-- [ ] **Step 4: Route API before assets**
+- [x] **Step 4: Route API before assets**
 
 At the start of `worker/index.js`:
 
@@ -204,7 +204,7 @@ import { relicDevApi } from "./server/dev-api.js";
 plugins: [relicDevApi(), react()],
 ```
 
-- [ ] **Step 5: Package server modules**
+- [x] **Step 5: Package server modules**
 
 In `scripts/prepare-sites-build.mjs`, copy these exact files into
 `dist/server/`:
@@ -221,7 +221,7 @@ for (const name of serverFiles) {
 
 Keep `dist/server/index.js` as the Worker entrypoint.
 
-- [ ] **Step 6: Verify the shared API framework and commit**
+- [x] **Step 6: Verify the shared API framework and commit**
 
 ```bash
 node --test tests/api-router.test.mjs tests/sites-worker.test.mjs
@@ -236,7 +236,7 @@ git commit -m "feat: add shared RELIC API router"
 - Create: `server/news.js`
 - Create: `tests/news-api.test.mjs`
 
-- [ ] **Step 1: Write allowlist and limit tests**
+- [x] **Step 1: Write allowlist and limit tests**
 
 Test these requests:
 
@@ -263,13 +263,13 @@ Assert upstream fetch options include:
 
 Add timeout, upstream non-2xx, and body-larger-than-`1_000_000` tests.
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 ```bash
 node --test tests/news-api.test.mjs
 ```
 
-- [ ] **Step 3: Implement the proxy**
+- [x] **Step 3: Implement the proxy**
 
 Define:
 
@@ -319,7 +319,7 @@ NEWS_UPSTREAM_ERROR 502
 
 Never accept an arbitrary upstream URL and never follow redirects.
 
-- [ ] **Step 4: Register and package the news endpoint**
+- [x] **Step 4: Register and package the news endpoint**
 
 Import `handleNewsRequest` in `server/api-router.js`, then add:
 
@@ -332,7 +332,7 @@ if (url.pathname === "/api/news" && request.method === "GET") {
 Add `"news.js"` to `serverFiles` in the build script and require
 `dist/server/news.js` in the packaging test.
 
-- [ ] **Step 5: Verify server APIs and commit**
+- [x] **Step 5: Verify server APIs and commit**
 
 ```bash
 node --test tests/news-api.test.mjs tests/api-router.test.mjs tests/sites-worker.test.mjs
@@ -349,7 +349,7 @@ git commit -m "feat: proxy allowlisted SBS RSS"
 - Modify: `src/live-dashboard.ts`
 - Modify: `src/live-dashboard.test.ts`
 
-- [ ] **Step 1: Write failing RSS parser tests**
+- [x] **Step 1: Write failing RSS parser tests**
 
 Use RSS containing duplicate `guid`, missing dates, CDATA markup, and seven
 items. Assert:
@@ -375,13 +375,13 @@ expect(items.every(({ title }) => !/[<>]/.test(title))).toBe(true);
 Provider tests must cover fresh cache under ten minutes, background refresh
 after ten minutes, stale-cache fallback, and unavailable-without-cache.
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 ```bash
 npx vitest run src/news.test.ts src/live-dashboard.test.ts
 ```
 
-- [ ] **Step 3: Implement RSS normalization**
+- [x] **Step 3: Implement RSS normalization**
 
 Export:
 
@@ -417,7 +417,7 @@ with an eight-second abort timeout. Persist `{ value, fetchedAt }`; preserve a
 valid stale cache on any error. Call `onCached` before a stale refresh so the
 six cached titles render immediately.
 
-- [ ] **Step 4: Add news to the session**
+- [x] **Step 4: Add news to the session**
 
 After location startup, resolve news independently of weather:
 
@@ -436,7 +436,7 @@ On visible foreground, refresh only when the news cache is at least ten minutes
 old. A weather failure must not alter news state, and a news failure must not
 alter weather state.
 
-- [ ] **Step 5: Verify and commit**
+- [x] **Step 5: Verify and commit**
 
 ```bash
 npx vitest run src/news.test.ts src/live-dashboard.test.ts
@@ -452,7 +452,7 @@ git commit -m "feat: load and cache six RSS headlines"
 - Modify: `src/App.tsx`
 - Modify: `src/App.test.tsx`
 
-- [ ] **Step 1: Write rendering tests**
+- [x] **Step 1: Write rendering tests**
 
 Given six normalized items, assert all six shortened titles are drawn and none
 of the old samples appear:
@@ -487,13 +487,13 @@ The App test must also assert:
 expect(screen.getByText(/뉴스: SBS RSS · 개인·비상업/)).toBeTruthy();
 ```
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 ```bash
 npx vitest run src/fast-canvas-hud.test.ts src/App.test.tsx
 ```
 
-- [ ] **Step 3: Render the news snapshot**
+- [x] **Step 3: Render the news snapshot**
 
 Pass `live.news` into `drawNews()`. Keep the existing six baseline positions:
 
@@ -521,7 +521,7 @@ Extend the phone-only credit to:
 날씨: Open-Meteo · 지도 데이터: OpenStreetMap contributors · 뉴스: SBS RSS · 개인·비상업
 ```
 
-- [ ] **Step 4: Full verification and commit**
+- [x] **Step 4: Full verification and commit**
 
 ```bash
 npm test
@@ -537,19 +537,19 @@ git commit -m "feat: render live RSS news on fast HUD"
 **Files:**
 - Create: `docs/hardware/2026-07-27-keyless-rss-news.md`
 
-- [ ] **Step 1: Open**
+- [x] **Step 1: Open**
 
 ```text
 http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=live-news-013
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Confirm six current general-news titles are readable, one news refresh sends
 only `3/5`, repeated page scrolling causes no extra HTTP request, and airplane
 mode retains cached titles with `STALE`.
 
-- [ ] **Step 3: Record and commit**
+- [x] **Step 3: Record and commit**
 
 ```bash
 git add docs/hardware/2026-07-27-keyless-rss-news.md
