@@ -287,9 +287,11 @@ export async function transmitCanvas(
 
   const sdkUnsubscribe = bridge.onEvenHubEvent((event) => {
     if (disposed) return;
-    const eventType = event.sysEvent?.eventType
-      ?? event.textEvent?.eventType
-      ?? null;
+    const eventType = event.sysEvent
+      ? event.sysEvent.eventType ?? OsEventTypeList.CLICK_EVENT
+      : event.textEvent
+        ? event.textEvent.eventType ?? OsEventTypeList.CLICK_EVENT
+        : null;
     if (eventType === OsEventTypeList.CLICK_EVENT) {
       queueInput("tap");
     } else if (eventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {

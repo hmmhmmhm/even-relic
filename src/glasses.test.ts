@@ -169,6 +169,7 @@ async function createFastRefreshHarness(
     emit: (eventType: OsEventTypeList) => listener!({
       sysEvent: { eventType },
     } as EvenHubEvent),
+    emitEvent: (event: EvenHubEvent) => listener!(event),
     get maximumActiveImageSends() {
       return maximumActiveImageSends;
     },
@@ -982,6 +983,22 @@ describe("G2 raster transport", () => {
       "scroll-next",
       "scroll-next",
     ]);
+  });
+
+  it("treats a text event with an omitted zero event type as a tap", async () => {
+    const harness = await createFastRefreshHarness({
+      inputResult: "redraw",
+    });
+
+    harness.emitEvent({
+      textEvent: {
+        containerID: 1,
+        containerName: "eventLayer",
+      },
+    });
+
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+    expect(harness.inputs).toEqual(["tap"]);
   });
 
   it("sends every detail transition as one ordered four-tile operation", async () => {
