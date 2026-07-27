@@ -236,11 +236,11 @@ describe("fast split Canvas HUD", () => {
       leftSnapshot(pages[0]),
     ]);
     expect(pages[3].values).toEqual(expect.arrayContaining([
-      "NAV // ACTIVE",
-      "120m",
-      "우회전",
-      "다음 교차로",
+      "NAV // READY",
+      "경로 키 필요",
+      "ORS 연결 후 사용",
     ]));
+    expect(pages[3].values).not.toContain("NAV // ACTIVE");
     expect(pages[1].values).toContain("NEWS LOADING");
     expect(pages[1].values.filter((value) => value.startsWith("· "))).toHaveLength(
       0,
@@ -412,5 +412,65 @@ describe("fast split Canvas HUD", () => {
       "아주 긴 한국어 기사 제목입니다 ABCDEFG",
       25,
     )).toBe("아주 긴 한국어 기사 제…");
+  });
+
+  it("renders disabled, ready, loading, active, and stale route states", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+    const initial = createInitialLiveDashboardState();
+    const route = {
+      destinationName: "서울역",
+      geometry: [
+        { latitude: 37.5563, longitude: 126.922 },
+        { latitude: 37.5547, longitude: 126.9707 },
+      ],
+      maneuvers: [{
+        instruction: "오른쪽으로 도세요",
+        distance: 120,
+        wayPoints: [0, 1] as const,
+      }],
+      activeManeuverIndex: 0,
+      remainingDistance: 120,
+      profile: "foot-walking" as const,
+    };
+    const values = (routeState: LiveDashboardState["route"]) =>
+      renderFastHud(module, "navigation", {
+        live: { ...initial, route: routeState },
+      }).values;
+
+    expect(values({ status: "disabled" })).toEqual(
+      expect.arrayContaining([
+        "NAV // READY",
+        "경로 키 필요",
+        "ORS 연결 후 사용",
+      ]),
+    );
+    expect(values({ status: "fresh" })).toEqual(
+      expect.arrayContaining([
+        "NAV // READY",
+        "목적지를 선택하세요",
+      ]),
+    );
+    expect(values({ status: "loading" })).toEqual(
+      expect.arrayContaining([
+        "NAV // ROUTING",
+        "경로 계산 중",
+      ]),
+    );
+    expect(values({ status: "fresh", value: route, fetchedAt: 1 })).toEqual(
+      expect.arrayContaining([
+        "NAV // ACTIVE",
+        "120m",
+        "오른쪽으로 도세요",
+        "DEST // 서울역",
+      ]),
+    );
+    expect(values({ status: "stale", value: route, fetchedAt: 1 })).toEqual(
+      expect.arrayContaining([
+        "NAV // STALE",
+        "경로 확인 필요",
+        "DEST // 서울역",
+      ]),
+    );
   });
 });

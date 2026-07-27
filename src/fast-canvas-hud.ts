@@ -3,7 +3,9 @@ import type { FastCanvasBattery } from "./glasses";
 import { drawFastMap } from "./fast-map";
 import {
   createInitialLiveDashboardState,
+  type DataState,
   type LiveDashboardState,
+  type RouteValue,
 } from "./live-state";
 
 const WIDTH = 576;
@@ -227,28 +229,122 @@ function weatherSummary(live: LiveDashboardState) {
     : "WEATHER --";
 }
 
-function drawNavigation(context: CanvasRenderingContext2D) {
+function drawRouteDestination(
+  context: CanvasRenderingContext2D,
+  route: RouteValue,
+) {
+  drawText(
+    context,
+    `DEST // ${truncateHudTitle(route.destinationName, 18)}`,
+    308,
+    226,
+    10,
+    COLOR.secondary,
+    "bold",
+  );
+  const profile = route.profile === "foot-walking"
+    ? "도보"
+    : route.profile === "cycling-regular"
+      ? "자전거"
+      : "자동차";
+  drawText(context, `MODE // ${profile}`, 308, 246, 15, COLOR.primary, "bold");
+}
+
+function formatRouteDistance(distance: number) {
+  const rounded = Math.max(0, Math.round(distance));
+  return rounded >= 1_000
+    ? `${(rounded / 1_000).toFixed(1)}km`
+    : `${rounded}m`;
+}
+
+function drawNavigation(
+  context: CanvasRenderingContext2D,
+  routeState: DataState<RouteValue>,
+) {
+  if (routeState.status === "disabled") {
+    drawText(context, "NAV // READY", 308, 82, 11, COLOR.secondary, "bold");
+    drawText(context, "경로 키 필요", 308, 108, 24, COLOR.primary, "bold");
+    drawText(context, "ORS 연결 후 사용", 308, 150, 15, COLOR.secondary, "bold");
+    drawText(context, "PHONE // COMPANION", 308, 226, 10, COLOR.secondary, "bold");
+    drawText(context, "키 설정 필요", 308, 246, 15, COLOR.primary, "bold");
+    return;
+  }
+
+  if (routeState.status === "loading") {
+    drawText(context, "NAV // ROUTING", 308, 82, 11, COLOR.secondary, "bold");
+    drawText(context, "경로 계산 중", 308, 108, 24, COLOR.primary, "bold");
+    drawText(context, "목적지까지 경로 확인", 308, 150, 14, COLOR.secondary, "bold");
+    drawText(context, "ORS // WORKING", 308, 226, 10, COLOR.secondary, "bold");
+    drawText(context, "잠시만 기다려주세요", 308, 246, 14, COLOR.primary, "bold");
+    return;
+  }
+
+  const route = routeState.value;
+  if (!route) {
+    drawText(context, "NAV // READY", 308, 82, 11, COLOR.secondary, "bold");
+    drawText(context, "목적지를 선택하세요", 308, 108, 20, COLOR.primary, "bold");
+    drawText(context, "폰 화면에서 검색", 308, 150, 15, COLOR.secondary, "bold");
+    drawText(context, "PHONE // COMPANION", 308, 226, 10, COLOR.secondary, "bold");
+    drawText(context, "도보 · 자전거 · 자동차", 308, 246, 13, COLOR.primary, "bold");
+    return;
+  }
+
+  if (routeState.status === "stale") {
+    const instruction = route.maneuvers[route.activeManeuverIndex]?.instruction;
+    drawText(context, "NAV // STALE", 308, 82, 11, COLOR.secondary, "bold");
+    drawText(context, "경로 확인 필요", 308, 108, 23, COLOR.primary, "bold");
+    if (instruction) {
+      drawText(
+        context,
+        truncateHudTitle(instruction, 22),
+        308,
+        154,
+        15,
+        COLOR.secondary,
+        "bold",
+      );
+    }
+    drawRouteDestination(context, route);
+    return;
+  }
+
+  const instruction = route.maneuvers[route.activeManeuverIndex]?.instruction
+    ?? "목적지 도착";
   drawText(context, "NAV // ACTIVE", 308, 82, 11, COLOR.secondary, "bold");
-  drawText(context, "120m", 308, 104, 28, COLOR.primary, "bold");
+  drawText(
+    context,
+    formatRouteDistance(route.remainingDistance),
+    308,
+    104,
+    28,
+    COLOR.primary,
+    "bold",
+  );
   drawPath(context, [
     [330, 184],
     [330, 146],
-    [418, 146],
+    [408, 146],
   ], COLOR.secondary, 10);
   drawPath(context, [
     [330, 184],
     [330, 146],
-    [418, 146],
+    [408, 146],
   ], COLOR.primary, 4);
   drawPath(context, [
-    [404, 132],
-    [420, 146],
-    [404, 160],
+    [394, 132],
+    [410, 146],
+    [394, 160],
   ], COLOR.primary, 4);
-  drawText(context, "우회전", 444, 137, 24, COLOR.primary, "bold");
-
-  drawText(context, "NEXT // INTERSECTION", 308, 226, 10, COLOR.secondary, "bold");
-  drawText(context, "다음 교차로", 308, 244, 18, COLOR.primary, "bold");
+  drawText(
+    context,
+    truncateHudTitle(instruction, 18),
+    420,
+    137,
+    18,
+    COLOR.primary,
+    "bold",
+  );
+  drawRouteDestination(context, route);
 }
 
 function hudUnits(value: string): number {
@@ -348,7 +444,7 @@ function drawDynamicPage(
   drawFrame(context, 296, 72, 272, 134);
   drawFrame(context, 296, 216, 272, 64);
   if (page === "overview") drawOverview(context, data);
-  if (page === "navigation") drawNavigation(context);
+  if (page === "navigation") drawNavigation(context, data.live.route);
   if (page === "news") drawNews(context, data.live);
   if (page === "todo") drawTodo(context);
 }

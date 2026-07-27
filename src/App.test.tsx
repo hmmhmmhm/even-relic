@@ -1,5 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App";
 import {
@@ -61,7 +66,9 @@ const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
   drawFast: vi.fn(),
   drawFullscreen: vi.fn(),
+  getRoutingStatus: vi.fn(),
   minuteStart: vi.fn(),
+  searchDestinations: vi.fn(),
   transmitFast: vi.fn(),
   waitForBridge: vi.fn(),
 }));
@@ -95,11 +102,21 @@ vi.mock("./minute-refresh", () => ({
   startMinuteRefresh: mocks.minuteStart,
 }));
 
+vi.mock("./routing", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./routing")>(),
+  getRoutingStatus: mocks.getRoutingStatus,
+  searchDestinations: mocks.searchDestinations,
+}));
+
 beforeEach(() => {
   mocks.createSession.mockReset();
   mocks.drawFast.mockReset();
   mocks.drawFullscreen.mockReset();
+  mocks.getRoutingStatus.mockReset();
+  mocks.getRoutingStatus.mockResolvedValue({ enabled: false });
   mocks.minuteStart.mockReset();
+  mocks.searchDestinations.mockReset();
+  mocks.searchDestinations.mockResolvedValue([]);
   mocks.transmitFast.mockReset();
   mocks.waitForBridge.mockReset();
 });
@@ -544,6 +561,74 @@ describe("RELIC peripheral HUD", () => {
     view.unmount();
     expect(session.dispose).toHaveBeenCalledTimes(1);
     expect(transportCleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it("checks routing once and wires phone destination controls to the live session", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const transportCleanup = vi.fn();
+    mocks.transmitFast.mockResolvedValue(transportCleanup);
+    mocks.waitForBridge.mockResolvedValue({});
+    mocks.getRoutingStatus.mockResolvedValue({ enabled: true });
+    const destination = {
+      id: "venue.1",
+      name: "서울역",
+      label: "서울역, 서울특별시",
+      coordinate: { latitude: 37.5547, longitude: 126.9707 },
+    };
+    mocks.searchDestinations.mockResolvedValue([destination]);
+    const session = {
+      start: vi.fn(async () => undefined),
+      startRoute: vi.fn(async () => undefined),
+      endRoute: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    const textbox = await screen.findByRole("textbox", { name: "목적지" });
+    expect(mocks.getRoutingStatus).toHaveBeenCalledOnce();
+    expect(mocks.createSession).toHaveBeenCalledWith(expect.objectContaining({
+      routingStatus: { enabled: true },
+    }));
+
+    fireEvent.change(textbox, { target: { value: "서울역" } });
+    fireEvent.submit(screen.getByRole("form", { name: "목적지 검색" }));
+    fireEvent.click(await screen.findByRole("button", {
+      name: /서울역, 서울특별시/,
+    }));
+    await vi.waitFor(() => {
+      expect(session.startRoute).toHaveBeenCalledWith(
+        destination,
+        "foot-walking",
+      );
+    });
+
+    const active = {
+      ...createInitialLiveDashboardState(),
+      route: {
+        status: "fresh" as const,
+        fetchedAt: 1,
+        value: {
+          destinationName: "서울역",
+          geometry: [
+            { latitude: 37.5563, longitude: 126.922 },
+            destination.coordinate,
+          ],
+          maneuvers: [],
+          activeManeuverIndex: 0,
+          remainingDistance: 4380,
+          profile: "foot-walking" as const,
+        },
+      },
+    };
+    sessionOptions().onUpdate({ state: active, target: "all" });
+    fireEvent.click(await screen.findByRole("button", {
+      name: "길찾기 종료",
+    }));
+    expect(session.endRoute).toHaveBeenCalledOnce();
+
+    view.unmount();
   });
 
   it("isolates the static Canvas plus native Text experiment", () => {

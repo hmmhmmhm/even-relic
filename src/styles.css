@@ -94,6 +94,94 @@ body {
   text-align: center;
 }
 
+.route-controls {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #244d25;
+  color: #83ea6a;
+  background: #020403;
+  display: grid;
+  gap: 12px;
+  font-size: 0.76rem;
+}
+
+.route-controls > strong {
+  letter-spacing: 0.08em;
+}
+
+.route-controls p {
+  margin: 0;
+  color: #5da654;
+}
+
+.route-controls [role="alert"] {
+  color: #91ff73;
+}
+
+.route-controls form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.35fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.route-controls label {
+  display: grid;
+  gap: 5px;
+  color: #4f8f49;
+}
+
+.route-controls input,
+.route-controls select,
+.route-controls button {
+  min-height: 36px;
+  border: 1px solid #356936;
+  border-radius: 0;
+  color: #91ff73;
+  background: #050906;
+  font: inherit;
+}
+
+.route-controls input,
+.route-controls select {
+  width: 100%;
+  padding: 7px 9px;
+}
+
+.route-controls button {
+  padding: 7px 12px;
+  cursor: pointer;
+}
+
+.route-controls button:disabled {
+  color: #4f6b4b;
+  cursor: default;
+}
+
+.route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.route-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.route-results button {
+  height: auto;
+  text-align: left;
+  display: grid;
+  gap: 4px;
+}
+
+.route-results span {
+  color: #4f8f49;
+  font-size: 0.68rem;
+}
+
 @media (max-width: 680px) {
   .preview-stage {
     padding: 14px;
@@ -107,5 +195,9 @@ body {
 
   .preview-header output {
     text-align: left;
+  }
+
+  .route-controls form {
+    grid-template-columns: 1fr;
   }
 }

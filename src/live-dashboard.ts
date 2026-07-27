@@ -24,7 +24,22 @@ import {
   MAP_MAX_AGE_MS,
   resolveMap,
 } from "./map";
+import {
+  clearActiveRouteCache,
+  distanceBucket,
+  distanceToRouteMeters,
+  readActiveRouteCache,
+  routeProgress,
+  writeActiveRouteCache,
+} from "./navigation";
 import { NEWS_MAX_AGE_MS, resolveNews } from "./news";
+import {
+  RoutingError,
+  requestRoute,
+  type Destination,
+  type RouteProfile,
+  type RoutingStatus,
+} from "./routing";
 import { resolveWeather, WEATHER_MAX_AGE_MS } from "./weather";
 
 export type LiveDashboardUpdate = {
@@ -43,6 +58,7 @@ type LiveDashboardSessionOptions = {
   readonly fetchImpl?: typeof fetch;
   readonly now?: () => number;
   readonly documentTarget?: DocumentTarget;
+  readonly routingStatus?: RoutingStatus;
 };
 
 function cloneState(state: LiveDashboardState): LiveDashboardState {
@@ -109,6 +125,12 @@ export function createLiveDashboardSession(
   options: LiveDashboardSessionOptions,
 ): {
   start(): Promise<void>;
+  startRoute(
+    destination: Destination,
+    profile: RouteProfile,
+  ): Promise<void>;
+  resumeRoute(): Promise<void>;
+  endRoute(): Promise<void>;
   getState(): LiveDashboardState;
   dispose(): void;
 } {
@@ -116,7 +138,12 @@ export function createLiveDashboardSession(
   const fetchImpl = options.fetchImpl ?? fetch;
   const documentTarget = options.documentTarget
     ?? (typeof document === "undefined" ? undefined : document);
-  let state = createInitialLiveDashboardState();
+  let state: LiveDashboardState = {
+    ...createInitialLiveDashboardState(),
+    route: options.routingStatus?.enabled
+      ? { status: "fresh" }
+      : { status: "disabled" },
+  };
   let disposed = false;
   let listenerRegistered = false;
   let locationResolved = false;
@@ -125,9 +152,15 @@ export function createLiveDashboardSession(
   let newsPromise: Promise<void> | undefined;
   let mapPromise: Promise<void> | undefined;
   let locationUpdatesStarted = false;
-  let locationUpdatesStopped = false;
+  let locationUpdateMode: "general" | "navigation" | undefined;
   let unsubscribeLocation: (() => void) | undefined;
   let locationQueue = Promise.resolve();
+  let activeDestination: Destination | undefined;
+  let routeSessionActive = false;
+  let offRouteFixes = 0;
+  let lastRerouteAt = Number.NEGATIVE_INFINITY;
+  let reroutePromise: Promise<void> | undefined;
+  let routeGeneration = 0;
 
   const emit = (target: LiveDashboardUpdate["target"]) => {
     if (disposed) return;
@@ -155,6 +188,12 @@ export function createLiveDashboardSession(
       ...state,
       map,
     }).map };
+  };
+  const setRoute = (route: LiveDashboardState["route"]) => {
+    state = { ...state, route: cloneState({
+      ...state,
+      route,
+    }).route };
   };
 
   const refreshWeather = (): Promise<void> => {
@@ -264,18 +303,97 @@ export function createLiveDashboardSession(
     return mapPromise;
   };
 
-  const stopLocationUpdates = () => {
+  const stopLocationUpdates = async () => {
     unsubscribeLocation?.();
     unsubscribeLocation = undefined;
     if (
       !locationUpdatesStarted
-      || locationUpdatesStopped
       || !options.bridge.stopAppLocationUpdates
     ) {
       return;
     }
-    locationUpdatesStopped = true;
-    void options.bridge.stopAppLocationUpdates().catch(() => false);
+    locationUpdatesStarted = false;
+    locationUpdateMode = undefined;
+    try {
+      await options.bridge.stopAppLocationUpdates();
+    } catch {
+      // A failed stop must not block cleanup or a later restart attempt.
+    }
+  };
+
+  const mergeTarget = (
+    first: LiveDashboardUpdate["target"] | undefined,
+    second: LiveDashboardUpdate["target"],
+  ): LiveDashboardUpdate["target"] => {
+    if (!first || first === second) return second;
+    if (first === "all" || second === "all") return "all";
+    return "all";
+  };
+
+  const reroute = (
+    coordinate: NonNullable<
+      LiveDashboardState["location"]["value"]
+    >["coordinate"],
+  ): Promise<void> => {
+    if (
+      reroutePromise
+      || !routeSessionActive
+      || !activeDestination
+      || !state.route.value
+    ) {
+      return reroutePromise ?? Promise.resolve();
+    }
+    const destination = activeDestination;
+    const previousRoute = state.route.value;
+    const generation = routeGeneration;
+    reroutePromise = (async () => {
+      try {
+        const route = await requestRoute({
+          start: coordinate,
+          destination,
+          profile: previousRoute.profile,
+        }, fetchImpl);
+        if (
+          disposed
+          || routeGeneration !== generation
+          || !routeSessionActive
+          || activeDestination?.id !== destination.id
+        ) {
+          return;
+        }
+        const fetchedAt = now();
+        setRoute({ status: "fresh", value: route, fetchedAt });
+        lastRerouteAt = fetchedAt;
+        offRouteFixes = 0;
+        await writeActiveRouteCache(
+          options.bridge,
+          destination,
+          route,
+          fetchedAt,
+        );
+        emit("all");
+      } catch {
+        if (
+          disposed
+          || routeGeneration !== generation
+          || !routeSessionActive
+          || activeDestination?.id !== destination.id
+        ) {
+          return;
+        }
+        lastRerouteAt = now();
+        offRouteFixes = 0;
+        setRoute({
+          status: "stale",
+          value: previousRoute,
+          fetchedAt: state.route.fetchedAt,
+        });
+        emit("right");
+      }
+    })().finally(() => {
+      reroutePromise = undefined;
+    });
+    return reroutePromise;
   };
 
   const queueLocation = (location: AppLocation) => {
@@ -285,12 +403,19 @@ export function createLiveDashboardSession(
         const next = normalizeLiveLocation(location, now());
         const previousCoordinate = state.location.value?.coordinate;
         const nextCoordinate = next?.value?.coordinate;
+        const activeRoute = routeSessionActive
+          ? state.route.value
+          : undefined;
+        const movement = previousCoordinate && nextCoordinate
+          ? haversineMeters(previousCoordinate, nextCoordinate)
+          : Number.POSITIVE_INFINITY;
+        const minimumMovement = activeRoute
+          ? 5
+          : LOCATION_UPDATE_DISTANCE_METERS;
         if (
           !next
           || !nextCoordinate
-          || (previousCoordinate
-            && haversineMeters(previousCoordinate, nextCoordinate)
-              < LOCATION_UPDATE_DISTANCE_METERS)
+          || movement < minimumMovement
         ) {
           return;
         }
@@ -299,16 +424,55 @@ export function createLiveDashboardSession(
           ...state,
           location: next,
         }).location };
-        emit("left");
+        let target: LiveDashboardUpdate["target"] | undefined;
+        const redrawMap = movement >= LOCATION_UPDATE_DISTANCE_METERS;
+        if (redrawMap) target = "left";
+
+        if (activeRoute) {
+          const progress = routeProgress(activeRoute, nextCoordinate);
+          const maneuverChanged = progress.activeManeuverIndex
+            !== activeRoute.activeManeuverIndex;
+          const distanceChanged = distanceBucket(progress.remainingDistance)
+            !== distanceBucket(activeRoute.remainingDistance);
+          setRoute({
+            ...state.route,
+            value: progress,
+          });
+          if (maneuverChanged || distanceChanged) {
+            target = mergeTarget(target, "right");
+          }
+
+          if (
+            distanceToRouteMeters(nextCoordinate, progress.geometry) > 35
+          ) {
+            offRouteFixes += 1;
+          } else {
+            offRouteFixes = 0;
+          }
+        }
+
+        if (target) emit(target);
         void persistLiveLocation(options.bridge, next);
-        if (state.map.value?.cell !== clientMapCell(nextCoordinate)) {
+        if (
+          redrawMap
+          && state.map.value?.cell !== clientMapCell(nextCoordinate)
+        ) {
           await refreshMap();
+        }
+        if (
+          activeRoute
+          && offRouteFixes >= 3
+          && now() - lastRerouteAt >= 30_000
+        ) {
+          await reroute(nextCoordinate);
         }
       })
       .catch(() => undefined);
   };
 
-  const startLocationUpdates = async () => {
+  const startLocationUpdates = async (
+    mode: "general" | "navigation" = "general",
+  ): Promise<boolean> => {
     const {
       onAppLocationChanged,
       startAppLocationUpdates,
@@ -320,24 +484,31 @@ export function createLiveDashboardSession(
       || !startAppLocationUpdates
       || !stopAppLocationUpdates
     ) {
-      return;
+      return false;
     }
+    if (locationUpdatesStarted && locationUpdateMode === mode) return true;
+    if (locationUpdatesStarted) await stopLocationUpdates();
 
     let started = false;
     try {
       started = await startAppLocationUpdates.call(options.bridge, {
         accuracy: AppLocationAccuracy.Medium,
-        intervalMs: LOCATION_UPDATE_INTERVAL_MS,
-        distanceFilter: LOCATION_UPDATE_DISTANCE_METERS,
+        intervalMs: mode === "navigation"
+          ? 2_000
+          : LOCATION_UPDATE_INTERVAL_MS,
+        distanceFilter: mode === "navigation"
+          ? 5
+          : LOCATION_UPDATE_DISTANCE_METERS,
       });
     } catch {
-      return;
+      return false;
     }
-    if (!started) return;
+    if (!started) return false;
     locationUpdatesStarted = true;
+    locationUpdateMode = mode;
     if (disposed) {
-      stopLocationUpdates();
-      return;
+      await stopLocationUpdates();
+      return false;
     }
     try {
       unsubscribeLocation = onAppLocationChanged.call(
@@ -345,8 +516,10 @@ export function createLiveDashboardSession(
         queueLocation,
       );
     } catch {
-      stopLocationUpdates();
+      await stopLocationUpdates();
+      return false;
     }
+    return true;
   };
 
   const onVisibilityChange = () => {
@@ -402,20 +575,143 @@ export function createLiveDashboardSession(
         location,
       }).location };
       locationResolved = true;
-      emit("left");
+      const cachedRoute = options.routingStatus?.enabled
+        ? await readActiveRouteCache(options.bridge, now())
+        : undefined;
+      if (disposed) return;
+      if (cachedRoute) {
+        activeDestination = cachedRoute.destination;
+        setRoute({
+          status: "stale",
+          value: cachedRoute.route,
+          fetchedAt: cachedRoute.fetchedAt,
+        });
+        emit("all");
+      } else {
+        emit("left");
+      }
       await Promise.all([refreshWeather(), refreshNews(), refreshMap()]);
       await startLocationUpdates();
     })();
     return startPromise;
   };
 
+  const startRoute = async (
+    destination: Destination,
+    profile: RouteProfile,
+  ) => {
+    if (!options.routingStatus?.enabled || state.route.status === "disabled") {
+      throw new RoutingError(
+        "ROUTING_DISABLED",
+        "ORS 키 연결 후 길찾기를 사용할 수 있습니다.",
+      );
+    }
+    await start();
+    if (disposed) {
+      throw new RoutingError(
+        "ROUTING_UNAVAILABLE",
+        "길찾기 세션이 종료되었습니다.",
+      );
+    }
+    const coordinate = state.location.value?.coordinate;
+    if (!coordinate) {
+      throw new RoutingError(
+        "LOCATION_UNAVAILABLE",
+        "현재 위치를 확인할 수 없습니다.",
+      );
+    }
+
+    const previousRoute = state.route.value;
+    const previousFetchedAt = state.route.fetchedAt;
+    const previousDestination = activeDestination;
+    const previousSessionActive = routeSessionActive;
+    const generation = ++routeGeneration;
+    setRoute({
+      status: "loading",
+      ...(previousRoute ? { value: previousRoute } : {}),
+      ...(previousFetchedAt !== undefined
+        ? { fetchedAt: previousFetchedAt }
+        : {}),
+    });
+    emit("right");
+    try {
+      const route = await requestRoute({
+        start: coordinate,
+        destination,
+        profile,
+      }, fetchImpl);
+      if (disposed || generation !== routeGeneration) return;
+      const fetchedAt = now();
+      activeDestination = destination;
+      routeSessionActive = true;
+      offRouteFixes = 0;
+      lastRerouteAt = fetchedAt;
+      setRoute({ status: "fresh", value: route, fetchedAt });
+      await writeActiveRouteCache(
+        options.bridge,
+        destination,
+        route,
+        fetchedAt,
+      );
+      emit("all");
+      if (!await startLocationUpdates("navigation")) {
+        await startLocationUpdates("general");
+      }
+    } catch (error) {
+      if (generation !== routeGeneration) return;
+      if (!disposed) {
+        activeDestination = previousDestination;
+        routeSessionActive = previousSessionActive;
+        setRoute(previousRoute
+          ? {
+            status: "stale",
+            value: previousRoute,
+            fetchedAt: previousFetchedAt,
+          }
+          : { status: "fresh" });
+        emit("right");
+      }
+      throw error;
+    }
+  };
+
+  const endRoute = async () => {
+    routeGeneration += 1;
+    routeSessionActive = false;
+    activeDestination = undefined;
+    offRouteFixes = 0;
+    await clearActiveRouteCache(options.bridge);
+    if (disposed) return;
+    setRoute(options.routingStatus?.enabled
+      ? { status: "fresh" }
+      : { status: "disabled" });
+    emit("all");
+    await startLocationUpdates("general");
+  };
+
+  const resumeRoute = async () => {
+    const destination = activeDestination;
+    const profile = state.route.value?.profile;
+    if (!destination || !profile) {
+      throw new RoutingError(
+        "ROUTE_UNAVAILABLE",
+        "다시 시작할 이전 경로가 없습니다.",
+      );
+    }
+    await startRoute(destination, profile);
+  };
+
   return {
     start,
+    startRoute,
+    resumeRoute,
+    endRoute,
     getState: () => cloneState(state),
     dispose: () => {
       if (disposed) return;
       disposed = true;
-      stopLocationUpdates();
+      routeGeneration += 1;
+      void stopLocationUpdates();
       if (documentTarget && listenerRegistered) {
         documentTarget.removeEventListener(
           "visibilitychange",

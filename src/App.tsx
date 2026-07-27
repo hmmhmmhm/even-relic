@@ -41,6 +41,13 @@ import {
   type LiveDashboardState,
 } from "./live-state";
 import { startMinuteRefresh } from "./minute-refresh";
+import { RouteControls } from "./RouteControls";
+import {
+  getRoutingStatus,
+  type Destination,
+  type RouteProfile,
+  type RoutingStatus,
+} from "./routing";
 
 type AppProps = {
   autoStart?: boolean;
@@ -58,9 +65,18 @@ export function App({ autoStart = true }: AppProps) {
   const diagnosticMode = window.location.pathname.startsWith("/diagnostic-v")
     || new URLSearchParams(window.location.search).get("mode") === "diagnostic";
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const liveSessionRef = useRef<
+    ReturnType<typeof createLiveDashboardSession> | undefined
+  >(undefined);
   const [status, setStatus] = useState(
     autoStart ? "HUD 이미지 준비 중" : "자동 전송 비활성",
   );
+  const [routingStatus, setRoutingStatus] = useState<RoutingStatus>({
+    enabled: false,
+  });
+  const [companionRoute, setCompanionRoute] = useState<
+    LiveDashboardState["route"]
+  >({ status: "disabled" });
 
   useEffect(() => {
     if (!autoStart || !canvasRef.current) return;
@@ -161,18 +177,31 @@ export function App({ autoStart = true }: AppProps) {
           return;
         }
         unsubscribe = transportCleanup;
-        const bridge = await waitForEvenAppBridge();
+        const [bridge, nextRoutingStatus] = await Promise.all([
+          waitForEvenAppBridge(),
+          getRoutingStatus().catch(() => ({ enabled: false })),
+        ]);
         if (cancelled) return;
+        setRoutingStatus(nextRoutingStatus);
+        setCompanionRoute(nextRoutingStatus.enabled
+          ? { status: "fresh" }
+          : { status: "disabled" });
         liveSession = createLiveDashboardSession({
           bridge,
+          routingStatus: nextRoutingStatus,
           onUpdate: (update) => {
             if (cancelled) return;
             live = update.state;
+            setCompanionRoute(update.state.route);
             requestVisibleRefresh(update.target);
           },
         });
+        liveSessionRef.current = liveSession;
         if (cancelled) {
           liveSession.dispose();
+          if (liveSessionRef.current === liveSession) {
+            liveSessionRef.current = undefined;
+          }
           liveSession = undefined;
           return;
         }
@@ -208,6 +237,9 @@ export function App({ autoStart = true }: AppProps) {
       cancelled = true;
       stopMinuteRefresh?.();
       liveSession?.dispose();
+      if (liveSessionRef.current === liveSession) {
+        liveSessionRef.current = undefined;
+      }
       unsubscribe?.();
     };
   }, [
@@ -221,6 +253,33 @@ export function App({ autoStart = true }: AppProps) {
     layeredHybridHudMode,
     legacyCanvasHudMode,
   ]);
+
+  const startCompanionRoute = async (
+    destination: Destination,
+    profile: RouteProfile,
+  ) => {
+    const session = liveSessionRef.current;
+    if (!session) throw new Error("길찾기 세션이 아직 준비되지 않았습니다.");
+    await session.startRoute(destination, profile);
+  };
+
+  const endCompanionRoute = async () => {
+    const session = liveSessionRef.current;
+    if (!session) throw new Error("길찾기 세션이 아직 준비되지 않았습니다.");
+    await session.endRoute();
+  };
+
+  const resumeCompanionRoute = async () => {
+    const session = liveSessionRef.current;
+    if (!session) throw new Error("길찾기 세션이 아직 준비되지 않았습니다.");
+    await session.resumeRoute();
+  };
+
+  const activeCompanionRoute = companionRoute.status === "fresh"
+    || companionRoute.status === "stale"
+    || companionRoute.status === "loading"
+    ? companionRoute.value
+    : undefined;
 
   return (
     <main className="preview-stage">
@@ -308,6 +367,16 @@ export function App({ autoStart = true }: AppProps) {
                       ? "기본 뉴스 화면에서 아래 스크롤은 다음, 위 스크롤은 이전 페이지를 네 타일로 전송합니다."
                       : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
       </p>
+      {fastCanvasHudMode && (
+        <RouteControls
+          status={routingStatus}
+          activeRoute={activeCompanionRoute}
+          routeStatus={companionRoute.status}
+          onStart={startCompanionRoute}
+          onResume={resumeCompanionRoute}
+          onEnd={endCompanionRoute}
+        />
+      )}
     </main>
   );
 }
