@@ -12,6 +12,148 @@ async function loadGlasses() {
   return module;
 }
 
+type TestRefreshTarget = "left" | "right" | "all";
+type FastRefreshHarnessConfig = {
+  readonly beforeExternalRefresh?: () => void | Promise<void>;
+  readonly beforeRestore?: () => void | Promise<void>;
+  readonly encode?: (
+    ids: number[],
+    attempt: number,
+    source: "hud" | "black",
+  ) => Promise<Uint8Array[]>;
+  readonly update?: (
+    id: number,
+    call: number,
+    encodeAttempt: number,
+  ) => Promise<unknown>;
+};
+
+function deferred() {
+  let resolve!: () => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<void>((nextResolve, nextReject) => {
+    resolve = nextResolve;
+    reject = nextReject;
+  });
+  return { promise, reject, resolve };
+}
+
+async function createFastRefreshHarness(
+  config: FastRefreshHarnessConfig = {},
+) {
+  const module = await loadGlasses();
+  if (!module) throw new Error("glasses module unavailable");
+
+  const hudSource = { name: "hud" } as unknown as HTMLCanvasElement;
+  const blackSource = { name: "black" } as unknown as HTMLCanvasElement;
+  const encodedTileIds: number[][] = [];
+  const imageIds: number[] = [];
+  const progress: string[] = [];
+  let activeImageSends = 0;
+  let maximumActiveImageSends = 0;
+  let currentEncodeAttempt = 0;
+  let refreshRequest: ((target: TestRefreshTarget) => void) | undefined;
+  let listener: ((event: EvenHubEvent) => void) | undefined;
+
+  const bridge = {
+    createStartUpPageContainer: async () => 0,
+    rebuildPageContainer: async () => true,
+    updateImageRawData: async (update: { containerID?: number }) => {
+      const id = update.containerID!;
+      imageIds.push(id);
+      activeImageSends += 1;
+      maximumActiveImageSends = Math.max(
+        maximumActiveImageSends,
+        activeImageSends,
+      );
+      try {
+        return await (config.update?.(
+          id,
+          imageIds.length,
+          currentEncodeAttempt,
+        ) ?? "success");
+      } finally {
+        activeImageSends -= 1;
+      }
+    },
+    onEvenHubEvent: (next: (event: EvenHubEvent) => void) => {
+      listener = next;
+      return () => undefined;
+    },
+    shutDownPageContainer: async () => true,
+  };
+  const transmitFastCanvas = module.transmitFastCanvas as unknown as (
+    source: HTMLCanvasElement,
+    onProgress: (message: string) => void,
+    onNavigate: (direction: "next" | "previous") => void | Promise<void>,
+    options: {
+      beforeExternalRefresh?: () => void | Promise<void>;
+      beforeRestore?: () => void | Promise<void>;
+      createHiddenSource: () => HTMLCanvasElement;
+      dependencies: {
+        waitForBridge: () => Promise<typeof bridge>;
+        encode: (
+          source: HTMLCanvasElement,
+          factory?: unknown,
+          tiles?: readonly { id: number }[],
+        ) => Promise<Uint8Array[]>;
+      };
+      onRefreshReady: (
+        request: (target: TestRefreshTarget) => void,
+      ) => void;
+    },
+  ) => Promise<() => void>;
+
+  await transmitFastCanvas(
+    hudSource,
+    (message) => progress.push(message),
+    async () => undefined,
+    {
+      beforeExternalRefresh: config.beforeExternalRefresh,
+      beforeRestore: config.beforeRestore,
+      createHiddenSource: () => blackSource,
+      dependencies: {
+        waitForBridge: async () => bridge,
+        encode: async (
+          source,
+          _factory,
+          tiles = module.G2_TILES,
+        ) => {
+          const ids = tiles.map(({ id }) => id);
+          encodedTileIds.push(ids);
+          currentEncodeAttempt = encodedTileIds.length;
+          return config.encode?.(
+            ids,
+            currentEncodeAttempt,
+            source === blackSource ? "black" : "hud",
+          ) ?? ids.map((id) => new Uint8Array([id]));
+        },
+      },
+      onRefreshReady: (request) => {
+        refreshRequest = request;
+      },
+    },
+  );
+
+  expect(refreshRequest).toBeTypeOf("function");
+  expect(listener).toBeTypeOf("function");
+  if (!refreshRequest || !listener) {
+    throw new Error("fast refresh harness did not become ready");
+  }
+  return {
+    encodedTileIds,
+    emit: (eventType: OsEventTypeList) => listener!({
+      sysEvent: { eventType },
+    } as EvenHubEvent),
+    get maximumActiveImageSends() {
+      return maximumActiveImageSends;
+    },
+    imageIds,
+    progress,
+    request: refreshRequest,
+  };
+}
+
 describe("G2 raster transport", () => {
   it("covers the 576 by 288 display with four ordered tiles", async () => {
     const module = await loadGlasses();
@@ -31,6 +173,7 @@ describe("G2 raster transport", () => {
 
     expect(module.G2_TILES.map(({ id }) => id)).toEqual([2, 3, 4, 5]);
     expect(module.G2_FAST_TILES?.map(({ id }) => id)).toEqual([3, 5, 2, 4]);
+    expect(module.G2_LEFT_TILES?.map(({ id }) => id)).toEqual([2, 4]);
     expect(module.G2_RIGHT_TILES.map(({ id }) => id)).toEqual([3, 5]);
   });
 
@@ -390,6 +533,192 @@ describe("G2 raster transport", () => {
       level: 82,
       charging: true,
     }]);
+  });
+
+  it("coalesces synchronous left and right refreshes into one serialized full send", async () => {
+    const harness = await createFastRefreshHarness();
+
+    harness.request("left");
+    harness.request("right");
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+
+    expect(harness.encodedTileIds).toEqual([
+      [3, 5, 2, 4],
+      [3, 5, 2, 4],
+    ]);
+    expect(harness.imageIds).toEqual([
+      3, 5, 2, 4,
+      3, 5, 2, 4,
+    ]);
+    expect(harness.maximumActiveImageSends).toBe(1);
+  });
+
+  it("maps independent external refreshes to their requested display halves", async () => {
+    const harness = await createFastRefreshHarness();
+
+    harness.request("left");
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(6));
+    harness.request("right");
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+
+    expect(harness.encodedTileIds).toEqual([
+      [3, 5, 2, 4],
+      [2, 4],
+      [3, 5],
+    ]);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4, 2, 4, 3, 5]);
+  });
+
+  it("deduplicates same-side refreshes and lets all dominate a pending batch", async () => {
+    const harness = await createFastRefreshHarness();
+
+    harness.request("left");
+    harness.request("left");
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(6));
+    harness.request("right");
+    harness.request("all");
+    harness.request("left");
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(10));
+
+    expect(harness.encodedTileIds).toEqual([
+      [3, 5, 2, 4],
+      [2, 4],
+      [3, 5, 2, 4],
+    ]);
+  });
+
+  it("redraws immediately before an external refresh is encoded", async () => {
+    const order: string[] = [];
+    let initialized = false;
+    const harness = await createFastRefreshHarness({
+      beforeExternalRefresh: async () => {
+        order.push("redraw");
+      },
+      encode: async (ids) => {
+        if (initialized) order.push(`encode:${ids.join(",")}`);
+        return ids.map((id) => new Uint8Array([id]));
+      },
+    });
+    initialized = true;
+
+    harness.request("right");
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(6));
+
+    expect(order).toEqual(["redraw", "encode:3,5"]);
+  });
+
+  it("queues one follow-up refresh when requests arrive during an active send", async () => {
+    const firstExternalSend = deferred();
+    let blocked = false;
+    const harness = await createFastRefreshHarness({
+      update: async (_id, _call, encodeAttempt) => {
+        if (encodeAttempt === 2 && !blocked) {
+          blocked = true;
+          await firstExternalSend.promise;
+        }
+        return "success";
+      },
+    });
+
+    harness.request("right");
+    await vi.waitFor(() => expect(blocked).toBe(true));
+    harness.request("left");
+    harness.request("right");
+    harness.request("left");
+    firstExternalSend.resolve();
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(10));
+
+    expect(harness.encodedTileIds).toEqual([
+      [3, 5, 2, 4],
+      [3, 5],
+      [3, 5, 2, 4],
+    ]);
+    expect(harness.maximumActiveImageSends).toBe(1);
+  });
+
+  it("releases the external scheduler after encode failure", async () => {
+    let failNextExternalEncode = true;
+    const harness = await createFastRefreshHarness({
+      encode: async (ids, attempt) => {
+        if (attempt > 1 && failNextExternalEncode) {
+          failNextExternalEncode = false;
+          throw new Error("encode exploded");
+        }
+        return ids.map((id) => new Uint8Array([id]));
+      },
+    });
+
+    harness.request("right");
+    await vi.waitFor(() => expect(harness.progress).toContain("encode exploded"));
+    harness.request("left");
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(6));
+
+    expect(harness.encodedTileIds).toEqual([
+      [3, 5, 2, 4],
+      [3, 5],
+      [2, 4],
+    ]);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4, 2, 4]);
+  });
+
+  it("releases the external scheduler after SENDFAILED", async () => {
+    let failNextExternalSend = true;
+    const harness = await createFastRefreshHarness({
+      update: async (_id, _call, encodeAttempt) => {
+        if (encodeAttempt > 1 && failNextExternalSend) {
+          failNextExternalSend = false;
+          return "sendFailed";
+        }
+        return "success";
+      },
+    });
+
+    harness.request("right");
+    await vi.waitFor(() => expect(
+      harness.progress.some((message) => message.includes("sendFailed")),
+    ).toBe(true));
+    harness.request("left");
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(7));
+
+    expect(harness.encodedTileIds).toEqual([
+      [3, 5, 2, 4],
+      [3, 5],
+      [2, 4],
+    ]);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4, 3, 2, 4]);
+  });
+
+  it("skips external work while hidden and restores the newest full HUD", async () => {
+    const order: string[] = [];
+    const harness = await createFastRefreshHarness({
+      beforeExternalRefresh: async () => {
+        order.push("external-redraw");
+      },
+      beforeRestore: async () => {
+        order.push("restore-redraw");
+      },
+      encode: async (ids, attempt, source) => {
+        if (attempt > 1) order.push(`encode:${source}:${ids.join(",")}`);
+        return ids.map((id) => new Uint8Array([id]));
+      },
+    });
+
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+    harness.request("right");
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(12));
+
+    expect(harness.encodedTileIds).toEqual([
+      [3, 5, 2, 4],
+      [3, 5, 2, 4],
+      [3, 5, 2, 4],
+    ]);
+    expect(order).toEqual([
+      "encode:black:3,5,2,4",
+      "restore-redraw",
+      "encode:hud:3,5,2,4",
+    ]);
   });
 
   it("toggles fast Canvas pixels while keeping the app event layer alive", async () => {

@@ -28,6 +28,7 @@ export const G2_FAST_TILES = [
   G2_TILES[0],
   G2_TILES[2],
 ] as const;
+export const G2_LEFT_TILES = [G2_TILES[0], G2_TILES[2]] as const;
 export const G2_RIGHT_TILES = [G2_TILES[1], G2_TILES[3]] as const;
 
 export const DIAGNOSTIC_TILES = [
@@ -104,17 +105,30 @@ export type FastCanvasBattery = {
   readonly level?: number;
   readonly charging?: boolean;
 };
-type FastCanvasOptions = {
+export type FastCanvasRefreshTarget = "left" | "right" | "all";
+export type FastCanvasRefreshRequest = (
+  target: FastCanvasRefreshTarget,
+) => void;
+export type FastCanvasOptions = {
+  readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly beforeRestore?: () => void | Promise<void>;
   readonly createHiddenSource?: () => HTMLCanvasElement;
   readonly dependencies?: TransportDependencies;
   readonly onBattery?: (
     battery: FastCanvasBattery | undefined,
   ) => void;
+  readonly onRefreshReady?: (request: FastCanvasRefreshRequest) => void;
 };
 type DisplayToggle = {
   readonly beforeRestore?: () => void | Promise<void>;
   readonly createHiddenSource: () => HTMLCanvasElement;
+};
+type ExternalRefresh = {
+  readonly beforeExternalRefresh?: () => void | Promise<void>;
+  readonly onRefreshReady?: (request: FastCanvasRefreshRequest) => void;
+  readonly targetTiles: Readonly<
+    Record<FastCanvasRefreshTarget, readonly Tile[]>
+  >;
 };
 
 export function toFastCanvasBattery(
@@ -393,6 +407,7 @@ export async function transmitCanvas(
   onNavigate?: (direction: PageDirection) => void | Promise<void>,
   navigationTiles: readonly Tile[] = tiles,
   displayToggle?: DisplayToggle,
+  externalRefresh?: ExternalRefresh,
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();
@@ -483,8 +498,44 @@ export async function transmitCanvas(
       }
     });
   };
+  let pendingRefreshTarget: FastCanvasRefreshTarget | undefined;
+  let externalRefreshScheduled = false;
+  const scheduleExternalRefresh = () => {
+    if (!externalRefresh || externalRefreshScheduled) return;
+    externalRefreshScheduled = true;
+    queueOperation(async () => {
+      try {
+        const target = pendingRefreshTarget;
+        pendingRefreshTarget = undefined;
+        if (!target || hidden) return;
+        onProgress("라이브 HUD 갱신 중");
+        await externalRefresh.beforeExternalRefresh?.();
+        if (hidden) return;
+        await refreshImages(
+          source,
+          externalRefresh.targetTiles[target],
+          "라이브 HUD 갱신 완료",
+        );
+      } finally {
+        externalRefreshScheduled = false;
+        if (pendingRefreshTarget) scheduleExternalRefresh();
+      }
+    });
+  };
+  const requestExternalRefresh: FastCanvasRefreshRequest = (target) => {
+    if (
+      pendingRefreshTarget === "all"
+      || target === "all"
+      || (pendingRefreshTarget && pendingRefreshTarget !== target)
+    ) {
+      pendingRefreshTarget = "all";
+    } else {
+      pendingRefreshTarget = target;
+    }
+    scheduleExternalRefresh();
+  };
 
-  return bridge.onEvenHubEvent((event) => {
+  const unsubscribe = bridge.onEvenHubEvent((event) => {
     const eventType = event.sysEvent?.eventType
       ?? event.textEvent?.eventType
       ?? null;
@@ -496,6 +547,8 @@ export async function transmitCanvas(
       queueNavigation("previous");
     }
   });
+  externalRefresh?.onRefreshReady?.(requestExternalRefresh);
+  return unsubscribe;
 }
 
 export function transmitFastCanvas(
@@ -534,6 +587,15 @@ export function transmitFastCanvas(
     {
       createHiddenSource: options.createHiddenSource ?? createBlackCanvas,
       beforeRestore: options.beforeRestore,
+    },
+    {
+      beforeExternalRefresh: options.beforeExternalRefresh,
+      onRefreshReady: options.onRefreshReady,
+      targetTiles: {
+        all: G2_FAST_TILES,
+        left: G2_LEFT_TILES,
+        right: G2_RIGHT_TILES,
+      },
     },
   );
 }
