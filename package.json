@@ -7,9 +7,9 @@
     "dev": "vite",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "preview": "vite preview",
-    "test": "vitest run src",
+    "test": "vitest run src --no-file-parallelism --maxWorkers=1",
     "typecheck": "tsc --noEmit",
-    "test:sites": "node --test tests/sites-worker.test.mjs",
+    "test:sites": "node --test --test-concurrency=1 tests/sites-worker.test.mjs",
     "qr": "evenhub qr --url \"http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=live-news-013\"",
     "pack": "npm run build && evenhub pack app.json dist/client -o even-relic.ehpk"
   },

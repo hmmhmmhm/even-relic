@@ -192,6 +192,9 @@ npm run test:sites
 npm run pack
 ```
 
+Vitest는 G2 개발 환경의 자원 경합을 피하도록 파일을 항상 한 개씩
+직렬 실행한다.
+
 ## 문서
 
 - [G2 이미지 전송 최초 성공 기록](docs/hardware/2026-07-26-first-g2-image-success.md)

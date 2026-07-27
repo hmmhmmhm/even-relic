@@ -17,5 +17,9 @@ export default defineConfig({
       clientFiles: ["./src/main.jsx"],
     },
   },
+  test: {
+    fileParallelism: false,
+    maxWorkers: 1,
+  },
   plugins: [relicDevApi(), react()],
 });
