@@ -1,39 +1,41 @@
 const MINUTE_MS = 60_000;
-type Timer = ReturnType<typeof globalThis.setTimeout>;
+const MINUTE_POLL_MS = 5_000;
+type Timer = ReturnType<typeof globalThis.setInterval>;
 
 type MinuteSchedulerOptions = {
   readonly now?: () => number;
-  readonly setTimeoutImpl?: (callback: () => void, delay: number) => Timer;
-  readonly clearTimeoutImpl?: (timer: Timer) => void;
+  readonly setIntervalImpl?: (
+    callback: () => void,
+    delay: number,
+  ) => Timer;
+  readonly clearIntervalImpl?: (timer: Timer) => void;
 };
 
-export function millisecondsUntilNextMinute(now: number): number {
-  const remainder = ((now % MINUTE_MS) + MINUTE_MS) % MINUTE_MS;
-  return remainder === 0 ? MINUTE_MS : MINUTE_MS - remainder;
+function minuteKey(time: number): number {
+  return Math.floor(time / MINUTE_MS);
 }
 
 export function startMinuteRefresh(
-  onMinute: () => void,
+  onMinute: (minute: number) => void,
   options: MinuteSchedulerOptions = {},
 ): () => void {
   const now = options.now ?? Date.now;
-  const setTimeoutImpl = options.setTimeoutImpl ?? globalThis.setTimeout;
-  const clearTimeoutImpl = options.clearTimeoutImpl ?? globalThis.clearTimeout;
+  const setIntervalImpl = options.setIntervalImpl ?? globalThis.setInterval;
+  const clearIntervalImpl = options.clearIntervalImpl
+    ?? globalThis.clearInterval;
   let stopped = false;
-  let timer: Timer | undefined;
-
-  const schedule = () => {
-    timer = setTimeoutImpl(() => {
-      if (stopped) return;
-      onMinute();
-      schedule();
-    }, millisecondsUntilNextMinute(now()));
-  };
-  schedule();
+  let observedMinute = minuteKey(now());
+  const timer = setIntervalImpl(() => {
+    if (stopped) return;
+    const currentMinute = minuteKey(now());
+    if (currentMinute === observedMinute) return;
+    observedMinute = currentMinute;
+    onMinute(currentMinute);
+  }, MINUTE_POLL_MS);
 
   return () => {
     if (stopped) return;
     stopped = true;
-    if (timer !== undefined) clearTimeoutImpl(timer);
+    clearIntervalImpl(timer);
   };
 }
