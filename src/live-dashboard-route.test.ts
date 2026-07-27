@@ -11,6 +11,7 @@ import {
 } from "./live-dashboard";
 import type { LocationBridge } from "./location";
 import { RoutingError, type Destination } from "./routing";
+import { diagnosticLogger } from "./diagnostic-log";
 
 const NOW = Date.parse("2026-07-27T14:20:00Z");
 const LOCATION: AppLocation = {
@@ -420,6 +421,7 @@ describe("live dashboard optional routing", () => {
     await session.start();
     await session.startRoute(DESTINATION, "foot-walking");
     expect(routeCalls).toBe(1);
+    diagnosticLogger.clear();
 
     for (let index = 1; index <= 3; index += 1) {
       currentTime += 15_000;
@@ -431,6 +433,9 @@ describe("live dashboard optional routing", () => {
       await vi.waitFor(() => {
         expect(session.getState().location.fetchedAt).toBe(currentTime);
       });
+      await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+        `process #${index} complete`,
+      ));
     }
     await vi.waitFor(() => expect(routeCalls).toBe(2));
     expect(updates.at(-1)?.state.route.status).toBe("fresh");
@@ -444,6 +449,9 @@ describe("live dashboard optional routing", () => {
     await vi.waitFor(() => {
       expect(session.getState().location.fetchedAt).toBe(currentTime);
     });
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "process #4 complete",
+    ));
     expect(routeCalls).toBe(2);
     session.dispose();
   });

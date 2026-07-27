@@ -11,6 +11,7 @@ import {
   type LiveDashboardUpdate,
 } from "./live-dashboard";
 import { diagnosticLogger } from "./diagnostic-log";
+import { clientMapCell } from "./map";
 
 const NOW = Date.parse("2026-07-27T14:20:00Z");
 const LOCATION: AppLocation = {
@@ -285,6 +286,61 @@ describe("live dashboard map integration", () => {
     expect(bridge.unsubscribeCalls).toBe(1);
   });
 
+  it("drops locations received while a slow map refresh is active", async () => {
+    const bridge = new StreamingBridge();
+    const slowMap = deferred<Response>();
+    let currentTime = NOW;
+    let mapCalls = 0;
+    const firstMoved = { latitude: 37.55705, longitude: 126.922 };
+    const droppedOne = { latitude: 37.5573, longitude: 126.922 };
+    const droppedTwo = { latitude: 37.5575, longitude: 126.922 };
+    const future = { latitude: 37.55735, longitude: 126.922 };
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.startsWith("/api/map")) {
+        mapCalls += 1;
+        if (mapCalls === 1) return mapResponse();
+        if (mapCalls === 2) return slowMap.promise;
+        return mapResponse(clientMapCell(future));
+      }
+      if (url.startsWith("/api/news")) return newsResponse();
+      return weatherResponse();
+    }) as unknown as typeof fetch;
+    diagnosticLogger.clear();
+    const session = createLiveDashboardSession({
+      bridge,
+      fetchImpl,
+      now: () => currentTime,
+      onUpdate: vi.fn(),
+    });
+    await session.start();
+
+    currentTime += 15_000;
+    bridge.emit({ ...firstMoved, timestamp: currentTime });
+    await vi.waitFor(() => expect(mapCalls).toBe(2));
+    currentTime += 3_000;
+    bridge.emit({ ...droppedOne, timestamp: currentTime });
+    currentTime += 3_000;
+    bridge.emit({ ...droppedTwo, timestamp: currentTime });
+    slowMap.resolve(mapResponse(clientMapCell(firstMoved)));
+
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "busy drop",
+    ));
+    await vi.waitFor(() => expect(session.getState().map.status).toBe("fresh"));
+    expect(session.getState().location.value?.coordinate).toEqual(firstMoved);
+    expect(JSON.parse(bridge.values.get("relic:location:v1") ?? "{}"))
+      .toMatchObject({ value: { coordinate: firstMoved } });
+    expect(diagnosticLogger.text()).not.toContain("pending");
+
+    currentTime += 30_000;
+    bridge.emit({ ...future, timestamp: currentTime });
+    await vi.waitFor(() => {
+      expect(session.getState().location.value?.coordinate).toEqual(future);
+    });
+    session.dispose();
+  });
+
   it("traces live refresh and location flow without coordinates", async () => {
     const bridge = new StreamingBridge();
     let currentTime = NOW;
@@ -304,6 +360,9 @@ describe("live dashboard map integration", () => {
     await session.start();
 
     bridge.emit({ latitude: 91, longitude: 126.922 });
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "process #1 complete",
+    ));
     currentTime += 15_000;
     bridge.emit({
       latitude: 37.55645,

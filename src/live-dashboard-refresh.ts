@@ -120,8 +120,8 @@ export function createLiveDashboardRefresh(
       return Promise.resolve();
     }
     if (weatherPromise) {
-      logDiagnostic("LIVE", "weather joined · active request");
-      return weatherPromise;
+      logDiagnostic("LIVE", "weather dropped · busy");
+      return Promise.resolve();
     }
     const startedAt = diagnosticNow();
     logDiagnostic("LIVE", "weather start");
@@ -187,8 +187,8 @@ export function createLiveDashboardRefresh(
       return Promise.resolve();
     }
     if (newsPromise) {
-      logDiagnostic("LIVE", "news joined · active request");
-      return newsPromise;
+      logDiagnostic("LIVE", "news dropped · busy");
+      return Promise.resolve();
     }
     const startedAt = diagnosticNow();
     logDiagnostic("LIVE", "news start");
@@ -236,8 +236,8 @@ export function createLiveDashboardRefresh(
       return Promise.resolve();
     }
     if (mapPromise) {
-      logDiagnostic("LIVE", "map joined · active request");
-      return mapPromise;
+      logDiagnostic("LIVE", "map dropped · busy");
+      return Promise.resolve();
     }
     const startedAt = diagnosticNow();
     logDiagnostic("LIVE", "map start");
