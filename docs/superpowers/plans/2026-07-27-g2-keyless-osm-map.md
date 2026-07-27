@@ -19,7 +19,7 @@
 - Modify: `scripts/prepare-sites-build.mjs`
 - Modify: `tests/sites-worker.test.mjs`
 
-- [ ] **Step 1: Write request validation and normalization tests**
+- [x] **Step 1: Write request validation and normalization tests**
 
 Assert:
 
@@ -77,13 +77,13 @@ expect:
 Also assert the query has `around:650`, selects only `way["highway"]`, and
 ends with `out geom;`.
 
-- [ ] **Step 2: Run and verify RED**
+- [x] **Step 2: Run and verify RED**
 
 ```bash
 node --test tests/map-api.test.mjs
 ```
 
-- [ ] **Step 3: Implement coordinate and cell helpers**
+- [x] **Step 3: Implement coordinate and cell helpers**
 
 Export from `server/map.js`:
 
@@ -104,7 +104,7 @@ export function buildOverpassQuery(latitude, longitude) {
 
 Reject non-finite or out-of-range coordinates before generating a query.
 
-- [ ] **Step 4: Implement compact road normalization**
+- [x] **Step 4: Implement compact road normalization**
 
 Classify these OSM highway tags as `major`:
 
@@ -127,7 +127,7 @@ Treat other valid highway ways as `minor`. Drop elements without at least two
 finite geometry points. Cap the result at 180 ways and 4,000 total points;
 prefer major ways before truncating.
 
-- [ ] **Step 5: Fetch with limits and cache by cell**
+- [x] **Step 5: Fetch with limits and cache by cell**
 
 Export:
 
@@ -178,7 +178,7 @@ MAP_TOO_LARGE 502
 MAP_UPSTREAM_ERROR 502
 ```
 
-- [ ] **Step 6: Route, package, verify, and commit**
+- [x] **Step 6: Route, package, verify, and commit**
 
 Add this branch before the router’s fallback:
 

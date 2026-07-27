@@ -1,4 +1,5 @@
 import { jsonResponse } from "./http.js";
+import { handleMapRequest } from "./map.js";
 import { handleNewsRequest } from "./news.js";
 
 export async function handleApiRequest(request, env, dependencies = {}) {
@@ -6,6 +7,9 @@ export async function handleApiRequest(request, env, dependencies = {}) {
   if (!url.pathname.startsWith("/api/")) return null;
   if (url.pathname === "/api/news" && request.method === "GET") {
     return handleNewsRequest(request, env, dependencies);
+  }
+  if (url.pathname === "/api/map" && request.method === "GET") {
+    return handleMapRequest(request, env, dependencies);
   }
 
   return jsonResponse(
