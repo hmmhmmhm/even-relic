@@ -18,7 +18,7 @@
 - Modify: `src/fast-canvas-hud.test.ts`
 - Modify: `src/fast-canvas-hud.ts`
 
-- [ ] **Step 1: 실패 테스트 작성**
+- [x] **Step 1: 실패 테스트 작성**
 
 기존 실시간 날씨 테스트에 다음 검사를 추가한다.
 
@@ -30,7 +30,7 @@ expect(details).toHaveLength(2);
 expect(details.every(({ font }) => /\b14px\b/.test(font))).toBe(true);
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run:
 
@@ -42,7 +42,7 @@ npx vitest run src/fast-canvas-hud.test.ts \
 Expected: 두 문구의 현재 폰트가 11px이므로 `every()` 검사가 `false`가 되어
 실패한다.
 
-- [ ] **Step 3: 최소 구현**
+- [x] **Step 3: 최소 구현**
 
 `src/fast-canvas-hud.ts`의 두 `drawText()` 호출에서 크기 인자를 11에서
 14로 변경한다.
@@ -68,7 +68,7 @@ drawText(
 );
 ```
 
-- [ ] **Step 4: 직렬 검증**
+- [x] **Step 4: 직렬 검증**
 
 Run:
 
@@ -83,7 +83,7 @@ git diff --check
 Expected: HUD 테스트 10개, 타입 검사, 60개 모듈 빌드와 diff 검사가 모두
 통과한다.
 
-- [ ] **Step 5: 커밋과 서버 확인**
+- [x] **Step 5: 커밋과 서버 확인**
 
 ```bash
 git add src/fast-canvas-hud.ts src/fast-canvas-hud.test.ts \

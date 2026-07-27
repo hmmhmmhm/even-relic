@@ -158,7 +158,7 @@ function drawOverview(
       `체감 ${Math.round(weather.apparentTemperature)}°  습도 ${Math.round(weather.humidity)}%`,
       308,
       226,
-      11,
+      14,
       COLOR.secondary,
       "bold",
     );
@@ -167,7 +167,7 @@ function drawOverview(
       `강수 ${Math.round(weather.precipitationProbability)}%  바람 ${Math.round(weather.windSpeed)}km/h`,
       308,
       248,
-      11,
+      14,
       COLOR.primary,
       "bold",
     );

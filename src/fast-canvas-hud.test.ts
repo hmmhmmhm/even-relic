@@ -336,6 +336,11 @@ describe("fast split Canvas HUD", () => {
       "체감 31°  습도 67%",
       "강수 20%  바람 8km/h",
     ]));
+    const details = weather.texts.filter(({ value }) =>
+      value.startsWith("체감 ") || value.startsWith("강수 ")
+    );
+    expect(details).toHaveLength(2);
+    expect(details.every(({ font }) => /\b14px\b/.test(font))).toBe(true);
     const headerWeather = weather.texts.find(
       ({ value, y }) => value === "29°C 대체로 맑음" && y === 40,
     );
