@@ -239,7 +239,7 @@ export async function transmitCanvas(
       const result = await onInput?.(input) ?? "unhandled";
       if (disposed) return;
       if (result === "redraw") {
-        await refreshImages(source, tiles, "지도 화면 전송 완료");
+        await refreshImages(source, tiles, "상세 화면 전송 완료");
       } else if (result === "unhandled") {
         await fallback?.();
       }

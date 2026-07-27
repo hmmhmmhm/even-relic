@@ -984,6 +984,34 @@ describe("G2 raster transport", () => {
     ]);
   });
 
+  it("sends every detail transition as one ordered four-tile operation", async () => {
+    const harness = await createFastRefreshHarness({
+      inputResult: "redraw",
+    });
+
+    harness.emit(OsEventTypeList.CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+    harness.emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(12));
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(16));
+
+    harness.setInputResult("consume");
+    harness.emit(OsEventTypeList.SCROLL_TOP_EVENT);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(harness.encodedTileIds).toEqual([
+      [3, 5, 2, 4],
+      [3, 5, 2, 4],
+      [3, 5, 2, 4],
+      [3, 5, 2, 4],
+    ]);
+    expect(harness.imageIds).toHaveLength(16);
+    expect(harness.progress).toContain("상세 화면 전송 완료");
+    expect(harness.maximumActiveImageSends).toBe(1);
+  });
+
   it("lets handled double-tap input redraw before dashboard hide fallback", async () => {
     const harness = await createFastRefreshHarness();
 

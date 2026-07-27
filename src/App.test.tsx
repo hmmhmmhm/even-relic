@@ -64,6 +64,7 @@ function sessionOptions(): SessionTestOptions {
 
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
+  drawDetail: vi.fn(),
   drawFast: vi.fn(),
   drawFullscreen: vi.fn(),
   getRoutingStatus: vi.fn(),
@@ -71,6 +72,11 @@ const mocks = vi.hoisted(() => ({
   searchDestinations: vi.fn(),
   transmitFast: vi.fn(),
   waitForBridge: vi.fn(),
+}));
+
+vi.mock("./fast-detail-hud", async (importOriginal) => ({
+  ...await importOriginal<typeof import("./fast-detail-hud")>(),
+  drawFastDetailHud: mocks.drawDetail,
 }));
 
 vi.mock("./fast-canvas-hud", async (importOriginal) => ({
@@ -110,6 +116,7 @@ vi.mock("./routing", async (importOriginal) => ({
 
 beforeEach(() => {
   mocks.createSession.mockReset();
+  mocks.drawDetail.mockReset();
   mocks.drawFast.mockReset();
   mocks.drawFullscreen.mockReset();
   mocks.getRoutingStatus.mockReset();
@@ -401,8 +408,123 @@ describe("RELIC peripheral HUD", () => {
 
     await navigate?.("next");
     mocks.drawFullscreen.mockClear();
-    expect(await fastOptions().onInput?.("tap")).toBe("unhandled");
+    expect(await fastOptions().onInput?.("tap")).toBe("redraw");
     expect(mocks.drawFullscreen).not.toHaveBeenCalled();
+    expect(mocks.drawDetail).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.objectContaining({ mode: "news", newsIndex: 0 }),
+    );
+    view.unmount();
+  });
+
+  it("opens news and TODO detail decks and applies a selected TODO toggle", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    let navigate:
+      | ((direction: "next" | "previous") => Promise<void>)
+      | undefined;
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      navigate = args[2] as typeof navigate;
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return vi.fn();
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const session = {
+      start: vi.fn(async () => undefined),
+      toggleTodo: vi.fn(async () => true),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+    await navigate?.("next");
+    expect(await fastOptions().onInput?.("tap")).toBe("redraw");
+    expect(mocks.drawDetail).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.objectContaining({ mode: "news", newsIndex: 0 }),
+    );
+    expect(await fastOptions().onInput?.("double-tap")).toBe("redraw");
+
+    await navigate?.("next");
+    expect(await fastOptions().onInput?.("tap")).toBe("redraw");
+    expect(await fastOptions().onInput?.("scroll-next")).toBe("redraw");
+    expect(await fastOptions().onInput?.("tap")).toBe("consume");
+    expect(session.toggleTodo).toHaveBeenCalledOnce();
+    expect(session.toggleTodo).toHaveBeenCalledWith(1);
+    expect(mocks.drawDetail).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.objectContaining({ mode: "todo", todoIndex: 1 }),
+    );
+    view.unmount();
+  });
+
+  it("refreshes only data visible in the open news detail", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    let navigate:
+      | ((direction: "next" | "previous") => Promise<void>)
+      | undefined;
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      navigate = args[2] as typeof navigate;
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return vi.fn();
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const session = {
+      start: vi.fn(async () => undefined),
+      toggleTodo: vi.fn(async () => true),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+    await navigate?.("next");
+    await fastOptions().onInput?.("tap");
+    requestRefresh.mockClear();
+
+    const weather: LiveDashboardState = {
+      ...createInitialLiveDashboardState(),
+      weather: {
+        status: "fresh",
+        fetchedAt: 1,
+        value: {
+          temperature: 28,
+          apparentTemperature: 29,
+          humidity: 60,
+          windSpeed: 2,
+          precipitationProbability: 10,
+          weatherCode: 1,
+          condition: "맑음",
+        },
+      },
+    };
+    sessionOptions().onUpdate({ state: weather, target: "right" });
+    expect(requestRefresh).not.toHaveBeenCalled();
+
+    const news: LiveDashboardState = {
+      ...weather,
+      news: {
+        status: "fresh",
+        fetchedAt: 2,
+        value: [{
+          id: "news-1",
+          title: "새 뉴스",
+          summary: "새 RSS 요약",
+        }],
+      },
+    };
+    sessionOptions().onUpdate({ state: news, target: "right" });
+    expect(requestRefresh).toHaveBeenCalledWith("all");
+    await fastOptions().beforeExternalRefresh?.();
+    expect(mocks.drawDetail).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.objectContaining({ mode: "news", live: news }),
+    );
     view.unmount();
   });
 
