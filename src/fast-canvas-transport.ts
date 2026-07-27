@@ -8,6 +8,7 @@ import {
   waitForEvenAppBridge,
   type CreateStartUpPageContainer,
   type DeviceInfo,
+  type DeviceStatus,
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
 import {
@@ -29,6 +30,9 @@ type Bridge = {
     page: CreateStartUpPageContainer,
   ) => Promise<unknown>;
   getDeviceInfo?: () => Promise<DeviceInfo | null>;
+  onDeviceStatusChanged?: (
+    listener: (status: DeviceStatus) => void,
+  ) => () => void;
   rebuildPageContainer: (page: RebuildPageContainer) => Promise<boolean>;
   updateImageRawData: (update: ImageRawDataUpdate) => Promise<unknown>;
   onEvenHubEvent: (listener: (event: EvenHubEvent) => void) => () => void;
@@ -89,6 +93,15 @@ export function toFastCanvasBattery(
     level: device.status.batteryLevel,
     charging: device.status.isCharging,
   };
+}
+
+function isSameFastCanvasBattery(
+  left: FastCanvasBattery | undefined,
+  right: FastCanvasBattery | undefined,
+): boolean {
+  return left?.label === right?.label
+    && left?.level === right?.level
+    && left?.charging === right?.charging;
 }
 
 export async function transmitCanvas(
@@ -275,7 +288,7 @@ export async function transmitCanvas(
   return dispose;
 }
 
-export function transmitFastCanvas(
+export async function transmitFastCanvas(
   source: HTMLCanvasElement,
   onProgress: (message: string) => void,
   onNavigate: (direction: PageDirection) => void | Promise<void>,
@@ -285,23 +298,29 @@ export function transmitFastCanvas(
     waitForBridge: waitForEvenAppBridge,
     encode: encodeCanvasTiles,
   };
+  let connectedBridge: Bridge | undefined;
+  let deviceInfo: DeviceInfo | null | undefined;
+  let lastBattery: FastCanvasBattery | undefined;
   const dependencies: TransportDependencies = {
     ...baseDependencies,
     waitForBridge: async () => {
       const bridge = await baseDependencies.waitForBridge();
+      connectedBridge = bridge;
       if (options.onBattery) {
         try {
-          options.onBattery(toFastCanvasBattery(
-            await bridge.getDeviceInfo?.(),
-          ));
+          deviceInfo = await bridge.getDeviceInfo?.();
+          lastBattery = toFastCanvasBattery(deviceInfo);
+          options.onBattery(lastBattery);
         } catch {
+          deviceInfo = undefined;
+          lastBattery = undefined;
           options.onBattery(undefined);
         }
       }
       return bridge;
     },
   };
-  return transmitCanvas(
+  const transportCleanup = await transmitCanvas(
     source,
     onProgress,
     dependencies,
@@ -323,4 +342,38 @@ export function transmitFastCanvas(
       },
     },
   );
+  let cleaned = false;
+  let unsubscribeDeviceStatus: (() => void) | undefined;
+  if (deviceInfo && connectedBridge?.onDeviceStatusChanged) {
+    try {
+      unsubscribeDeviceStatus = connectedBridge.onDeviceStatusChanged(
+        (status) => {
+          if (
+            cleaned
+            || status.sn !== deviceInfo?.sn
+            || !lastBattery
+          ) {
+            return;
+          }
+          const nextBattery: FastCanvasBattery = {
+            label: lastBattery.label,
+            level: status.batteryLevel ?? lastBattery.level,
+            charging: status.isCharging ?? lastBattery.charging,
+          };
+          if (isSameFastCanvasBattery(lastBattery, nextBattery)) return;
+          lastBattery = nextBattery;
+          options.onBattery?.(nextBattery);
+        },
+      );
+    } catch {
+      unsubscribeDeviceStatus = undefined;
+    }
+  }
+
+  return () => {
+    if (cleaned) return;
+    cleaned = true;
+    unsubscribeDeviceStatus?.();
+    transportCleanup();
+  };
 }

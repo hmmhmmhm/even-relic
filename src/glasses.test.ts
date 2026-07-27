@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import {
+  DeviceInfo,
   DeviceModel,
+  DeviceStatus,
   OsEventTypeList,
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
@@ -541,6 +543,90 @@ describe("G2 raster transport", () => {
       level: 82,
       charging: true,
     }]);
+  });
+
+  it("emits only changed matching device status and unsubscribes on cleanup", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+
+    let deviceListener: ((status: DeviceStatus) => void) | undefined;
+    let deviceUnsubscribeCalls = 0;
+    const batteries: unknown[] = [];
+    const bridge = {
+      getDeviceInfo: async () => new DeviceInfo({
+        model: DeviceModel.G2,
+        sn: "g2-one",
+        status: new DeviceStatus({
+          sn: "g2-one",
+          batteryLevel: 82,
+          isCharging: false,
+        }),
+      }),
+      createStartUpPageContainer: async () => 0,
+      rebuildPageContainer: async () => true,
+      updateImageRawData: async () => "success",
+      onDeviceStatusChanged: (listener: (status: DeviceStatus) => void) => {
+        deviceListener = listener;
+        return () => {
+          deviceUnsubscribeCalls += 1;
+        };
+      },
+      onEvenHubEvent: () => () => undefined,
+      shutDownPageContainer: async () => true,
+    };
+
+    const cleanup = await module.transmitFastCanvas(
+      {} as HTMLCanvasElement,
+      () => undefined,
+      async () => undefined,
+      {
+        dependencies: {
+          waitForBridge: async () => bridge,
+          encode: async (
+            _source: HTMLCanvasElement,
+            _factory: unknown,
+            tiles = module.G2_TILES,
+          ) => tiles.map(({ id }) => new Uint8Array([id])),
+        },
+        onBattery: (battery) => batteries.push(battery),
+      },
+    );
+
+    deviceListener?.(new DeviceStatus({
+      sn: "g2-one",
+      batteryLevel: 82,
+      isCharging: false,
+    }));
+    deviceListener?.(new DeviceStatus({
+      sn: "other",
+      batteryLevel: 81,
+      isCharging: false,
+    }));
+    deviceListener?.(new DeviceStatus({
+      sn: "g2-one",
+      batteryLevel: 81,
+      isCharging: false,
+    }));
+    deviceListener?.(new DeviceStatus({
+      sn: "g2-one",
+      batteryLevel: 81,
+      isCharging: true,
+    }));
+
+    expect(batteries).toEqual([
+      { label: "G2", level: 82, charging: false },
+      { label: "G2", level: 81, charging: false },
+      { label: "G2", level: 81, charging: true },
+    ]);
+    cleanup();
+    cleanup();
+    deviceListener?.(new DeviceStatus({
+      sn: "g2-one",
+      batteryLevel: 79,
+      isCharging: true,
+    }));
+    expect(batteries).toHaveLength(3);
+    expect(deviceUnsubscribeCalls).toBe(1);
   });
 
   it("live refresh coalesces synchronous left and right requests into one serialized full send", async () => {

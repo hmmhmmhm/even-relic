@@ -108,7 +108,11 @@ export function App({ autoStart = true }: AppProps) {
             beforeRestore: drawCurrentPage,
             onBattery: (nextBattery) => {
               battery = nextBattery;
-              drawCurrentPage();
+              if (requestLiveRefresh && page === "overview") {
+                requestLiveRefresh("right-top");
+              } else if (!requestLiveRefresh) {
+                drawCurrentPage();
+              }
             },
             onRefreshReady: (request) => {
               if (cancelled) return;

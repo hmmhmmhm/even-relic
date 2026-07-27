@@ -10,6 +10,11 @@ import {
 type RefreshTarget = "left" | "right" | "right-top" | "all";
 type FastTestOptions = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
+  readonly onBattery?: (battery: {
+    readonly label: "G1" | "G2" | "R1";
+    readonly level?: number;
+    readonly charging?: boolean;
+  } | undefined) => void;
   readonly onRefreshReady?: (
     request: (target: RefreshTarget) => void,
   ) => void;
@@ -254,6 +259,64 @@ describe("RELIC peripheral HUD", () => {
 
     view.unmount();
     expect(stopMinuteRefresh).toHaveBeenCalledOnce();
+  });
+
+  it("refreshes a visible overview battery change and retains it on other pages", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    const transportCleanup = vi.fn();
+    let navigate:
+      | ((direction: "next" | "previous") => Promise<void>)
+      | undefined;
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      navigate = args[2] as typeof navigate;
+      const options = args[3] as FastTestOptions;
+      options.onBattery?.({
+        label: "G2",
+        level: 82,
+        charging: false,
+      });
+      options.onRefreshReady?.(requestRefresh);
+      return transportCleanup;
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+
+    fastOptions().onBattery?.({
+      label: "G2",
+      level: 81,
+      charging: false,
+    });
+    expect(requestRefresh).toHaveBeenLastCalledWith("right-top");
+
+    requestRefresh.mockClear();
+    await navigate?.("next");
+    fastOptions().onBattery?.({
+      label: "G2",
+      level: 80,
+      charging: true,
+    });
+    expect(requestRefresh).not.toHaveBeenCalled();
+
+    await navigate?.("previous");
+    expect(mocks.drawFast).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.any(Date),
+      "overview",
+      {
+        battery: { label: "G2", level: 80, charging: true },
+        live: expect.any(Object),
+      },
+    );
+    view.unmount();
   });
 
   it("does not start bridge or session after unmounting during transport", async () => {

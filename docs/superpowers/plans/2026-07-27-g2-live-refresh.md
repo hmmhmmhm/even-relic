@@ -254,7 +254,7 @@ git commit -m "feat: refresh G2 clock on minute boundaries"
 - Modify: `src/App.tsx`
 - Modify: `src/App.test.tsx`
 
-- [ ] **Step 1: Write failing device-status tests**
+- [x] **Step 1: Write failing device-status tests**
 
 Build a bridge fixture with initial `DeviceInfo` serial `g2-one` and capture
 the `onDeviceStatusChanged` callback. After the initial four-tile send, emit:
@@ -286,7 +286,7 @@ Navigate to `news`, emit another battery callback, and assert no immediate
 refresh; navigate back to `overview` and assert the newest battery is passed
 to the renderer.
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run separately:
 
@@ -300,7 +300,7 @@ npx vitest run src/App.test.tsx -t "battery change" \
 Expected: FAIL because fast transport does not subscribe to device status and
 App only redraws the initial snapshot.
 
-- [ ] **Step 3: Normalize and deduplicate battery events**
+- [x] **Step 3: Normalize and deduplicate battery events**
 
 Extend the internal transport bridge with optional:
 
@@ -322,7 +322,7 @@ cleanup that first unsubscribes device status, then disposes the base
 transport. Missing device info or a missing event API remains a valid
 `BATTERY --` path.
 
-- [ ] **Step 4: Make App battery refresh page-aware**
+- [x] **Step 4: Make App battery refresh page-aware**
 
 The initial callback still redraws before startup encoding. For later
 deduplicated callbacks:
@@ -339,7 +339,7 @@ if (requestLiveRefresh && page === "overview") {
 On a non-overview page retain state without transmitting. Normal page
 navigation redraws the latest state.
 
-- [ ] **Step 5: Run focused tests and commit**
+- [x] **Step 5: Run focused tests and commit**
 
 Run separately:
 
