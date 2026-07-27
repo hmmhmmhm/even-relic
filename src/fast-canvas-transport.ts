@@ -232,8 +232,8 @@ export async function transmitCanvas(
     if (disposed || (hidden && input !== "double-tap")) return;
     queueOperation(async () => {
       if (disposed) return;
-      if (hidden && input === "double-tap") {
-        await performDisplayToggle();
+      if (hidden) {
+        if (input === "double-tap") await performDisplayToggle();
         return;
       }
       const result = await onInput?.(input) ?? "unhandled";

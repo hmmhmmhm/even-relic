@@ -1010,6 +1010,34 @@ describe("G2 raster transport", () => {
     expect(harness.inputs).toEqual(["double-tap", "double-tap"]);
   });
 
+  it("drops input queued while the black hide transfer is finishing", async () => {
+    const hideGate = deferred();
+    let hideBlocked = false;
+    const harness = await createFastRefreshHarness({
+      update: async (_id, _call, encodeAttempt) => {
+        if (encodeAttempt === 2 && !hideBlocked) {
+          hideBlocked = true;
+          await hideGate.promise;
+        }
+        return "success";
+      },
+    });
+
+    harness.setInputResult("unhandled");
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(hideBlocked).toBe(true));
+    harness.setInputResult("redraw");
+    harness.emit(OsEventTypeList.CLICK_EVENT);
+    hideGate.resolve();
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(harness.imageIds).toHaveLength(8);
+    expect(harness.inputs).toEqual(["double-tap"]);
+    expect(harness.encodedSources).toEqual(["hud", "black"]);
+  });
+
   it("serializes rapid handled input redraws", async () => {
     const firstInputSend = deferred();
     let blocked = false;
