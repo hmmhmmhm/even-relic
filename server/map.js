@@ -10,6 +10,8 @@ export const MAP_RADIUS_METERS = 650;
 const MAX_BYTES = 1_000_000;
 const MAX_ROADS = 180;
 const MAX_POINTS = 4_000;
+const MAX_LABELS = 24;
+const MAX_LABEL_CODE_POINTS = 40;
 const TIMEOUT_MS = 8_000;
 const MAJOR_HIGHWAYS = new Set([
   "motorway",
@@ -44,10 +46,15 @@ export function mapCell(latitude, longitude) {
 }
 
 export function buildOverpassQuery(latitude, longitude) {
-  return (
-    `[out:json][timeout:8];way["highway"]` +
-    `(around:${MAP_RADIUS_METERS},${latitude},${longitude});out geom;`
-  );
+  const around = `(around:${MAP_RADIUS_METERS},${latitude},${longitude})`;
+  return [
+    "[out:json][timeout:8];",
+    `way["highway"]${around}->.roads;`,
+    `nwr["name"][~"^(railway|public_transport|place|leisure|tourism|amenity)$"` +
+      `~"^(station|halt|city|town|village|suburb|quarter|neighbourhood|locality|square|park|garden|stadium|museum|attraction|gallery|hospital|university|school|library|marketplace|townhall)$"]${around}->.named;`,
+    ".roads out geom;",
+    ".named out center;",
+  ].join("");
 }
 
 function normalizedRoad(element) {
@@ -69,10 +76,104 @@ function normalizedRoad(element) {
   };
 }
 
+function normalizedName(tags) {
+  const raw = tags?.["name:ko"] ?? tags?.name;
+  if (typeof raw !== "string") return null;
+  const clean = raw
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!clean) return null;
+  return [...clean].slice(0, MAX_LABEL_CODE_POINTS).join("");
+}
+
+function geographicPoint(latitudeValue, longitudeValue) {
+  const latitude = Number(latitudeValue);
+  const longitude = Number(longitudeValue);
+  return Number.isFinite(latitude)
+    && latitude >= -90
+    && latitude <= 90
+    && Number.isFinite(longitude)
+    && longitude >= -180
+    && longitude <= 180
+    ? [latitude, longitude]
+    : null;
+}
+
+function labelPoint(element, road) {
+  if (element?.type === "node") {
+    const point = geographicPoint(element.lat, element.lon);
+    if (point) return point;
+  }
+  const center = geographicPoint(element?.center?.lat, element?.center?.lon);
+  if (center) return center;
+  if (!road) return null;
+  return road.points[Math.floor(road.points.length / 2)] ?? null;
+}
+
+function labelKind(element, road) {
+  if (
+    ["station", "halt"].includes(element?.tags?.railway)
+    || element?.tags?.public_transport === "station"
+  ) {
+    return { kind: "transit", priority: 0 };
+  }
+  if (typeof element?.tags?.place === "string") {
+    return { kind: "place", priority: 1 };
+  }
+  if (road?.kind === "major") {
+    return { kind: "road", priority: 2 };
+  }
+  if (
+    element?.tags?.leisure
+    || element?.tags?.tourism
+    || element?.tags?.amenity
+  ) {
+    return { kind: "landmark", priority: 3 };
+  }
+  if (road) return { kind: "road", priority: 4 };
+  return null;
+}
+
+function normalizedLabels(elements) {
+  const candidates = elements.flatMap((element, sourceIndex) => {
+    const road = normalizedRoad(element);
+    const classification = labelKind(element, road);
+    const name = normalizedName(element?.tags);
+    const point = labelPoint(element, road);
+    if (!classification || !name || !point) return [];
+    return [{
+      ...classification,
+      name,
+      point,
+      sourceIndex,
+    }];
+  });
+  candidates.sort(
+    (left, right) =>
+      left.priority - right.priority
+      || left.sourceIndex - right.sourceIndex,
+  );
+
+  const labels = [];
+  const seen = new Set();
+  for (const candidate of candidates) {
+    const key = candidate.name.toLocaleLowerCase("ko-KR");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    labels.push({
+      kind: candidate.kind,
+      name: candidate.name,
+      point: candidate.point,
+    });
+    if (labels.length >= MAX_LABELS) break;
+  }
+  return labels;
+}
+
 function normalizeMapPayload(payload, cell) {
-  const candidates = Array.isArray(payload?.elements)
-    ? payload.elements.map(normalizedRoad).filter(Boolean)
-    : [];
+  const elements = Array.isArray(payload?.elements) ? payload.elements : [];
+  const candidates = elements.map(normalizedRoad).filter(Boolean);
   candidates.sort((left, right) => {
     if (left.kind === right.kind) return 0;
     return left.kind === "major" ? -1 : 1;
@@ -93,12 +194,13 @@ function normalizeMapPayload(payload, cell) {
     cell,
     attribution: "© OSM CONTRIBUTORS",
     roads,
+    labels: normalizedLabels(elements),
   };
 }
 
 function cacheRequest(cell) {
   return new Request(
-    `https://relic-map-cache.invalid/roads?cell=${encodeURIComponent(cell)}`,
+    `https://relic-map-cache.invalid/roads-labels-v2?cell=${encodeURIComponent(cell)}`,
   );
 }
 

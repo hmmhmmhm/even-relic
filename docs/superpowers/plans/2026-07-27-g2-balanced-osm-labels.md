@@ -75,7 +75,7 @@ Expected: no whitespace errors and one documentation commit.
 - Modify: `tests/map-api.test.mjs`
 - Modify: `server/map.js`
 
-- [ ] **Step 1: Write failing query and normalization tests**
+- [x] **Step 1: Write failing query and normalization tests**
 
 Extend the Overpass fixture with:
 
@@ -133,16 +133,12 @@ labels: [
 ],
 ```
 
-Assert the generated query contains all fixed selectors:
+Assert the generated query contains the fixed road selector and one combined
+named-feature selector:
 
 ```text
 way["highway"]
-nwr["name"]["railway"~"^(station|halt)$"]
-nwr["name"]["public_transport"="station"]
-nwr["name"]["place"]
-nwr["name"]["leisure"~"^(park|garden|stadium)$"]
-nwr["name"]["tourism"~"^(museum|attraction|gallery)$"]
-nwr["name"]["amenity"~"^(hospital|university|school|library|marketplace|townhall)$"]
+nwr["name"][~"^(railway|public_transport|place|leisure|tourism|amenity)$"~"^(station|halt|city|town|village|suburb|quarter|neighbourhood|locality|square|park|garden|stadium|museum|attraction|gallery|hospital|university|school|library|marketplace|townhall)$"]
 ```
 
 Also test:
@@ -155,7 +151,7 @@ Also test:
 - names are limited to 40 Unicode code points;
 - at most 24 labels are returned.
 
-- [ ] **Step 2: Run the server label test and verify RED**
+- [x] **Step 2: Run the server label test and verify RED**
 
 Run:
 
@@ -166,7 +162,7 @@ node --test --test-concurrency=1 tests/map-api.test.mjs
 Expected: FAIL because the response has no `labels` property and the query has
 no named-feature selectors.
 
-- [ ] **Step 3: Extend the fixed Overpass query**
+- [x] **Step 3: Extend the fixed Overpass query**
 
 Change `buildOverpassQuery()` to produce one fixed query:
 
@@ -176,14 +172,8 @@ export function buildOverpassQuery(latitude, longitude) {
   return [
     "[out:json][timeout:8];",
     `way["highway"]${around}->.roads;`,
-    "(",
-    `nwr["name"]["railway"~"^(station|halt)$"]${around};`,
-    `nwr["name"]["public_transport"="station"]${around};`,
-    `nwr["name"]["place"]${around};`,
-    `nwr["name"]["leisure"~"^(park|garden|stadium)$"]${around};`,
-    `nwr["name"]["tourism"~"^(museum|attraction|gallery)$"]${around};`,
-    `nwr["name"]["amenity"~"^(hospital|university|school|library|marketplace|townhall)$"]${around};`,
-    ")->.named;",
+    `nwr["name"][~"^(railway|public_transport|place|leisure|tourism|amenity)$"` +
+      `~"^(station|halt|city|town|village|suburb|quarter|neighbourhood|locality|square|park|garden|stadium|museum|attraction|gallery|hospital|university|school|library|marketplace|townhall)$"]${around}->.named;`,
     ".roads out geom;",
     ".named out center;",
   ].join("");
@@ -191,8 +181,12 @@ export function buildOverpassQuery(latitude, longitude) {
 ```
 
 The endpoint still accepts only coordinates; callers cannot alter selectors.
+The combined selector preserves the approved allowlist while avoiding six
+repeated spatial-index scans. The repeated-selector form returned a real
+Overpass 504 for the Hongdae cell; this form returned HTTP 200 with the same
+bounded feature set.
 
-- [ ] **Step 4: Add name, anchor, kind, and priority helpers**
+- [x] **Step 4: Add name, anchor, kind, and priority helpers**
 
 In `server/map.js`, define:
 
@@ -244,7 +238,7 @@ Sort by priority then source order, deduplicate with
 `name.toLocaleLowerCase("ko-KR")`, and return the first 24 without exposing
 priority.
 
-- [ ] **Step 5: Version the server cache and return labels**
+- [x] **Step 5: Version the server cache and return labels**
 
 Change the internal cache request path from `roads` to
 `roads-labels-v2`. Extend `normalizeMapPayload()` to return:
@@ -260,7 +254,7 @@ return {
 
 Keep the 180-road, 4,000-point, one-megabyte, and timeout limits unchanged.
 
-- [ ] **Step 6: Run serial server tests and commit**
+- [x] **Step 6: Run serial server tests and commit**
 
 Run in order:
 

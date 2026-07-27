@@ -14,7 +14,7 @@ function overpassResponse(elements = []) {
   });
 }
 
-test("builds a bounded road-only Overpass query and normalizes geometry", async () => {
+test("builds a bounded labelled Overpass query and normalizes geometry", async () => {
   const calls = [];
   const response = await handleApiRequest(
     new Request("https://example.test/api/map?lat=37.5563&lng=126.922"),
@@ -26,7 +26,11 @@ test("builds a bounded road-only Overpass query and normalizes geometry", async 
         return overpassResponse([
           {
             type: "way",
-            tags: { highway: "primary" },
+            tags: {
+              highway: "primary",
+              name: "Yanghwa-ro",
+              "name:ko": "양화로",
+            },
             geometry: [
               { lat: 37.55, lon: 126.91 },
               { lat: 37.56, lon: 126.92 },
@@ -39,6 +43,25 @@ test("builds a bounded road-only Overpass query and normalizes geometry", async 
               { lat: 37.56, lon: 126.92 },
               { lat: 37.57, lon: 126.93 },
             ],
+          },
+          {
+            type: "node",
+            lat: 37.5572,
+            lon: 126.9245,
+            tags: {
+              railway: "station",
+              name: "Hongik University",
+              "name:ko": "홍대입구역",
+            },
+          },
+          {
+            type: "node",
+            lat: 37.5568,
+            lon: 126.923,
+            tags: {
+              leisure: "park",
+              name: "경의선숲길",
+            },
           },
         ]);
       },
@@ -59,6 +82,23 @@ test("builds a bounded road-only Overpass query and normalizes geometry", async 
         points: [[37.56, 126.92], [37.57, 126.93]],
       },
     ],
+    labels: [
+      {
+        kind: "transit",
+        name: "홍대입구역",
+        point: [37.5572, 126.9245],
+      },
+      {
+        kind: "road",
+        name: "양화로",
+        point: [37.56, 126.92],
+      },
+      {
+        kind: "landmark",
+        name: "경의선숲길",
+        point: [37.5568, 126.923],
+      },
+    ],
   });
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, "https://overpass-api.de/api/interpreter");
@@ -70,12 +110,117 @@ test("builds a bounded road-only Overpass query and normalizes geometry", async 
   });
   const query = calls[0].options.body.get("data");
   assert.match(query, /way\["highway"\]\(around:650,37\.5563,126\.922\)/);
-  assert.match(query, /out geom;$/);
+  assert.match(
+    query,
+    /nwr\["name"\]\[~"\^\(railway\|public_transport\|place\|leisure\|tourism\|amenity\)\$"~"\^\(station\|halt\|city\|town\|village\|suburb\|quarter\|neighbourhood\|locality\|square\|park\|garden\|stadium\|museum\|attraction\|gallery\|hospital\|university\|school\|library\|marketplace\|townhall\)\$"\]/,
+  );
+  assert.match(query, /\.roads out geom;\.named out center;$/);
   assert.ok(calls[0].options.signal instanceof AbortSignal);
   assert.equal(
     response.headers.get("cache-control"),
     "public, max-age=3600, s-maxage=86400",
   );
+});
+
+test("sanitizes, prioritizes, deduplicates, and caps labels", async () => {
+  const minorDuplicate = {
+    type: "way",
+    tags: { highway: "residential", name: "main road" },
+    geometry: [
+      { lat: 37.5, lon: 127 },
+      { lat: 37.501, lon: 127.001 },
+    ],
+  };
+  const landmark = {
+    type: "node",
+    lat: 37.502,
+    lon: 127.002,
+    tags: { leisure: "park", name: "  시민\u0000  공원\n" },
+  };
+  const place = {
+    type: "node",
+    lat: 37.503,
+    lon: 127.003,
+    tags: { place: "neighbourhood", name: "연남동" },
+  };
+  const transit = {
+    type: "node",
+    lat: 37.504,
+    lon: 127.004,
+    tags: {
+      public_transport: "station",
+      name: "Hongdae",
+      "name:ko": "홍대입구역",
+    },
+  };
+  const majorDuplicate = {
+    type: "way",
+    tags: { highway: "primary", name: "MAIN ROAD" },
+    geometry: [
+      { lat: 37.505, lon: 127.005 },
+      { lat: 37.506, lon: 127.006 },
+      { lat: 37.507, lon: 127.007 },
+    ],
+  };
+  const longPlace = {
+    type: "node",
+    lat: 37.508,
+    lon: 127.008,
+    tags: { place: "locality", name: "가".repeat(45) },
+  };
+  const invalid = {
+    type: "node",
+    lat: 91,
+    lon: 127,
+    tags: { railway: "station", name: "INVALID" },
+  };
+  const extras = Array.from({ length: 30 }, (_, index) => ({
+    type: "way",
+    tags: { highway: "service", name: `도로 ${index}` },
+    geometry: [
+      { lat: 37.51 + index / 10_000, lon: 127 },
+      { lat: 37.51 + index / 10_000, lon: 127.001 },
+    ],
+  }));
+  const response = await handleMapRequest(
+    new Request("https://example.test/api/map?lat=37.5&lng=127"),
+    {},
+    {
+      cache: null,
+      fetchImpl: async () => overpassResponse([
+        minorDuplicate,
+        landmark,
+        place,
+        transit,
+        majorDuplicate,
+        longPlace,
+        invalid,
+        ...extras,
+      ]),
+    },
+  );
+  const { labels } = await response.json();
+
+  assert.equal(labels.length, 24);
+  assert.deepEqual(labels.slice(0, 5).map(({ kind }) => kind), [
+    "transit",
+    "place",
+    "place",
+    "road",
+    "landmark",
+  ]);
+  assert.equal(labels[0].name, "홍대입구역");
+  assert.equal(labels.find(({ name }) => name.startsWith("가")).name, "가".repeat(40));
+  assert.equal(labels.find(({ kind }) => kind === "landmark").name, "시민 공원");
+  const duplicates = labels.filter(
+    ({ name }) => name.toLowerCase() === "main road",
+  );
+  assert.deepEqual(duplicates, [{
+    kind: "road",
+    name: "MAIN ROAD",
+    point: [37.506, 127.006],
+  }]);
+  assert.equal(labels.some(({ name }) => name === "INVALID"), false);
 });
 
 test("validates coordinates before contacting Overpass", async () => {
@@ -182,6 +327,7 @@ test("caches a normalized response by rounded location cell", async () => {
   assert.equal(second.status, 200);
   assert.equal(calls, 1);
   assert.equal(new Set(cacheKeys).size, 1);
+  assert.match(cacheKeys[0], /roads-labels-v2/);
 });
 
 test("maps upstream, size, and timeout failures to stable errors", async () => {
@@ -234,6 +380,6 @@ test("cell and query helpers are deterministic", () => {
   assert.equal(mapCell(37.5563, 126.922), "37.555,126.920");
   assert.equal(
     buildOverpassQuery(37.5563, 126.922),
-    '[out:json][timeout:8];way["highway"](around:650,37.5563,126.922);out geom;',
+    '[out:json][timeout:8];way["highway"](around:650,37.5563,126.922)->.roads;nwr["name"][~"^(railway|public_transport|place|leisure|tourism|amenity)$"~"^(station|halt|city|town|village|suburb|quarter|neighbourhood|locality|square|park|garden|stadium|museum|attraction|gallery|hospital|university|school|library|marketplace|townhall)$"](around:650,37.5563,126.922)->.named;.roads out geom;.named out center;',
   );
 });
