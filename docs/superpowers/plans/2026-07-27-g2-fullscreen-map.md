@@ -717,7 +717,7 @@ git diff --check
 
 Expected: every command exits 0 and no test file runs in parallel.
 
-- [ ] **Step 5: Record truthful automated evidence**
+- [x] **Step 5: Record truthful automated evidence**
 
 Create the hardware record with:
 
