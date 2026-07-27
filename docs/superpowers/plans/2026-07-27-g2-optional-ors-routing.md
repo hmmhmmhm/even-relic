@@ -17,6 +17,8 @@ Tasks 1 through 4 were implemented on `feature/g2-ors-routing` in:
   route lifecycle, progress tracking, rerouting, and G2 rendering.
 - `3ad0435cd137c544a2989a5588aa102af90ea9d5`: serialized route-cache
   persistence and explicit-end race regression coverage.
+- `d36c464a5a1baad2fe86188de86b9dccecd6437e`: block routing from the
+  labelled demo coordinate and retain combined route refreshes in fullscreen.
 
 The implementation intentionally retains the later hardware-approved general
 location stream. Normal map mode uses `15 s / 15 m`; active navigation switches
@@ -31,7 +33,7 @@ Automated verification is complete in both routing configurations:
 - fake server-only key: search, route normalization, client lifecycle,
   progress, reroute cooldown, late-response suppression, and secret isolation
   are covered;
-- full serial suite: `26` files and `265` tests;
+- full serial suite: `26` files and `266` tests;
 - typecheck, production build, Sites packaging, and all server API tests pass.
 
 Task 5 remains a physical hardware gate. The no-key and real-key observations

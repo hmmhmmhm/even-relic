@@ -10,8 +10,12 @@ Server API commit:
 Client and G2 commit:
 `003d318f800d5223dbfa7a32a20cd32c3a47989b`
 
-Concurrency audit commit:
-`3ad0435cd137c544a2989a5588aa102af90ea9d5`
+Safety audit commits:
+
+- `3ad0435cd137c544a2989a5588aa102af90ea9d5`: cache-write and explicit-end
+  ordering;
+- `d36c464a5a1baad2fe86188de86b9dccecd6437e`: demo-location rejection and
+  fullscreen combined refresh.
 
 ## Scope
 
@@ -43,10 +47,13 @@ document.
   - general map rate: medium accuracy, `15 s / 15 m`;
   - active route rate: medium accuracy, `2 s / 5 m`;
   - route end restores the general rate.
+  - a labelled Hongdae demo coordinate can render the keyless HUD but cannot
+    start real route guidance.
 - Refresh:
   - right tiles change only for a maneuver or displayed-distance bucket;
   - left tiles change after meaningful movement or a new map cell;
   - simultaneous left and right changes become one `all` refresh;
+  - an `all` refresh while the fullscreen map is open updates all four tiles;
   - three consecutive fixes over `35 m` off-route can reroute;
   - rerouting has a `30 s` cooldown and one in-flight request.
 - Persistence:
@@ -65,7 +72,7 @@ Run serially:
 ```text
 npm test
   26 files passed
-  265 tests passed
+  266 tests passed
 
 npm run typecheck
   passed
