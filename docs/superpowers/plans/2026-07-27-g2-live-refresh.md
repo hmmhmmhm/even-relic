@@ -620,7 +620,7 @@ git commit -m "feat: refresh OSM geometry at walking distance"
 - Create: `docs/hardware/2026-07-27-g2-live-refresh.md`
 - Modify: `docs/superpowers/plans/2026-07-27-g2-live-refresh.md`
 
-- [ ] **Step 1: Write the failing QR identity assertion**
+- [x] **Step 1: Write the failing QR identity assertion**
 
 Change the expected URL to:
 
@@ -628,7 +628,7 @@ Change the expected URL to:
 http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=live-refresh-017
 ```
 
-- [ ] **Step 2: Run the SDK test and verify RED**
+- [x] **Step 2: Run the SDK test and verify RED**
 
 Run:
 
@@ -640,7 +640,7 @@ npx vitest run src/sdk-version.test.ts \
 Expected: 1/2 fails because `package.json` still names
 `map-labels-large-016`.
 
-- [ ] **Step 3: Update the QR script and verify GREEN**
+- [x] **Step 3: Update the QR script and verify GREEN**
 
 Update `package.json`, then run:
 
@@ -651,7 +651,7 @@ npx vitest run src/sdk-version.test.ts \
 
 Expected: 2/2 pass.
 
-- [ ] **Step 4: Run the complete serial verification gate**
+- [x] **Step 4: Run the complete serial verification gate**
 
 Run one command at a time:
 
