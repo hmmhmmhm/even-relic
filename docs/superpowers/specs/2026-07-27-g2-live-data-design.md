@@ -66,7 +66,8 @@ display toggle continue to work normally.
 Even Realities phone WebView
 ├── Even SDK 0.0.11
 │   ├── one-shot location for initial map and weather
-│   └── continuous location only during active navigation
+│   ├── 15 s / 15 m location for live map movement
+│   └── 2 s / 5 m location during active navigation
 ├── Open-Meteo forecast API
 │   └── current weather JSON, fetched directly with CORS
 ├── GET /api/news?feed=sbs-latest
@@ -131,11 +132,12 @@ identified as `LAST FIX`; only a new device fix is identified as `LIVE`.
 
 ### Continuous updates
 
-Continuous location tracking is off by default. It starts only when an ORS
-route is active and stops when navigation ends, the app is disposed, or the
-display page is shut down.
+After the later physical map test, continuous location tracking remains active
+at a restrained `15 s / 15 m` rate so the keyless map follows meaningful
+movement. An active ORS route temporarily raises it to `2 s / 5 m`. Ending
+navigation restores the general map rate; disposing the app stops updates.
 
-Suggested initial options:
+Active-navigation options:
 
 - medium accuracy;
 - two-second interval;
@@ -388,7 +390,7 @@ Each successful gate is documented and committed before moving to the next.
 
 - Google Maps or Google Routes;
 - second-by-second weather, news, or map image transmission;
-- background location tracking outside active navigation;
+- background location tracking after the app is disposed;
 - storing location history;
 - traffic-aware routing guarantees;
 - voice destination entry;

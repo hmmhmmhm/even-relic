@@ -8,6 +8,33 @@
 
 **Tech Stack:** OpenRouteService APIs, Sites Worker secrets, Even Hub SDK `0.0.11`, React, TypeScript, Canvas 2D, Node test runner, Vitest
 
+## Implementation checkpoint
+
+Tasks 1 through 4 were implemented on `feature/g2-ors-routing` in:
+
+- `d0dcef6aeb7132685ce6824a8b219a4ae6319d2d`: secret-gated server API;
+- `003d318f800d5223dbfa7a32a20cd32c3a47989b`: phone controls,
+  route lifecycle, progress tracking, rerouting, and G2 rendering.
+
+The implementation intentionally retains the later hardware-approved general
+location stream. Normal map mode uses `15 s / 15 m`; active navigation switches
+the same serialized stream to `2 s / 5 m` and returns to normal settings when
+navigation ends. This supersedes the older statement below that continuous
+location is entirely off while routing is idle.
+
+Automated verification is complete in both routing configurations:
+
+- no key: keyless location, weather, RSS, and OSM remain independent while
+  route status is disabled;
+- fake server-only key: search, route normalization, client lifecycle,
+  progress, reroute cooldown, late-response suppression, and secret isolation
+  are covered;
+- full serial suite: `26` files and `264` tests;
+- typecheck, production build, Sites packaging, and all server API tests pass.
+
+Task 5 remains a physical hardware gate. The no-key and real-key observations
+must be recorded without ever recording the key.
+
 ---
 
 ### Task 1: Add secret-gated ORS server endpoints
