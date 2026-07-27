@@ -245,7 +245,7 @@ export function createLiveDashboardSession(
     await routeSession.maybeReroute(nextCoordinate);
   };
 
-  const queueLocation = (location: AppLocation) => {
+  const handleLocation = (location: AppLocation) => {
     locationEventCount += 1;
     const eventId = locationEventCount;
     if (disposed || locationBusy) {
@@ -343,7 +343,7 @@ export function createLiveDashboardSession(
     try {
       unsubscribeLocation = onAppLocationChanged.call(
         options.bridge,
-        queueLocation,
+        handleLocation,
       );
     } catch (error) {
       logDiagnostic(
