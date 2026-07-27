@@ -704,7 +704,7 @@ Open:
 http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=live-refresh-017
 ```
 
-- [ ] **Step 7: Record physical observations and push**
+- [x] **Step 7: Record physical observations and push**
 
 After the user reports the actual G2 result, replace `PENDING` with only those
 observations, commit the record, rerun `git status --short`, and push

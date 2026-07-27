@@ -6,7 +6,7 @@ Tested implementation commit: `f49a6b04de07ec391d7451c0d36c6a3e0b27f568`
 SDK: `0.0.11`
 Build: `live-refresh-017`
 URL: `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=live-refresh-017`
-Result: PENDING
+Result: PASS
 
 ## Implemented refresh contracts
 
@@ -41,13 +41,17 @@ behavior.
 
 ## Physical G2 observations
 
-- Initial four-tile bilateral display: PENDING
-- Page order and immediate scroll response: PENDING
-- Clock changes at a real minute boundary: PENDING
-- Battery percentage refresh after a real G2 battery change: PENDING
-- Location/map response during actual movement: PENDING
-- Double-tap black-frame hide and restore: PENDING
-- `SENDFAILED`: PENDING
+- Initial four-tile bilateral display: PASS
+- Page order and immediate scroll response: PASS
+- Clock changes at a real minute boundary: PASS
+- Battery percentage refresh after a real G2 battery change: PASS
+- Location/map response during actual movement: PASS
+- Double-tap black-frame hide and restore: PASS
+- `SENDFAILED`: not observed
 
-Only direct user observations from this exact build will replace these
-`PENDING` entries.
+The user confirmed the requested physical checklist as a whole:
+
+> 네 아주 좋고 아주 잘 동작됩니다.
+
+The exact minute, battery values, movement distance, and map cell transition
+were not transcribed, so this record does not infer those values.
