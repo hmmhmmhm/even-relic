@@ -33,6 +33,7 @@ import {
   createInitialLiveDashboardState,
   type LiveDashboardState,
 } from "./live-state";
+import { startMinuteRefresh } from "./minute-refresh";
 
 type AppProps = {
   autoStart?: boolean;
@@ -64,6 +65,7 @@ export function App({ autoStart = true }: AppProps) {
     let battery: FastCanvasBattery | undefined;
     let live: LiveDashboardState = createInitialLiveDashboardState();
     let requestLiveRefresh: FastCanvasRefreshRequest | undefined;
+    let stopMinuteRefresh: (() => void) | undefined;
     const canvas = canvasRef.current;
     const report = (message: string) => {
       if (!cancelled) setStatus(message);
@@ -109,7 +111,11 @@ export function App({ autoStart = true }: AppProps) {
               drawCurrentPage();
             },
             onRefreshReady: (request) => {
+              if (cancelled) return;
               requestLiveRefresh = request;
+              stopMinuteRefresh ??= startMinuteRefresh(
+                () => requestLiveRefresh?.("right-top"),
+              );
             },
           },
         );
@@ -163,6 +169,7 @@ export function App({ autoStart = true }: AppProps) {
 
     return () => {
       cancelled = true;
+      stopMinuteRefresh?.();
       liveSession?.dispose();
       unsubscribe?.();
     };

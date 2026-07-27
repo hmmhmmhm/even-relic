@@ -48,6 +48,7 @@ export const G2_FAST_TILES = [
 ] as const;
 export const G2_LEFT_TILES = [G2_TILES[0], G2_TILES[2]] as const;
 export const G2_RIGHT_TILES = [G2_TILES[1], G2_TILES[3]] as const;
+export const G2_RIGHT_TOP_TILES = [G2_TILES[1]] as const;
 
 export const DIAGNOSTIC_TILES = [
   {

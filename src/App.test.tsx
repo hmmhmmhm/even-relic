@@ -7,7 +7,7 @@ import {
   type LiveDashboardState,
 } from "./live-state";
 
-type RefreshTarget = "left" | "right" | "all";
+type RefreshTarget = "left" | "right" | "right-top" | "all";
 type FastTestOptions = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly onRefreshReady?: (
@@ -46,6 +46,7 @@ function sessionOptions(): SessionTestOptions {
 const mocks = vi.hoisted(() => ({
   createSession: vi.fn(),
   drawFast: vi.fn(),
+  minuteStart: vi.fn(),
   transmitFast: vi.fn(),
   waitForBridge: vi.fn(),
 }));
@@ -70,9 +71,14 @@ vi.mock("./live-dashboard", async (importOriginal) => ({
   createLiveDashboardSession: mocks.createSession,
 }));
 
+vi.mock("./minute-refresh", () => ({
+  startMinuteRefresh: mocks.minuteStart,
+}));
+
 beforeEach(() => {
   mocks.createSession.mockReset();
   mocks.drawFast.mockReset();
+  mocks.minuteStart.mockReset();
   mocks.transmitFast.mockReset();
   mocks.waitForBridge.mockReset();
 });
@@ -214,6 +220,40 @@ describe("RELIC peripheral HUD", () => {
       { battery: undefined, live: newest },
     );
     view.unmount();
+  });
+
+  it("requests only the right-top tile on minute boundaries and stops on cleanup", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    const stopMinuteRefresh = vi.fn();
+    let onMinute: (() => void) | undefined;
+    mocks.minuteStart.mockImplementation((callback: () => void) => {
+      onMinute = callback;
+      return stopMinuteRefresh;
+    });
+    const transportCleanup = vi.fn();
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return transportCleanup;
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+    expect(mocks.minuteStart).toHaveBeenCalledOnce();
+
+    onMinute?.();
+    expect(requestRefresh).toHaveBeenCalledWith("right-top");
+
+    view.unmount();
+    expect(stopMinuteRefresh).toHaveBeenCalledOnce();
   });
 
   it("does not start bridge or session after unmounting during transport", async () => {

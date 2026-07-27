@@ -29,6 +29,7 @@ export {
   G2_FAST_TILES,
   G2_LEFT_TILES,
   G2_RIGHT_TILES,
+  G2_RIGHT_TOP_TILES,
   G2_TILES,
   createBlackCanvas,
   createGlassesPage,

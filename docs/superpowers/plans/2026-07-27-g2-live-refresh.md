@@ -24,7 +24,7 @@
 - Modify: `src/App.tsx`
 - Modify: `src/App.test.tsx`
 
-- [ ] **Step 1: Write the failing minute scheduler tests**
+- [x] **Step 1: Write the failing minute scheduler tests**
 
 Create `src/minute-refresh.test.ts` with a controlled clock and timeout:
 
@@ -78,7 +78,7 @@ describe("minute refresh scheduler", () => {
 });
 ```
 
-- [ ] **Step 2: Run the scheduler test and verify RED**
+- [x] **Step 2: Run the scheduler test and verify RED**
 
 Run:
 
@@ -89,7 +89,7 @@ npx vitest run src/minute-refresh.test.ts \
 
 Expected: FAIL because `minute-refresh.ts` does not exist.
 
-- [ ] **Step 3: Implement the drift-free scheduler**
+- [x] **Step 3: Implement the drift-free scheduler**
 
 Create `src/minute-refresh.ts`:
 
@@ -134,7 +134,7 @@ export function startMinuteRefresh(
 }
 ```
 
-- [ ] **Step 4: Write failing ID 3 transport assertions**
+- [x] **Step 4: Write failing ID 3 transport assertions**
 
 In `src/glasses.test.ts`:
 
@@ -160,7 +160,7 @@ expect(requestRefresh).toHaveBeenCalledWith("right-top");
 Also assert unmount cancels the minute scheduler and no later refresh is
 requested.
 
-- [ ] **Step 5: Run the focused transport/App tests and verify RED**
+- [x] **Step 5: Run the focused transport/App tests and verify RED**
 
 Run separately:
 
@@ -173,7 +173,7 @@ npx vitest run src/App.test.tsx -t "minute" \
 
 Expected: FAIL because the target and App timer are missing.
 
-- [ ] **Step 6: Implement the top-right target**
+- [x] **Step 6: Implement the top-right target**
 
 In `src/g2-canvas.ts` add:
 
@@ -205,7 +205,7 @@ targetTiles: {
 Keep the current coalescing rule: equal pending targets deduplicate; differing
 targets promote to `all`.
 
-- [ ] **Step 7: Start and stop the minute trigger in App**
+- [x] **Step 7: Start and stop the minute trigger in App**
 
 Import `startMinuteRefresh`. When `onRefreshReady` exposes the request
 function, start exactly one scheduler:
@@ -222,7 +222,7 @@ cleanup. Do not redraw in the timer; the existing
 `beforeExternalRefresh: drawCurrentPage` callback redraws immediately before
 encoding.
 
-- [ ] **Step 8: Run focused tests and commit**
+- [x] **Step 8: Run focused tests and commit**
 
 Run separately:
 

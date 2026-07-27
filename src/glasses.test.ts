@@ -12,7 +12,7 @@ async function loadGlasses() {
   return module;
 }
 
-type TestRefreshTarget = "left" | "right" | "all";
+type TestRefreshTarget = "left" | "right" | "right-top" | "all";
 type FastRefreshHarnessConfig = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly beforeRestore?: () => void | Promise<void>;
@@ -182,6 +182,7 @@ describe("G2 raster transport", () => {
     expect(module.G2_FAST_TILES?.map(({ id }) => id)).toEqual([3, 5, 2, 4]);
     expect(module.G2_LEFT_TILES?.map(({ id }) => id)).toEqual([2, 4]);
     expect(module.G2_RIGHT_TILES.map(({ id }) => id)).toEqual([3, 5]);
+    expect(module.G2_RIGHT_TOP_TILES?.map(({ id }) => id)).toEqual([3]);
   });
 
   it("builds four image containers plus one blank event layer", async () => {
@@ -574,6 +575,19 @@ describe("G2 raster transport", () => {
       [3, 5],
     ]);
     expect(harness.imageIds).toEqual([3, 5, 2, 4, 2, 4, 3, 5]);
+  });
+
+  it("live refresh maps a right-top request to image ID 3 only", async () => {
+    const harness = await createFastRefreshHarness();
+
+    harness.request("right-top");
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(5));
+
+    expect(harness.encodedTileIds).toEqual([
+      [3, 5, 2, 4],
+      [3],
+    ]);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4, 3]);
   });
 
   it("live refresh deduplicates one side and lets all dominate", async () => {

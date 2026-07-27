@@ -14,6 +14,7 @@ import {
   G2_FAST_TILES,
   G2_LEFT_TILES,
   G2_RIGHT_TILES,
+  G2_RIGHT_TOP_TILES,
   G2_TILES,
   createBlackCanvas,
   createContainerObjects,
@@ -55,7 +56,11 @@ export type FastCanvasBattery = {
   readonly level?: number;
   readonly charging?: boolean;
 };
-export type FastCanvasRefreshTarget = "left" | "right" | "all";
+export type FastCanvasRefreshTarget =
+  | "left"
+  | "right"
+  | "right-top"
+  | "all";
 export type FastCanvasRefreshRequest = (
   target: FastCanvasRefreshTarget,
 ) => void;
@@ -314,6 +319,7 @@ export function transmitFastCanvas(
         all: G2_FAST_TILES,
         left: G2_LEFT_TILES,
         right: G2_RIGHT_TILES,
+        "right-top": G2_RIGHT_TOP_TILES,
       },
     },
   );
