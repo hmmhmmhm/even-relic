@@ -5,6 +5,8 @@ export const NEWS_MAX_AGE_MS = 10 * 60 * 1000;
 const NEWS_TIMEOUT_MS = 8_000;
 const NEWS_URL = "/api/news?feed=sbs-latest";
 const NEWS_LIMIT = 6;
+const NEWS_SUMMARY_MAX_CODE_POINTS = 360;
+const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
 type NewsCache = {
   readonly value: readonly NewsItem[];
@@ -40,6 +42,18 @@ function isNewsItem(value: unknown): value is NewsItem {
   ) {
     return false;
   }
+  if (
+    value.summary !== undefined
+    && (
+      typeof value.summary !== "string"
+      || value.summary.length === 0
+      || value.summary !== value.summary.trim()
+      || [...value.summary].length > NEWS_SUMMARY_MAX_CODE_POINTS
+      || CONTROL_CHARACTERS.test(value.summary)
+    )
+  ) {
+    return false;
+  }
   return value.publishedAt === undefined
     || (typeof value.publishedAt === "number"
       && Number.isFinite(value.publishedAt));
@@ -58,6 +72,17 @@ function isNewsCache(value: unknown): value is NewsCache {
 function sanitizeText(value: string): string {
   const document = new DOMParser().parseFromString(value, "text/html");
   return (document.body.textContent ?? "").replace(/\s+/g, " ").trim();
+}
+
+function sanitizeSummary(value: string): string | undefined {
+  const document = new DOMParser().parseFromString(value, "text/html");
+  document.querySelectorAll("script,style").forEach((node) => node.remove());
+  const clean = (document.body.textContent ?? "")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!clean) return undefined;
+  return [...clean].slice(0, NEWS_SUMMARY_MAX_CODE_POINTS).join("");
 }
 
 function childText(item: Element, selector: string): string {
@@ -100,6 +125,7 @@ export function parseNewsRss(xml: string): readonly NewsItem[] {
     if (!title) continue;
     const guid = sanitizeText(childText(item, "guid"));
     const url = normalizeUrl(childText(item, "link"));
+    const summary = sanitizeSummary(childText(item, "description"));
     const id = guid
       ? `guid:${guid}`
       : url
@@ -114,6 +140,7 @@ export function parseNewsRss(xml: string): readonly NewsItem[] {
       title,
       ...(url ? { url } : {}),
       ...(Number.isFinite(parsedDate) ? { publishedAt: parsedDate } : {}),
+      ...(summary ? { summary } : {}),
       sourceIndex,
     });
   }

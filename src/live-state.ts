@@ -39,6 +39,7 @@ export type NewsItem = {
   readonly title: string;
   readonly url?: string;
   readonly publishedAt?: number;
+  readonly summary?: string;
 };
 
 export type MapRoad = {

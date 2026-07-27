@@ -15,6 +15,7 @@ const ITEMS: readonly NewsItem[] = [
     title: "첫 번째 최신 기사",
     url: "https://news.sbs.co.kr/a",
     publishedAt: Date.parse("2026-07-27T05:00:00Z"),
+    summary: "첫 문장 요약입니다. 두 번째 문장입니다.",
   },
 ];
 
@@ -25,6 +26,11 @@ const RSS = `<?xml version="1.0" encoding="UTF-8"?>
     <guid>new</guid>
     <link>https://news.sbs.co.kr/a</link>
     <pubDate>Mon, 27 Jul 2026 05:00:00 GMT</pubDate>
+    <description><![CDATA[
+      <p>첫 문장&nbsp;요약입니다.</p>
+      <script>제거할 코드</script>
+      두 번째 문장입니다.
+    ]]></description>
   </item>
   <item>
     <title>중복된 이전 기사</title>
@@ -107,6 +113,18 @@ describe("parseNewsRss", () => {
       "여섯 번째 기사",
     ]);
     expect(items.every(({ title }) => !/[<>]/.test(title))).toBe(true);
+  });
+
+  it("removes active markup and limits summaries to 360 code points", () => {
+    const longSummary = "가".repeat(361);
+    const items = parseNewsRss(`<?xml version="1.0"?>
+      <rss><channel><item>
+        <title>긴 기사</title>
+        <description><![CDATA[${longSummary}]]></description>
+      </item></channel></rss>`);
+
+    expect(items[0].summary).toHaveLength(360);
+    expect(items[0].summary).not.toContain("제거할 코드");
   });
 
   it("returns an empty list for malformed XML or no usable titles", () => {
@@ -201,6 +219,18 @@ describe("resolveNews", () => {
   it("ignores corrupt and future caches", async () => {
     const corrupt = new TestStorage();
     corrupt.values.set("relic:news:v1", "{bad");
+    const invalidSummary = new TestStorage();
+    setCache(
+      invalidSummary,
+      [{ ...ITEMS[0], summary: "가".repeat(361) }],
+      NOW,
+    );
+    const controlSummary = new TestStorage();
+    setCache(
+      controlSummary,
+      [{ ...ITEMS[0], summary: "제어\u0007문자" }],
+      NOW,
+    );
     const future = new TestStorage();
     setCache(future, ITEMS, NOW + 1);
 
@@ -209,6 +239,12 @@ describe("resolveNews", () => {
     ).resolves.toEqual({ status: "unavailable" });
     await expect(
       resolveNews(future, xmlFetch("", { ok: false }), NOW),
+    ).resolves.toEqual({ status: "unavailable" });
+    await expect(
+      resolveNews(invalidSummary, xmlFetch("", { ok: false }), NOW),
+    ).resolves.toEqual({ status: "unavailable" });
+    await expect(
+      resolveNews(controlSummary, xmlFetch("", { ok: false }), NOW),
     ).resolves.toEqual({ status: "unavailable" });
   });
 
