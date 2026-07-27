@@ -420,7 +420,7 @@ git commit -m "feat: cache labelled OSM maps"
 - Create: `src/map-label-layout.ts`
 - Create: `src/map-label-layout.test.ts`
 
-- [ ] **Step 1: Write failing pure layout tests**
+- [x] **Step 1: Write failing pure layout tests**
 
 Test:
 
@@ -456,7 +456,7 @@ Also assert:
 - long mixed-width names end with `…` and fit their unit limit;
 - the same input produces identical output.
 
-- [ ] **Step 2: Run layout tests and verify RED**
+- [x] **Step 2: Run layout tests and verify RED**
 
 Run:
 
@@ -467,7 +467,7 @@ npx vitest run src/map-label-layout.test.ts \
 
 Expected: FAIL because `src/map-label-layout.ts` does not exist.
 
-- [ ] **Step 3: Implement display-unit truncation and width estimation**
+- [x] **Step 3: Implement display-unit truncation and width estimation**
 
 Export:
 
@@ -497,7 +497,7 @@ const width = [...text].reduce(
 );
 ```
 
-- [ ] **Step 4: Implement priority, projection, bounds, and collision**
+- [x] **Step 4: Implement priority, projection, bounds, and collision**
 
 Sort a copied candidate list by:
 
@@ -525,7 +525,7 @@ const ARROW_EXCLUSION = {
 
 Stop at 10 accepted labels.
 
-- [ ] **Step 5: Run the pure tests and commit**
+- [x] **Step 5: Run the pure tests and commit**
 
 Run:
 
