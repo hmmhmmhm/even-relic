@@ -53,15 +53,17 @@ describe("diagnostic log", () => {
       intervalMs: 5_000,
       now: () => now,
     });
+    expect(logger.text()).toContain("heartbeat started · interval 5000ms");
 
     now = 6_125;
     vi.advanceTimersByTime(5_000);
     expect(logger.text()).toContain("heartbeat · drift 125ms");
 
     stop();
+    expect(logger.text()).toContain("heartbeat stopped");
     now = 11_125;
     vi.advanceTimersByTime(5_000);
-    expect(logger.snapshot().entries).toHaveLength(1);
+    expect(logger.snapshot().entries).toHaveLength(3);
     vi.useRealTimers();
   });
 });

@@ -102,11 +102,18 @@ export function startDiagnosticHeartbeat(
   const intervalMs = options.intervalMs ?? 5_000;
   const now = options.now ?? Date.now;
   let expected = now() + intervalMs;
+  let stopped = false;
+  logger.append("TIMER", `heartbeat started · interval ${intervalMs}ms`);
   const timer = globalThis.setInterval(() => {
     const current = now();
     const drift = Math.max(0, Math.round(current - expected));
     logger.append("TIMER", `heartbeat · drift ${drift}ms`);
     expected = current + intervalMs;
   }, intervalMs);
-  return () => globalThis.clearInterval(timer);
+  return () => {
+    if (stopped) return;
+    stopped = true;
+    globalThis.clearInterval(timer);
+    logger.append("TIMER", "heartbeat stopped");
+  };
 }

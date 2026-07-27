@@ -48,6 +48,10 @@ import { startMinuteRefresh } from "./minute-refresh";
 import { RouteControls } from "./RouteControls";
 import { DiagnosticConsole } from "./DiagnosticConsole";
 import {
+  logDiagnostic,
+  startDiagnosticHeartbeat,
+} from "./diagnostic-log";
+import {
   getRoutingStatus,
   type Destination,
   type RouteProfile,
@@ -57,6 +61,10 @@ import {
 type AppProps = {
   autoStart?: boolean;
 };
+
+const diagnosticErrorKind = (error: unknown) => (
+  error instanceof Error ? error.name : typeof error
+);
 
 export function App({ autoStart = true }: AppProps) {
   const calibrationMode = window.location.pathname === "/calibration-max";
@@ -95,7 +103,26 @@ export function App({ autoStart = true }: AppProps) {
     let live: LiveDashboardState = createInitialLiveDashboardState();
     let requestLiveRefresh: FastCanvasRefreshRequest | undefined;
     let stopMinuteRefresh: (() => void) | undefined;
+    let stopDiagnosticHeartbeat: (() => void) | undefined;
     const canvas = canvasRef.current;
+    const onWindowError = (event: ErrorEvent) => {
+      logDiagnostic(
+        "ERROR",
+        `window error · ${diagnosticErrorKind(event.error)}`,
+      );
+    };
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      logDiagnostic(
+        "ERROR",
+        `unhandled rejection · ${diagnosticErrorKind(event.reason)}`,
+      );
+    };
+    if (fastCanvasHudMode) {
+      logDiagnostic("APP", "fast HUD effect start");
+      stopDiagnosticHeartbeat = startDiagnosticHeartbeat();
+      window.addEventListener("error", onWindowError);
+      window.addEventListener("unhandledrejection", onUnhandledRejection);
+    }
     const report = (message: string) => {
       if (!cancelled) setStatus(message);
     };
@@ -161,6 +188,7 @@ export function App({ autoStart = true }: AppProps) {
       }
       report("Even 앱 브리지 연결 대기 중 · Safari에서는 미리보기만 표시됩니다");
       if (fastCanvasHudMode) {
+        logDiagnostic("APP", "transport start");
         const transportCleanup = await transmitFastCanvas(
           canvas,
           report,
@@ -170,6 +198,14 @@ export function App({ autoStart = true }: AppProps) {
             beforeRestore: drawCurrentPage,
             onBattery: (nextBattery) => {
               battery = nextBattery;
+              logDiagnostic(
+                "APP",
+                nextBattery
+                  ? `battery ${nextBattery.label}`
+                    + ` · level ${nextBattery.level ?? "unknown"}`
+                    + ` · charging ${nextBattery.charging ?? "unknown"}`
+                  : "battery unavailable",
+              );
               if (
                 requestLiveRefresh
                 && page === "overview"
@@ -188,6 +224,13 @@ export function App({ autoStart = true }: AppProps) {
                 viewContext(),
               );
               view = transition.state;
+              logDiagnostic(
+                "INPUT",
+                `app ${input} · ${transition.result}`
+                  + (transition.effect
+                    ? ` · effect ${transition.effect.type}`
+                    : ""),
+              );
               if (transition.effect?.type === "toggle-todo") {
                 await liveSession?.toggleTodo(transition.effect.index);
                 return transition.result;
@@ -208,8 +251,13 @@ export function App({ autoStart = true }: AppProps) {
             onRefreshReady: (request) => {
               if (cancelled) return;
               requestLiveRefresh = request;
+              logDiagnostic("APP", "transport refresh ready");
               stopMinuteRefresh ??= startMinuteRefresh(
                 () => {
+                  logDiagnostic(
+                    "TIMER",
+                    `minute refresh · mode ${view.mode}`,
+                  );
                   if (view.mode === "dashboard") {
                     requestVisibleRefresh("right-top");
                   }
@@ -218,16 +266,25 @@ export function App({ autoStart = true }: AppProps) {
             },
           },
         );
+        logDiagnostic("APP", "transport ready");
         if (cancelled) {
+          logDiagnostic("APP", "transport ready after cleanup");
           transportCleanup();
           return;
         }
         unsubscribe = transportCleanup;
+        logDiagnostic("APP", "live bridge wait");
         const [bridge, nextRoutingStatus] = await Promise.all([
           waitForEvenAppBridge(),
           getRoutingStatus().catch(() => ({ enabled: false })),
         ]);
         if (cancelled) return;
+        logDiagnostic(
+          "APP",
+          `live bridge ready · routing ${
+            nextRoutingStatus.enabled ? "enabled" : "disabled"
+          }`,
+        );
         setRoutingStatus(nextRoutingStatus);
         setCompanionRoute(nextRoutingStatus.enabled
           ? { status: "fresh" }
@@ -242,6 +299,11 @@ export function App({ autoStart = true }: AppProps) {
               live,
               update.state,
               update.target,
+            );
+            logDiagnostic(
+              "LIVE",
+              `app update · ${update.target}`
+                + ` · visible ${refreshTarget ?? "none"}`,
             );
             live = update.state;
             view = syncFastHudView(view, viewContext());
@@ -258,7 +320,9 @@ export function App({ autoStart = true }: AppProps) {
           liveSession = undefined;
           return;
         }
+        logDiagnostic("APP", "live session start");
         await liveSession.start();
+        logDiagnostic("APP", "live session ready");
         return;
       }
       unsubscribe = hardwareBmpMode
@@ -283,10 +347,19 @@ export function App({ autoStart = true }: AppProps) {
               legacyCanvasHudMode ? navigateCanvas : undefined,
             );
     })().catch((error: unknown) => {
+      if (fastCanvasHudMode) {
+        logDiagnostic(
+          "ERROR",
+          `app startup failed · ${diagnosticErrorKind(error)}`,
+        );
+      }
       report(error instanceof Error ? error.message : String(error));
     });
 
     return () => {
+      if (fastCanvasHudMode) {
+        logDiagnostic("APP", "fast HUD effect cleanup");
+      }
       cancelled = true;
       stopMinuteRefresh?.();
       liveSession?.dispose();
@@ -294,6 +367,14 @@ export function App({ autoStart = true }: AppProps) {
         liveSessionRef.current = undefined;
       }
       unsubscribe?.();
+      if (fastCanvasHudMode) {
+        window.removeEventListener("error", onWindowError);
+        window.removeEventListener(
+          "unhandledrejection",
+          onUnhandledRejection,
+        );
+        stopDiagnosticHeartbeat?.();
+      }
     };
   }, [
     autoStart,

@@ -12,6 +12,7 @@ import {
   createInitialLiveDashboardState,
   type LiveDashboardState,
 } from "./live-state";
+import { diagnosticLogger } from "./diagnostic-log";
 
 type RefreshTarget = "left" | "right" | "right-top" | "all";
 type FastInput =
@@ -318,6 +319,73 @@ describe("RELIC peripheral HUD", () => {
 
     view.unmount();
     expect(stopMinuteRefresh).toHaveBeenCalledOnce();
+  });
+
+  it("traces fast HUD lifecycle without changing refresh behavior", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    diagnosticLogger.clear();
+    const requestRefresh = vi.fn();
+    let onMinute: (() => void) | undefined;
+    mocks.minuteStart.mockImplementation((callback: () => void) => {
+      onMinute = callback;
+      return vi.fn();
+    });
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return vi.fn();
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+    fastOptions().onBattery?.({
+      label: "G2",
+      level: 78,
+      charging: false,
+    });
+    await fastOptions().onInput?.("tap");
+    sessionOptions().onUpdate({
+      state: createInitialLiveDashboardState(),
+      target: "right",
+    });
+    onMinute?.();
+    const errorEvent = new ErrorEvent("error", {
+      cancelable: true,
+      error: new TypeError("private route destination"),
+      message: "private route destination",
+    });
+    errorEvent.preventDefault();
+    window.dispatchEvent(errorEvent);
+    const rejection = new Event("unhandledrejection");
+    Object.defineProperty(rejection, "reason", {
+      value: new RangeError("private coordinate"),
+    });
+    window.dispatchEvent(rejection);
+    view.unmount();
+
+    const trace = diagnosticLogger.text();
+    expect(trace).toContain("[APP] fast HUD effect start");
+    expect(trace).toContain("[APP] transport start");
+    expect(trace).toContain("[APP] transport ready");
+    expect(trace).toContain("[APP] live bridge ready");
+    expect(trace).toContain("[TIMER] heartbeat started");
+    expect(trace).toContain("[TIMER] minute refresh");
+    expect(trace).toContain("[INPUT] app tap");
+    expect(trace).toContain("[LIVE] app update · right");
+    expect(trace).toContain("[ERROR] window error · TypeError");
+    expect(trace).toContain("[ERROR] unhandled rejection · RangeError");
+    expect(trace).toContain("[APP] fast HUD effect cleanup");
+    expect(trace).toContain("[TIMER] heartbeat stopped");
+    expect(trace).not.toContain("private route destination");
+    expect(trace).not.toContain("private coordinate");
+    expect(requestRefresh).toHaveBeenCalledWith("right-top");
   });
 
   it("shows raw hidden input only in the phone status", async () => {
