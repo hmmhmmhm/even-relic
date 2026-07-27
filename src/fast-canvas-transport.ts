@@ -24,6 +24,21 @@ import {
   sendTilesSequentially,
   type Tile,
 } from "./g2-canvas";
+import { logDiagnostic } from "./diagnostic-log";
+
+const diagnosticNow = () => (
+  typeof globalThis.performance?.now === "function"
+    ? globalThis.performance.now()
+    : Date.now()
+);
+
+const diagnosticDuration = (startedAt: number) => (
+  diagnosticNow() - startedAt
+);
+
+const diagnosticError = (error: unknown) => (
+  error instanceof Error ? error.message : String(error)
+);
 
 type Bridge = {
   createStartUpPageContainer: (
@@ -164,26 +179,71 @@ export async function transmitCanvas(
     completionMessage: string,
     shouldContinue: () => boolean = () => true,
   ) => {
-    if (!shouldContinue()) return;
-    const encodedTiles = await dependencies.encode(
-      imageSource,
-      undefined,
-      targetTiles,
-    );
+    if (!shouldContinue()) {
+      logDiagnostic("REFRESH", "image refresh skipped before encode");
+      return;
+    }
+    const encodeStartedAt = diagnosticNow();
+    logDiagnostic("ENCODE", `start · ${targetTiles.length} tiles`);
+    let encodedTiles: Uint8Array[];
+    try {
+      encodedTiles = await dependencies.encode(
+        imageSource,
+        undefined,
+        targetTiles,
+      );
+      logDiagnostic(
+        "ENCODE",
+        `complete · ${targetTiles.length} tiles`,
+        diagnosticDuration(encodeStartedAt),
+      );
+    } catch (error) {
+      logDiagnostic(
+        "ERROR",
+        `encode failed · ${diagnosticError(error)}`,
+        diagnosticDuration(encodeStartedAt),
+      );
+      throw error;
+    }
     if (!shouldContinue()) return;
     await sendTilesSequentially(encodedTiles, async (bytes, index) => {
       if (!shouldContinue()) return;
       const tile = targetTiles[index];
-      const result = ImageRawDataUpdateResult.normalize(
-        await bridge.updateImageRawData(new ImageRawDataUpdate({
-          containerID: tile.id,
-          containerName: tile.name,
-          imageData: bytes,
-        })),
+      const tileStartedAt = diagnosticNow();
+      logDiagnostic(
+        "TILE",
+        `${tile.name} start · ${index + 1}/${targetTiles.length}`,
       );
+      let result: ImageRawDataUpdateResult;
+      try {
+        result = ImageRawDataUpdateResult.normalize(
+          await bridge.updateImageRawData(new ImageRawDataUpdate({
+            containerID: tile.id,
+            containerName: tile.name,
+            imageData: bytes,
+          })),
+        );
+      } catch (error) {
+        logDiagnostic(
+          "ERROR",
+          `${tile.name} send threw · ${diagnosticError(error)}`,
+          diagnosticDuration(tileStartedAt),
+        );
+        throw error;
+      }
       if (!ImageRawDataUpdateResult.isSuccess(result)) {
+        logDiagnostic(
+          "ERROR",
+          `${tile.name} failed · ${String(result)}`,
+          diagnosticDuration(tileStartedAt),
+        );
         throw new Error(`${tile.name} 전송 실패: ${result}`);
       }
+      logDiagnostic(
+        "TILE",
+        `${tile.name} success`,
+        diagnosticDuration(tileStartedAt),
+      );
       onProgress(`안경 이미지 전송 중 ${index + 1}/${targetTiles.length}`);
     });
     if (!shouldContinue()) return;
@@ -195,14 +255,47 @@ export async function transmitCanvas(
   let hidden = false;
   let hiddenSource: HTMLCanvasElement | undefined;
   let operationQueue = Promise.resolve();
-  const queueOperation = (operation: () => void | Promise<void>) => {
-    if (disposed) return;
+  let operationSequence = 0;
+  let pendingOperationCount = 0;
+  const queueOperation = (
+    label: string,
+    operation: () => void | Promise<void>,
+  ) => {
+    if (disposed) {
+      logDiagnostic("REFRESH", `${label} dropped · disposed`);
+      return;
+    }
+    operationSequence += 1;
+    pendingOperationCount += 1;
+    const operationId = operationSequence;
+    logDiagnostic(
+      "REFRESH",
+      `operation #${operationId} ${label} queued · pending ${pendingOperationCount}`,
+    );
     operationQueue = operationQueue
-      .then(() => {
-        if (!disposed) return operation();
-      })
-      .catch((error: unknown) => {
-        onProgress(error instanceof Error ? error.message : String(error));
+      .then(async () => {
+        const startedAt = diagnosticNow();
+        logDiagnostic(
+          "REFRESH",
+          `operation #${operationId} ${label} start`,
+        );
+        try {
+          if (!disposed) await operation();
+          logDiagnostic(
+            "REFRESH",
+            `operation #${operationId} ${label} complete`,
+            diagnosticDuration(startedAt),
+          );
+        } catch (error) {
+          logDiagnostic(
+            "ERROR",
+            `operation #${operationId} ${label} failed · ${diagnosticError(error)}`,
+            diagnosticDuration(startedAt),
+          );
+          onProgress(diagnosticError(error));
+        } finally {
+          pendingOperationCount -= 1;
+        }
       });
   };
   const performNavigation = async (direction: PageDirection) => {
@@ -216,15 +309,19 @@ export async function transmitCanvas(
     if (disposed) return;
     if (!displayToggle) {
       await bridge.shutDownPageContainer(1);
+      logDiagnostic("REFRESH", "shutdown complete");
       return;
     }
     if (hidden) {
+      logDiagnostic("REFRESH", "restore start");
       onProgress("HUD 표시 복원 중");
       await displayToggle.beforeRestore?.();
       if (disposed) return;
       await refreshImages(source, tiles, "HUD 표시 복원 완료");
       hidden = false;
+      logDiagnostic("REFRESH", "restore complete");
     } else {
+      logDiagnostic("REFRESH", "hide start");
       onProgress("HUD 표시 숨기는 중");
       await refreshImages(
         hiddenSource ??= displayToggle.createHiddenSource(),
@@ -232,20 +329,29 @@ export async function transmitCanvas(
         "HUD 표시 숨김 완료",
       );
       hidden = true;
+      logDiagnostic("REFRESH", "hide complete");
     }
   };
   const queueInput = (
     input: FastCanvasInput,
     fallback?: () => void | Promise<void>,
   ) => {
-    if (disposed || (hidden && input !== "double-tap")) return;
-    queueOperation(async () => {
+    if (disposed || (hidden && input !== "double-tap")) {
+      logDiagnostic(
+        "INPUT",
+        `${input} ignored · ${disposed ? "disposed" : "hidden"}`,
+      );
+      return;
+    }
+    logDiagnostic("REFRESH", `input ${input} queued`);
+    queueOperation(`input ${input}`, async () => {
       if (disposed) return;
       if (hidden) {
         if (input === "double-tap") await performDisplayToggle();
         return;
       }
       const result = await onInput?.(input) ?? "unhandled";
+      logDiagnostic("INPUT", `${input} result · ${result}`);
       if (disposed) return;
       if (result === "redraw") {
         await refreshImages(source, tiles, "상세 화면 전송 완료");
@@ -257,13 +363,22 @@ export async function transmitCanvas(
   let pendingRefreshTarget: FastCanvasRefreshTarget | undefined;
   let externalRefreshScheduled = false;
   const scheduleExternalRefresh = () => {
-    if (!externalRefresh || externalRefreshScheduled || disposed) return;
+    if (!externalRefresh || externalRefreshScheduled || disposed) {
+      return;
+    }
     externalRefreshScheduled = true;
-    queueOperation(async () => {
+    queueOperation("external refresh", async () => {
       try {
         const target = pendingRefreshTarget;
         pendingRefreshTarget = undefined;
-        if (!target || hidden || disposed) return;
+        if (!target || hidden || disposed) {
+          logDiagnostic(
+            "REFRESH",
+            `external refresh skipped · ${!target ? "empty" : hidden ? "hidden" : "disposed"}`,
+          );
+          return;
+        }
+        logDiagnostic("REFRESH", `external refresh start · ${target}`);
         onProgress("라이브 HUD 갱신 중");
         if (disposed) return;
         await externalRefresh.beforeExternalRefresh?.();
@@ -274,6 +389,7 @@ export async function transmitCanvas(
           "라이브 HUD 갱신 완료",
           () => !disposed && !hidden,
         );
+        logDiagnostic("REFRESH", `external refresh complete · ${target}`);
       } finally {
         externalRefreshScheduled = false;
         if (!disposed && pendingRefreshTarget) scheduleExternalRefresh();
@@ -281,7 +397,11 @@ export async function transmitCanvas(
     });
   };
   const requestExternalRefresh: FastCanvasRefreshRequest = (target) => {
-    if (disposed) return;
+    if (disposed) {
+      logDiagnostic("REFRESH", `external ${target} dropped · disposed`);
+      return;
+    }
+    const previousTarget = pendingRefreshTarget;
     if (
       pendingRefreshTarget === "all"
       || target === "all"
@@ -291,6 +411,11 @@ export async function transmitCanvas(
     } else {
       pendingRefreshTarget = target;
     }
+    logDiagnostic(
+      "REFRESH",
+      `external requested · ${target} → ${pendingRefreshTarget}`
+        + (previousTarget ? ` · merged ${previousTarget}` : ""),
+    );
     scheduleExternalRefresh();
   };
 
@@ -298,6 +423,13 @@ export async function transmitCanvas(
   const sdkUnsubscribe = bridge.onEvenHubEvent((event) => {
     if (disposed) return;
     eventCount += 1;
+    logDiagnostic(
+      "INPUT",
+      `raw #${eventCount} · hidden=${hidden}`
+        + ` · sys=${event.sysEvent?.eventType ?? "omitted"}`
+        + ` · text=${event.textEvent?.eventType ?? "omitted"}`
+        + ` · source=${event.sysEvent?.eventSource ?? "omitted"}`,
+    );
     try {
       onRawEvent?.(Object.freeze({
         count: eventCount,

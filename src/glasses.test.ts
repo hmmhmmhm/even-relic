@@ -7,6 +7,7 @@ import {
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
 import { describe, expect, it, vi } from "vitest";
+import { diagnosticLogger } from "./diagnostic-log";
 
 async function loadGlasses() {
   const module = await import("./glasses").catch(() => null);
@@ -994,6 +995,28 @@ describe("G2 raster transport", () => {
       "scroll-next",
       "scroll-next",
     ]);
+  });
+
+  it("traces one handled tap and one dashboard hide without extra sends", async () => {
+    const harness = await createFastRefreshHarness({
+      inputResult: "redraw",
+    });
+    diagnosticLogger.clear();
+
+    harness.emit(OsEventTypeList.CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+
+    harness.setInputResult("unhandled");
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(12));
+
+    const trace = diagnosticLogger.text();
+    expect(trace).toContain("[INPUT] raw");
+    expect(trace).toContain("[REFRESH] input tap queued");
+    expect(trace).toContain("[ENCODE] start · 4 tiles");
+    expect(trace).toContain("[TILE] relicTR success");
+    expect(trace).toContain("[REFRESH] hide complete");
+    expect(harness.imageIds).toHaveLength(12);
   });
 
   it("treats a text event with an omitted zero event type as a tap", async () => {
