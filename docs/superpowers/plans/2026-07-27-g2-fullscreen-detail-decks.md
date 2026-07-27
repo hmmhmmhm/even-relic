@@ -22,7 +22,7 @@
 - Modify: `src/news.ts`
 - Modify: `src/news.test.ts`
 
-- [ ] **Step 1: RSS 요약 실패 테스트 작성**
+- [x] **Step 1: RSS 요약 실패 테스트 작성**
 
 테스트 RSS 첫 항목에 다음 설명을 추가한다.
 
@@ -46,7 +46,7 @@ expect(parseNewsRss(longSummaryRss)[0].summary).toHaveLength(360);
 캐시 테스트에는 `summary`를 포함하고 제어 문자나 361개 이상 요약이 든
 캐시가 무시되는 사례를 추가한다.
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run:
 
@@ -56,7 +56,7 @@ npx vitest run src/news.test.ts --no-file-parallelism --maxWorkers=1
 
 Expected: `summary`가 `undefined`라서 실패한다.
 
-- [ ] **Step 3: 최소 구현**
+- [x] **Step 3: 최소 구현**
 
 `NewsItem`에 다음 필드를 추가한다.
 
@@ -89,7 +89,7 @@ function sanitizeSummary(value: string): string | undefined {
 `parseNewsRss()`가 `<description>`을 읽고, 캐시 검증과 `cloneItems()`가
 요약을 보존하게 한다.
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run:
 
@@ -100,7 +100,7 @@ npm run typecheck
 
 Expected: 모든 뉴스 테스트와 타입 검사가 통과한다.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add src/live-state.ts src/news.ts src/news.test.ts
@@ -114,7 +114,7 @@ git commit -m "feat: retain sanitized RSS summaries"
 - Create: `src/todos.test.ts`
 - Modify: `src/live-state.ts`
 
-- [ ] **Step 1: TODO 저장소 실패 테스트 작성**
+- [x] **Step 1: TODO 저장소 실패 테스트 작성**
 
 다음 동작을 검증한다.
 
@@ -137,7 +137,7 @@ await expect(writeTodos(failingStorage, changed)).resolves.toBe(false);
 제목이 비어 있거나 40개 코드 포인트를 넘고, ID가 중복되거나 항목이
 6개를 넘는 캐시도 초기값으로 복구하는지 확인한다.
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run:
 
@@ -147,7 +147,7 @@ npx vitest run src/todos.test.ts --no-file-parallelism --maxWorkers=1
 
 Expected: `./todos` 모듈을 찾지 못해 실패한다.
 
-- [ ] **Step 3: 최소 구현**
+- [x] **Step 3: 최소 구현**
 
 `live-state.ts`에 다음 모델과 상태, 초기값을 추가한다.
 
@@ -185,7 +185,7 @@ export function writeTodos(
 `readCache()`와 `writeCache()`의 키는 `"todos"`를 사용하여 실제 저장 키를
 `relic:todos:v1`로 고정한다.
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run:
 
@@ -196,7 +196,7 @@ npm run typecheck
 
 Expected: TODO 테스트와 타입 검사가 통과한다.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add src/live-state.ts src/todos.ts src/todos.test.ts
@@ -210,7 +210,7 @@ git commit -m "feat: persist G2 todo state"
 - Create: `src/live-dashboard-todo.test.ts`
 - Modify: `src/live-dashboard.test.ts`
 
-- [ ] **Step 1: 세션 실패 테스트 작성**
+- [x] **Step 1: 세션 실패 테스트 작성**
 
 `createLiveDashboardSession()` 반환값에 다음 계약을 기대한다.
 
@@ -234,7 +234,7 @@ expect(JSON.parse(bridge.values.get("relic:todos:v1")!)[0].completed)
 범위 밖 인덱스와 dispose 이후 호출은 `false`를 반환하고 상태나 저장소를
 바꾸지 않아야 한다. 저장 실패 후에도 현재 세션의 완료 상태는 유지한다.
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run:
 
@@ -245,7 +245,7 @@ npx vitest run src/live-dashboard-todo.test.ts \
 
 Expected: `toggleTodo`가 없어 실패한다.
 
-- [ ] **Step 3: 최소 구현**
+- [x] **Step 3: 최소 구현**
 
 세션 시작 시 `resolveTodos()`를 호출하고 저장값이 초기 상태와 다를 때
 상태를 바꾸고 `right`를 방출한다.
@@ -265,7 +265,7 @@ const toggleTodoAt = async (index: number): Promise<boolean> => {
 메서드는 상태 변경과 전송 요청을 먼저 만들고 저장을 기다린 다음
 반환한다.
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run:
 
@@ -278,7 +278,7 @@ npm run typecheck
 
 Expected: 라이브 세션 테스트와 타입 검사가 통과한다.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add src/live-dashboard.ts src/live-dashboard.test.ts \
@@ -292,7 +292,7 @@ git commit -m "feat: expose live todo toggles"
 - Create: `src/fast-hud-view.ts`
 - Create: `src/fast-hud-view.test.ts`
 
-- [ ] **Step 1: 상태 전이 실패 테스트 작성**
+- [x] **Step 1: 상태 전이 실패 테스트 작성**
 
 테스트 컨텍스트를 다음과 같이 고정한다.
 
@@ -332,7 +332,7 @@ TODO 탭은 다음 효과를 반환해야 한다.
 동작으로 복귀하며 다시 `true`로 바꾼다. `syncFastHudView()`는 줄어든 항목
 수에 맞춰 모든 인덱스를 제한한다.
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run:
 
@@ -343,7 +343,7 @@ npx vitest run src/fast-hud-view.test.ts \
 
 Expected: 새 상태 모듈이 없어 실패한다.
 
-- [ ] **Step 3: 최소 구현**
+- [x] **Step 3: 최소 구현**
 
 다음 API를 구현한다.
 
@@ -366,7 +366,7 @@ export function reduceFastHudInput(
 두 번 탭은 계속 `unhandled`다. 기존 `fast-map-view.ts`는 App을 새 상태로
 옮기는 Task 7까지 유지한다.
 
-- [ ] **Step 4: 통과 확인**
+- [x] **Step 4: 통과 확인**
 
 Run:
 
@@ -378,7 +378,7 @@ npm run typecheck
 
 Expected: 상태 전이 테스트와 타입 검사가 통과한다.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add src/fast-hud-view.ts src/fast-hud-view.test.ts
@@ -394,7 +394,7 @@ git commit -m "feat: model fullscreen G2 detail input"
 - Create: `src/fast-detail-hud.test.ts`
 - Modify: `src/fast-canvas-style.ts`
 
-- [ ] **Step 1: 줄바꿈 실패 테스트 작성**
+- [x] **Step 1: 줄바꿈 실패 테스트 작성**
 
 ```ts
 expect(wrapHudText("가나다라마바사", 6, 2)).toEqual([
@@ -410,7 +410,7 @@ expect(wrapHudText("alpha beta gamma", 10, 2)).toEqual([
 빈 문자열, 긴 단어, 한국어와 영문 혼합, 최대 줄 수가 0인 경우도
 검증한다.
 
-- [ ] **Step 2: 렌더러 실패 테스트 작성**
+- [x] **Step 2: 렌더러 실패 테스트 작성**
 
 가짜 Canvas가 그린 텍스트를 수집하여 다음을 확인한다.
 
@@ -443,7 +443,7 @@ expect(navTexts).toEqual(expect.arrayContaining([
 `LOADING`, `STALE`, `UNAVAILABLE`, `DISABLED` 문구와
 `DOUBLE TAP // BACK`이 보이는지 확인한다.
 
-- [ ] **Step 3: 실패 확인**
+- [x] **Step 3: 실패 확인**
 
 Run:
 
@@ -455,7 +455,7 @@ npx vitest run src/fast-detail-text.test.ts \
 
 Expected: 두 모듈이 없어 실패한다.
 
-- [ ] **Step 4: 최소 구현**
+- [x] **Step 4: 최소 구현**
 
 `fast-detail-text.ts`는 ASCII 1단위, 비 ASCII 2단위로 계산하고 단어
 경계를 우선하여 줄을 나눈다. 마지막 줄에 남은 내용이 있으면 2단위
@@ -480,7 +480,7 @@ export function drawFastDetailHud(
 별도 내부 함수로 나눈다. `fast-canvas-style.ts`의 기존 색상, 텍스트,
 경로 도구를 재사용한다.
 
-- [ ] **Step 5: 통과 확인**
+- [x] **Step 5: 통과 확인**
 
 Run:
 
@@ -493,7 +493,7 @@ npm run typecheck
 
 Expected: 렌더러와 타입 검사가 통과한다.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add src/fast-detail-text.ts src/fast-detail-text.test.ts \
@@ -508,7 +508,7 @@ git commit -m "feat: render fullscreen G2 detail decks"
 - Create: `src/fast-detail-refresh.ts`
 - Create: `src/fast-detail-refresh.test.ts`
 
-- [ ] **Step 1: 실패 테스트 작성**
+- [x] **Step 1: 실패 테스트 작성**
 
 다음 순수 함수를 기대한다.
 
@@ -544,7 +544,7 @@ ID, 제목, 완료 상태를 비교한다. 내비게이션은 상태, 목적지,
 활성 동작, 표시 거리 버킷, 동작 목록을 비교하며 전체 경로 좌표 배열을
 매 위치 갱신마다 직렬화하지 않는다.
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run:
 
@@ -555,7 +555,7 @@ npx vitest run src/fast-detail-refresh.test.ts \
 
 Expected: 갱신 필터 모듈이 없어 실패한다.
 
-- [ ] **Step 3: 최소 구현과 통과 확인**
+- [x] **Step 3: 최소 구현과 통과 확인**
 
 각 데이터 종류에 작은 동등성 함수를 만들고 보이는 모드의 변화만 `all`로
 승격한다.
@@ -570,7 +570,7 @@ npm run typecheck
 
 Expected: 갱신 필터 테스트와 타입 검사가 통과한다.
 
-- [ ] **Step 4: 커밋**
+- [x] **Step 4: 커밋**
 
 ```bash
 git add src/fast-detail-refresh.ts src/fast-detail-refresh.test.ts
@@ -587,7 +587,7 @@ git commit -m "feat: filter fullscreen detail refreshes"
 - Delete: `src/fast-map-view.ts`
 - Delete: `src/fast-map-view.test.ts`
 
-- [ ] **Step 1: App 실패 테스트 작성**
+- [x] **Step 1: App 실패 테스트 작성**
 
 렌더러 모킹에 `drawFastDetailHud`를 추가하고 네 대시보드 탭에서 한 번
 탭한 결과를 확인한다.
@@ -610,13 +610,13 @@ TODO를 보내면 `requestRefresh("all")`이 한 번 호출되어야 한다.
 `all`을 요청해야 한다. 두 번 탭하면 진입한 대시보드 페이지를 최신 상태로
 전체 렌더링해야 한다.
 
-- [ ] **Step 2: 전송 실패 테스트 작성**
+- [x] **Step 2: 전송 실패 테스트 작성**
 
 `glasses.test.ts`에서 뉴스 상세 진입, 스크롤, 복귀에 대응하는 세 번의
 `redraw`가 각각 `3/5/2/4`로 직렬 전송되는지 확인한다. 경계 `consume`과
 TODO 효과의 `consume`은 입력 자체로 이미지를 보내지 않아야 한다.
 
-- [ ] **Step 3: 실패 확인**
+- [x] **Step 3: 실패 확인**
 
 Run:
 
@@ -628,7 +628,7 @@ npx vitest run src/App.test.tsx \
 
 Expected: 상세 렌더러, 새 상태와 TODO 세션 호출이 없어 실패한다.
 
-- [ ] **Step 4: 최소 App 통합**
+- [x] **Step 4: 최소 App 통합**
 
 `App.tsx`의 지도 상태를 `FastHudViewState`로 교체한다. `drawCurrentPage()`
 시작 시 현재 항목 수와 활성 동작으로 상태를 동기화하고 다음처럼 그린다.
@@ -657,13 +657,13 @@ if (view.mode === "map") {
 전송 대상을 결정한 뒤 상태를 교체한다. 분과 배터리 갱신은
 `view.mode === "dashboard"`일 때만 보낸다.
 
-- [ ] **Step 5: 전송 문구 일반화**
+- [x] **Step 5: 전송 문구 일반화**
 
 `fast-canvas-transport.ts`의 `redraw` 완료 문구를
 `"상세 화면 전송 완료"`로 바꾼다. 전송 순서와 타일 집합은 변경하지
 않는다.
 
-- [ ] **Step 6: 통과 확인**
+- [x] **Step 6: 통과 확인**
 
 Run:
 
@@ -676,7 +676,7 @@ npm run typecheck
 
 Expected: App, 전송과 타입 검사가 통과한다.
 
-- [ ] **Step 7: 파일 길이 확인과 커밋**
+- [x] **Step 7: 파일 길이 확인과 커밋**
 
 Run:
 
@@ -703,7 +703,7 @@ git commit -m "feat: open detail decks from every G2 tab"
 - Modify: `package.json`
 - Modify: `docs/hardware/2026-07-27-project-completion-audit.md`
 
-- [ ] **Step 1: 전체 검증**
+- [x] **Step 1: 전체 검증**
 
 Run serially:
 
@@ -724,7 +724,7 @@ git diff --check
 Expected: 모든 테스트와 빌드가 통과하고 클라이언트 키 검색은 결과 없이
 종료 코드 1을 반환한다.
 
-- [ ] **Step 2: 체크포인트 문서 작성**
+- [x] **Step 2: 체크포인트 문서 작성**
 
 새 문서에 다음을 기록한다.
 
@@ -738,12 +738,12 @@ Result: PENDING
 양안 네 타일과 `SENDFAILED`를 실제 확인 항목으로 둔다. 자동 검증 수치는
 방금 실행한 실제 결과만 기록한다.
 
-- [ ] **Step 3: QR과 README 갱신**
+- [x] **Step 3: QR과 README 갱신**
 
 `package.json`의 `qr` 빌드 ID를 `detail-decks-019`로 바꾸고 README의 현재
 물리 테스트 URL과 상세 덱 제스처를 갱신한다.
 
-- [ ] **Step 4: 문서 검증과 커밋**
+- [x] **Step 4: 문서 검증과 커밋**
 
 Run:
 
@@ -759,7 +759,7 @@ git add README.md package.json \
 git commit -m "docs: prepare G2 detail deck checkpoint"
 ```
 
-- [ ] **Step 5: 4176 서버를 한 번만 교체**
+- [x] **Step 5: 4176 서버를 한 번만 교체**
 
 기존 `fullscreen-map-018` Vite 세션을 정상 종료하고 포트가 비었는지
 확인한다. 새 브랜치에서 다음 서버 하나만 실행한다.

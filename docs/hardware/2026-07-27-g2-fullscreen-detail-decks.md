@@ -30,7 +30,7 @@ URL:
 
 ## 자동 검증
 
-- `npm test`: 31개 파일, 307개 테스트 통과
+- `npm test`: 31개 파일, 308개 테스트 통과
 - `npm run typecheck`: 통과
 - `npm run build`: 60개 모듈 변환
 - `npm run test:sites`: 4개 테스트 통과
