@@ -259,7 +259,7 @@ export function App({ autoStart = true }: AppProps) {
                 : hybridHudMode
                   ? "Canvas에는 정적 배경만 보이며, 실제 안경 문구는 네이티브 Text로 한 번에 전환됩니다."
                   : fastCanvasHudMode
-                    ? "날씨: Open-Meteo · 지도: 데모 스키매틱"
+                    ? "날씨: Open-Meteo · 지도: 데모 스키매틱 · 뉴스: SBS RSS · 개인·비상업"
                     : canvasHudMode
                       ? "기본 뉴스 화면에서 아래 스크롤은 다음, 위 스크롤은 이전 페이지를 네 타일로 전송합니다."
                       : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}

@@ -323,16 +323,80 @@ function drawNavigation(context: CanvasRenderingContext2D) {
   drawText(context, "다음 교차로", 308, 244, 18, COLOR.primary, "bold");
 }
 
-function drawNews(context: CanvasRenderingContext2D) {
-  drawText(context, "NEWS // FOCUS", 308, 82, 11, COLOR.secondary, "bold");
-  drawText(context, "· AI 산업 투자 확대", 308, 104, 14, COLOR.primary, "bold");
-  drawText(context, "· 도심 자율주행 시범", 308, 128, 14, COLOR.primary, "bold");
-  drawText(context, "· 코스피 장중 상승", 308, 152, 14, COLOR.primary, "bold");
-  drawText(context, "· 서울 낮 최고 29도", 308, 176, 14, COLOR.primary, "bold");
+function hudUnits(value: string): number {
+  return [...value].reduce(
+    (total, character) =>
+      total + (/^[\x00-\x7F]$/.test(character) ? 1 : 2),
+    0,
+  );
+}
 
+export function truncateHudTitle(title: string, maxUnits: number): string {
+  const normalized = title.replace(/\s+/g, " ").trim();
+  if (hudUnits(normalized) <= maxUnits) return normalized;
+  const ellipsisUnits = 2;
+  let output = "";
+  let used = 0;
+  for (const character of normalized) {
+    const units = /^[\x00-\x7F]$/.test(character) ? 1 : 2;
+    if (used + units + ellipsisUnits > maxUnits) break;
+    output += character;
+    used += units;
+  }
+  return `${output.trimEnd()}…`;
+}
+
+function drawNews(
+  context: CanvasRenderingContext2D,
+  live: LiveDashboardState,
+) {
+  const stale = live.news.status === "stale";
+  const items = live.news.status === "fresh" || stale
+    ? live.news.value ?? []
+    : [];
+  drawText(
+    context,
+    stale ? "NEWS // FOCUS · STALE" : "NEWS // FOCUS",
+    308,
+    82,
+    11,
+    COLOR.secondary,
+    "bold",
+  );
+  if (items.length === 0) {
+    drawText(
+      context,
+      live.news.status === "loading" ? "NEWS LOADING" : "NEWS UNAVAILABLE",
+      308,
+      112,
+      16,
+      COLOR.primary,
+      "bold",
+    );
+    return;
+  }
+
+  const positions = [
+    [308, 104, 14, 25],
+    [308, 128, 14, 25],
+    [308, 152, 14, 25],
+    [308, 176, 14, 25],
+    [308, 237, 13, 29],
+    [308, 257, 13, 29],
+  ] as const;
+  items.slice(0, 6).forEach((item, index) => {
+    const [x, y, size, maxUnits] = positions[index];
+    drawText(
+      context,
+      `· ${truncateHudTitle(item.title, maxUnits)}`,
+      x,
+      y,
+      size,
+      index < 4 ? COLOR.primary : COLOR.secondary,
+      "bold",
+    );
+  });
   drawText(context, "NEWS // MORE", 308, 222, 10, COLOR.secondary, "bold");
-  drawText(context, "· 주말 프로야구 빅매치", 308, 237, 13, COLOR.primary, "bold");
-  drawText(context, "· 신작 게임 글로벌 출시", 308, 257, 13, COLOR.primary, "bold");
 }
 
 function drawTodo(context: CanvasRenderingContext2D) {
@@ -357,7 +421,7 @@ function drawDynamicPage(
   drawFrame(context, 296, 216, 272, 64);
   if (page === "overview") drawOverview(context, data);
   if (page === "navigation") drawNavigation(context);
-  if (page === "news") drawNews(context);
+  if (page === "news") drawNews(context, data.live);
   if (page === "todo") drawTodo(context);
 }
 

@@ -33,6 +33,7 @@ type PathRecord = {
 };
 type FastHudModule = {
   FAST_HUD_PAGES?: readonly HudPage[];
+  truncateHudTitle?: (title: string, maxUnits: number) => string;
   getAdjacentFastHudPage?: (
     page: HudPage,
     direction: "next" | "previous",
@@ -239,8 +240,9 @@ describe("fast split Canvas HUD", () => {
       "우회전",
       "다음 교차로",
     ]));
+    expect(pages[1].values).toContain("NEWS LOADING");
     expect(pages[1].values.filter((value) => value.startsWith("· "))).toHaveLength(
-      6,
+      0,
     );
     expect(pages[1].values).not.toContain("2호선 정상 운행");
     expect(pages[2].values).toEqual(expect.arrayContaining([
@@ -340,5 +342,64 @@ describe("fast split Canvas HUD", () => {
         weather: { status: "unavailable" },
       },
     }).values).toContain("WEATHER --");
+  });
+
+  it("renders six live headlines and labels stale or unavailable states", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+    const initial = createInitialLiveDashboardState();
+    const items = [
+      "첫 번째 최신 기사",
+      "두 번째 최신 기사",
+      "세 번째 최신 기사",
+      "네 번째 최신 기사",
+      "다섯 번째 최신 기사",
+      "여섯 번째 최신 기사",
+    ].map((title, index) => ({
+      id: `guid:${index}`,
+      title,
+    }));
+    const live: LiveDashboardState = {
+      ...initial,
+      news: { status: "fresh", value: items, fetchedAt: 1 },
+    };
+    const news = renderFastHud(module, "news", { live });
+
+    expect(news.values.filter((value) => value.startsWith("· "))).toEqual([
+      "· 첫 번째 최신 기사",
+      "· 두 번째 최신 기사",
+      "· 세 번째 최신 기사",
+      "· 네 번째 최신 기사",
+      "· 다섯 번째 최신 기사",
+      "· 여섯 번째 최신 기사",
+    ]);
+    expect(news.values).not.toContain("· AI 산업 투자 확대");
+    expect(news.texts.filter(({ value }) => value.startsWith("· ")).map(
+      ({ x, y, font }) => ({ x, y, font }),
+    )).toEqual([
+      { x: 308, y: 104, font: expect.stringContaining("14px") },
+      { x: 308, y: 128, font: expect.stringContaining("14px") },
+      { x: 308, y: 152, font: expect.stringContaining("14px") },
+      { x: 308, y: 176, font: expect.stringContaining("14px") },
+      { x: 308, y: 237, font: expect.stringContaining("13px") },
+      { x: 308, y: 257, font: expect.stringContaining("13px") },
+    ]);
+
+    expect(renderFastHud(module, "news", {
+      live: { ...live, news: { ...live.news, status: "stale" } },
+    }).values).toContain("NEWS // FOCUS · STALE");
+    expect(renderFastHud(module, "news", {
+      live: { ...live, news: { status: "unavailable" } },
+    }).values).toContain("NEWS UNAVAILABLE");
+  });
+
+  it("truncates mixed-width titles without exceeding HUD units", async () => {
+    const module = await loadFastHud();
+    expect(module?.truncateHudTitle).toBeTypeOf("function");
+    expect(module?.truncateHudTitle?.("short title", 25)).toBe("short title");
+    expect(module?.truncateHudTitle?.(
+      "아주 긴 한국어 기사 제목입니다 ABCDEFG",
+      25,
+    )).toBe("아주 긴 한국어 기사 제…");
   });
 });
