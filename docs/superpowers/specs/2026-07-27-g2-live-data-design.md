@@ -32,10 +32,14 @@ image transport and produced `SENDFAILED` on the physical G2. Version `0.0.11`
 therefore provides the official location bridge while retaining the pre-LZ4
 image path closest to the proven `0.0.10` transport.
 
-Physical G2 build `fast-right-first-011` passed the SDK hardware gate with
-bilateral fast startup, `3/5/2/4` full transfers, `3/5` paging, and double-tap
-hide/restore. SDK `0.0.11` is approved as the live-data baseline; SDK `0.0.12`
-remains blocked until separately proven.
+The hardware gate ran in two stages. SDK-only build `fast-live-011` first
+established bilateral display, four-tile rendering, normal scrolling, and no
+`SENDFAILED`. After the user requested right-column-first loading,
+`fast-right-first-011` at commit
+`df19655a40dc72a088fb702c8d3e1cade7e0274d` combined SDK `0.0.11` with
+`3/5/2/4` fast full transfers. The physical G2 approved that combined build,
+including `3/5` paging and double-tap hide/restore, as the live-data baseline.
+SDK `0.0.12` remains blocked until separately proven.
 
 ### Key policy
 

@@ -54,7 +54,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   event-direction inversion is needed. Keep `/hud-canvas` on its original
   order.
 - Show minute-only time plus `YYYY.MM.DD` and the Korean weekday. Fetch one SDK
-  `0.0.10` `DeviceInfo` before initial fast-Canvas encoding and show its
+  `0.0.11` `DeviceInfo` before initial fast-Canvas encoding and show its
   G1/G2/R1 battery on overview. Fall back to `BATTERY --` without blocking
   image transmission. Do not resend tiles every second or on device-status
   events.

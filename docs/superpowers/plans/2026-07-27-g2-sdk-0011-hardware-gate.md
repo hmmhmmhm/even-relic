@@ -8,7 +8,15 @@
 
 **Tech Stack:** Even Hub SDK `0.0.11`, Even Hub CLI, Vite, Vitest, TypeScript
 
-**Completed:** Physical G2 build `fast-right-first-011` passed this gate; see
+**As-run deviation/completion:** The gate finished in two physical stages, so
+the final approved artifact did not preserve the planned SDK-only variable.
+First, `fast-live-011` isolated SDK `0.0.11` and established bilateral display,
+all four tiles, normal 1→2→3→4 scrolling, and no `SENDFAILED`. The user then
+requested right-column-first loading. Commit
+`df19655a40dc72a088fb702c8d3e1cade7e0274d` produced
+`fast-right-first-011`, combining SDK `0.0.11` with the fast-route-only
+`3/5/2/4` full-send order. The physical G2 confirmed that combined build,
+including hide/restore, as the final live-data baseline. See
 `docs/hardware/2026-07-27-sdk-0011-transport-success.md`.
 
 ---
