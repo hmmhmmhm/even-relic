@@ -61,6 +61,13 @@ export type FastCanvasInput =
   | "scroll-next"
   | "scroll-previous";
 export type FastCanvasInputResult = "unhandled" | "consume" | "redraw";
+export type FastCanvasRawEvent = {
+  readonly count: number;
+  readonly hidden: boolean;
+  readonly sysEventType?: OsEventTypeList;
+  readonly textEventType?: OsEventTypeList;
+  readonly eventSource?: number;
+};
 export type FastCanvasBattery = {
   readonly label: "G1" | "G2" | "R1";
   readonly level?: number;
@@ -85,6 +92,7 @@ export type FastCanvasOptions = {
   readonly onInput?: (
     input: FastCanvasInput,
   ) => FastCanvasInputResult | Promise<FastCanvasInputResult>;
+  readonly onRawEvent?: (event: FastCanvasRawEvent) => void;
   readonly onRefreshReady?: (request: FastCanvasRefreshRequest) => void;
 };
 
@@ -128,6 +136,7 @@ export async function transmitCanvas(
   onInput?: (
     input: FastCanvasInput,
   ) => FastCanvasInputResult | Promise<FastCanvasInputResult>,
+  onRawEvent?: (event: FastCanvasRawEvent) => void,
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();
@@ -285,8 +294,21 @@ export async function transmitCanvas(
     scheduleExternalRefresh();
   };
 
+  let eventCount = 0;
   const sdkUnsubscribe = bridge.onEvenHubEvent((event) => {
     if (disposed) return;
+    eventCount += 1;
+    try {
+      onRawEvent?.(Object.freeze({
+        count: eventCount,
+        hidden,
+        sysEventType: event.sysEvent?.eventType,
+        textEventType: event.textEvent?.eventType,
+        eventSource: event.sysEvent?.eventSource,
+      }));
+    } catch {
+      // Phone-only diagnostics must not break glasses input.
+    }
     const eventType = event.sysEvent
       ? event.sysEvent.eventType ?? OsEventTypeList.CLICK_EVENT
       : event.textEvent
@@ -372,6 +394,7 @@ export async function transmitFastCanvas(
       },
     },
     options.onInput,
+    options.onRawEvent,
   );
   let cleaned = false;
   let unsubscribeDeviceStatus: (() => void) | undefined;

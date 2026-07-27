@@ -51,6 +51,7 @@ export type {
   FastCanvasInput,
   FastCanvasInputResult,
   FastCanvasOptions,
+  FastCanvasRawEvent,
   FastCanvasRefreshRequest,
   FastCanvasRefreshTarget,
   PageDirection,

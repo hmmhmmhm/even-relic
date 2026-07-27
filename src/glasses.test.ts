@@ -21,6 +21,13 @@ type TestInput =
   | "scroll-next"
   | "scroll-previous";
 type TestInputResult = "unhandled" | "consume" | "redraw";
+type TestRawEvent = {
+  readonly count: number;
+  readonly hidden: boolean;
+  readonly sysEventType?: OsEventTypeList;
+  readonly textEventType?: OsEventTypeList;
+  readonly eventSource?: number;
+};
 type FastRefreshHarnessConfig = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly beforeRestore?: () => void | Promise<void>;
@@ -60,6 +67,7 @@ async function createFastRefreshHarness(
   const imageIds: number[] = [];
   const inputs: TestInput[] = [];
   const progress: string[] = [];
+  const rawEvents: TestRawEvent[] = [];
   let activeImageSends = 0;
   let maximumActiveImageSends = 0;
   let currentEncodeAttempt = 0;
@@ -117,6 +125,7 @@ async function createFastRefreshHarness(
         request: (target: TestRefreshTarget) => void,
       ) => void;
       onInput?: (input: TestInput) => TestInputResult;
+      onRawEvent?: (event: TestRawEvent) => void;
     },
   ) => Promise<() => void>;
 
@@ -151,6 +160,7 @@ async function createFastRefreshHarness(
         inputs.push(input);
         return inputResult;
       },
+      onRawEvent: (event) => rawEvents.push(event),
       onRefreshReady: (request) => {
         refreshRequest = request;
       },
@@ -176,6 +186,7 @@ async function createFastRefreshHarness(
     imageIds,
     inputs,
     progress,
+    rawEvents,
     request: refreshRequest,
     setInputResult: (result: TestInputResult) => {
       inputResult = result;
@@ -995,10 +1006,41 @@ describe("G2 raster transport", () => {
         containerID: 1,
         containerName: "eventLayer",
       },
-    });
+    } as EvenHubEvent);
 
     await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
     expect(harness.inputs).toEqual(["tap"]);
+  });
+
+  it("reports an omitted hidden event before discarding it", async () => {
+    const harness = await createFastRefreshHarness();
+
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+
+    harness.emitEvent({
+      textEvent: {
+        containerID: 1,
+        containerName: "eventLayer",
+      },
+    } as EvenHubEvent);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(harness.rawEvents.at(-1)).toEqual({
+      count: 2,
+      hidden: true,
+      sysEventType: undefined,
+      textEventType: undefined,
+      eventSource: undefined,
+    });
+    expect(harness.imageIds).toHaveLength(8);
+
+    harness.cleanup();
+    harness.emitEvent({
+      sysEvent: { eventType: OsEventTypeList.DOUBLE_CLICK_EVENT },
+    } as EvenHubEvent);
+    expect(harness.rawEvents).toHaveLength(2);
   });
 
   it("sends every detail transition as one ordered four-tile operation", async () => {
