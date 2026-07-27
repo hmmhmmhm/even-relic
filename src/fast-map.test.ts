@@ -207,9 +207,9 @@ describe("fast OSM map Canvas layer", () => {
     expect(labels.at(-1)!.order).toBeLessThan(route[0].order);
     expect(route[1].order).toBeLessThan(result.fills.at(-1)!.order);
     expect(labels.map(({ style, font }) => ({ style, font }))).toEqual([
-      { style: "#ffffff", font: expect.stringContaining("bold 9px") },
-      { style: "#d0d0d0", font: expect.stringContaining("bold 8px") },
-      { style: "#d0d0d0", font: expect.stringContaining("bold 8px") },
+      { style: "#ffffff", font: expect.stringContaining("bold 14px") },
+      { style: "#d0d0d0", font: expect.stringContaining("bold 12px") },
+      { style: "#d0d0d0", font: expect.stringContaining("bold 12px") },
     ]);
     for (const label of labels) {
       expect(result.rectangles).toContainEqual(expect.objectContaining({

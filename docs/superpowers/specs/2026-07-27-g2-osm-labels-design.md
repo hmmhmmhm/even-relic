@@ -1,8 +1,8 @@
 # G2 Balanced OSM Labels Design
 
 Date: 2026-07-27
-Status: Approved design
-Target build: `map-labels-015`
+Status: Approved revision
+Target build: `map-labels-large-016`
 
 ## Goal
 
@@ -118,8 +118,8 @@ Labels are horizontal for G2 readability; no street-name rotation is added.
 The layout uses a deterministic greedy collision pass:
 
 - maximum 10 visible labels;
-- transit and place labels use 9px white bold text;
-- road and landmark labels use 8px secondary text;
+- transit and place labels use 14px white bold text;
+- road and landmark labels use 12px secondary text;
 - a black rectangular patch sits behind each label;
 - text is shortened by HUD display units before measuring;
 - labels remain inside `x=18..270`, `y=34..244`;
@@ -179,3 +179,17 @@ Automated coverage must verify:
 The physical `map-labels-015` checkpoint must confirm recognizable nearby
 names, readable density, unchanged scroll speed, bilateral output, and
 double-tap hide/restore.
+
+## Physical size revision
+
+The `map-labels-015` checkpoint confirmed that labels were present and visible,
+but the user requested approximately 1.5 times larger type for comfortable
+reading. The approved revision rounds `9 x 1.5` to 14px for transit/place and
+uses exactly `8 x 1.5 = 12px` for road/landmark labels.
+
+The collision layout continues to use the measured label dimensions, so larger
+type naturally reduces the number of accepted lower-priority labels rather
+than allowing overlap. The maximum remains 10, not a minimum. The revised
+physical checkpoint is `map-labels-large-016`. ASCII fallback-name width also
+scales with the font size, preventing Latin road names from retaining their
+old 8px collision footprint.

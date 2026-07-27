@@ -37,7 +37,7 @@ export type PositionedMapLabel = {
   readonly y: number;
   readonly width: number;
   readonly height: number;
-  readonly fontSize: 8 | 9;
+  readonly fontSize: 12 | 14;
 };
 
 function hudUnits(value: string): number {
@@ -67,10 +67,11 @@ export function truncateMapLabel(
   return `${output.trimEnd()}…`;
 }
 
-function estimateWidth(text: string, fontSize: 8 | 9): number {
+function estimateWidth(text: string, fontSize: 12 | 14): number {
+  const asciiWidth = Math.ceil(fontSize * 5 / 8);
   return [...text].reduce(
     (sum, character) =>
-      sum + (/^[\x00-\x7F]$/.test(character) ? 5 : fontSize),
+      sum + (/^[\x00-\x7F]$/.test(character) ? asciiWidth : fontSize),
     0,
   );
 }
@@ -111,7 +112,7 @@ export function layoutMapLabels(
 
   for (const { label } of candidates) {
     const prominent = label.kind === "transit" || label.kind === "place";
-    const fontSize = prominent ? 9 : 8;
+    const fontSize = prominent ? 14 : 12;
     const text = truncateMapLabel(label.name, prominent ? 16 : 14);
     const width = estimateWidth(text, fontSize);
     const height = fontSize + 2;

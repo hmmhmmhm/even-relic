@@ -10,7 +10,7 @@
     "test": "vitest run src --no-file-parallelism --maxWorkers=1",
     "typecheck": "tsc --noEmit",
     "test:sites": "node --test --test-concurrency=1 tests/sites-worker.test.mjs",
-    "qr": "evenhub qr --url \"http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=map-labels-015\"",
+    "qr": "evenhub qr --url \"http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=map-labels-large-016\"",
     "pack": "npm run build && evenhub pack app.json dist/client -o even-relic.ehpk"
   },
   "dependencies": {

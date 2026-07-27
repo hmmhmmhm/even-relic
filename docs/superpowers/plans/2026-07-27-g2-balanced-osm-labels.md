@@ -718,7 +718,7 @@ git add package.json src/sdk-version.test.ts
 git commit -m "chore: point QR to labelled OSM build"
 ```
 
-- [ ] **Step 6: Open and verify on G2**
+- [x] **Step 6: Open and verify on G2**
 
 Open:
 
@@ -734,7 +734,7 @@ Ask the user to confirm:
 - bilateral output and page speed are unchanged;
 - double-tap hide/restore still works.
 
-- [ ] **Step 7: Record the labelled physical checkpoint**
+- [x] **Step 7: Record the labelled physical checkpoint**
 
 After confirmation, create
 `docs/hardware/2026-07-27-balanced-osm-labels.md`. Separate the user's visible
@@ -746,3 +746,117 @@ Commit:
 git add docs/hardware/2026-07-27-balanced-osm-labels.md
 git commit -m "docs: verify balanced OSM labels on G2"
 ```
+
+### Task 7: Scale label type for physical readability
+
+**Files:**
+- Modify: `src/map-label-layout.ts`
+- Modify: `src/map-label-layout.test.ts`
+- Modify: `src/fast-map.test.ts`
+- Modify: `src/sdk-version.test.ts`
+- Modify: `package.json`
+- Modify: `docs/hardware/2026-07-27-balanced-osm-labels.md`
+
+- [x] **Step 1: Write failing 1.5x font assertions**
+
+Change the pure layout expectations to:
+
+```ts
+expect(transit).toMatchObject({ fontSize: 14 });
+expect(road).toMatchObject({ fontSize: 12 });
+```
+
+Change the Canvas font expectations to `bold 14px` and `bold 12px`.
+
+- [x] **Step 2: Run serial focused tests and verify RED**
+
+Run separately:
+
+```bash
+npx vitest run src/map-label-layout.test.ts \
+  --no-file-parallelism --maxWorkers=1
+npx vitest run src/fast-map.test.ts \
+  --no-file-parallelism --maxWorkers=1
+```
+
+Expected: both fail on the old 9px/8px sizes.
+
+- [x] **Step 3: Scale layout fonts and collision geometry**
+
+Change `PositionedMapLabel["fontSize"]` to `12 | 14`. Use:
+
+```ts
+const fontSize = prominent ? 14 : 12;
+```
+
+Keep the same display-unit limits, `height = fontSize + 2`, viewport clamp,
+four-pixel collision expansion, arrow exclusion, and 10-label maximum. Scale
+the ASCII width estimate from 5px at the original 8px font to 8px at the new
+12px font so Latin fallback names participate in collision detection at their
+new rendered size. The existing full-width estimate automatically responds to
+the larger font dimensions.
+
+- [x] **Step 4: Verify the scaled Canvas**
+
+Run separately:
+
+```bash
+npx vitest run src/map-label-layout.test.ts \
+  --no-file-parallelism --maxWorkers=1
+npx vitest run src/fast-map.test.ts \
+  --no-file-parallelism --maxWorkers=1
+npx vitest run src/fast-canvas-hud.test.ts \
+  --no-file-parallelism --maxWorkers=1
+```
+
+Expected: every command exits 0.
+
+- [x] **Step 5: Create the revised physical build**
+
+Set the QR identity to:
+
+```text
+http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=map-labels-large-016
+```
+
+Update the SDK identity test first, verify RED, update `package.json`, and
+verify 2/2 PASS.
+
+- [x] **Step 6: Run the complete serial gate**
+
+Run one command at a time:
+
+```bash
+npm test
+npm run typecheck
+npm run build
+npm run test:sites
+node --test --test-concurrency=1 tests/map-api.test.mjs
+git diff --check
+```
+
+- [ ] **Step 7: Commit and open the revised build**
+
+Commit:
+
+```bash
+git add src/map-label-layout.ts src/map-label-layout.test.ts \
+  src/fast-map.test.ts src/sdk-version.test.ts package.json \
+  docs/hardware/2026-07-27-balanced-osm-labels.md \
+  docs/superpowers/specs/2026-07-27-g2-osm-labels-design.md \
+  docs/superpowers/plans/2026-07-27-g2-balanced-osm-labels.md
+git commit -m "feat: enlarge OSM labels for G2"
+```
+
+Open:
+
+```text
+http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=map-labels-large-016
+```
+
+- [ ] **Step 8: Record final physical approval**
+
+After user confirmation, change Stage 2 in
+`docs/hardware/2026-07-27-balanced-osm-labels.md` from `PENDING` to the exact
+observed result. Separate physical observations from automated-only evidence,
+then commit the record.

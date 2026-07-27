@@ -70,7 +70,11 @@ describe("balanced map label layout", () => {
     expect(first[0]).toMatchObject({
       kind: "transit",
       text: "홍대입구역",
-      fontSize: 9,
+      fontSize: 14,
+    });
+    expect(first.find(({ kind }) => kind === "road")).toMatchObject({
+      fontSize: 12,
+      width: 16,
     });
     expect(second).toEqual(first);
     for (const label of first) {
