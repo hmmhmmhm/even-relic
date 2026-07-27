@@ -380,19 +380,19 @@ git commit -m "feat: render live OSM tactical map"
 **Files:**
 - Create: `docs/hardware/2026-07-27-keyless-osm-map.md`
 
-- [ ] **Step 1: Open**
+- [x] **Step 1: Open**
 
 ```text
 http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=live-map-014
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 Confirm recognizable nearby road structure, readable position arrow and
 attribution, only IDs `2/4` on map refresh, no map request while remaining in
 one cache cell, and unchanged right-page scroll speed.
 
-- [ ] **Step 3: Record and commit**
+- [x] **Step 3: Record and commit**
 
 ```bash
 git add docs/hardware/2026-07-27-keyless-osm-map.md

@@ -23,7 +23,7 @@ subagents. Every test command is explicitly serial.
 - Create: `docs/hardware/2026-07-27-keyless-osm-map.md`
 - Modify: `docs/superpowers/plans/2026-07-27-g2-keyless-osm-map.md`
 
-- [ ] **Step 1: Write the physical checkpoint record**
+- [x] **Step 1: Write the physical checkpoint record**
 
 Record:
 
@@ -51,12 +51,12 @@ Do not infer a physical `2/4` trace, cache-cell request count, exact heading,
 or unchanged scroll timing from the short confirmation. List those conditions
 only as automated evidence.
 
-- [ ] **Step 2: Mark the road-only physical plan complete**
+- [x] **Step 2: Mark the road-only physical plan complete**
 
 Change the three Task 4 checkboxes in
 `docs/superpowers/plans/2026-07-27-g2-keyless-osm-map.md` to `[x]`.
 
-- [ ] **Step 3: Check and commit the record**
+- [x] **Step 3: Check and commit the record**
 
 Run:
 
@@ -752,4 +752,3 @@ Commit:
 git add docs/hardware/2026-07-27-balanced-osm-labels.md
 git commit -m "docs: verify balanced OSM labels on G2"
 ```
-
