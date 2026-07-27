@@ -10,7 +10,7 @@ describe("Even Hub SDK compatibility", () => {
     expect(installed).toBe("0.0.11");
     expect(appManifest.min_sdk_version).toBe(installed);
     expect(packageManifest.scripts.qr).toBe(
-      'evenhub qr --url "http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=live-refresh-017"',
+      'evenhub qr --url "http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=fullscreen-map-018"',
     );
   });
 

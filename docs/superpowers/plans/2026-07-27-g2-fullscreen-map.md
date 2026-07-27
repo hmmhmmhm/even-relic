@@ -676,7 +676,7 @@ git commit -m "feat: open and zoom fullscreen G2 map"
 - Create: `docs/hardware/2026-07-27-g2-fullscreen-map.md`
 - Modify: `docs/superpowers/plans/2026-07-27-g2-fullscreen-map.md`
 
-- [ ] **Step 1: Write the failing build identity assertion**
+- [x] **Step 1: Write the failing build identity assertion**
 
 Set the expected QR URL to:
 
@@ -684,7 +684,7 @@ Set the expected QR URL to:
 http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=fullscreen-map-018
 ```
 
-- [ ] **Step 2: Run the SDK test and verify RED**
+- [x] **Step 2: Run the SDK test and verify RED**
 
 Run:
 
@@ -696,11 +696,11 @@ npx vitest run src/sdk-version.test.ts \
 Expected: 1/2 fails because the package script still identifies
 `live-refresh-017`.
 
-- [ ] **Step 3: Update the QR script and verify GREEN**
+- [x] **Step 3: Update the QR script and verify GREEN**
 
 Update `package.json`, then rerun the SDK test. Expected: 2/2 pass.
 
-- [ ] **Step 4: Run the full serial verification gate**
+- [x] **Step 4: Run the full serial verification gate**
 
 Run one command at a time:
 
