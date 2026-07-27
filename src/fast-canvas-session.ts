@@ -77,6 +77,7 @@ export async function transmitFastCanvas(
       return bridge;
     },
   };
+  const now = options.now ?? Date.now;
   const transportCleanup = await transmitCanvas(
     source,
     onProgress,
@@ -100,6 +101,7 @@ export async function transmitFastCanvas(
     },
     options.onInput,
     options.onRawEvent,
+    () => options.onDisplayCommitted?.(Math.floor(now() / 60_000)),
   );
   let cleaned = false;
   let unsubscribeDeviceStatus: (() => void) | undefined;

@@ -126,9 +126,12 @@ async function createFastRefreshHarness(
         request: (target: TestRefreshTarget) => void,
       ) => void;
       onInput?: (input: TestInput) => TestInputResult;
+      now?: () => number;
+      onDisplayCommitted?: (minute: number) => void;
       onRawEvent?: (event: TestRawEvent) => void;
     },
   ) => Promise<() => void>;
+  const committedMinutes: number[] = [];
 
   const cleanup = await transmitFastCanvas(
     hudSource,
@@ -161,6 +164,8 @@ async function createFastRefreshHarness(
         inputs.push(input);
         return inputResult;
       },
+      now: () => 1_234 * 60_000,
+      onDisplayCommitted: (minute) => committedMinutes.push(minute),
       onRawEvent: (event) => rawEvents.push(event),
       onRefreshReady: (request) => {
         refreshRequest = request;
@@ -175,6 +180,7 @@ async function createFastRefreshHarness(
   }
   return {
     cleanup,
+    committedMinutes,
     encodedTileIds,
     encodedSources,
     emit: (eventType: OsEventTypeList) => listener!({
@@ -664,21 +670,19 @@ describe("G2 raster transport", () => {
     expect(deviceUnsubscribeCalls).toBe(1);
   });
 
-  it("live refresh coalesces synchronous left and right requests into one serialized full send", async () => {
+  it("drops a synchronous refresh instead of merging it with the active request", async () => {
     const harness = await createFastRefreshHarness();
 
     harness.request("left");
     harness.request("right");
-    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(6));
+    await Promise.resolve();
 
     expect(harness.encodedTileIds).toEqual([
       [3, 5, 2, 4],
-      [3, 5, 2, 4],
+      [2, 4],
     ]);
-    expect(harness.imageIds).toEqual([
-      3, 5, 2, 4,
-      3, 5, 2, 4,
-    ]);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4, 2, 4]);
     expect(harness.maximumActiveImageSends).toBe(1);
   });
 
@@ -711,7 +715,7 @@ describe("G2 raster transport", () => {
     expect(harness.imageIds).toEqual([3, 5, 2, 4, 3]);
   });
 
-  it("live refresh deduplicates one side and lets all dominate", async () => {
+  it("accepts a new target only after the prior refresh completes", async () => {
     const harness = await createFastRefreshHarness();
 
     harness.request("left");
@@ -720,12 +724,12 @@ describe("G2 raster transport", () => {
     harness.request("right");
     harness.request("all");
     harness.request("left");
-    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(10));
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
 
     expect(harness.encodedTileIds).toEqual([
       [3, 5, 2, 4],
       [2, 4],
-      [3, 5, 2, 4],
+      [3, 5],
     ]);
   });
 
@@ -749,7 +753,7 @@ describe("G2 raster transport", () => {
     expect(order).toEqual(["redraw", "encode:3,5"]);
   });
 
-  it("live refresh queues one follow-up during an active send", async () => {
+  it("drops external refreshes received during an active send", async () => {
     const firstExternalSend = deferred();
     let blocked = false;
     const harness = await createFastRefreshHarness({
@@ -768,14 +772,23 @@ describe("G2 raster transport", () => {
     harness.request("right");
     harness.request("left");
     firstExternalSend.resolve();
-    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(10));
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(6));
+    await Promise.resolve();
 
     expect(harness.encodedTileIds).toEqual([
       [3, 5, 2, 4],
       [3, 5],
-      [3, 5, 2, 4],
     ]);
     expect(harness.maximumActiveImageSends).toBe(1);
+  });
+
+  it("reports a successful display commit without reporting failed work", async () => {
+    const harness = await createFastRefreshHarness();
+
+    expect(harness.committedMinutes).toEqual([1_234]);
+    harness.request("right-top");
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(5));
+    expect(harness.committedMinutes).toEqual([1_234, 1_234]);
   });
 
   it("live refresh releases its scheduler after encode failure", async () => {
@@ -847,7 +860,12 @@ describe("G2 raster transport", () => {
 
     harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
     await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+    diagnosticLogger.clear();
     harness.request("right");
+    await Promise.resolve();
+    expect(diagnosticLogger.text()).toContain(
+      "[REFRESH] external right dropped · hidden",
+    );
     harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
     await vi.waitFor(() => expect(harness.imageIds).toHaveLength(12));
 
@@ -981,9 +999,11 @@ describe("G2 raster transport", () => {
     expect(harness.encodedTileIds.at(-1)).toEqual([3, 5, 2, 4]);
 
     harness.setInputResult("consume");
+    diagnosticLogger.clear();
     harness.emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
-    await Promise.resolve();
-    await Promise.resolve();
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "[REFRESH] input scroll-next complete",
+    ));
     expect(harness.imageIds).toHaveLength(8);
 
     harness.setInputResult("unhandled");
@@ -1012,7 +1032,7 @@ describe("G2 raster transport", () => {
 
     const trace = diagnosticLogger.text();
     expect(trace).toContain("[INPUT] raw");
-    expect(trace).toContain("[REFRESH] input tap queued");
+    expect(trace).toContain("[REFRESH] input tap accepted");
     expect(trace).toContain("[ENCODE] start · 4 tiles");
     expect(trace).toContain("[TILE] relicTR success");
     expect(trace).toContain("[REFRESH] hide complete");
@@ -1148,7 +1168,7 @@ describe("G2 raster transport", () => {
     expect(harness.encodedSources).toEqual(["hud", "black"]);
   });
 
-  it("serializes rapid handled input redraws", async () => {
+  it("drops input received during an active send", async () => {
     const firstInputSend = deferred();
     let blocked = false;
     const harness = await createFastRefreshHarness({
@@ -1166,13 +1186,14 @@ describe("G2 raster transport", () => {
     await vi.waitFor(() => expect(blocked).toBe(true));
     harness.emit(OsEventTypeList.CLICK_EVENT);
     firstInputSend.resolve();
-    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(12));
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+    await Promise.resolve();
 
     expect(harness.encodedTileIds).toEqual([
       [3, 5, 2, 4],
       [3, 5, 2, 4],
-      [3, 5, 2, 4],
     ]);
+    expect(harness.inputs).toEqual(["tap"]);
     expect(harness.maximumActiveImageSends).toBe(1);
   });
   it("toggles fast Canvas pixels while keeping the app event layer alive", async () => {
@@ -1771,7 +1792,7 @@ describe("G2 raster transport", () => {
     unsubscribe();
   });
 
-  it("serializes rapid scroll pages and every image update", async () => {
+  it("drops a rapid scroll while the prior page send is active", async () => {
     const module = await loadGlasses();
     if (!module) return;
 
@@ -1826,16 +1847,15 @@ describe("G2 raster transport", () => {
       sysEvent: { eventType: OsEventTypeList.SCROLL_BOTTOM_EVENT },
     } as EvenHubEvent);
 
-    for (let index = 0; index < 8; index += 1) {
+    for (let index = 0; index < 4; index += 1) {
       await vi.waitFor(() => expect(releases.length).toBeGreaterThan(0));
       releases.shift()!();
     }
-    await vi.waitFor(() => expect(imageIds).toHaveLength(12));
+    await vi.waitFor(() => expect(imageIds).toHaveLength(8));
 
-    expect(directions).toEqual(["next", "next"]);
+    expect(directions).toEqual(["next"]);
     expect(maximumActiveUpdates).toBe(1);
     expect(imageIds).toEqual([
-      2, 3, 4, 5,
       2, 3, 4, 5,
       2, 3, 4, 5,
     ]);

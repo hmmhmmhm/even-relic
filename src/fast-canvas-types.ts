@@ -77,9 +77,11 @@ export type FastCanvasOptions = {
   readonly beforeRestore?: () => void | Promise<void>;
   readonly createHiddenSource?: () => HTMLCanvasElement;
   readonly dependencies?: TransportDependencies;
+  readonly now?: () => number;
   readonly onBattery?: (
     battery: FastCanvasBattery | undefined,
   ) => void;
+  readonly onDisplayCommitted?: (minute: number) => void;
   readonly onInput?: (
     input: FastCanvasInput,
   ) => FastCanvasInputResult | Promise<FastCanvasInputResult>;
