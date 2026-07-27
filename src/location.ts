@@ -29,6 +29,18 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function isAccuracy(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= 0;
+}
+
+function isHeading(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= 0 && value < 360;
+}
+
+function isSpeed(value: unknown): value is number {
+  return isFiniteNumber(value) && value >= 0;
+}
+
 function isCoordinate(
   value: unknown,
 ): value is { latitude: number; longitude: number } {
@@ -46,36 +58,45 @@ function isCoordinate(
   );
 }
 
-function hasValidOptionalNumber(
-  value: Record<string, unknown>,
-  key: "accuracy" | "heading" | "speed",
-): boolean {
-  return !(key in value) || isFiniteNumber(value[key]);
-}
+type TelemetryInput = {
+  readonly accuracy?: unknown;
+  readonly heading?: unknown;
+  readonly speed?: unknown;
+};
 
-function isLocationSource(
+type LocationTelemetry = Pick<
+  LocationValue,
+  "accuracy" | "heading" | "speed"
+>;
+
+type CachedLiveLocation = TelemetryInput & {
+  readonly coordinate: LocationValue["coordinate"];
+  readonly source: "live";
+};
+
+type ValidatedLocationCache = {
+  readonly value: CachedLiveLocation;
+  readonly fetchedAt: number;
+};
+
+function isLocationCache(
   value: unknown,
-): value is LocationValue["source"] {
-  return value === "live" || value === "cache" || value === "demo";
-}
-
-function isLocationValue(value: unknown): value is LocationValue {
+): value is ValidatedLocationCache {
   return (
     isRecord(value) &&
-    isCoordinate(value.coordinate) &&
-    isLocationSource(value.source) &&
-    hasValidOptionalNumber(value, "accuracy") &&
-    hasValidOptionalNumber(value, "heading") &&
-    hasValidOptionalNumber(value, "speed")
-  );
-}
-
-function isLocationCache(value: unknown): value is LocationCache {
-  return (
-    isRecord(value) &&
-    isLocationValue(value.value) &&
+    isRecord(value.value) &&
+    isCoordinate(value.value.coordinate) &&
+    value.value.source === "live" &&
     isFiniteNumber(value.fetchedAt)
   );
+}
+
+function normalizeTelemetry(value: TelemetryInput): LocationTelemetry {
+  return {
+    ...(isAccuracy(value.accuracy) ? { accuracy: value.accuracy } : {}),
+    ...(isHeading(value.heading) ? { heading: value.heading } : {}),
+    ...(isSpeed(value.speed) ? { speed: value.speed } : {}),
+  };
 }
 
 function normalizeLocationValue(
@@ -88,23 +109,15 @@ function normalizeLocationValue(
       longitude: location.longitude,
     },
     source,
-    ...(isFiniteNumber(location.accuracy)
-      ? { accuracy: location.accuracy }
-      : {}),
-    ...(isFiniteNumber(location.heading)
-      ? { heading: location.heading }
-      : {}),
-    ...(isFiniteNumber(location.speed) ? { speed: location.speed } : {}),
+    ...normalizeTelemetry(location),
   };
 }
 
-function normalizeCachedValue(value: LocationValue): LocationValue {
+function normalizeCachedValue(value: CachedLiveLocation): LocationValue {
   return {
     coordinate: { ...value.coordinate },
     source: "cache",
-    ...(isFiniteNumber(value.accuracy) ? { accuracy: value.accuracy } : {}),
-    ...(isFiniteNumber(value.heading) ? { heading: value.heading } : {}),
-    ...(isFiniteNumber(value.speed) ? { speed: value.speed } : {}),
+    ...normalizeTelemetry(value),
   };
 }
 
@@ -116,6 +129,14 @@ function demoLocation(): DataState<LocationValue> {
       source: "demo",
     },
   };
+}
+
+function normalizeFetchedAt(timestamp: unknown, now: number): number {
+  return isFiniteNumber(timestamp) &&
+    timestamp >= now - LOCATION_CACHE_MAX_AGE_MS &&
+    timestamp <= now
+    ? timestamp
+    : now;
 }
 
 export async function resolveInitialLocation(
@@ -135,9 +156,7 @@ export async function resolveInitialLocation(
 
   if (isCoordinate(liveLocation)) {
     const value = normalizeLocationValue(liveLocation, "live");
-    const fetchedAt = isFiniteNumber(liveLocation.timestamp)
-      ? liveLocation.timestamp
-      : now;
+    const fetchedAt = normalizeFetchedAt(liveLocation.timestamp, now);
     await writeCache<LocationCache>(bridge, "location", {
       value,
       fetchedAt,

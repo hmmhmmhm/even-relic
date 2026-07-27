@@ -24,9 +24,7 @@ class TestLocationBridge implements LocationBridge {
       "working",
   ) {}
 
-  async getAppLocation(
-    options?: AppLocationOptions,
-  ): Promise<AppLocation | null> {
+  async getAppLocation(options?: AppLocationOptions): Promise<AppLocation | null> {
     this.locationOptions.push(options);
     return this.resolveLocation();
   }
@@ -56,10 +54,7 @@ function bridgeReturning(
   return new TestLocationBridge(async () => location, storageBehavior);
 }
 
-function setLocationCache(
-  bridge: TestLocationBridge,
-  cache: unknown,
-): void {
+function setLocationCache(bridge: TestLocationBridge, cache: unknown): void {
   bridge.values.set("relic:location:v1", JSON.stringify(cache));
 }
 
@@ -148,7 +143,7 @@ describe("resolveInitialLocation", () => {
     setLocationCache(bridge, {
       value: {
         coordinate: { latitude: 37.4563, longitude: 126.7052 },
-        source: "cache",
+        source: "live",
         heading: 180,
       },
       fetchedAt: now - 10_000,
@@ -224,7 +219,7 @@ describe("resolveInitialLocation", () => {
     });
   });
 
-  it("accepts a cache exactly seven days old and rejects one millisecond older", async () => {
+  it("accepts a cache exactly seven days old and rejects timestamps outside the valid window", async () => {
     const now = 1_800_000_000_000;
     const boundaryBridge = bridgeReturning(null);
     setLocationCache(boundaryBridge, {
@@ -242,6 +237,14 @@ describe("resolveInitialLocation", () => {
       },
       fetchedAt: now - LOCATION_CACHE_MAX_AGE_MS - 1,
     });
+    const futureBridge = bridgeReturning(null);
+    setLocationCache(futureBridge, {
+      value: {
+        coordinate: { latitude: 37.5, longitude: 127 },
+        source: "live",
+      },
+      fetchedAt: now + 1,
+    });
 
     await expect(
       resolveInitialLocation(boundaryBridge, now),
@@ -256,20 +259,7 @@ describe("resolveInitialLocation", () => {
         source: "demo",
       },
     });
-  });
-
-  it("rejects a cache timestamp later than now", async () => {
-    const now = 1_800_000_000_000;
-    const bridge = bridgeReturning(null);
-    setLocationCache(bridge, {
-      value: {
-        coordinate: { latitude: 37.5, longitude: 127 },
-        source: "live",
-      },
-      fetchedAt: now + 1,
-    });
-
-    await expect(resolveInitialLocation(bridge, now)).resolves.toEqual({
+    await expect(resolveInitialLocation(futureBridge, now)).resolves.toEqual({
       status: "unavailable",
       value: {
         coordinate: { ...DEMO_COORDINATE },
@@ -303,8 +293,14 @@ describe("resolveInitialLocation", () => {
     {
       value: {
         coordinate: { latitude: 37.5, longitude: 127 },
-        source: "live",
-        speed: null,
+        source: "demo",
+      },
+      fetchedAt: 1_800_000_000_000,
+    },
+    {
+      value: {
+        coordinate: { latitude: 37.5, longitude: 127 },
+        source: "cache",
       },
       fetchedAt: 1_800_000_000_000,
     },
@@ -315,7 +311,7 @@ describe("resolveInitialLocation", () => {
       },
       fetchedAt: "not-a-number",
     },
-  ])("rejects malformed cached location data: %o", async (cache) => {
+  ])("rejects malformed or non-live cached location data: %o", async (cache) => {
     const bridge = bridgeReturning(null);
     setLocationCache(bridge, cache);
 
@@ -327,15 +323,19 @@ describe("resolveInitialLocation", () => {
     });
   });
 
-  it("omits invalid optional telemetry and falls back to now for an invalid timestamp", async () => {
+  it.each([
+    ["accuracy", -1],
+    ["accuracy", Number.NaN],
+    ["heading", -1],
+    ["heading", 360],
+    ["speed", -1],
+    ["speed", Number.POSITIVE_INFINITY],
+  ] as const)("omits invalid live %s telemetry: %s", async (field, invalid) => {
     const now = 1_800_000_000_000;
     const bridge = bridgeReturning({
       latitude: 37.5,
       longitude: 127,
-      accuracy: Number.NaN,
-      heading: Number.POSITIVE_INFINITY,
-      speed: Number.NEGATIVE_INFINITY,
-      timestamp: Number.NaN,
+      [field]: invalid,
     });
 
     await expect(resolveInitialLocation(bridge, now)).resolves.toEqual({
@@ -345,6 +345,56 @@ describe("resolveInitialLocation", () => {
         source: "live",
       },
       fetchedAt: now,
+    });
+  });
+
+  it("restores a valid cached coordinate while omitting invalid telemetry", async () => {
+    const now = 1_800_000_000_000;
+    const bridge = bridgeReturning(null);
+    setLocationCache(bridge, {
+      value: {
+        coordinate: { latitude: 37.5, longitude: 127 },
+        source: "live",
+        accuracy: -1,
+        heading: 360,
+        speed: null,
+      },
+      fetchedAt: now,
+    });
+
+    await expect(resolveInitialLocation(bridge, now)).resolves.toEqual({
+      status: "stale",
+      value: {
+        coordinate: { latitude: 37.5, longitude: 127 },
+        source: "cache",
+      },
+      fetchedAt: now,
+    });
+  });
+
+  it.each([
+    [Number.NaN, 1_800_000_000_000],
+    [1_800_000_000_001, 1_800_000_000_000],
+    [
+      1_800_000_000_000 - LOCATION_CACHE_MAX_AGE_MS - 1,
+      1_800_000_000_000,
+    ],
+    [1_800_000_000_000, 1_800_000_000_000],
+    [
+      1_800_000_000_000 - LOCATION_CACHE_MAX_AGE_MS,
+      1_800_000_000_000 - LOCATION_CACHE_MAX_AGE_MS,
+    ],
+  ])("normalizes live timestamp %s to %s", async (timestamp, fetchedAt) => {
+    const now = 1_800_000_000_000;
+    const bridge = bridgeReturning({
+      latitude: 37.5,
+      longitude: 127,
+      timestamp,
+    });
+
+    await expect(resolveInitialLocation(bridge, now)).resolves.toMatchObject({
+      status: "fresh",
+      fetchedAt,
     });
   });
 
