@@ -48,6 +48,8 @@ export {
 } from "./fast-canvas-transport";
 export type {
   FastCanvasBattery,
+  FastCanvasInput,
+  FastCanvasInputResult,
   FastCanvasOptions,
   FastCanvasRefreshRequest,
   FastCanvasRefreshTarget,

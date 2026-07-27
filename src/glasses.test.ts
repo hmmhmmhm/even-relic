@@ -15,6 +15,12 @@ async function loadGlasses() {
 }
 
 type TestRefreshTarget = "left" | "right" | "right-top" | "all";
+type TestInput =
+  | "tap"
+  | "double-tap"
+  | "scroll-next"
+  | "scroll-previous";
+type TestInputResult = "unhandled" | "consume" | "redraw";
 type FastRefreshHarnessConfig = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly beforeRestore?: () => void | Promise<void>;
@@ -28,6 +34,7 @@ type FastRefreshHarnessConfig = {
     call: number,
     encodeAttempt: number,
   ) => Promise<unknown>;
+  readonly inputResult?: TestInputResult;
 };
 
 function deferred() {
@@ -49,7 +56,9 @@ async function createFastRefreshHarness(
   const hudSource = { name: "hud" } as unknown as HTMLCanvasElement;
   const blackSource = { name: "black" } as unknown as HTMLCanvasElement;
   const encodedTileIds: number[][] = [];
+  const encodedSources: Array<"hud" | "black"> = [];
   const imageIds: number[] = [];
+  const inputs: TestInput[] = [];
   const progress: string[] = [];
   let activeImageSends = 0;
   let maximumActiveImageSends = 0;
@@ -57,6 +66,7 @@ async function createFastRefreshHarness(
   let refreshRequest: ((target: TestRefreshTarget) => void) | undefined;
   let listener: ((event: EvenHubEvent) => void) | undefined;
   let sdkUnsubscribeCalls = 0;
+  let inputResult = config.inputResult ?? "unhandled";
 
   const bridge = {
     createStartUpPageContainer: async () => 0,
@@ -106,6 +116,7 @@ async function createFastRefreshHarness(
       onRefreshReady: (
         request: (target: TestRefreshTarget) => void,
       ) => void;
+      onInput?: (input: TestInput) => TestInputResult;
     },
   ) => Promise<() => void>;
 
@@ -125,14 +136,20 @@ async function createFastRefreshHarness(
           tiles = module.G2_TILES,
         ) => {
           const ids = tiles.map(({ id }) => id);
+          const sourceName = source === blackSource ? "black" : "hud";
           encodedTileIds.push(ids);
+          encodedSources.push(sourceName);
           currentEncodeAttempt = encodedTileIds.length;
           return config.encode?.(
             ids,
             currentEncodeAttempt,
-            source === blackSource ? "black" : "hud",
+            sourceName,
           ) ?? ids.map((id) => new Uint8Array([id]));
         },
+      },
+      onInput: (input) => {
+        inputs.push(input);
+        return inputResult;
       },
       onRefreshReady: (request) => {
         refreshRequest = request;
@@ -148,6 +165,7 @@ async function createFastRefreshHarness(
   return {
     cleanup,
     encodedTileIds,
+    encodedSources,
     emit: (eventType: OsEventTypeList) => listener!({
       sysEvent: { eventType },
     } as EvenHubEvent),
@@ -155,8 +173,12 @@ async function createFastRefreshHarness(
       return maximumActiveImageSends;
     },
     imageIds,
+    inputs,
     progress,
     request: refreshRequest,
+    setInputResult: (result: TestInputResult) => {
+      inputResult = result;
+    },
     get sdkUnsubscribeCalls() {
       return sdkUnsubscribeCalls;
     },
@@ -934,6 +956,86 @@ describe("G2 raster transport", () => {
     harness.cleanup();
 
     expect(harness.sdkUnsubscribeCalls).toBe(1);
+  });
+
+  it("routes handled, consumed, and fallback fast Canvas input", async () => {
+    const harness = await createFastRefreshHarness();
+
+    harness.setInputResult("redraw");
+    harness.emit(OsEventTypeList.CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+    expect(harness.inputs).toEqual(["tap"]);
+    expect(harness.encodedTileIds.at(-1)).toEqual([3, 5, 2, 4]);
+
+    harness.setInputResult("consume");
+    harness.emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(harness.imageIds).toHaveLength(8);
+
+    harness.setInputResult("unhandled");
+    harness.emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(10));
+    expect(harness.encodedTileIds.at(-1)).toEqual([3, 5]);
+    expect(harness.inputs).toEqual([
+      "tap",
+      "scroll-next",
+      "scroll-next",
+    ]);
+  });
+
+  it("lets handled double-tap input redraw before dashboard hide fallback", async () => {
+    const harness = await createFastRefreshHarness();
+
+    harness.setInputResult("redraw");
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
+    expect(harness.encodedSources.at(-1)).toBe("hud");
+
+    harness.setInputResult("unhandled");
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(12));
+    expect(harness.encodedSources.at(-1)).toBe("black");
+
+    harness.setInputResult("redraw");
+    harness.emit(OsEventTypeList.CLICK_EVENT);
+    harness.emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(harness.imageIds).toHaveLength(12);
+
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(16));
+    expect(harness.encodedSources.at(-1)).toBe("hud");
+    expect(harness.inputs).toEqual(["double-tap", "double-tap"]);
+  });
+
+  it("serializes rapid handled input redraws", async () => {
+    const firstInputSend = deferred();
+    let blocked = false;
+    const harness = await createFastRefreshHarness({
+      inputResult: "redraw",
+      update: async (_id, _call, encodeAttempt) => {
+        if (encodeAttempt === 2 && !blocked) {
+          blocked = true;
+          await firstInputSend.promise;
+        }
+        return "success";
+      },
+    });
+
+    harness.emit(OsEventTypeList.CLICK_EVENT);
+    await vi.waitFor(() => expect(blocked).toBe(true));
+    harness.emit(OsEventTypeList.CLICK_EVENT);
+    firstInputSend.resolve();
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(12));
+
+    expect(harness.encodedTileIds).toEqual([
+      [3, 5, 2, 4],
+      [3, 5, 2, 4],
+      [3, 5, 2, 4],
+    ]);
+    expect(harness.maximumActiveImageSends).toBe(1);
   });
   it("toggles fast Canvas pixels while keeping the app event layer alive", async () => {
     const module = await loadGlasses();

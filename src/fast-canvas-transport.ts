@@ -55,6 +55,12 @@ type ExternalRefresh = {
 };
 
 export type PageDirection = "next" | "previous";
+export type FastCanvasInput =
+  | "tap"
+  | "double-tap"
+  | "scroll-next"
+  | "scroll-previous";
+export type FastCanvasInputResult = "unhandled" | "consume" | "redraw";
 export type FastCanvasBattery = {
   readonly label: "G1" | "G2" | "R1";
   readonly level?: number;
@@ -76,6 +82,9 @@ export type FastCanvasOptions = {
   readonly onBattery?: (
     battery: FastCanvasBattery | undefined,
   ) => void;
+  readonly onInput?: (
+    input: FastCanvasInput,
+  ) => FastCanvasInputResult | Promise<FastCanvasInputResult>;
   readonly onRefreshReady?: (request: FastCanvasRefreshRequest) => void;
 };
 
@@ -116,6 +125,9 @@ export async function transmitCanvas(
   navigationTiles: readonly Tile[] = tiles,
   displayToggle?: DisplayToggle,
   externalRefresh?: ExternalRefresh,
+  onInput?: (
+    input: FastCanvasInput,
+  ) => FastCanvasInputResult | Promise<FastCanvasInputResult>,
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();
@@ -184,38 +196,52 @@ export async function transmitCanvas(
         onProgress(error instanceof Error ? error.message : String(error));
       });
   };
-  const queueNavigation = (direction: PageDirection) => {
+  const performNavigation = async (direction: PageDirection) => {
     if (!onNavigate || hidden || disposed) return;
-    queueOperation(async () => {
-      if (hidden || disposed) return;
-      onProgress("HUD 페이지 전환 중");
-      await onNavigate(direction);
-      if (disposed) return;
-      await refreshImages(source, navigationTiles, "페이지 전송 완료");
-    });
+    onProgress("HUD 페이지 전환 중");
+    await onNavigate(direction);
+    if (disposed) return;
+    await refreshImages(source, navigationTiles, "페이지 전송 완료");
   };
-  const queueDisplayToggle = () => {
+  const performDisplayToggle = async () => {
     if (disposed) return;
     if (!displayToggle) {
-      void bridge.shutDownPageContainer(1);
+      await bridge.shutDownPageContainer(1);
       return;
     }
+    if (hidden) {
+      onProgress("HUD 표시 복원 중");
+      await displayToggle.beforeRestore?.();
+      if (disposed) return;
+      await refreshImages(source, tiles, "HUD 표시 복원 완료");
+      hidden = false;
+    } else {
+      onProgress("HUD 표시 숨기는 중");
+      await refreshImages(
+        hiddenSource ??= displayToggle.createHiddenSource(),
+        tiles,
+        "HUD 표시 숨김 완료",
+      );
+      hidden = true;
+    }
+  };
+  const queueInput = (
+    input: FastCanvasInput,
+    fallback?: () => void | Promise<void>,
+  ) => {
+    if (disposed || (hidden && input !== "double-tap")) return;
     queueOperation(async () => {
       if (disposed) return;
-      if (hidden) {
-        onProgress("HUD 표시 복원 중");
-        await displayToggle.beforeRestore?.();
-        if (disposed) return;
-        await refreshImages(source, tiles, "HUD 표시 복원 완료");
-        hidden = false;
-      } else {
-        onProgress("HUD 표시 숨기는 중");
-        await refreshImages(
-          hiddenSource ??= displayToggle.createHiddenSource(),
-          tiles,
-          "HUD 표시 숨김 완료",
-        );
-        hidden = true;
+      if (hidden && input === "double-tap") {
+        await performDisplayToggle();
+        return;
+      }
+      const result = await onInput?.(input) ?? "unhandled";
+      if (disposed) return;
+      if (result === "redraw") {
+        await refreshImages(source, tiles, "지도 화면 전송 완료");
+      } else if (result === "unhandled") {
+        await fallback?.();
       }
     });
   };
@@ -264,12 +290,14 @@ export async function transmitCanvas(
     const eventType = event.sysEvent?.eventType
       ?? event.textEvent?.eventType
       ?? null;
-    if (eventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
-      queueDisplayToggle();
+    if (eventType === OsEventTypeList.CLICK_EVENT) {
+      queueInput("tap");
+    } else if (eventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
+      queueInput("double-tap", performDisplayToggle);
     } else if (eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
-      queueNavigation("next");
+      queueInput("scroll-next", () => performNavigation("next"));
     } else if (eventType === OsEventTypeList.SCROLL_TOP_EVENT) {
-      queueNavigation("previous");
+      queueInput("scroll-previous", () => performNavigation("previous"));
     }
   });
   const dispose = () => {
@@ -341,6 +369,7 @@ export async function transmitFastCanvas(
         "right-top": G2_RIGHT_TOP_TILES,
       },
     },
+    options.onInput,
   );
   let cleaned = false;
   let unsubscribeDeviceStatus: (() => void) | undefined;

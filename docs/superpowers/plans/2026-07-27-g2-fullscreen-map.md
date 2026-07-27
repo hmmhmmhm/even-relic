@@ -406,7 +406,7 @@ git commit -m "feat: render live map across the full G2 display"
 - Modify: `src/glasses.ts`
 - Modify: `src/glasses.test.ts`
 
-- [ ] **Step 1: Write failing gesture-routing transport tests**
+- [x] **Step 1: Write failing gesture-routing transport tests**
 
 Build on the existing fast transport harness. Pass an `onInput` spy and assert:
 
@@ -436,7 +436,7 @@ Add separate assertions that:
 - two rapid handled redraws never overlap image updates;
 - cleanup cancels a queued handled redraw.
 
-- [ ] **Step 2: Run the focused transport tests and verify RED**
+- [x] **Step 2: Run the focused transport tests and verify RED**
 
 Run:
 
@@ -447,7 +447,7 @@ npx vitest run src/glasses.test.ts -t "input" \
 
 Expected: FAIL because `onInput` is missing.
 
-- [ ] **Step 3: Add normalized input types and option**
+- [x] **Step 3: Add normalized input types and option**
 
 In `fast-canvas-transport.ts`:
 
@@ -469,7 +469,7 @@ export type FastCanvasOptions = {
 
 Re-export both types from `glasses.ts`.
 
-- [ ] **Step 4: Run handled input inside the existing queue**
+- [x] **Step 4: Run handled input inside the existing queue**
 
 Extract `performNavigation()` and `performDisplayToggle()` from their queue
 wrappers. Add an optional final `onInput` argument to `transmitCanvas()`, and
@@ -514,7 +514,7 @@ if (eventType === OsEventTypeList.CLICK_EVENT) {
 
 Do not create a second promise queue or bypass `refreshImages()`.
 
-- [ ] **Step 5: Run transport regression tests and commit**
+- [x] **Step 5: Run transport regression tests and commit**
 
 Run separately:
 
