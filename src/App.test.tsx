@@ -454,8 +454,36 @@ describe("RELIC peripheral HUD", () => {
     );
 
     requestRefresh.mockClear();
-    const weather: LiveDashboardState = {
+    const routed: LiveDashboardState = {
       ...moved,
+      route: {
+        status: "fresh",
+        fetchedAt: 1,
+        value: {
+          destinationName: "서울역",
+          geometry: [
+            moved.location.value!.coordinate,
+            { latitude: 37.5547, longitude: 126.9707 },
+          ],
+          maneuvers: [],
+          activeManeuverIndex: 0,
+          remainingDistance: 4_380,
+          profile: "foot-walking",
+        },
+      },
+    };
+    sessionOptions().onUpdate({ state: routed, target: "all" });
+    expect(requestRefresh).toHaveBeenCalledWith("all");
+    await fastOptions().beforeExternalRefresh?.();
+    expect(mocks.drawFullscreen).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      routed,
+      500,
+    );
+
+    requestRefresh.mockClear();
+    const weather: LiveDashboardState = {
+      ...routed,
       weather: {
         status: "fresh",
         fetchedAt: 1,

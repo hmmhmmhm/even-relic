@@ -184,13 +184,14 @@ export function createLiveRouteSession(options: LiveRouteSessionOptions) {
         "길찾기 세션이 종료되었습니다.",
       );
     }
-    const coordinate = options.getState().location.value?.coordinate;
-    if (!coordinate) {
+    const location = options.getState().location.value;
+    if (!location || location.source === "demo") {
       throw new RoutingError(
         "LOCATION_UNAVAILABLE",
         "현재 위치를 확인할 수 없습니다.",
       );
     }
+    const coordinate = location.coordinate;
 
     const previousRoute = options.getState().route.value;
     const previousFetchedAt = options.getState().route.fetchedAt;

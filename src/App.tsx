@@ -111,7 +111,7 @@ export function App({ autoStart = true }: AppProps) {
       if (!requestLiveRefresh) return;
       if (mapView.mode === "dashboard") {
         requestLiveRefresh(target);
-      } else if (target === "left") {
+      } else if (target === "left" || target === "all") {
         requestLiveRefresh("all");
       }
     };

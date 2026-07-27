@@ -28,7 +28,9 @@ const DESTINATION: Destination = {
 class TestBridge implements LocationBridge {
   readonly values = new Map<string, string>();
 
-  async getAppLocation(_options?: AppLocationOptions) {
+  async getAppLocation(
+    _options?: AppLocationOptions,
+  ): Promise<AppLocation | null> {
     return LOCATION;
   }
 
@@ -39,6 +41,12 @@ class TestBridge implements LocationBridge {
   async setLocalStorage(key: string, value: string) {
     this.values.set(key, value);
     return true;
+  }
+}
+
+class NoLocationBridge extends TestBridge {
+  override async getAppLocation(_options?: AppLocationOptions) {
+    return null;
   }
 }
 
@@ -179,6 +187,30 @@ describe("live dashboard optional routing", () => {
       code: "ROUTING_DISABLED",
       disabled: true,
     } satisfies Partial<RoutingError>);
+    session.dispose();
+  });
+
+  it("does not start a route from the labelled demo coordinate", async () => {
+    const fetchImpl = liveFetch();
+    const session = createLiveDashboardSession({
+      bridge: new NoLocationBridge(),
+      fetchImpl,
+      routingStatus: { enabled: true },
+      now: () => NOW,
+      onUpdate: vi.fn(),
+    });
+    await session.start();
+
+    expect(session.getState().location.value?.source).toBe("demo");
+    await expect(
+      session.startRoute(DESTINATION, "foot-walking"),
+    ).rejects.toMatchObject({
+      code: "LOCATION_UNAVAILABLE",
+    } satisfies Partial<RoutingError>);
+    expect(fetchImpl).not.toHaveBeenCalledWith(
+      "/api/route",
+      expect.anything(),
+    );
     session.dispose();
   });
 
