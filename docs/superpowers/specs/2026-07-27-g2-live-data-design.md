@@ -24,7 +24,7 @@ routing is the only feature that may require a user-provided key.
 
 ### SDK version
 
-The next live-data build will pin `@evenrealities/even_hub_sdk` to `0.0.11`.
+The live-data baseline is pinned to `@evenrealities/even_hub_sdk` `0.0.11`.
 
 SDK `0.0.11` adds `getAppLocation`, `startAppLocationUpdates`,
 `onAppLocationChanged`, and `stopAppLocationUpdates`. SDK `0.0.12` adds LZ4
@@ -32,9 +32,10 @@ image transport and produced `SENDFAILED` on the physical G2. Version `0.0.11`
 therefore provides the official location bridge while retaining the pre-LZ4
 image path closest to the proven `0.0.10` transport.
 
-The version change is its own hardware gate. Live services must not be layered
-on top until the existing four-tile image and display-toggle behavior succeeds
-unchanged on `0.0.11`.
+Physical G2 build `fast-right-first-011` passed the SDK hardware gate with
+bilateral fast startup, `3/5/2/4` full transfers, `3/5` paging, and double-tap
+hide/restore. SDK `0.0.11` is approved as the live-data baseline; SDK `0.0.12`
+remains blocked until separately proven.
 
 ### Key policy
 

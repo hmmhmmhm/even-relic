@@ -71,10 +71,10 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Keep general live features keyless: use the Even SDK for phone location,
   Open-Meteo for weather, allowlisted RSS feeds through the RELIC Worker, and
   OSM-derived road geometry rendered by RELIC's own Canvas code.
-- Use SDK `0.0.11` as the next hardware experiment because it adds native
-  location APIs without the SDK `0.0.12` LZ4 image path that produced
-  `SENDFAILED`. Do not adopt `0.0.12` until its image transport is separately
-  proven on the physical G2.
+- The physical G2 approves SDK `0.0.11` for bilateral fast startup,
+  `3/5/2/4` full transfers, `3/5` paging, and double-tap hide/restore. Use it
+  as the live-data baseline; keep SDK `0.0.12` blocked until separately proven
+  on the physical G2.
 - Treat routing as optional. Enable OpenRouteService only when `ORS_API_KEY`
   exists in the server environment, keep the key out of WebView bundles and
   source control, and show a clear disabled state without breaking the

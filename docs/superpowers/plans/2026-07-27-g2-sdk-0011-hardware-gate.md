@@ -8,6 +8,9 @@
 
 **Tech Stack:** Even Hub SDK `0.0.11`, Even Hub CLI, Vite, Vitest, TypeScript
 
+**Completed:** Physical G2 build `fast-right-first-011` passed this gate; see
+`docs/hardware/2026-07-27-sdk-0011-transport-success.md`.
+
 ---
 
 ### Task 1: Pin SDK 0.0.11 without enabling live data
@@ -18,7 +21,7 @@
 - Modify: `package-lock.json`
 - Modify: `app.json`
 
-- [ ] **Step 1: Write the failing SDK pin test**
+- [x] **Step 1: Write the failing SDK pin test**
 
 Replace the first test in `src/sdk-version.test.ts` with:
 
@@ -46,7 +49,7 @@ Retain the existing serialization test. Its expected JSON must remain:
 }
 ```
 
-- [ ] **Step 2: Run the focused test and verify RED**
+- [x] **Step 2: Run the focused test and verify RED**
 
 ```bash
 npx vitest run src/sdk-version.test.ts
@@ -55,7 +58,7 @@ npx vitest run src/sdk-version.test.ts
 Expected: FAIL because dependency, manifest, and QR metadata still say
 `0.0.10`.
 
-- [ ] **Step 3: Install the exact SDK and update metadata**
+- [x] **Step 3: Install the exact SDK and update metadata**
 
 Run:
 
@@ -86,7 +89,7 @@ Set:
 
 in `app.json`. Do not add permissions or live feature code in this task.
 
-- [ ] **Step 4: Verify the isolated SDK change**
+- [x] **Step 4: Verify the isolated SDK change**
 
 ```bash
 npx vitest run src/sdk-version.test.ts src/glasses.test.ts src/App.test.tsx
@@ -99,7 +102,7 @@ Expected: all commands exit `0`; `glasses.test.ts` asserts fast startup IDs
 `3/5/2/4`, scroll IDs `3/5`, and `3/5/2/4` hide/restore while legacy full
 transfers remain row-major.
 
-- [ ] **Step 5: Commit the isolated gate build**
+- [x] **Step 5: Commit the isolated gate build**
 
 ```bash
 git add package.json package-lock.json app.json src/sdk-version.test.ts
@@ -112,7 +115,7 @@ git commit -m "chore: pin Even Hub SDK 0.0.11"
 - Create on success: `docs/hardware/2026-07-27-sdk-0011-transport-success.md`
 - Create on failure: `docs/hardware/2026-07-27-sdk-0011-transport-failure.md`
 
-- [ ] **Step 1: Start the hardware test build**
+- [x] **Step 1: Start the hardware test build**
 
 ```bash
 npm run dev -- --host 0.0.0.0 --port 4176
@@ -124,7 +127,7 @@ Open this complete Tailscale URL through Even Hub:
 http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=fast-live-011
 ```
 
-- [ ] **Step 2: Run the physical checklist**
+- [x] **Step 2: Run the physical checklist**
 
 Confirm in this order:
 
@@ -140,7 +143,7 @@ Confirm in this order:
 The send-order correction does not change scroll meaning: user-forward paging
 remains 1→2→3→4, and no SDK event-direction inversion is needed.
 
-- [ ] **Step 3: Record the observed result**
+- [x] **Step 3: Record the observed result**
 
 If every check passes, create the success document with:
 
@@ -173,7 +176,7 @@ If any check fails, create the failure document instead with the exact failing
 check and the exact Even Hub status string, keep SDK `0.0.10` as the live
 baseline, and stop this roadmap before phase 2.
 
-- [ ] **Step 4: Commit the hardware result**
+- [x] **Step 4: Commit the hardware result**
 
 For success:
 
