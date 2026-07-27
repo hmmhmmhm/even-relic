@@ -14,6 +14,7 @@ type FastCanvasBattery = {
 type FastCanvasHudData = {
   readonly battery?: FastCanvasBattery;
   readonly live: LiveDashboardState;
+  readonly mapRadiusMeters?: number;
 };
 type Rectangle = {
   style: string;
@@ -268,6 +269,16 @@ describe("fast split Canvas HUD", () => {
       },
     }).values).toContain("G2 82% +");
     expect(renderFastHud(module, "overview").values).toContain("BATTERY --");
+  });
+
+  it("threads the retained map zoom into the embedded map", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+
+    expect(renderFastHud(module, "overview", {
+      mapRadiusMeters: 500,
+    }).values).toContain("Z // 500m");
+    expect(renderFastHud(module, "overview").values).toContain("Z // 650m");
   });
 
   it("labels map provenance from the current location source", async () => {

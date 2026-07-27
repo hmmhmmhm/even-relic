@@ -3,18 +3,31 @@ import { projectCoordinate } from "./map";
 
 export const MAX_VISIBLE_MAP_LABELS = 10;
 
-const VIEWPORT = {
+export type MapLabelViewport = {
+  readonly minX: number;
+  readonly maxX: number;
+  readonly minY: number;
+  readonly maxY: number;
+  readonly centerX: number;
+  readonly centerY: number;
+  readonly pixelRadius: number;
+};
+
+type MapLabelLayoutOptions = {
+  readonly viewport?: MapLabelViewport;
+  readonly radiusMeters?: number;
+  readonly maximumLabels?: number;
+};
+
+const DEFAULT_VIEWPORT: MapLabelViewport = {
   minX: 18,
   maxX: 270,
   minY: 34,
   maxY: 244,
-} as const;
-const ARROW_EXCLUSION = {
-  left: 128,
-  top: 126,
-  right: 160,
-  bottom: 162,
-} as const;
+  centerX: 144,
+  centerY: 144,
+  pixelRadius: 112,
+};
 const COLLISION_SPACE = 4;
 const PRIORITY: Readonly<Record<MapLabel["kind"], number>> = {
   transit: 0,
@@ -99,7 +112,17 @@ function intersects(left: Box, right: Box): boolean {
 export function layoutMapLabels(
   labels: readonly MapLabel[],
   center: Coordinate,
+  options: MapLabelLayoutOptions = {},
 ): readonly PositionedMapLabel[] {
+  const viewport = options.viewport ?? DEFAULT_VIEWPORT;
+  const radiusMeters = options.radiusMeters ?? 650;
+  const maximumLabels = options.maximumLabels ?? MAX_VISIBLE_MAP_LABELS;
+  const arrowExclusion = {
+    left: viewport.centerX - 16,
+    top: viewport.centerY - 18,
+    right: viewport.centerX + 16,
+    bottom: viewport.centerY + 18,
+  };
   const candidates = labels
     .map((label, sourceIndex) => ({ label, sourceIndex }))
     .sort(
@@ -116,19 +139,25 @@ export function layoutMapLabels(
     const text = truncateMapLabel(label.name, prominent ? 16 : 14);
     const width = estimateWidth(text, fontSize);
     const height = fontSize + 2;
-    const anchor = projectCoordinate(label.point, center);
+    const projected = projectCoordinate(label.point, center, radiusMeters);
+    const anchor = {
+      x: viewport.centerX
+        + (projected.x - 144) * viewport.pixelRadius / 112,
+      y: viewport.centerY
+        + (projected.y - 144) * viewport.pixelRadius / 112,
+    };
     const positioned: PositionedMapLabel = {
       kind: label.kind,
       text,
       x: Math.round(clamp(
         anchor.x - width / 2,
-        VIEWPORT.minX,
-        VIEWPORT.maxX - width,
+        viewport.minX,
+        viewport.maxX - width,
       )),
       y: Math.round(clamp(
         anchor.y - height / 2,
-        VIEWPORT.minY,
-        VIEWPORT.maxY - height,
+        viewport.minY,
+        viewport.maxY - height,
       )),
       width,
       height,
@@ -136,14 +165,14 @@ export function layoutMapLabels(
     };
     const box = collisionBox(positioned);
     if (
-      intersects(box, ARROW_EXCLUSION)
+      intersects(box, arrowExclusion)
       || boxes.some((acceptedBox) => intersects(box, acceptedBox))
     ) {
       continue;
     }
     accepted.push(positioned);
     boxes.push(box);
-    if (accepted.length >= MAX_VISIBLE_MAP_LABELS) break;
+    if (accepted.length >= maximumLabels) break;
   }
 
   return accepted;

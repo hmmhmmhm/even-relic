@@ -202,7 +202,7 @@ git commit -m "feat: model fullscreen G2 map input"
 - Modify: `src/fast-canvas-hud.ts`
 - Modify: `src/fast-canvas-hud.test.ts`
 
-- [ ] **Step 1: Write failing viewport and fullscreen renderer tests**
+- [x] **Step 1: Write failing viewport and fullscreen renderer tests**
 
 Extend label layout with a fullscreen options assertion:
 
@@ -245,7 +245,7 @@ In `fast-canvas-hud.test.ts`, render the dashboard at 500 metres and assert the
 embedded footer contains `Z // 500m` while its geometry remains inside the
 left viewport.
 
-- [ ] **Step 2: Run renderer tests and verify RED**
+- [x] **Step 2: Run renderer tests and verify RED**
 
 Run separately:
 
@@ -260,7 +260,7 @@ npx vitest run src/fast-canvas-hud.test.ts \
 
 Expected: FAIL because renderer options and fullscreen drawing are missing.
 
-- [ ] **Step 3: Add configurable projection and label layout**
+- [x] **Step 3: Add configurable projection and label layout**
 
 Add exported types and preserve exact embedded defaults:
 
@@ -311,7 +311,7 @@ const anchor = {
 
 Keep the default maximum at 10 and font sizes at 14/12.
 
-- [ ] **Step 4: Parameterize the map layers and add fullscreen drawing**
+- [x] **Step 4: Parameterize the map layers and add fullscreen drawing**
 
 Change the embedded entrypoint to:
 
@@ -353,7 +353,7 @@ export function drawFastFullscreenMap(
 The header values must be exactly `MAP // <source> · <layer>` and
 `ZOOM // <radius>m`; the footer must include the OSM attribution and exit hint.
 
-- [ ] **Step 5: Thread zoom through the dashboard HUD**
+- [x] **Step 5: Thread zoom through the dashboard HUD**
 
 Extend `FastCanvasHudData`:
 
@@ -374,7 +374,7 @@ drawFastMap(context, data.live, data.mapRadiusMeters ?? 650);
 Keep the existing function arguments compatible so callers without the field
 retain the approved 650-metre view.
 
-- [ ] **Step 6: Run focused renderer tests and commit**
+- [x] **Step 6: Run focused renderer tests and commit**
 
 Run separately:
 

@@ -37,6 +37,7 @@ export const FAST_HUD_PAGES = [
 export type FastCanvasHudData = {
   readonly battery?: FastCanvasBattery;
   readonly live: LiveDashboardState;
+  readonly mapRadiusMeters?: number;
 };
 
 export function getAdjacentFastHudPage(
@@ -367,7 +368,7 @@ export function drawFastCanvasHud(
   context.imageSmoothingEnabled = false;
   context.fillStyle = COLOR.background;
   context.fillRect(0, 0, WIDTH, HEIGHT);
-  drawFastMap(context, data.live);
+  drawFastMap(context, data.live, data.mapRadiusMeters ?? 650);
   drawDynamicHeader(context, now, page, data.live);
   drawDynamicPage(context, page, data);
 }

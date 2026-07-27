@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { drawFastMap } from "./fast-map";
+import { drawFastFullscreenMap, drawFastMap } from "./fast-map";
 import {
   createInitialLiveDashboardState,
   type LiveDashboardState,
@@ -16,6 +16,8 @@ type Text = {
   readonly value: string;
   readonly style: string;
   readonly font: string;
+  readonly x: number;
+  readonly y: number;
   readonly order: number;
 };
 type Rectangle = {
@@ -100,9 +102,17 @@ function liveState(): LiveDashboardState {
   };
 }
 
-function draw(live: LiveDashboardState) {
+function draw(
+  live: LiveDashboardState,
+  radiusMeters = 650,
+  fullscreen = false,
+) {
   const strokes: Stroke[] = [];
-  const fills: Array<{ style: string; order: number }> = [];
+  const fills: Array<{
+    style: string;
+    points: readonly [number, number][];
+    order: number;
+  }> = [];
   const texts: Text[] = [];
   const rectangles: Rectangle[] = [];
   let fillStyle = "";
@@ -141,11 +151,13 @@ function draw(live: LiveDashboardState) {
         order: order++,
       });
     },
-    fillText: (value: string) => {
+    fillText: (value: string, x: number, y: number) => {
       texts.push({
         value,
         style: fillStyle,
         font: context.font,
+        x,
+        y,
         order: order++,
       });
     },
@@ -168,12 +180,18 @@ function draw(live: LiveDashboardState) {
       });
     },
     fill: () => {
-      fills.push({ style: fillStyle, order: order++ });
+      fills.push({ style: fillStyle, points: [...points], order: order++ });
     },
   } as unknown as CanvasRenderingContext2D;
 
-  drawFastMap(context, live);
-  return { strokes, fills, texts, rectangles };
+  const canvas = {
+    width: 0,
+    height: 0,
+    getContext: () => context,
+  } as unknown as HTMLCanvasElement;
+  if (fullscreen) drawFastFullscreenMap(canvas, live, radiusMeters);
+  else drawFastMap(context, live, radiusMeters);
+  return { canvas, strokes, fills, texts, rectangles };
 }
 
 describe("fast OSM map Canvas layer", () => {
@@ -257,5 +275,49 @@ describe("fast OSM map Canvas layer", () => {
       "© OSM CONTRIBUTORS",
       ]),
     );
+  });
+
+  it("draws live geometry, zoom, and guidance across the full display", () => {
+    const base = liveState();
+    const live: LiveDashboardState = {
+      ...base,
+      location: {
+        ...base.location,
+        value: {
+          ...base.location.value!,
+          heading: 0,
+        },
+      },
+    };
+    const full = draw(live, 500, true);
+
+    expect(full.canvas.width).toBe(576);
+    expect(full.canvas.height).toBe(288);
+    expect(full.texts.map(({ value }) => value)).toEqual(
+      expect.arrayContaining([
+        "MAP // LIVE · OSM",
+        "ZOOM // 500m",
+        "© OSM CONTRIBUTORS",
+        "DOUBLE TAP // BACK",
+      ]),
+    );
+    expect(full.strokes.some(({ points }) =>
+      points.some(([x]) => x > 288)
+    )).toBe(true);
+    expect(full.fills.at(-1)?.points).toEqual([
+      [288, 130],
+      [295, 152],
+      [288, 148],
+      [281, 152],
+    ]);
+    expect(full.texts.filter(({ value }) => [
+      "홍대입구역",
+      "양화로",
+      "경의선숲길",
+    ].includes(value)).map(({ font }) => font)).toEqual([
+      expect.stringContaining("bold 14px"),
+      expect.stringContaining("bold 12px"),
+      expect.stringContaining("bold 12px"),
+    ]);
   });
 });

@@ -140,4 +140,53 @@ describe("balanced map label layout", () => {
       0,
     )).toBeLessThanOrEqual(16);
   });
+
+  it("lays out more labels inside a zoomable fullscreen viewport", () => {
+    const candidates: MapLabel[] = [
+      [70, 48], [144, 48], [218, 48],
+      [70, 94], [144, 94], [218, 94],
+      [70, 194], [144, 194], [218, 194],
+      [70, 232], [144, 232], [218, 232],
+    ].map(([x, y], index) => ({
+      kind: index === 0 ? "transit" : "road",
+      name: `L${index}`,
+      point: coordinateAt(x, y),
+    }));
+    const viewport = {
+      minX: 18,
+      maxX: 558,
+      minY: 34,
+      maxY: 244,
+      centerX: 288,
+      centerY: 144,
+      pixelRadius: 112,
+    } as const;
+    const labels = layoutMapLabels(candidates, CENTER, {
+      viewport,
+      radiusMeters: 500,
+      maximumLabels: 18,
+    });
+
+    expect(labels.length).toBeGreaterThan(MAX_VISIBLE_MAP_LABELS);
+    for (const label of labels) {
+      expect(label.x).toBeGreaterThanOrEqual(viewport.minX);
+      expect(label.x + label.width).toBeLessThanOrEqual(viewport.maxX);
+      expect(label.y).toBeGreaterThanOrEqual(viewport.minY);
+      expect(label.y + label.height).toBeLessThanOrEqual(viewport.maxY);
+    }
+    const east = [{
+      kind: "road" as const,
+      name: "EAST",
+      point: coordinateAt(220, 90),
+    }];
+    const far = layoutMapLabels(east, CENTER, {
+      viewport,
+      radiusMeters: 650,
+    })[0];
+    const close = layoutMapLabels(east, CENTER, {
+      viewport,
+      radiusMeters: 500,
+    })[0];
+    expect(close.x).toBeGreaterThan(far.x);
+  });
 });

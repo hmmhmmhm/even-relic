@@ -7,7 +7,10 @@ import type {
   RouteValue,
 } from "./live-state";
 import { projectCoordinate } from "./map";
-import { layoutMapLabels } from "./map-label-layout";
+import {
+  layoutMapLabels,
+  type MapLabelViewport,
+} from "./map-label-layout";
 
 const COLOR = {
   background: "#000000",
@@ -15,12 +18,24 @@ const COLOR = {
   secondary: "#d0d0d0",
   dim: "#808080",
 } as const;
-const VIEWPORT = {
+export const EMBEDDED_MAP_VIEWPORT: MapLabelViewport = {
   minX: 18,
   maxX: 270,
   minY: 34,
   maxY: 244,
-} as const;
+  centerX: 144,
+  centerY: 144,
+  pixelRadius: 112,
+};
+export const FULLSCREEN_MAP_VIEWPORT: MapLabelViewport = {
+  minX: 18,
+  maxX: 558,
+  minY: 34,
+  maxY: 244,
+  centerX: 288,
+  centerY: 144,
+  pixelRadius: 112,
+};
 
 type Point = readonly [number, number];
 type HudColor = typeof COLOR[keyof typeof COLOR];
@@ -102,15 +117,27 @@ function clamped(value: number, minimum: number, maximum: number) {
 function projected(
   point: Coordinate,
   center: Coordinate,
+  viewport: MapLabelViewport,
+  radiusMeters: number,
 ): Point {
-  const output = projectCoordinate(point, center);
+  const output = projectCoordinate(point, center, radiusMeters);
   return [
-    clamped(output.x, VIEWPORT.minX, VIEWPORT.maxX),
-    clamped(output.y, VIEWPORT.minY, VIEWPORT.maxY),
+    clamped(
+      viewport.centerX
+        + (output.x - 144) * viewport.pixelRadius / 112,
+      viewport.minX,
+      viewport.maxX,
+    ),
+    clamped(
+      viewport.centerY
+        + (output.y - 144) * viewport.pixelRadius / 112,
+      viewport.minY,
+      viewport.maxY,
+    ),
   ];
 }
 
-function mapHeader(
+function mapDescriptor(
   location: DataState<LocationValue>,
   map: DataState<MapValue>,
 ) {
@@ -122,10 +149,21 @@ function mapHeader(
   const layer = map.status === "fresh" || map.status === "stale"
     ? map.status === "stale" ? "OSM LAST" : "OSM"
     : "SCHEMATIC";
+  return { source, layer };
+}
+
+function mapHeader(
+  location: DataState<LocationValue>,
+  map: DataState<MapValue>,
+) {
+  const { source, layer } = mapDescriptor(location, map);
   return `LOC // ${source} · ${layer}`;
 }
 
-function drawSchematicRoads(context: CanvasRenderingContext2D) {
+function drawSchematicRoads(
+  context: CanvasRenderingContext2D,
+  viewport: MapLabelViewport,
+) {
   const roads: readonly Point[][] = [
     [[18, 52], [78, 42], [130, 64], [202, 48], [270, 62]],
     [[18, 88], [68, 82], [126, 94], [190, 78], [270, 90]],
@@ -137,8 +175,18 @@ function drawSchematicRoads(context: CanvasRenderingContext2D) {
     [[172, 34], [182, 244]],
     [[234, 34], [226, 244]],
   ];
+  const scaleX = (viewport.maxX - viewport.minX) / (270 - 18);
+  const scaleY = (viewport.maxY - viewport.minY) / (244 - 34);
   for (const road of roads) {
-    drawPath(context, road, COLOR.dim, 1);
+    drawPath(
+      context,
+      road.map(([x, y]) => [
+        viewport.minX + (x - 18) * scaleX,
+        viewport.minY + (y - 34) * scaleY,
+      ]),
+      COLOR.dim,
+      1,
+    );
   }
 }
 
@@ -146,13 +194,17 @@ function drawRoads(
   context: CanvasRenderingContext2D,
   map: MapValue,
   center: Coordinate,
+  viewport: MapLabelViewport,
+  radiusMeters: number,
 ) {
   for (const kind of ["minor", "major"] as const) {
     for (const road of map.roads) {
       if (road.kind !== kind) continue;
       drawPath(
         context,
-        road.points.map((point) => projected(point, center)),
+        road.points.map(
+          (point) => projected(point, center, viewport, radiusMeters),
+        ),
         kind === "minor" ? COLOR.dim : COLOR.secondary,
         kind === "minor" ? 1 : 2,
       );
@@ -164,8 +216,15 @@ function drawMapLabels(
   context: CanvasRenderingContext2D,
   map: MapValue,
   center: Coordinate,
+  viewport: MapLabelViewport,
+  radiusMeters: number,
+  maximumLabels: number,
 ) {
-  for (const label of layoutMapLabels(map.labels, center)) {
+  for (const label of layoutMapLabels(map.labels, center, {
+    viewport,
+    radiusMeters,
+    maximumLabels,
+  })) {
     context.fillStyle = COLOR.background;
     context.fillRect(
       label.x - 2,
@@ -199,14 +258,19 @@ function drawRoute(
   context: CanvasRenderingContext2D,
   route: RouteValue,
   center: Coordinate,
+  viewport: MapLabelViewport,
+  radiusMeters: number,
 ) {
-  const points = route.geometry.map((point) => projected(point, center));
+  const points = route.geometry.map(
+    (point) => projected(point, center, viewport, radiusMeters),
+  );
   drawPath(context, points, COLOR.secondary, 6);
   drawPath(context, points, COLOR.primary, 3);
 }
 
 function drawPositionArrow(
   context: CanvasRenderingContext2D,
+  viewport: MapLabelViewport,
   heading = 0,
 ) {
   const angle = Number.isFinite(heading) ? heading * Math.PI / 180 : 0;
@@ -221,8 +285,8 @@ function drawPositionArrow(
   fillPolygon(
     context,
     points.map(([x, y]) => [
-      144 + x * cosine - y * sine,
-      144 + x * sine + y * cosine,
+      viewport.centerX + x * cosine - y * sine,
+      viewport.centerY + x * sine + y * cosine,
     ]),
     COLOR.primary,
   );
@@ -232,6 +296,7 @@ function drawFooter(
   context: CanvasRenderingContext2D,
   map: DataState<MapValue>,
   route: DataState<RouteValue>,
+  radiusMeters: number,
 ) {
   context.fillStyle = COLOR.background;
   context.fillRect(12, 250, 264, 25);
@@ -248,6 +313,15 @@ function drawFooter(
   drawText(context, status, 18, 256, 10, COLOR.primary, "bold");
   drawText(
     context,
+    `Z // ${radiusMeters}m`,
+    94,
+    257,
+    8,
+    COLOR.secondary,
+    "bold",
+  );
+  drawText(
+    context,
     "© OSM CONTRIBUTORS",
     154,
     257,
@@ -257,9 +331,42 @@ function drawFooter(
   );
 }
 
+function drawMapLayers(
+  context: CanvasRenderingContext2D,
+  live: LiveDashboardState,
+  viewport: MapLabelViewport,
+  radiusMeters: number,
+  maximumLabels: number,
+) {
+  const center = live.location.value?.coordinate;
+  const map = live.map.status === "fresh" || live.map.status === "stale"
+    ? live.map.value
+    : undefined;
+  if (center && map) {
+    drawRoads(context, map, center, viewport, radiusMeters);
+    drawMapLabels(
+      context,
+      map,
+      center,
+      viewport,
+      radiusMeters,
+      maximumLabels,
+    );
+  } else {
+    drawSchematicRoads(context, viewport);
+  }
+
+  const route = activeRoute(live.route);
+  if (center && route) {
+    drawRoute(context, route, center, viewport, radiusMeters);
+  }
+  drawPositionArrow(context, viewport, live.location.value?.heading);
+}
+
 export function drawFastMap(
   context: CanvasRenderingContext2D,
   live: LiveDashboardState,
+  radiusMeters = 650,
 ) {
   drawFrame(context);
   drawText(
@@ -271,20 +378,90 @@ export function drawFastMap(
     COLOR.secondary,
     "bold",
   );
+  drawMapLayers(
+    context,
+    live,
+    EMBEDDED_MAP_VIEWPORT,
+    radiusMeters,
+    10,
+  );
+  drawFooter(context, live.map, live.route, radiusMeters);
+}
 
-  const center = live.location.value?.coordinate;
-  const map = live.map.status === "fresh" || live.map.status === "stale"
-    ? live.map.value
-    : undefined;
-  if (center && map) {
-    drawRoads(context, map, center);
-    drawMapLabels(context, map, center);
-  } else {
-    drawSchematicRoads(context);
-  }
+function drawFullscreenHeader(
+  context: CanvasRenderingContext2D,
+  live: LiveDashboardState,
+  radiusMeters: number,
+) {
+  const { source, layer } = mapDescriptor(live.location, live.map);
+  context.fillStyle = COLOR.background;
+  context.fillRect(0, 0, 576, 31);
+  context.fillStyle = COLOR.dim;
+  context.fillRect(0, 30, 576, 1);
+  drawText(
+    context,
+    `MAP // ${source} · ${layer}`,
+    14,
+    8,
+    12,
+    COLOR.primary,
+    "bold",
+  );
+  drawText(
+    context,
+    `ZOOM // ${radiusMeters}m`,
+    444,
+    8,
+    12,
+    COLOR.secondary,
+    "bold",
+  );
+}
 
-  const route = activeRoute(live.route);
-  if (center && route) drawRoute(context, route, center);
-  drawPositionArrow(context, live.location.value?.heading);
-  drawFooter(context, live.map, live.route);
+function drawFullscreenFooter(context: CanvasRenderingContext2D) {
+  context.fillStyle = COLOR.background;
+  context.fillRect(0, 254, 576, 34);
+  context.fillStyle = COLOR.dim;
+  context.fillRect(0, 253, 576, 1);
+  drawText(
+    context,
+    "© OSM CONTRIBUTORS",
+    14,
+    264,
+    9,
+    COLOR.secondary,
+    "bold",
+  );
+  drawText(
+    context,
+    "DOUBLE TAP // BACK",
+    400,
+    264,
+    9,
+    COLOR.primary,
+    "bold",
+  );
+}
+
+export function drawFastFullscreenMap(
+  canvas: HTMLCanvasElement,
+  live: LiveDashboardState,
+  radiusMeters: number,
+) {
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
+  canvas.width = 576;
+  canvas.height = 288;
+  context.imageSmoothingEnabled = false;
+  context.fillStyle = COLOR.background;
+  context.fillRect(0, 0, 576, 288);
+  drawMapLayers(
+    context,
+    live,
+    FULLSCREEN_MAP_VIEWPORT,
+    radiusMeters,
+    18,
+  );
+  drawFullscreenHeader(context, live, radiusMeters);
+  drawFullscreenFooter(context);
 }
