@@ -79,6 +79,18 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   exists in the server environment, keep the key out of WebView bundles and
   source control, and show a clear disabled state without breaking the
   keyless map, weather, or news experience.
+- Give every fast-HUD dashboard tab a one-tap fullscreen detail deck. Keep the
+  existing map zoom deck; show one RSS title and summary at a time for news;
+  make the persisted TODO list selectable and tappable; and show one ORS
+  maneuver at a time for navigation.
+- In every fullscreen detail deck, scroll changes the page-specific selection
+  and double tap returns to the originating dashboard tab. Dashboard double
+  tap alone retains the black-frame display toggle.
+- Use only sanitized RSS title, description, and publication time for the G2
+  news reader. Do not fetch or render arbitrary article HTML.
+- Persist at most six TODO items through Even local storage. The first detail
+  implementation toggles the three approved seeded tasks and does not add
+  editing controls.
 - Preserve `/hud-hybrid` as the hardware-proven missing-z-order diagnosis.
   Test SDK `0.0.10` z-order backport only on `/hud-hybrid-z`: image layers
   1–4, Text layer 5, and no image resend during scroll.
