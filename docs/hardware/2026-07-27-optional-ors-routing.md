@@ -10,6 +10,9 @@ Server API commit:
 Client and G2 commit:
 `003d318f800d5223dbfa7a32a20cd32c3a47989b`
 
+Concurrency audit commit:
+`3ad0435cd137c544a2989a5588aa102af90ea9d5`
+
 ## Scope
 
 All existing location, weather, RSS, OSM, paging, fullscreen-map, zoom,
@@ -52,6 +55,8 @@ document.
   - the phone exposes retry and end actions;
   - ending clears the route cache;
   - late start or reroute responses cannot undo an explicit end.
+  - route cache writes and clears are serialized, so a cache write already in
+    progress cannot restore a route after an explicit end.
 
 ## Automated evidence
 
@@ -60,13 +65,13 @@ Run serially:
 ```text
 npm test
   26 files passed
-  264 tests passed
+  265 tests passed
 
 npm run typecheck
   passed
 
 npm run build
-  53 modules transformed
+  56 modules transformed
   Sites server modules prepared
 
 npm run test:sites

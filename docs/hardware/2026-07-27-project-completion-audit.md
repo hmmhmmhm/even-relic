@@ -36,9 +36,9 @@
 
 현재 ORS 통합 브랜치는 다음 검증을 직렬로 통과했다.
 
-- `npm test`: 26개 파일, 264개 테스트
+- `npm test`: 26개 파일, 265개 테스트
 - `npm run typecheck`
-- `npm run build`: 53개 모듈 변환
+- `npm run build`: 56개 모듈 변환
 - `npm run test:sites`: 4개 테스트
 - API 라우터, 지도, 뉴스, 경로 테스트: 24개 테스트
 - 클라이언트 소스의 `ORS_API_KEY` 접근 없음
