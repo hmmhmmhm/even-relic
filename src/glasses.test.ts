@@ -43,6 +43,9 @@ type FastRefreshHarnessConfig = {
     encodeAttempt: number,
   ) => Promise<unknown>;
   readonly inputResult?: TestInputResult;
+  readonly navigate?: (
+    direction: "next" | "previous",
+  ) => void | Promise<void>;
 };
 
 function deferred() {
@@ -136,7 +139,7 @@ async function createFastRefreshHarness(
   const cleanup = await transmitFastCanvas(
     hudSource,
     (message) => progress.push(message),
-    async () => undefined,
+    async (direction) => config.navigate?.(direction),
     {
       beforeExternalRefresh: config.beforeExternalRefresh,
       beforeRestore: config.beforeRestore,
@@ -877,6 +880,37 @@ describe("G2 raster transport", () => {
     expect(harness.imageIds).toEqual([3, 5, 2, 4, 3, 2, 4]);
     expect(harness.committedMinutes).toEqual([1_234, 1_234]);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("rolls local navigation back after a failed page transfer", async () => {
+    const directions: string[] = [];
+    let pageIndex = 0;
+    let failNextSend = true;
+    const harness = await createFastRefreshHarness({
+      navigate: (direction) => {
+        directions.push(direction);
+        pageIndex = (pageIndex + (direction === "next" ? 1 : -1) + 4) % 4;
+      },
+      update: async (_id, _call, encodeAttempt) => {
+        if (encodeAttempt === 2 && failNextSend) {
+          failNextSend = false;
+          return "sendFailed";
+        }
+        return "success";
+      },
+    });
+
+    harness.emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await vi.waitFor(() => expect(
+      harness.progress.some((message) => message.includes("sendFailed")),
+    ).toBe(true));
+    expect(directions).toEqual(["next", "previous"]);
+    expect(pageIndex).toBe(0);
+
+    harness.emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(7));
+    expect(directions).toEqual(["next", "previous", "next"]);
+    expect(pageIndex).toBe(1);
   });
 
   it("live refresh skips hidden work and restores the newest full HUD", async () => {

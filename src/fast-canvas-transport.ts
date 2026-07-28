@@ -257,9 +257,30 @@ export async function transmitCanvas(
   const performNavigation = async (direction: PageDirection) => {
     if (!onNavigate || hidden || disposed) return;
     onProgress("HUD 페이지 전환 중");
+    logDiagnostic("REFRESH", `page ${direction} prepare`);
     await onNavigate(direction);
     if (disposed) return;
-    await refreshImages(source, navigationTiles, "페이지 전송 완료");
+    try {
+      await refreshImages(source, navigationTiles, "페이지 전송 완료");
+      logDiagnostic("REFRESH", `page ${direction} commit`);
+    } catch (error) {
+      const rollbackDirection = direction === "next" ? "previous" : "next";
+      try {
+        await onNavigate(rollbackDirection);
+        logDiagnostic(
+          "REFRESH",
+          `page ${direction} rollback · ${rollbackDirection}`,
+        );
+      } catch (rollbackError) {
+        logDiagnostic(
+          "ERROR",
+          `page ${direction} rollback failed · ${
+            diagnosticError(rollbackError)
+          }`,
+        );
+      }
+      throw error;
+    }
   };
   const performDisplayToggle = async () => {
     if (disposed) return;
