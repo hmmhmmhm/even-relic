@@ -3,7 +3,10 @@ import {
   drawFastCanvasText as drawText,
   FAST_CANVAS_COLOR as COLOR,
 } from "./fast-canvas-style";
-import { wrapHudText } from "./fast-detail-text";
+import {
+  wrapHudText,
+  wrapHudTextByWidth,
+} from "./fast-detail-text";
 import type {
   DataState,
   LiveDashboardState,
@@ -129,14 +132,20 @@ function drawNews(
       "bold",
     );
   });
-  const summaryLines = wrapHudText(item.summary ?? "요약 없음", 41, 5);
+  context.font = 'bold 21px "SFMono-Regular", Consolas, monospace';
+  const summaryLines = wrapHudTextByWidth(
+    item.summary ?? "요약 없음",
+    (value) => context.measureText(value).width,
+    528,
+    4,
+  );
   summaryLines.forEach((line, lineIndex) => {
     drawText(
       context,
       line,
-      34,
-      118 + lineIndex * 21,
-      16,
+      24,
+      118 + lineIndex * 25,
+      21,
       lineIndex === 0 ? COLOR.secondary : COLOR.primary,
       "bold",
     );

@@ -169,7 +169,7 @@ export function reduceFastHudInput(
     if (input !== "scroll-next" && input !== "scroll-previous") {
       return { state, result: "consume" };
     }
-    const delta = input === "scroll-next" ? 1 : -1;
+    const delta = input === "scroll-next" ? -1 : 1;
     const zoomIndex = clampZoom(state.zoomIndex + delta);
     return zoomIndex === state.zoomIndex
       ? { state, result: "consume" }

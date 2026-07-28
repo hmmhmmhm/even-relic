@@ -572,7 +572,7 @@ describe("RELIC peripheral HUD", () => {
     expect(mocks.drawFullscreen).toHaveBeenLastCalledWith(
       expect.any(HTMLCanvasElement),
       expect.any(Object),
-      500,
+      850,
     );
 
     expect(await fastOptions().onInput?.("double-tap")).toBe("redraw");
@@ -580,7 +580,7 @@ describe("RELIC peripheral HUD", () => {
       expect.any(HTMLCanvasElement),
       expect.any(Date),
       "overview",
-      expect.objectContaining({ mapRadiusMeters: 500 }),
+      expect.objectContaining({ mapRadiusMeters: 850 }),
     );
     expect(await fastOptions().onInput?.("double-tap")).toBe("unhandled");
 
@@ -750,7 +750,7 @@ describe("RELIC peripheral HUD", () => {
     expect(mocks.drawFullscreen).toHaveBeenLastCalledWith(
       expect.any(HTMLCanvasElement),
       moved,
-      500,
+      850,
     );
 
     requestRefresh.mockClear();
@@ -778,7 +778,7 @@ describe("RELIC peripheral HUD", () => {
     expect(mocks.drawFullscreen).toHaveBeenLastCalledWith(
       expect.any(HTMLCanvasElement),
       routed,
-      500,
+      850,
     );
 
     requestRefresh.mockClear();
@@ -815,7 +815,7 @@ describe("RELIC peripheral HUD", () => {
       {
         battery: { label: "G2", level: 79, charging: false },
         live: weather,
-        mapRadiusMeters: 500,
+        mapRadiusMeters: 850,
       },
     );
     view.unmount();

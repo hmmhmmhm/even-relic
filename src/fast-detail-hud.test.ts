@@ -24,6 +24,9 @@ function createCanvas() {
     textBaseline: "top",
     imageSmoothingEnabled: true,
     fillRect: (...args: number[]) => rectangles.push(args),
+    measureText: (value: string) => ({
+      width: [...value].length * 10,
+    }),
     fillText(value: string, x: number, y: number) {
       texts.push({
         value,
@@ -100,9 +103,13 @@ describe("drawFastDetailHud", () => {
       "NEWS // LIVE",
       "01 / 06",
       "첫 번째 실제 기사 제목",
-      "RSS 요약 내용이 안경 전체 화면에 선명하게",
+      "RSS 요약 내용이 안경 전체 화면에 선명하게 표시됩니다.",
       "DOUBLE TAP // BACK",
     ]));
+    expect(texts.find(({ value }) => value.startsWith("RSS 요약"))).toMatchObject({
+      x: 24,
+      font: 'bold 21px "SFMono-Regular", Consolas, monospace',
+    });
   });
 
   it("draws all TODOs, progress, selection, and controls", () => {

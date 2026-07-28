@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { wrapHudText } from "./fast-detail-text";
+import {
+  wrapHudText,
+  wrapHudTextByWidth,
+} from "./fast-detail-text";
 
 describe("wrapHudText", () => {
   it("wraps Korean by display units and marks truncated final content", () => {
@@ -32,5 +35,17 @@ describe("wrapHudText", () => {
     expect(wrapHudText("", 10, 2)).toEqual([]);
     expect(wrapHudText("내용", 0, 2)).toEqual([]);
     expect(wrapHudText("내용", 10, 0)).toEqual([]);
+  });
+
+  it("wraps by measured width and truncates the final visible line", () => {
+    expect(wrapHudTextByWidth(
+      "가나다 라마바 사아자",
+      (value) => [...value].length * 10,
+      50,
+      2,
+    )).toEqual([
+      "가나다",
+      "라마바…",
+    ]);
   });
 });

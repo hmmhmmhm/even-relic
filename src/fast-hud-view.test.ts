@@ -50,7 +50,7 @@ describe("fast HUD detail state", () => {
     }
   });
 
-  it("retains map zoom and consumes zoom boundaries", () => {
+  it("zooms out on next, in on previous, and consumes zoom boundaries", () => {
     let state: FastHudViewState = {
       ...createFastHudViewState(),
       mode: "map",
@@ -63,15 +63,22 @@ describe("fast HUD detail state", () => {
       "scroll-next",
       CONTEXT,
     ).state;
+    expect(FAST_MAP_ZOOM_RADII[state.zoomIndex]).toBe(850);
+    state = reduceFastHudInput(
+      { ...state, zoomIndex: FAST_MAP_DEFAULT_ZOOM_INDEX },
+      "overview",
+      "scroll-previous",
+      CONTEXT,
+    ).state;
     expect(FAST_MAP_ZOOM_RADII[state.zoomIndex]).toBe(500);
     expect(reduceFastHudInput(
-      { ...state, zoomIndex: FAST_MAP_ZOOM_RADII.length - 1 },
+      { ...state, zoomIndex: 0 },
       "overview",
       "scroll-next",
       CONTEXT,
     ).result).toBe("consume");
     expect(reduceFastHudInput(
-      { ...state, zoomIndex: 0 },
+      { ...state, zoomIndex: FAST_MAP_ZOOM_RADII.length - 1 },
       "overview",
       "scroll-previous",
       CONTEXT,
