@@ -4,11 +4,11 @@ Date: 2026-07-29
 
 Target branch: `main`
 
-Audited commit: `e83798c6b4cd31985cb00815f1ccd722e8dd15c4`
+Audited commit: `669a7f6bbe392f862f8df31f7daf3de117ac2185`
 
 SDK: `@evenrealities/even_hub_sdk` `0.0.11`
 
-Overall status: `PHASE A PASS — PHASE B READY`
+Overall status: `PHASE A PASS — PHASE B PASS — RELEASE DEFERRED`
 
 This is the current source of truth for work remaining before release
 preparation. It supersedes the 2026-07-27 completion rubric, which describes an
@@ -61,7 +61,7 @@ Package SHA-256:
 | Weather dashboard and full-screen detail deck | PASS | PASS | None |
 | Black-frame hide and restore | PASS | PASS | None |
 | Keyless operation without ORS | PASS | PASS | None |
-| ORS destination search and route lifecycle | PASS | BLOCKED | Requires Phase A pass and a real server-side key |
+| ORS destination search and route lifecycle | PASS | PASS | None |
 | SDK `0.0.12` image transport | REPRODUCED FAILURE | FAIL | Wait for an Even Realities compatibility resolution; keep `main` pinned to `0.0.11` |
 
 ## Phase A — keyless physical G2 acceptance
@@ -97,22 +97,29 @@ The owner confirmed every Phase A observation on 2026-07-29 using build
 
 ## Phase B — real-key ORS routing
 
-Status: `READY — WAITING FOR SERVER KEY`
+Status: `PASS`
 
 Keep the key only in the server process as `ORS_API_KEY`.
 
-- [ ] The phone exposes destination search only while routing is enabled.
-- [ ] Korean destination results are returned and can be selected.
-- [ ] Walking, cycling, and driving profiles return normalized routes.
-- [ ] Navigation appears as the fifth page after Weather.
-- [ ] Route geometry appears over both dashboard and full-screen maps.
-- [ ] Live distance and maneuver guidance advance with location.
-- [ ] Active guidance uses the navigation location cadence.
-- [ ] Off-route fixes trigger bounded rerouting without a request queue.
-- [ ] Ending guidance clears geometry and route cache and restores the general
+- [x] The phone exposes destination search only while routing is enabled.
+- [x] Korean destination results are returned and can be selected.
+- [x] Walking, cycling, and driving profiles return normalized routes.
+- [x] Navigation appears as the fifth page after Weather.
+- [x] Route geometry appears over both dashboard and full-screen maps.
+- [x] Live distance and maneuver guidance advance with location.
+- [x] Active guidance uses the navigation location cadence.
+- [x] Off-route fixes trigger bounded rerouting without a request queue.
+- [x] Ending guidance clears geometry and route cache and restores the general
   location cadence.
-- [ ] No key value appears in the phone UI, G2 output, browser output, logs,
+- [x] No key value appears in the phone UI, G2 output, browser output, logs,
   client bundle, or EHPK.
+
+The owner confirmed the Phase B route flow on the physical G2 on 2026-07-29
+using build `phase-b-ors-035`. Live server preflight also returned Korean
+destination search results and normalized walking, cycling, and driving routes.
+OpenRouteService rejected the unsupported `ko` instruction language; commit
+`669a7f6` switched the server request to supported English instructions while
+preserving Korean road and place names.
 
 ## Deferred release work
 
