@@ -4,6 +4,9 @@
   <strong>A fast, glanceable tactical HUD for Even Realities G2.</strong>
 </p>
 
+> [!WARNING]
+> **Development status:** Sandevistan is still under active development and has not been officially published on Even Hub. Builds from this repository are experimental and intended for local testing on supported G2 hardware.
+
 <p align="center">
   <img alt="TypeScript 5.9" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white">
   <img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111111">
@@ -65,16 +68,16 @@ information panel on the right.
 | `OVERVIEW` | Local time, full date, current weather, and the connected device battery |
 | `NEWS` | Up to six current SBS RSS headlines |
 | `TODO` | Three persistent checklist items and today's completion progress |
-| `NAVIGATION` | Route state, remaining distance, next maneuver, and destination |
+| `WEATHER` | Current conditions, apparent temperature, humidity, precipitation, and wind |
+| `NAVIGATION` *(active route only)* | Route state, remaining distance, next maneuver, and destination |
 
 A single tap opens the active page's four-tile detail deck:
 
 - `OVERVIEW` opens the full-screen map.
 - `NEWS` opens one real RSS story at a time with paginated body text.
 - `TODO` opens the full checklist and selected item.
+- `WEATHER` opens current conditions, hourly context, and a large tactical weather icon.
 - `NAVIGATION` opens the current maneuver and route progress.
-- The weather detail view concentrates on current conditions, hourly context,
-  and a large tactical weather icon.
 
 ## Interaction model
 
