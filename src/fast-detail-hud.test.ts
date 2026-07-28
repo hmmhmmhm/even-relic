@@ -50,6 +50,19 @@ function liveState(): LiveDashboardState {
   const initial = createInitialLiveDashboardState();
   return {
     ...initial,
+    weather: {
+      status: "fresh",
+      fetchedAt: Date.parse("2026-07-27T05:00:00Z"),
+      value: {
+        temperature: 28.4,
+        apparentTemperature: 29.6,
+        humidity: 63,
+        windSpeed: 8.2,
+        precipitationProbability: 20,
+        weatherCode: 0,
+        condition: "맑음",
+      },
+    },
     news: {
       status: "fresh",
       fetchedAt: Date.parse("2026-07-27T05:00:00Z"),
@@ -157,6 +170,70 @@ describe("drawFastDetailHud", () => {
       "TAP // CURRENT",
       "DOUBLE TAP // BACK",
     ]));
+  });
+
+  it("draws a full-screen current weather dashboard", () => {
+    const { canvas, texts } = createCanvas();
+
+    drawFastDetailHud(canvas, {
+      mode: "weather",
+      live: liveState(),
+      newsIndex: 0,
+      newsPage: 0,
+      todoIndex: 0,
+      navigationIndex: 0,
+    });
+
+    expect(values(texts)).toEqual(expect.arrayContaining([
+      "WEATHER // LIVE",
+      "28°C",
+      "맑음",
+      "체감온도",
+      "30°",
+      "습도",
+      "63%",
+      "강수확률",
+      "20%",
+      "바람",
+      "8km/h",
+      "DOUBLE TAP // BACK",
+    ]));
+    expect(values(texts)).not.toContain("경로 키 필요");
+    expect(texts.find(({ value }) => value === "28°C")?.font)
+      .toContain("48px");
+  });
+
+  it.each([
+    ["stale", "WEATHER // LAST", "LAST DATA"],
+    ["loading", "WEATHER // LOADING", "날씨 불러오는 중"],
+    ["unavailable", "WEATHER // UNAVAILABLE", "날씨를 표시할 수 없음"],
+  ] as const)("shows weather %s state without key guidance", (
+    status,
+    expected,
+    copy,
+  ) => {
+    const base = liveState();
+    const live: LiveDashboardState = {
+      ...base,
+      weather: status === "stale"
+        ? { ...base.weather, status }
+        : { status },
+    };
+    const { canvas, texts } = createCanvas();
+
+    drawFastDetailHud(canvas, {
+      mode: "weather",
+      live,
+      newsIndex: 0,
+      newsPage: 0,
+      todoIndex: 0,
+      navigationIndex: 0,
+    });
+
+    expect(values(texts)).toContain(expected);
+    expect(values(texts)).toContain(copy);
+    expect(values(texts)).not.toContain("ORS");
+    expect(values(texts)).not.toContain("키 설정 필요");
   });
 
   it.each([

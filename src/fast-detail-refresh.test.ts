@@ -150,6 +150,25 @@ describe("detailRefreshTarget", () => {
       .toBeUndefined();
   });
 
+  it("refreshes weather detail only for displayed weather changes", () => {
+    const before = baseState();
+    const changed = withState(before, {
+      weather: {
+        ...before.weather,
+        fetchedAt: 2,
+        value: { ...before.weather.value!, humidity: 63 },
+      },
+    });
+    const newsChanged = withState(before, {
+      news: { ...before.news, fetchedAt: 2 },
+    });
+
+    expect(detailRefreshTarget("weather", before, changed, "right"))
+      .toBe("all");
+    expect(detailRefreshTarget("weather", before, newsChanged, "right"))
+      .toBeUndefined();
+  });
+
   it("refreshes navigation display fields but ignores route geometry alone", () => {
     const before = baseState();
     const routeChanged = withState(before, {

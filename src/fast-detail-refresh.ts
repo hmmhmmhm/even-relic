@@ -159,6 +159,23 @@ function todoStateMatches(
     && todoItemsMatch(left.todos.value, right.todos.value);
 }
 
+function weatherStateMatches(
+  left: LiveDashboardState,
+  right: LiveDashboardState,
+): boolean {
+  const a = left.weather.value;
+  const b = right.weather.value;
+  return left.weather.status === right.weather.status
+    && left.weather.fetchedAt === right.weather.fetchedAt
+    && a?.temperature === b?.temperature
+    && a?.apparentTemperature === b?.apparentTemperature
+    && a?.humidity === b?.humidity
+    && a?.windSpeed === b?.windSpeed
+    && a?.precipitationProbability === b?.precipitationProbability
+    && a?.weatherCode === b?.weatherCode
+    && a?.condition === b?.condition;
+}
+
 function navigationStateMatches(
   left: LiveDashboardState,
   right: LiveDashboardState,
@@ -193,6 +210,8 @@ export function detailRefreshTarget(
     ? mapVisibleStateMatches(previous, next)
     : mode === "news"
       ? newsStateMatches(previous, next)
+      : mode === "weather"
+        ? weatherStateMatches(previous, next)
       : mode === "todo"
         ? todoStateMatches(previous, next)
         : navigationStateMatches(previous, next);

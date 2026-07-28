@@ -17,7 +17,7 @@ const WIDTH = 576;
 const HEIGHT = 288;
 
 export type FastDetailHudOptions = {
-  readonly mode: "news" | "todo" | "navigation";
+  readonly mode: "news" | "todo" | "weather" | "navigation";
   readonly live: LiveDashboardState;
   readonly newsIndex: number;
   readonly newsPage: number;
@@ -234,6 +234,82 @@ function drawTodo(
   drawFooter(context, "SCROLL // SELECT", "TAP // TOGGLE");
 }
 
+function weatherLabel(
+  state: LiveDashboardState["weather"],
+): string {
+  if (state.status === "fresh") return "WEATHER // LIVE";
+  if (state.status === "stale") return "WEATHER // LAST";
+  if (state.status === "loading") return "WEATHER // LOADING";
+  return "WEATHER // UNAVAILABLE";
+}
+
+function drawWeather(
+  context: CanvasRenderingContext2D,
+  state: LiveDashboardState["weather"],
+) {
+  drawHeader(context, weatherLabel(state));
+  drawFrame(context, 14, 44, 548, 204);
+  const weather = (
+      state.status === "fresh"
+      || state.status === "stale"
+    )
+    ? state.value
+    : undefined;
+  if (!weather) {
+    const loading = state.status === "loading";
+    drawEmptyState(
+      context,
+      loading ? "날씨 불러오는 중" : "날씨를 표시할 수 없음",
+      loading
+        ? "현재 위치의 날씨 데이터를 기다리고 있습니다."
+        : "연결되면 현재 날씨를 자동으로 다시 확인합니다.",
+    );
+    drawFooter(context, "SOURCE // OPEN-METEO");
+    return;
+  }
+
+  drawText(
+    context,
+    `${Math.round(weather.temperature)}°C`,
+    30,
+    56,
+    48,
+    COLOR.primary,
+    "bold",
+  );
+  drawText(
+    context,
+    weather.condition,
+    190,
+    72,
+    25,
+    COLOR.secondary,
+    "bold",
+  );
+  if (state.status === "stale") {
+    drawText(context, "LAST DATA", 456, 78, 12, COLOR.dim, "bold");
+  }
+
+  const metrics = [
+    ["체감온도", `${Math.round(weather.apparentTemperature)}°`],
+    ["습도", `${Math.round(weather.humidity)}%`],
+    ["강수확률", `${Math.round(weather.precipitationProbability)}%`],
+    ["바람", `${Math.round(weather.windSpeed)}km/h`],
+  ] as const;
+  const positions = [
+    [34, 136],
+    [308, 136],
+    [34, 196],
+    [308, 196],
+  ] as const;
+  metrics.forEach(([label, value], index) => {
+    const [x, y] = positions[index];
+    drawText(context, label, x, y, 14, COLOR.secondary, "bold");
+    drawText(context, value, x, y + 20, 25, COLOR.primary, "bold");
+  });
+  drawFooter(context, "SOURCE // OPEN-METEO");
+}
+
 function routeLabel(state: DataState<RouteValue>): string {
   if (state.status === "fresh") return "NAV // ACTIVE";
   if (state.status === "stale") return "NAV // STALE";
@@ -342,6 +418,8 @@ export function drawFastDetailHud(
       options.newsIndex,
       options.newsPage,
     );
+  } else if (options.mode === "weather") {
+    drawWeather(context, options.live.weather);
   } else if (options.mode === "todo") {
     drawTodo(context, options.live.todos, options.todoIndex);
   } else {
