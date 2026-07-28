@@ -48,7 +48,7 @@ SDK 교체 커밋: `588c9fc`
 - `npm run build`: 67개 모듈 변환, 프로덕션 빌드 통과
 - 설치 확인: `@evenrealities/even_hub_sdk@0.0.12`
 - payload 확인: `compressMode: 2`
-- Tailscale 실험 URL: HTTP 200
+- localhost 4177 재현 빌드 준비 완료
 
 위 명령은 동시에 실행하지 않고 한 프로세스에서 순서대로 실행했다.
 
