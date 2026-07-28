@@ -1,8 +1,12 @@
 # G2 Dense Canvas HUD Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Render a larger, denser RELIC HUD entirely with Canvas primitives and text at `/hud-canvas`, then transmit it through the proven SDK `0.0.10` four-tile path.
+**Goal:** Render a larger, denser Sandevistan HUD entirely with Canvas primitives and text at `/hud-canvas`, then transmit it through the proven SDK `0.0.10` four-tile path.
 
 **Architecture:** A new pure `src/canvas-hud.ts` module owns the deterministic `576×288` raster composition. `App.tsx` selects it only for `/hud-canvas`; existing image, diagnostic, calibration, and BLE transport code remains unchanged.
 
@@ -148,14 +152,14 @@ expect(texts.map(({ value }) => value)).toEqual(expect.arrayContaining([
   "HONGDAE",
   "NE 047°",
   "NEXT 120m",
-  "우회전",
+  "right",
   "-24 dBFS",
   "X +0.12",
   "Y -0.03",
   "Z +0.98",
-  "다음 교차로에서",
-  "우회전",
-  "Q. 지하철역으로 이동",
+  “At the next intersection”;
+  "right",
+  "Q. Go to the subway station",
   "NEWS 02",
 ]));
 expect(strokedPaths.length).toBeGreaterThanOrEqual(8);
@@ -330,11 +334,11 @@ function drawNavigation(context: CanvasRenderingContext2D) {
     [338, 127],
     [308, 146],
   ], COLOR.primary);
-  drawText(context, "우회전", 286, 168, 18, COLOR.primary, "bold");
+  drawText(context, "turn right", 286, 168, 18, COLOR.primary, "bold");
 
   drawPanel(context, 204, 214, 188, 66);
-  drawText(context, "다음 교차로에서", 216, 226, 13, COLOR.secondary);
-  drawText(context, "우회전 →", 216, 247, 19, COLOR.primary, "bold");
+  drawText(context, "At the next intersection", 216, 226, 13, COLOR.secondary);
+  drawText(context, "Turn right →", 216, 247, 19, COLOR.primary, "bold");
 }
 
 function drawSensors(context: CanvasRenderingContext2D) {
@@ -358,13 +362,13 @@ function drawSensors(context: CanvasRenderingContext2D) {
 
 function drawQuest(context: CanvasRenderingContext2D) {
   drawPanel(context, 404, 230, 164, 50);
-  drawText(context, "Q. 지하철역으로 이동", 412, 238, 10, COLOR.primary, "bold");
+  drawText(context, "Q. Go to subway station", 412, 238, 10, COLOR.primary, "bold");
   drawText(context, "NEWS 02", 492, 258, 11, COLOR.secondary, "bold");
 }
 
 export function drawDenseCanvasHud(canvas: HTMLCanvasElement) {
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
+  if (!context) throw new Error("2D Canvas cannot be used.");
 
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
@@ -463,7 +467,7 @@ data-renderer={canvasHudMode ? "canvas" : calibrationMode ? "calibration" : "ima
 ```
 
 Render `576×288 · CANVAS HUD` in the header and
-`이미지 원본 없이 Canvas에서 직접 그린 HUD를 네 타일로 전송합니다.` in the
+`Send the HUD drawn directly on Canvas to four tiles without the original image.` in the
 preview note. Do not change the transport selection: `/hud-canvas` must continue
 into `transmitCanvas(canvasRef.current!, report)`.
 

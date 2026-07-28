@@ -200,7 +200,7 @@ it("shows raw hidden input only in the phone status", async () => {
   });
 
   expect(screen.getByText(
-    "숨김 입력 #7 · SYS - · TEXT 3 · SRC 2",
+    "Hidden input #7 · SYS - · TEXT 3 · SRC 2",
   )).toBeTruthy();
 });
 ```
@@ -226,7 +226,7 @@ onRawEvent: (event) => {
   if (!event.hidden) return;
   const field = (value: number | undefined) => value ?? "-";
   report(
-    `숨김 입력 #${event.count}`
+    `Hidden input #${event.count}`
       + ` · SYS ${field(event.sysEventType)}`
       + ` · TEXT ${field(event.textEventType)}`
       + ` · SRC ${field(event.eventSource)}`,
@@ -298,8 +298,8 @@ returns `200`.
 
 Refresh the URL, hide the HUD, double tap once, and inspect the phone status:
 
-- unchanged `HUD 표시 숨김 완료` means the event channel stalled;
-- `숨김 입력 ...` means the raw fields identify the normalizer/routing defect;
+- unchanged `HUD display complete` means the event channel stalled;
+- `Hidden input...` means the raw fields identify the normalizer/routing defect;
 - a normal restore means the diagnostic build changed timing and the bounded
   queue remains the next reproducible stress test.
 

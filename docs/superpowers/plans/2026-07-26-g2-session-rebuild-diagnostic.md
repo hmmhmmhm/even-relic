@@ -63,7 +63,7 @@ const DIAGNOSTIC_BUILD = "session-rebuild-1";
 Replace the scalar status state:
 
 ```tsx
-const initialStatus = autoStart ? "HUD 이미지 준비 중" : "자동 전송 비활성";
+const initialStatus = autoStart ? "Preparing HUD image" : "Disable automatic transfer";
 const [statusLog, setStatusLog] = useState([initialStatus]);
 ```
 
@@ -168,7 +168,7 @@ expect(reports).toEqual([
   "PAGE CREATING",
   "PAGE RESULT: success",
   "PAGE READY 200x100 - SEND IN 3S",
-  "공식 sample.png 전송 완료",
+  “Official sample.png transfer complete”,
 ]);
 ```
 

@@ -108,7 +108,7 @@ const HEIGHT = 288;
 
 export function drawCalibrationPattern(canvas: HTMLCanvasElement) {
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
+  if (!context) throw new Error("2D Canvas cannot be used.");
 
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
@@ -220,7 +220,7 @@ if (calibrationMode) {
 } else {
   await drawHudReference(canvasRef.current!, hudReferenceUrl);
 }
-report("Even 앱 브리지 연결 대기 중 · Safari에서는 미리보기만 표시됩니다");
+report("Even waiting for app bridge connection · Safari only shows preview");
 unsubscribe = hardwareBmpMode
   ? await transmitHardwareBmp(report)
   : diagnosticMode
@@ -250,12 +250,12 @@ Update the preview note selection:
 
 ```tsx
 {hardwareBmpMode
-  ? "안경에 준비 문구를 표시한 뒤 링/터치바를 클릭하면 200×100 1-bit BMP를 전송합니다."
+  ? “If you display the ready message on the glasses and click the ring/touch bar, 200×100 1-bit BMP will be transmitted.”
   : diagnosticMode
-    ? "진단 모드에서는 Even Realities 공식 sample.png 원본 바이트를 그대로 전송합니다."
+    ? "In diagnostic mode, the original Even Realities official sample.png bytes are transmitted as is."
     : calibrationMode
-      ? "외곽 띠, 보조 테두리, 중앙 십자와 32px 눈금을 네 타일로 전송합니다."
-      : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
+      ? "Transfers the outline strip, secondary border, center cross and 32px grid to four tiles."
+      : "This Canvas is divided into four PNGs and sequentially transferred to the glasses."}
 ```
 
 - [ ] **Step 4: Run the route and renderer tests and verify GREEN**

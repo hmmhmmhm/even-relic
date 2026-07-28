@@ -1,5 +1,9 @@
 # G2 Live Refresh Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Advance the G2 clock every minute, follow meaningful movement on the map, and refresh a changed device battery without disturbing the proven serialized Canvas transport.

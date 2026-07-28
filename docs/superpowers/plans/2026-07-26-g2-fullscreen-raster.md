@@ -1,32 +1,36 @@
 # G2 Fullscreen Raster Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan.
 
-**Goal:** 검증된 8-bit RGB PNG 전송 경로를 이용해 RELIC HUD를 G2의 576×288 표시 영역 전체에 2×2 정적 타일로 표시한다.
+**Goal:** Using a proven 8-bit RGB PNG transmission path, the Sandevistan HUD is displayed as 2×2 static tiles across the entire 576×288 display area of ​​the G2.
 
-**Architecture:** 기존 공식 이미지 예제의 진단용 복제본을 하드웨어 검증 전용 앱으로 유지한다. 576×288 HUD 원본을 빌드 전에 288×144 PNG 네 장으로 만들고, 앱은 빈 이벤트 캡처 레이어 하나와 이미지 컨테이너 네 개를 생성한다. 사용자가 한 번 탭하면 타일을 TL→TR→BL→BR 순서로 직렬 전송하며, 진행 상황과 오류는 iPhone WebView에만 표시한다.
+**Architecture:** Maintain diagnostic replicas of existing official image examples as dedicated hardware verification apps. The original 576×288 HUD is created as four 288×144 PNGs before building, and the app creates one empty event capture layer and four image containers. When the user taps once, tiles are serially transmitted in the order TL → TR → BL → BR, and progress and errors are displayed only in the iPhone WebView.
 
 **Tech Stack:** TypeScript, Vite 5, Vitest, `@evenrealities/even_hub_sdk` 0.0.10, EvenHub CLI, ffmpeg
 
 ---
 
-## 작업 범위와 경로
+## Work scope and path
 
-구현 작업 디렉터리:
+Implementation working directory:
 
 `C:\Users\haminlee\Documents\personal-agent\evenhub-templates-diagnostic\image`
 
-HUD 원본:
+HUD Original:
 
 `C:\Users\haminlee\Documents\personal-agent\even-relic\docs\design\selected-peripheral-focus.png`
 
-설계 문서:
+Design document:
 
 `C:\Users\haminlee\Documents\personal-agent\even-relic\docs\superpowers\specs\2026-07-26-g2-fullscreen-raster-design.md`
 
-RELIC 폴더에는 Git 저장소가 없고 진단 프로젝트는 공식 저장소의 실험용 복제본이다. 이번 하드웨어 검증 단계에서는 커밋이나 푸시를 하지 않아 공식 원격 저장소에 영향을 주지 않는다.
+There is no Git repository in the Sandevistan folder, and the diagnostic project is an experimental clone of the official repository. There is no commit or push during this hardware verification stage, so it does not affect the official remote repository.
 
-### Task 1: 정적 8-bit RGB 타일 네 장 생성
+### Task 1: Create four static 8-bit RGB tiles
 
 **Files:**
 
@@ -37,7 +41,7 @@ RELIC 폴더에는 Git 저장소가 없고 진단 프로젝트는 공식 저장�
 - Create: `scripts/verify-fullscreen-tiles.mjs`
 - Modify: `package.json`
 
-**Step 1: 타일 검사 스크립트를 먼저 작성한다**
+**Step 1: Write a tile inspection script first**
 
 `scripts/verify-fullscreen-tiles.mjs`:
 
@@ -68,13 +72,13 @@ for (const file of files) {
 console.log('Verified 4 fullscreen tiles: 288x144, 8-bit RGB')
 ```
 
-`package.json`의 `scripts`에 다음 항목을 추가한다.
+Add the following item to `scripts` in `package.json`.
 
 ```json
 "verify:tiles": "node scripts/verify-fullscreen-tiles.mjs"
 ```
 
-**Step 2: 검사 실패를 확인한다**
+**Step 2: Check for test failure**
 
 Run:
 
@@ -82,9 +86,9 @@ Run:
 npm run verify:tiles
 ```
 
-Expected: 아직 타일 파일이 없으므로 `ENOENT`로 실패한다.
+Expected: Fails with `ENOENT` because there is no tile file yet.
 
-**Step 3: HUD 원본을 네 타일로 생성한다**
+**Step 3: Create the original HUD with four tiles**
 
 Run:
 
@@ -96,9 +100,9 @@ ffmpeg -y -i ..\..\even-relic\docs\design\selected-peripheral-focus.png -vf "sca
 ffmpeg -y -i ..\..\even-relic\docs\design\selected-peripheral-focus.png -vf "scale=576:288,crop=288:144:288:144,format=rgb24" -frames:v 1 public\relic-tiles\relic-br.png
 ```
 
-Expected: `public/relic-tiles`에 PNG 네 장이 생성된다.
+Expected: Four PNGs are created in `public/relic-tiles`.
 
-**Step 4: 타일 메타데이터 검사를 통과시킨다**
+**Step 4: Pass the tile metadata check**
 
 Run:
 
@@ -112,14 +116,14 @@ Expected:
 Verified 4 fullscreen tiles: 288x144, 8-bit RGB
 ```
 
-### Task 2: 레이아웃과 직렬 전송 로직을 테스트 주도로 작성
+### Task 2: Test-driven writing of layout and serial transmission logic
 
 **Files:**
 
 - Create: `src/fullscreen.test.ts`
 - Create: `src/fullscreen.ts`
 
-**Step 1: 실패하는 단위 테스트를 작성한다**
+**Step 1: Write a failing unit test**
 
 `src/fullscreen.test.ts`:
 
@@ -233,7 +237,7 @@ describe('G2 fullscreen raster', () => {
 })
 ```
 
-**Step 2: 새 테스트가 실패하는지 확인한다**
+**Step 2: Check if the new test fails**
 
 Run:
 
@@ -241,9 +245,9 @@ Run:
 npm test -- src/fullscreen.test.ts
 ```
 
-Expected: `./fullscreen` 모듈을 찾을 수 없어 실패한다.
+Expected: Failed because the `./fullscreen` module could not be found.
 
-**Step 3: 최소 구현을 작성한다**
+**Step 3: Write a minimal implementation**
 
 `src/fullscreen.ts`:
 
@@ -367,7 +371,7 @@ export async function sendFullscreenTiles(
 }
 ```
 
-**Step 4: 새 단위 테스트를 통과시킨다**
+**Step 4: Pass the new unit test**
 
 Run:
 
@@ -377,13 +381,13 @@ npm test -- src/fullscreen.test.ts
 
 Expected: 3 tests passed.
 
-### Task 3: 한 번 탭하면 네 타일을 전송하는 실제 페이지 연결
+### Task 3: Link to the actual page that transfers four tiles with a single tap
 
 **Files:**
 
 - Modify: `src/main.ts`
 
-**Step 1: 기존 진단 페이지를 풀스크린 전송 페이지로 교체한다**
+**Step 1: Replace the existing diagnostic page with a full-screen transfer page**
 
 `src/main.ts`:
 
@@ -411,7 +415,7 @@ app.innerHTML = `
       CONNECTING
     </output>
     <p style="color:#919191;font-size:13px;margin:12px 0 0;">
-      READY가 보이면 안경 또는 R1을 한 번 탭하세요. 두 번 탭하면 종료합니다.
+      When you see READY, tap Glasses or R1 once. Double tap to quit.
     </p>
   </main>
 `
@@ -492,7 +496,7 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
 window.addEventListener('beforeunload', cleanup)
 ```
 
-**Step 2: 전체 테스트와 빌드를 실행한다**
+**Step 2: Run full tests and build**
 
 Run:
 
@@ -504,28 +508,28 @@ npm run build
 
 Expected:
 
-- 기존 진단 테스트 3개와 풀스크린 테스트 3개가 모두 통과한다.
-- PNG 네 장의 형식 검사가 통과한다.
-- TypeScript 검사와 Vite production build가 성공한다.
+- All 3 existing diagnostic tests and 3 full screen tests pass.
+- Four PNG format checks pass.
+- TypeScript inspection and Vite production build are successful.
 
-### Task 4: 새 포트와 새 QR로 실제 G2 검증
+### Task 4: Verify the actual G2 with new port and new QR
 
 **Files:**
 
 - Modify: `package.json`
 
-**Step 1: 캐시를 분리할 전용 명령을 추가한다**
+**Step 1: Add a dedicated command to separate the cache**
 
-`package.json`의 `scripts`에 다음 항목을 추가한다.
+Add the following item to `scripts` in `package.json`.
 
 ```json
 "dev:fullscreen": "vite --host 0.0.0.0 --port 5178 --strictPort",
 "qr:fullscreen": "evenhub qr --url http://100.84.176.81:5178 --external"
 ```
 
-Tailscale 주소가 바뀌었으면 `100.84.176.81`을 `tailscale ip -4` 결과로 교체한다.
+If the Tailscale address has changed, replace `100.84.176.81` with the result of `tailscale ip -4`.
 
-**Step 2: 기존 5177 개발 서버만 종료한다**
+**Step 2: Shut down only the existing 5177 development server**
 
 Run:
 
@@ -534,9 +538,9 @@ $listener = Get-NetTCPConnection -LocalPort 5177 -State Listen -ErrorAction Sile
 if ($listener) { Stop-Process -Id $listener.OwningProcess }
 ```
 
-Expected: 5177의 진단 서버만 종료되고 4173 RELIC 서버와 5174 공식 원본 서버는 그대로 유지된다.
+Expected: Only the 5177 diagnostic server will be terminated, and the 4173 Sandevistan server and 5174 official origin server will remain as is.
 
-**Step 3: 5178 서버를 실행한다**
+**Step 3: Run the 5178 server**
 
 Run:
 
@@ -544,9 +548,9 @@ Run:
 npm run dev:fullscreen
 ```
 
-Expected: Vite가 `http://localhost:5178`과 Tailscale 접근 주소를 표시하며 계속 실행된다.
+Expected: Vite continues to run, displaying `http://localhost:5178` and the Tailscale access address.
 
-**Step 4: 별도 터미널에서 QR을 생성한다**
+**Step 4: Create QR in a separate terminal**
 
 Run:
 
@@ -554,17 +558,17 @@ Run:
 npm run qr:fullscreen
 ```
 
-Expected: iPhone Even 앱에서 스캔할 QR이 표시된다.
+Expected: A QR to scan will be displayed in the iPhone Even app.
 
-**Step 5: 실제 안경에서 검증한다**
+**Step 5: Verify with actual glasses**
 
-1. 기존 RELIC/진단 EvenHub 앱을 안경에서 종료한다.
-2. iPhone Even 앱으로 새 QR을 스캔한다.
-3. iPhone 화면에 `READY - TAP TO SEND`가 나타날 때까지 기다린다.
-4. 안경 또는 R1을 한 번 탭한다.
-5. iPhone에서 `relicTL`, `relicTR`, `relicBL`, `relicBR` 결과가 모두 `success`인지 확인한다.
-6. 안경의 576×288 영역 전체에 HUD가 이어져 보이는지 확인한다.
-7. 이음선, 잘림, 밝기, 글자 판독성, 주변 시야 방해 정도를 기록한다.
+1. Close the existing Sandevistan/Diagnostic EvenHub app on the glasses.
+2. Scan the new QR with the iPhone Even app.
+3. Wait until ‘READY - TAP TO SEND’ appears on the iPhone screen.
+4. Tap once on Glasses or R1.
+5. On iPhone, check whether the results of `relicTL`, `relicTR`, `relicBL`, and `relicBR` are all `success`.
+6. Check whether the HUD appears continuously throughout the 576×288 area of ​​the glasses.
+7. Record seams, cuts, brightness, legibility, and peripheral vision obstruction.
 
 Expected final phone status:
 
@@ -572,18 +576,18 @@ Expected final phone status:
 FULLSCREEN RESULT: success
 ```
 
-실패하면 iPhone에 표시된 최초 실패 타일과 결과(`imageException`, `imageSizeInvalid`, `sendFailed`)를 그대로 기록한다. 후속 타일은 전송되지 않아야 한다.
+If it fails, the initial failure tile displayed on the iPhone and the results (`imageException`, `imageSizeInvalid`, `sendFailed`) are recorded as is. Subsequent tiles should not be transmitted.
 
-## 최종 검증 체크리스트
+## Final Verification Checklist
 
-- [ ] 네 PNG가 각각 288×144, 8-bit RGB다.
-- [ ] 이미지 컨테이너가 SDK 상한인 정확히 네 개다.
-- [ ] 빈 이벤트 캡처 텍스트 레이어를 포함해 총 컨테이너 수가 다섯 개다.
-- [ ] 한 번 탭해야만 전송이 시작된다.
-- [ ] 두 번째 단일 탭은 다시 전송하지 않는다.
-- [ ] TL→TR→BL→BR 순서가 직렬로 유지된다.
-- [ ] 최초 실패 후 전송이 멈춘다.
-- [ ] 두 번 탭하면 종료된다.
-- [ ] 테스트, 타일 검사, production build가 모두 통과한다.
-- [ ] 5178 서버가 하나만 리슨한다.
-- [ ] 실제 G2에서 화면 전체를 채운 HUD가 보인다.
+- [ ] Each PNG is 288×144, 8-bit RGB.
+- [ ] The SDK upper limit of image containers is exactly four.
+- [ ] The total number of containers is five, including the empty event capture text layer.
+- You must tap [ ] once to start the transfer.
+- [ ] The second single tap is not sent again.
+- [ ] The order of TL→TR→BL→BR is maintained in series.
+- [ ] Transmission stops after the first failure.
+- Tap [ ] twice to end.
+- [ ] Test, tile inspection, and production build all pass.
+- [ ] 5178 Only one server listens.
+- [ ] In the actual G2, you can see the HUD that fills the entire screen.

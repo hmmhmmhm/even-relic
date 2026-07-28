@@ -40,11 +40,11 @@ Change the map assertion so `scroll-next` moves from 650 m to 850 m and
 
 ```ts
 expect(wrapHudTextByWidth(
-  "가나다 라마바 사아자",
+  “Ganada Ramaba Saaja”,
   (value) => [...value].length * 10,
   50,
   2,
-)).toEqual(["가나다", "라마…"]);
+)).toEqual(["Ganada", "Rama..."]);
 ```
 
 In `fast-detail-hud.test.ts`, provide `measureText`, then assert summary draws
@@ -80,7 +80,7 @@ In `drawNews`, set the summary font before measuring:
 ```ts
 context.font = 'bold 21px "SFMono-Regular", Consolas, monospace';
 const summaryLines = wrapHudTextByWidth(
-  item.summary ?? "요약 없음",
+  item.summary ?? "No summary",
   (value) => context.measureText(value).width,
   528,
   4,

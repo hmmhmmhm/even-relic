@@ -1,5 +1,9 @@
 # G2 WebView Operation Console Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a bounded, timestamped phone-WebView console that reveals the last input, location, storage, refresh, encoding, tile, timer, or error boundary before the WebView freezes.
@@ -355,7 +359,7 @@ export function DiagnosticConsole({
   };
 
   return (
-    <section className="diagnostic-console" aria-label="웹뷰 작업 콘솔">
+    <section className="diagnostic-console" aria-label="Webview Task Console">
       <header>
         <strong>WEBVIEW TRACE</strong>
         <span>

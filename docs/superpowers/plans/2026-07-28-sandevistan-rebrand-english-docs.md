@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task by task.
 
-**Goal:** Rebrand the main branch from Even Relic/RELIC to Sandevistan, make the npm project private, publish a polished English repository surface, and translate every tracked Markdown document without altering the `0.0.12-reproduce` branch.
+**Goal:** Rebrand the main branch from `even-relic` / `RELIC` to Sandevistan, make the npm project private, publish a polished English repository surface, and translate every tracked Markdown document without altering the `0.0.12-reproduce` branch.
 
 **Architecture:** Keep the existing React, Vite, TypeScript, Even Hub SDK, Canvas HUD, and serverless API architecture intact. Apply the new identity at the package, app manifest, storage, G2 container, runtime copy, browser preview, test, and documentation layers. Add a dependency-free repository policy checker so the English-only documentation and non-publishable package constraints remain enforceable.
 
-**Tech Stack:** TypeScript, React 19, Vite 7, Node.js test runner, Even Hub SDK 0.0.11, Canvas 2D, Git, GitHub CLI
+**Tech Stack:** TypeScript, React 19, Vite 6, Node.js test runner, Even Hub SDK 0.0.11, Canvas 2D, Git, GitHub CLI
 
 ---
 
@@ -55,7 +55,7 @@ Implement dependency-free exported validation functions and a CLI that:
 - Reports Hangul with path and line number.
 - Validates current package/app identifiers.
 - Rejects a publishable npm package.
-- Scans current source and configuration for active RELIC branding.
+- Scans current source and configuration for active Sandevistan branding.
 - Allows old identifiers only on lines explicitly marked as legacy evidence.
 - Exits nonzero when any violation exists.
 
@@ -209,7 +209,7 @@ Preserve all technical facts, command examples, checklist state, and links while
 Run:
 
 ```bash
-rg -n '[가-힣]' README.md AGENTS.md design-qa.md docs/design docs/plans/2026-07-25-sandevistan-hud-prototype.md
+rg -n '[\uAC00-\uD7A3]' README.md AGENTS.md design-qa.md docs/design docs/plans/2026-07-25-sandevistan-hud-prototype.md
 rg -n 'even-relic|com\\.hmmhmmhm\\.evenrelic' README.md AGENTS.md design-qa.md docs/design docs/plans/2026-07-25-sandevistan-hud-prototype.md
 ```
 
@@ -242,7 +242,7 @@ Translate every Korean passage without changing citations, source URLs, command 
 Run:
 
 ```bash
-rg -n '[가-힣]' docs/hardware docs/research
+rg -n '[\uAC00-\uD7A3]' docs/hardware docs/research
 ```
 
 Expected: no matches.
@@ -273,7 +273,7 @@ Use Sandevistan for current and narrative project identity. Keep old identifiers
 Run:
 
 ```bash
-rg -n '[가-힣]' docs/superpowers/specs
+rg -n '[\uAC00-\uD7A3]' docs/superpowers/specs
 ```
 
 Expected: no matches.
@@ -304,7 +304,7 @@ Use Sandevistan for current and narrative project identity. Retain legacy litera
 Run:
 
 ```bash
-rg -n '[가-힣]' docs/superpowers/plans
+rg -n '[\uAC00-\uD7A3]' docs/superpowers/plans
 ```
 
 Expected: no matches.
@@ -361,7 +361,7 @@ Expected: PASS.
 
 ```bash
 git diff --check
-rg -n '[가-힣]' --glob '*.md'
+rg -n '[\uAC00-\uD7A3]' --glob '*.md'
 git status --short
 ```
 

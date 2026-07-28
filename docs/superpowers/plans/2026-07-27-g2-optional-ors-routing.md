@@ -1,5 +1,9 @@
 # G2 Optional ORS Routing Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add destination search and turn-by-turn route guidance through OpenRouteService only when `ORS_API_KEY` exists, with a clean routing-disabled state otherwise.
@@ -56,7 +60,7 @@ Without `env.ORS_API_KEY`, assert:
 
 ```js
 GET /api/routing-status -> 200 { enabled: false }
-GET /api/geocode?q=서울역 -> 503 ROUTING_DISABLED
+GET /api/geocode?q=Seoul Station -> 503 ROUTING_DISABLED
 POST /api/route          -> 503 ROUTING_DISABLED
 ```
 
@@ -259,13 +263,13 @@ Assert:
 
 ```ts
 expect(await getRoutingStatus(fetchDisabled)).toEqual({ enabled: false });
-expect(await searchDestinations("서울역", fetchEnabled)).toHaveLength(5);
+expect(await searchDestinations("Seoul Station", fetchEnabled)).toHaveLength(5);
 expect(await requestRoute({
   start,
   destination,
   profile: "foot-walking",
 }, fetchEnabled)).toMatchObject({
-  destinationName: "서울역",
+  destinationName: "Seoul Station",
   activeManeuverIndex: 0,
   profile: "foot-walking",
 });
@@ -279,20 +283,20 @@ uncaught exception.
 On a disabled status:
 
 ```ts
-expect(screen.getByText("ORS 키 연결 후 길찾기 사용 가능")).toBeTruthy();
+expect(screen.getByText("Directions available after connecting ORS key")).toBeTruthy();
 expect(screen.queryByRole("textbox")).toBeNull();
 ```
 
 On enabled status:
 
 ```ts
-fireEvent.change(screen.getByRole("textbox"), { target: { value: "서울역" } });
+fireEvent.change(screen.getByRole("textbox"), { target: { value: "Seoul Station" } });
 fireEvent.submit(screen.getByRole("form"));
-await screen.findByRole("button", { name: /서울역/ });
+await screen.findByRole("button", { name: /Seoul Station/ });
 ```
 
 Selecting a result must call `onStart(destination, "foot-walking")`; an active
-route must expose an `길찾기 종료` button.
+route must expose an `End route finding` button.
 
 - [ ] **Step 3: Run and verify RED**
 
@@ -523,11 +527,11 @@ git commit -m "feat: track active ORS navigation"
 Assert exact navigation labels:
 
 ```ts
-disabled    -> ["NAV // READY", "경로 키 필요", "ORS 연결 후 사용"]
-enabled idle -> ["NAV // READY", "목적지를 선택하세요"]
-loading     -> ["NAV // ROUTING", "경로 계산 중"]
-active      -> ["NAV // ACTIVE", "120m", "우회전"]
-stale       -> ["NAV // STALE", "경로 확인 필요"]
+disabled -> ["NAV // READY", "Route key required", "Use after ORS connection"]
+enabled idle -> ["NAV // READY", "Select destination"]
+loading -> ["NAV // ROUTING", "Calculating route"]
+active -> ["NAV // ACTIVE", "120m", "Turn right"]
+stale -> ["NAV // STALE", "Route confirmation required"]
 ```
 
 Assert active geometry is overlaid above base roads and ending navigation
@@ -580,7 +584,7 @@ http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=ors-optional-015
 ```
 
 Confirm location, weather, RSS, and OSM remain live; only the navigation page
-shows `경로 키 필요`; the phone shows no destination input.
+shows `path key required`; the phone shows no destination input.
 
 - [ ] **Step 2: Verify with a key**
 

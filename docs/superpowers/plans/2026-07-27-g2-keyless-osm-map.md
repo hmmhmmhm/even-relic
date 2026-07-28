@@ -1,8 +1,12 @@
 # G2 Keyless OSM Map Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the schematic road grid with bounded OpenStreetMap road geometry rendered by RELIC’s own Canvas code, without a map API key or WebView screenshot.
+**Goal:** Replace the schematic road grid with bounded OpenStreetMap road geometry rendered by Sandevistan’s own Canvas code, without a map API key or WebView screenshot.
 
 **Architecture:** The existing same-origin API router submits one fixed-radius Overpass query for a rounded location cell and returns compact normalized lines. The client caches geometry for 24 hours, projects it into the fixed left `288 x 288` region, and requests only tile IDs `2/4`.
 

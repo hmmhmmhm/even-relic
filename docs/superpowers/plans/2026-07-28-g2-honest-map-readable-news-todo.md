@@ -121,7 +121,7 @@ expect(paginateFastNewsSummary(
 ```
 
 Use a deterministic `measureText` fixture whose width forces those lines.
-Assert missing summaries return `[[\"요약 없음\"]]`.
+Assert missing summaries return `[[\"No summaries\"]]`.
 
 Add `newsPage` and `newsPageCounts: [2, 3, 1]` to HUD state/context fixtures.
 Test:
@@ -165,7 +165,7 @@ export function paginateFastNewsSummary(
 ): readonly (readonly string[])[] {
   context.font = FAST_NEWS_SUMMARY_FONT;
   const lines = wrapHudTextByWidth(
-    summary ?? "요약 없음",
+    Summary ?? "No summary",
     (value) => context.measureText(value).width,
     528,
     Number.MAX_SAFE_INTEGER,
@@ -174,7 +174,7 @@ export function paginateFastNewsSummary(
   for (let index = 0; index < lines.length; index += 4) {
     pages.push(lines.slice(index, index + 4));
   }
-  return pages.length > 0 ? pages : [["요약 없음"]];
+  return pages.length > 0 ? pages : [["No summary"]];
 }
 ```
 

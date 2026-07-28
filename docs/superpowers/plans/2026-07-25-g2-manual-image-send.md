@@ -219,8 +219,8 @@ const announced = await bridge.textContainerUpgrade(new TextContainerUpgrade({
   containerName: "status",
   content: "TEXT READY - CLICK TO SEND",
 }));
-if (!announced) throw new Error("BMP 사전 텍스트 표시 실패");
-onProgress("안경 클릭 대기 중");
+if (!announced) throw new Error("Failed to display BMP dictionary text");
+onProgress("Waiting for glasses to be clicked");
 await dependencies.waitForTrigger(bridge);
 ```
 
@@ -292,7 +292,7 @@ Use the header:
 Use the note:
 
 ```tsx
-"안경에 준비 문구를 표시한 뒤 링/터치바를 클릭하면 200×100 1-bit BMP를 전송합니다."
+“If you display the ready message on the glasses and click the ring/touch bar, 200×100 1-bit BMP will be transmitted.”
 ```
 
 Change the QR script:

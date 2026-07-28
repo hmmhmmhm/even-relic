@@ -40,11 +40,11 @@ Use:
 ```ts
 expect(values).toEqual(expect.arrayContaining([
   "14:37:42",
-  "HONGDAE  23°C 맑음",
+  "HONGDAE 23°C clear",
   "TODO // ACTIVE",
-  "지하철역으로",
-  "이동",
-  "경로 확인",
+  “To the subway station”,
+  "movement",
+  "Check path",
   "02:14",
 ]));
 expect(values).not.toContain("14:37");
@@ -109,7 +109,7 @@ function formatTime(now: Date) {
 ```
 
 Pass `now` into `drawHeader()`, draw `formatTime(now)` at 22 pixels, draw
-`HONGDAE  23°C 맑음` at 9 pixels, and remove the time-panel `// 01`.
+`HONGDAE 23°C CLEAR` at 9 pixels, and remove the time-panel `// 01`.
 
 - [ ] **Step 2: Add a Canvas checkbox helper**
 
@@ -144,10 +144,10 @@ Draw:
 ```ts
 drawText(context, "TODO // ACTIVE", 416, 168, 9, COLOR.secondary, "bold");
 drawCheckbox(context, 416, 190, 12, false);
-drawText(context, "지하철역으로", 434, 187, 16, COLOR.primary, "bold");
-drawText(context, "이동", 434, 210, 24, COLOR.primary, "bold");
+drawText(context, "To the subway station", 434, 187, 16, COLOR.primary, "bold");
+drawText(context, "move", 434, 210, 24, COLOR.primary, "bold");
 drawCheckbox(context, 416, 255, 10, true);
-drawText(context, "경로 확인", 432, 254, 9, COLOR.secondary, "bold");
+drawText(context, "Check path", 432, 254, 9, COLOR.secondary, "bold");
 drawText(context, "02:14", 520, 254, 9, COLOR.primary, "bold");
 ```
 
@@ -207,10 +207,10 @@ State that clock seconds reflect render time and weather remains mock data.
 Add:
 
 ```markdown
-- [ ] `HH:MM:SS`가 시간 프레임 안에서 잘리지 않는다.
-- [ ] 지역·온도·날씨 한 줄이 읽힌다.
-- [ ] 미완료 상자와 완료 체크가 서로 구분된다.
-- [ ] TODO 본문 크기가 이전 미션 카드만큼 크게 유지된다.
+- [ ] `HH:MM:SS` is not truncated within the time frame.
+- [ ] Region, temperature, weather can be read in one line.
+- [ ] Incomplete boxes and complete checks are distinguished from each other.
+- [ ] TODO body size remains as large as the previous mission card.
 ```
 
 - [ ] **Step 3: Run fresh verification**

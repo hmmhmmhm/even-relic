@@ -23,11 +23,11 @@ Render `new Date(2026, 6, 27, 14, 37, 42)` and assert:
 ```ts
 expect(hud.values).toEqual(expect.arrayContaining([
   "14:37",
-  "2026.07.27 월요일",
-  "23°C 맑음",
+  "2026.07.27 Monday",
+  "23°C clear",
   "01 / 04",
 ]));
-expect(hud.texts.find(({ value }) => value === "2026.07.27 월요일")).toMatchObject({
+expect(hud.texts.find(({ value }) => value === "2026.07.27 Monday")).toMatchObject({
   x: 306,
   y: 40,
 });
@@ -50,13 +50,13 @@ Add:
 
 ```ts
 const WEEKDAYS = [
-  "일요일",
-  "월요일",
-  "화요일",
-  "수요일",
-  "목요일",
-  "금요일",
-  "토요일",
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "Saturday",
 ] as const;
 
 function formatDate(now: Date) {
@@ -70,7 +70,7 @@ function formatDate(now: Date) {
 ```
 
 Keep the time at `(306, 12)`, draw the page count at `(516, 18)`, the date at
-`(306, 40)`, and `23°C 맑음` at `(468, 40)`.
+`(306, 40)`, and `23°C clear` at `(468, 40)`.
 
 - [x] **Step 4: Run the focused test and verify GREEN**
 
@@ -229,7 +229,7 @@ export function createBlackCanvas(
   canvas.width = 576;
   canvas.height = 288;
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("검정 Canvas를 만들 수 없습니다.");
+  if (!context) throw new Error("Cannot create black Canvas.");
   context.fillStyle = "#000000";
   context.fillRect(0, 0, 576, 288);
   return canvas;

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deliver a hardware-verified RELIC HUD whose location, weather, news, and local map work without API keys, while OpenRouteService navigation activates only when a server secret exists.
+**Goal:** Deliver a hardware-verified Sandevistan HUD whose location, weather, news, and local map work without API keys, while OpenRouteService navigation activates only when a server secret exists.
 
 **Architecture:** Preserve `/hud-canvas-fast`, its `576 x 288` Canvas, and its hardware-required full-frame `3/5/2/4` and page `3/5` image contracts. Execute five independently testable plans in strict order; every phase leaves the keyless app usable and ends with automated verification plus a physical-G2 checkpoint where transport behavior changes.
 

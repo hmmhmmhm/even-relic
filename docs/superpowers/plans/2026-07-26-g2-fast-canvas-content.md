@@ -68,10 +68,10 @@ for (const [index, hud] of pages.entries()) {
 
 const news = renderFastHud(module, "news");
 expect(news.values.filter((value) => value.startsWith("· "))).toHaveLength(6);
-expect(news.values).not.toContain("2호선 정상 운행");
+expect(news.values).not.toContain("Line 2 operates normally");
 
 const todo = renderFastHud(module, "todo");
-expect(todo.values).toContain("완료 1 / 3");
+expect(todo.values).toContain("Completed 1 / 3");
 expect(todo.values).not.toContain("CONNECTED");
 expect(todo.values).not.toContain("LINK // G2 + R1");
 ```
@@ -114,7 +114,7 @@ export function getAdjacentFastHudPage(
 Change the clock formatter to `HH:MM`, use `FAST_HUD_PAGES` for the page number,
 replace the overview with battery/weather/TODO summary, render six general-news
 headlines split four in the upper panel and two in the lower panel, and replace
-the TODO connection footer with `완료 1 / 3`.
+the TODO connection footer with `Complete 1 / 3`.
 
 In `src/App.tsx`, route fast navigation through `getAdjacentFastHudPage()` and
 legacy Canvas/hybrid navigation through the existing `getAdjacentHudPage()`:

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Hold the RELIC G2 image diagnostic constant while switching only the Even Hub SDK image-request serialization from `0.0.12` to `0.0.10`.
+**Goal:** Hold the Sandevistan G2 image diagnostic constant while switching only the Even Hub SDK image-request serialization from `0.0.12` to `0.0.10`.
 
 **Architecture:** Keep the existing `/diagnostic-v10` page, click trigger, 200×100 1-bit BMP, and serial transport untouched. Pin SDK `0.0.10`, align manifest and QR metadata, prove the legacy request omits `compressMode: 2`, then run one physical G2 checkpoint and record the result.
 
@@ -262,14 +262,14 @@ http://100.96.68.73:4173/diagnostic-v10?sdk=0.0.10&build=sdk-0010-ab
 
 In the Even Realities app:
 
-1. Exit the previous RELIC plugin completely.
+1. Exit the previous Sandevistan plugin completely.
 2. Open `Even Hub` and scan the new QR.
 3. Wait for `TEXT READY - CLICK TO SEND`.
 4. Press the G2 touchbar or R1 exactly once.
 5. Record the final WebView status exactly; do not retry in the same session.
 
-Expected terminal status: either `1-bit BMP 전송 완료` or
-`1-bit BMP 전송 실패: SENDFAILED`.
+Expected terminal status: either `1-bit BMP transmission completed` or
+`1-bit BMP transmission failed: SENDFAILED`.
 
 ### Task 4: Classify and record the hardware result
 
@@ -292,7 +292,7 @@ branch for the subsequent app/firmware compatibility test.
 
 - [ ] **Step 2: Append the exact observed result**
 
-If the status is `1-bit BMP 전송 완료`, append:
+If the status is `1-bit BMP transmission completed`, append:
 
 ```markdown
 ## Hardware result
@@ -306,7 +306,7 @@ If the status is `1-bit BMP 전송 완료`, append:
 - Next: update the Even app and G2 firmware, then retest SDK `0.0.12`.
 ```
 
-If the status is `1-bit BMP 전송 실패: SENDFAILED`, append:
+If the status is `1-bit BMP transmission failed: SENDFAILED`, append:
 
 ```markdown
 ## Hardware result

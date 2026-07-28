@@ -1,5 +1,9 @@
 # G2 Hybrid Native Text HUD Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add an isolated `/hud-hybrid` experiment that sends a text-free four-tile Canvas background once and switches pages with one native Text update per scroll.
@@ -59,14 +63,14 @@ Use a fixed date and assert:
 
 ```ts
 expect(formatHybridHudText("overview", fixedDate)).toContain("01 / 04");
-expect(formatHybridHudText("overview", fixedDate)).toContain("2호선 정상 운행");
-expect(formatHybridHudText("navigation", fixedDate)).toContain("우회전 →");
+expect(formatHybridHudText("overview", fixedDate)).toContain("Line 2 operates normally");
+expect(formatHybridHudText("navigation", fixedDate)).toContain("Turn right →");
 expect(formatHybridHudText("news", fixedDate)).toContain("NEWS // FOCUS");
-expect(formatHybridHudText("todo", fixedDate)).toContain("[ ] 우산 챙기기");
-expect(formatHybridHudText("todo", fixedDate)).toContain("[x] 경로 확인");
+expect(formatHybridHudText("todo", fixedDate)).toContain("[ ] Bring your umbrella");
+expect(formatHybridHudText("todo", fixedDate)).toContain("Check [x] path");
 ```
 
-Every page string must contain `14:37:42`, `HONGDAE 23°C 맑음`, and its page
+Every page string must contain `14:37:42`, `HONGDAE 23°C clear`, and its page
 number.
 
 - [ ] **Step 3: Run the tests and verify RED**
@@ -86,7 +90,7 @@ Create:
 ```ts
 export function drawHybridHudBackground(canvas: HTMLCanvasElement) {
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
+  if (!context) throw new Error("2D Canvas cannot be used.");
   canvas.width = 576;
   canvas.height = 288;
   context.imageSmoothingEnabled = false;
@@ -111,7 +115,7 @@ export function formatHybridHudText(page: HudPage, now = new Date()) {
   const pageNumber = HUD_PAGES.indexOf(page) + 1;
   const body = HYBRID_PAGE_LINES[page];
   return [
-    `RELIC // LIVE   ${time}   HONGDAE 23°C 맑음   0${pageNumber} / 04`,
+    `RELIC // LIVE ${time} HONGDAE 23°C Clear 0${pageNumber} / 04`,
     "",
     ...body,
   ].join("\n");
@@ -216,7 +220,7 @@ async function updateHybridText(
     containerName: "eventLayer",
     content,
   }));
-  if (!updated) throw new Error("네이티브 HUD 텍스트 전송 실패");
+  if (!updated) throw new Error("Failed to send native HUD text");
 }
 ```
 

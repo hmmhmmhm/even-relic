@@ -1,5 +1,9 @@
 # G2 Balanced OSM Labels Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a collision-limited set of Korean OSM place, station, landmark, and road names to the proven G2 tactical map.
@@ -40,7 +44,7 @@ Result: PASS
 
 The user confirmed that the live road geometry was clearly visible:
 
-> 네 잘보입니다.
+> Yes, it looks good.
 
 The user also observed that nearby names were absent. That is the expected
 scope of `live-map-014`, whose implementation plan explicitly excluded street
@@ -87,7 +91,7 @@ Extend the Overpass fixture with:
   tags: {
     railway: "station",
     name: "Hongik University",
-    "name:ko": "홍대입구역",
+    "name:ko": "Hongik University Station",
   },
 },
 {
@@ -96,7 +100,7 @@ Extend the Overpass fixture with:
   lon: 126.923,
   tags: {
     leisure: "park",
-    name: "경의선숲길",
+    name: "Gyeongui Line Forest Road",
   },
 }
 ```
@@ -107,7 +111,7 @@ Add a Korean name to the existing primary road:
 tags: {
   highway: "primary",
   name: "Yanghwa-ro",
-  "name:ko": "양화로",
+  "name:ko": "Yanghwa-ro",
 }
 ```
 
@@ -117,17 +121,17 @@ Assert the response adds:
 labels: [
   {
     kind: "transit",
-    name: "홍대입구역",
+    name: "Hongik University Station",
     point: [37.5572, 126.9245],
   },
   {
     kind: "road",
-    name: "양화로",
+    name: "Yanghwa-ro",
     point: [37.56, 126.92],
   },
   {
     kind: "landmark",
-    name: "경의선숲길",
+    name: "Gyeongui Line Forest Road",
     point: [37.5568, 126.923],
   },
 ],
@@ -296,12 +300,12 @@ expect(parseMapResponse({
   roads: [],
   labels: [{
     kind: "transit",
-    name: "홍대입구역",
+    name: "Hongik University Station",
     point: [37.5572, 126.9245],
   }],
 }).labels[0]).toEqual({
   kind: "transit",
-  name: "홍대입구역",
+  name: "Hongik University Station",
   point: {
     latitude: 37.5572,
     longitude: 126.9245,
@@ -428,7 +432,7 @@ Test:
 const labels = layoutMapLabels(
   Array.from({ length: 14 }, (_, index) => ({
     kind: index === 0 ? "transit" : "road",
-    name: index === 0 ? "홍대입구역" : `도로 ${index}`,
+    name: index === 0 ? "Hongik University Station": `Road ${index}`,
     point: {
       latitude: 37.55 + index * 0.0005,
       longitude: 126.91 + index * 0.0005,
@@ -440,7 +444,7 @@ const labels = layoutMapLabels(
 expect(labels).toHaveLength(10);
 expect(labels[0]).toMatchObject({
   kind: "transit",
-  text: "홍대입구역",
+  text: "Hongik University Station",
   fontSize: 9,
 });
 ```
@@ -557,7 +561,7 @@ Extend the test context to record ordered `fillRect`, `fillText`, `stroke`, and
 polygon `fill` operations. Given transit, road, and colliding labels, assert:
 
 ```ts
-expect(labelTexts).toContain("홍대입구역");
+expect(labelTexts).toContain("Hongik University Station");
 expect(labelTexts.length).toBeLessThanOrEqual(10);
 expect(roadStrokeOrder).toBeLessThan(firstLabelOrder);
 expect(lastLabelOrder).toBeLessThan(routeStrokeOrder);

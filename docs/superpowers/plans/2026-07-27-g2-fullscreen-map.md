@@ -332,7 +332,7 @@ export function drawFastFullscreenMap(
   radiusMeters: number,
 ) {
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
+  if (!context) throw new Error("2D Canvas cannot be used.");
   canvas.width = 576;
   canvas.height = 288;
   context.imageSmoothingEnabled = false;
@@ -490,7 +490,7 @@ const queueInput = (
     const result = await onInput?.(input) ?? "unhandled";
     if (disposed) return;
     if (result === "redraw") {
-      await refreshImages(source, G2_FAST_TILES, "지도 화면 전송 완료");
+      await refreshImages(source, G2_FAST_TILES, "Map screen transfer complete");
     } else if (result === "unhandled") {
       await fallback?.();
     }

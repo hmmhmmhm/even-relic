@@ -52,8 +52,8 @@ expect(values).toEqual(expect.arrayContaining([
   "NAV // ROUTE 01",
   "NEWS // 02",
   "MISSION ACTIVE",
-  "지하철역으로",
-  "이동",
+  “To the subway station”,
+  "movement",
   "ROUTE UPDATED",
 ]));
 expect(values).not.toEqual(expect.arrayContaining([
@@ -63,8 +63,8 @@ expect(values).not.toEqual(expect.arrayContaining([
   "Z +0.98",
 ]));
 
-const newsBody = texts.find(({ value }) => value === "지하철역으로");
-const missionAction = texts.find(({ value }) => value === "이동");
+const newsBody = texts.find(({ value }) => value === "To the subway station");
+const missionAction = texts.find(({ value }) => value === "Move");
 expect(newsBody?.font).toContain("17px");
 expect(missionAction?.font).toContain("24px");
 ```
@@ -167,7 +167,7 @@ drawPath(context, turnRoute, COLOR.primary, 3);
 drawPath(context, [[304, 116], [320, 130], [304, 144]], COLOR.primary, 3);
 drawText(context, "NAV // ROUTE 01", 216, 80, 9, COLOR.secondary, "bold");
 drawText(context, "120m", 216, 96, 16, COLOR.primary, "bold");
-drawText(context, "우회전", 286, 166, 18, COLOR.primary, "bold");
+drawText(context, "turn right", 286, 166, 18, COLOR.primary, "bold");
 ```
 
 Keep the lower navigation card at `204,214,188×66`, with a 13-pixel preface and
@@ -202,8 +202,8 @@ Use the freed space exactly:
 drawFrame(context, 404, 142, 164, 138, "top-right");
 drawText(context, "NEWS // 02", 416, 151, 11, COLOR.primary, "bold");
 drawText(context, "MISSION ACTIVE", 416, 168, 9, COLOR.secondary, "bold");
-drawText(context, "지하철역으로", 416, 190, 17, COLOR.primary, "bold");
-drawText(context, "이동", 416, 214, 24, COLOR.primary, "bold");
+drawText(context, "To the subway station", 416, 190, 17, COLOR.primary, "bold");
+drawText(context, "move", 416, 214, 24, COLOR.primary, "bold");
 drawText(context, "ROUTE UPDATED", 416, 257, 9, COLOR.secondary, "bold");
 drawText(context, "02:14", 520, 257, 9, COLOR.primary, "bold");
 ```
@@ -259,10 +259,10 @@ Record these unresolved checks in
 `docs/hardware/2026-07-26-first-g2-image-success.md`:
 
 ```markdown
-- [ ] 뉴스 본문이 기존 10픽셀 문구보다 확실히 크게 읽힌다.
-- [ ] 열린 코너 프레임이 G2에서 끊기지 않고 영역을 구분한다.
-- [ ] 지도와 중앙 지시의 이중 경로가 한 덩어리로 뭉개지지 않는다.
-- [ ] 네 타일 경계에서 핵심 정보가 손실되지 않는다.
+- [ ] The news text is clearly read larger than the existing 10-pixel text.
+- [ ] The open corner frame divides the area without interruption in G2.
+- [ ] The dual routes of the map and central directions are not lumped together.
+- [ ] Key information is not lost at the four tile boundaries.
 ```
 
 - [ ] **Step 3: Commit the documentation**

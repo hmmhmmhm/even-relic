@@ -1,5 +1,9 @@
 # G2 Keyless RSS News Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace all six sample headlines with current SBS latest-news RSS while keeping the feed keyless, same-origin, allowlisted, cached, and independent of other live features.
@@ -358,7 +362,7 @@ items. Assert:
 const items = parseNewsRss(xml);
 expect(items[0]).toEqual({
   id: "guid:new",
-  title: "첫 번째 최신 기사",
+  title: "First Latest Article",
   url: "https://news.sbs.co.kr/a",
   publishedAt: Date.parse("2026-07-27T05:00:00Z"),
 });
@@ -459,14 +463,14 @@ of the old samples appear:
 
 ```ts
 expect(news.values.filter((value) => value.startsWith("· "))).toEqual([
-  "· 첫 번째 최신 기사",
-  "· 두 번째 최신 기사",
-  "· 세 번째 최신 기사",
-  "· 네 번째 최신 기사",
-  "· 다섯 번째 최신 기사",
-  "· 여섯 번째 최신 기사",
+  "· First Latest Article",
+  "· Second most recent article",
+  "· Third Latest Article",
+  "· Fourth Latest Article",
+  "· Fifth Latest Article",
+  "· Sixth Latest Article",
 ]);
-expect(news.values).not.toContain("· AI 산업 투자 확대");
+expect(news.values).not.toContain("· Expanding AI industry investment");
 ```
 
 For an empty unavailable state:
@@ -484,7 +488,7 @@ expect(news.values).toContain("NEWS // FOCUS · STALE");
 The App test must also assert:
 
 ```ts
-expect(screen.getByText(/뉴스: SBS RSS · 개인·비상업/)).toBeTruthy();
+expect(screen.getByText(/News: SBS RSS · Personal·Noncommercial/)).toBeTruthy();
 ```
 
 - [x] **Step 2: Run and verify RED**
@@ -518,7 +522,7 @@ in this task.
 Extend the phone-only credit to:
 
 ```text
-날씨: Open-Meteo · 지도 데이터: OpenStreetMap contributors · 뉴스: SBS RSS · 개인·비상업
+Weather: Open-Meteo · Map data: OpenStreetMap contributors · News: SBS RSS · Personal/Non-Commercial
 ```
 
 - [x] **Step 4: Full verification and commit**

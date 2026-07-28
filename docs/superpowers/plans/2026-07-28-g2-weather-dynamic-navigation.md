@@ -177,15 +177,15 @@ unavailable state. The fresh assertion must include:
 expect(hud.values).toEqual(expect.arrayContaining([
   "WEATHER // NOW",
   "28°C",
-  "맑음",
-  "체감 30°",
-  "습도 63%",
-  "강수 20%",
-  "바람 8km/h",
+  "lucidity",
+  “Feels like 30°”,
+  “Humidity 63%”,
+  "Precipitation 20%",
+  “Wind 8 km/h”,
   "04 / 04",
 ]));
-expect(hud.values).not.toContain("경로 키 필요");
-expect(hud.values).not.toContain("ORS 연결 후 사용");
+expect(hud.values).not.toContain("Route key required");
+expect(hud.values).not.toContain("Use after connecting ORS");
 ```
 
 Add a routed-state assertion:
@@ -245,7 +245,7 @@ function drawWeather(
     drawText(
       context,
       live.weather.status === "loading"
-        ? "날씨 불러오는 중"
+        ? "Loading weather"
         : "WEATHER DATA UNAVAILABLE",
       308,
       112,
@@ -267,7 +267,7 @@ function drawWeather(
   drawText(context, weather.condition, 410, 112, 18, COLOR.secondary, "bold");
   drawText(
     context,
-    `체감 ${Math.round(weather.apparentTemperature)}°`,
+    `Feel ${Math.round(weather.apparentTemperature)}°`,
     308,
     158,
     15,
@@ -276,7 +276,7 @@ function drawWeather(
   );
   drawText(
     context,
-    `습도 ${Math.round(weather.humidity)}%`,
+    `Humidity ${Math.round(weather.humidity)}%`,
     430,
     158,
     15,
@@ -285,7 +285,7 @@ function drawWeather(
   );
   drawText(
     context,
-    `강수 ${Math.round(weather.precipitationProbability)}%`,
+    `Precipitation ${Math.round(weather.precipitationProbability)}%`,
     308,
     230,
     15,
@@ -294,7 +294,7 @@ function drawWeather(
   );
   drawText(
     context,
-    `바람 ${Math.round(weather.windSpeed)}km/h`,
+    `Wind ${Math.round(weather.windSpeed)}km/h`,
     430,
     230,
     15,
@@ -434,18 +434,18 @@ assert:
 expect(values(texts)).toEqual(expect.arrayContaining([
   "WEATHER // LIVE",
   "28°C",
-  "맑음",
-  "체감온도",
+  "lucidity",
+  “Perceived Temperature”,
   "30°",
-  "습도",
+  "humidity",
   "63%",
-  "강수확률",
+  “Precipitation probability”,
   "20%",
-  "바람",
+  "wind",
   "8km/h",
   "DOUBLE TAP // BACK",
 ]));
-expect(values(texts)).not.toContain("경로 키 필요");
+expect(values(texts)).not.toContain("Requires path key");
 ```
 
 Add table-driven checks for `stale`, `loading`, and `unavailable`; stale must
@@ -665,14 +665,14 @@ Create a checkpoint with build label `weather-pages-028`, the full Tailscale
 URL, automatic test counts, and these physical checks:
 
 ```md
-- [ ] 키 없는 상태에서 Overview → News → TODO → Weather 네 페이지만 순환한다.
-- [ ] 키 필요 또는 ORS 안내 문구가 안경에 나타나지 않는다.
-- [ ] Weather 대시보드에는 날씨 정보만 나타난다.
-- [ ] Weather 탭으로 전체 화면 상세에 진입한다.
-- [ ] 현재 기온, 상태, 체감, 습도, 강수, 바람이 선명하게 읽힌다.
-- [ ] Weather 상세 스크롤은 페이지를 바꾸지 않고 두 번 탭은 복귀한다.
-- [ ] ORS 활성 환경에서는 Navigation이 다섯 번째에 추가된다.
-- [ ] 지도 줌 방향과 일반 페이지 방향이 이전 승인 상태를 유지한다.
+- Without the [ ] key, only four pages cycle: Overview → News → TODO → Weather.
+- The [ ] key required or ORS information does not appear on the glasses.
+- [ ] Weather Only weather information appears on the dashboard.
+- [ ] Go to the full screen details using the Weather tab.
+- [ ] The current temperature, conditions, feeling, humidity, precipitation, and wind can be read clearly.
+- [ ] Weather detail scrolling does not change the page, but double tapping returns.
+- [ ] In an ORS active environment, Navigation is added as the fifth.
+- [ ] The map zoom direction and general page direction remain in the previously approved state.
 ```
 
 Mark the previous pending checkpoint `SUPERSEDED`.

@@ -251,8 +251,8 @@ const { eventLayer, imageObject } = createContainerObjects(
   explicitZOrder,
 );
 const rebuildFailure = explicitZOrder
-  ? "레이어 하이브리드 안경 페이지 재구성 실패"
-  : "하이브리드 안경 페이지 재구성 실패";
+  ? “Layer hybrid glasses page reconstruction failed”
+  : "Hybrid Glasses Page Reconstruction Failed";
 ```
 
 Throw `new Error(rebuildFailure)` when `rebuildPageContainer()` returns
@@ -465,25 +465,25 @@ In `docs/hardware/2026-07-26-first-g2-image-success.md`, append a
 exact contents:
 
 ````markdown
-## 명시적 레이어 후보 `hybrid-zorder-006`
+## Explicit layer candidate `hybrid-zorder-006`
 
-`hybrid-text-005` 실기기 테스트에서는 Canvas 레이아웃만 평상시에 보였다.
-네이티브 Text는 시스템 닫기 패널이 열려 있는 동안 나타났고, 패널을
-취소하는 즉시 다시 사라졌다. Text 전송 실패가 아니라 네 이미지보다 뒤에
-합성되는 레이어 순서 문제로 판정했다.
+In the `hybrid-text-005` actual device test, only the Canvas layout was visible as usual.
+Native Text appears while the System Close panel is open, and closes the panel.
+As soon as I canceled it, it disappeared again. It's not a text transmission failure, it's behind your image
+It was determined to be a problem with the order of layers being composited.
 
-SDK `0.0.10` 이미지 전송을 유지하고 다섯 컨테이너 JSON에 이미지 1–4,
-Text 5의 고유한 `zOrderIndex`를 주입하는 별도 경로를 추가했다.
+SDK `0.0.10` maintains image transfer and sends images 1–4 to five container JSONs,
+Added a separate route to inject Text 5's unique `zOrderIndex`.
 
 ```text
 http://100.96.68.73:4173/hud-hybrid-z?sdk=0.0.10&build=hybrid-zorder-006
 ```
 
-- [ ] 닫기 패널 없이 Text가 Canvas 위에 보인다.
-- [ ] 닫기 패널을 취소해도 Text가 계속 보인다.
-- [ ] 스크롤은 이미지 재전송 없이 Text만 한 번 갱신한다.
-- [ ] 네 이미지가 `SENDFAILED` 없이 전송된다.
-- [ ] 양안에 같은 Text와 레이아웃이 보인다.
+- [ ] Text is displayed on the Canvas without a close panel.
+- [ ] Even if you cancel the close panel, the text remains visible.
+- [ ] Scroll only updates the text once without retransmitting the image.
+- [ ] Your image is sent without `SENDFAILED`.
+- [ ] The same text and layout are visible on both sides.
 ````
 
 - [ ] **Step 4: Check documentation and commit**

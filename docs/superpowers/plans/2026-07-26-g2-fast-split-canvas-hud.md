@@ -1,5 +1,9 @@
 # G2 Fast Split Canvas HUD Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add an isolated `/hud-canvas-fast` experiment with fully styled Canvas text and a two-tile scroll update while preserving `/hud-canvas`.
@@ -112,16 +116,16 @@ const refreshImages = async (
       })),
     );
     if (!ImageRawDataUpdateResult.isSuccess(result)) {
-      throw new Error(`${tile.name} 전송 실패: ${result}`);
+      throw new Error(`${tile.name} transmission failed: ${result}`);
     }
-    onProgress(`안경 이미지 전송 중 ${index + 1}/${targetTiles.length}`);
+    onProgress(`Transmitting glasses image ${index + 1}/${targetTiles.length}`);
   });
   onProgress(completionMessage);
 };
 ```
 
-Call `refreshImages(tiles, "안경 전송 완료")` initially and
-`refreshImages(navigationTiles, "페이지 전송 완료")` in the navigation queue.
+Call `refreshImages(tiles, "Glasses transfer complete")` initially and
+`refreshImages(navigationTiles, "Page transfer complete")` in the navigation queue.
 
 Add the isolated wrapper:
 
@@ -183,7 +187,7 @@ for (const [index, hud] of pages.entries()) {
   expect(hud.canvas.height).toBe(288);
   expect(hud.values).toEqual(expect.arrayContaining([
     "14:37:42",
-    "HONGDAE  23°C 맑음",
+    "HONGDAE 23°C clear",
     `0${index + 1} / 04`,
     "MAP // HONGDAE",
   ]));
@@ -204,15 +208,15 @@ expect(pages.map(leftSnapshot)).toEqual([
 expect(pages[1].values).toEqual(expect.arrayContaining([
   "NAV // ACTIVE",
   "120m",
-  "우회전",
-  "다음 교차로",
+  "right",
+  "Next intersection",
 ]));
-expect(pages[2].values).toContain("2호선 정상 운행");
+expect(pages[2].values).toContain("Line 2 operates normally");
 expect(pages[3].values).toEqual(expect.arrayContaining([
   "TODO // ACTIVE",
-  "지하철역으로 이동",
-  "우산 챙기기",
-  "경로 확인",
+  “Go to the subway station”,
+  “Bring an umbrella”,
+  "Check path",
 ]));
 ```
 
@@ -263,17 +267,17 @@ plus the road grid, white active route, arrow marker, and destination marker.
 No argument to this function may depend on the current page or time.
 
 Implement `drawDynamicHeader()` at `x = 296–568` with `14:37:42`,
-`HONGDAE  23°C 맑음`, and the current `01 / 04` style page number.
+`HONGDAE 23°C clear`, and the current `01 / 04` style page number.
 
 Implement three right-side frames at `(296, 8, 272, 54)`,
 `(296, 72, 272, 134)`, and `(296, 216, 272, 64)`. Draw these exact page
 payloads:
 
 ```ts
-overview: ["NEWS // OVERVIEW", "2호선 정상 운행", "혼잡도  보통", "TODO  01"],
-navigation: ["NAV // ACTIVE", "120m", "우회전", "다음 교차로"],
-news: ["NEWS // FOCUS", "2호선 정상 운행", "홍대입구역  보통", "강수 10%"],
-todo: ["TODO // ACTIVE", "지하철역으로 이동", "우산 챙기기", "경로 확인"],
+overview: ["NEWS // OVERVIEW", "Line 2 operating normally", "Congestion is normal", "TODO 01"],
+navigation: ["NAV // ACTIVE", "120m", "Turn right", "Next intersection"],
+news: ["NEWS // FOCUS", "Line 2 operating normally", "Hongik University Station normal", "Precipitation 10%"],
+todo: ["TODO // ACTIVE", "Go to the subway station", "Bring an umbrella", "Check the route"],
 ```
 
 Use `24–28px` for the main page value and `16–20px` for important body text.
@@ -286,7 +290,7 @@ export function drawFastCanvasHud(
   page: HudPage = "overview",
 ) {
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
+  if (!context) throw new Error("2D Canvas cannot be used.");
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
   context.imageSmoothingEnabled = false;

@@ -1,36 +1,36 @@
-# G2 오버뷰 날씨 보조 정보 가독성 구현 계획
+# G2 Overview weather auxiliary information readability implementation plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** `OVERVIEW` 우측 하단의 체감·습도와 강수·바람 두 줄을 14px로 확대한다.
+**Goal:** Enlarge the two lines at the bottom right of `OVERVIEW` for perceived humidity and precipitation and wind to 14px.
 
-**Architecture:** 기존 `drawOverview()`의 데이터 흐름, 위치, 색상과 문구는
-바꾸지 않고 두 `drawText()` 호출의 크기 인자만 조정한다. 기존 Canvas
-수집 테스트에서 두 문구의 실제 폰트 문자열을 확인하여 크기를 고정한다.
+**Architecture:** The data flow, position, color and text of the existing `drawOverview()` are
+Instead of changing it, just adjust the size argument of the two `drawText()` calls. Existing Canvas
+In the collection test, the actual font strings of the two phrases are checked and the size is fixed.
 
 **Tech Stack:** TypeScript 5.9, Canvas 2D, Vitest
 
 ---
 
-### Task 1: 날씨 보조 정보 두 줄을 14px로 확대
+### Task 1: Enlarge the two lines of weather information to 14px
 
 **Files:**
 - Modify: `src/fast-canvas-hud.test.ts`
 - Modify: `src/fast-canvas-hud.ts`
 
-- [x] **Step 1: 실패 테스트 작성**
+- [x] **Step 1: Write a failure test**
 
-기존 실시간 날씨 테스트에 다음 검사를 추가한다.
+Adds the following tests to the existing real-time weather tests:
 
 ```ts
 const details = weather.texts.filter(({ value }) =>
-  value.startsWith("체감 ") || value.startsWith("강수 ")
+  value.startsWith("Feeling ") || value.startsWith("Precipitation ")
 );
 expect(details).toHaveLength(2);
 expect(details.every(({ font }) => /\b14px\b/.test(font))).toBe(true);
 ```
 
-- [x] **Step 2: 실패 확인**
+- [x] **Step 2: Check for failure**
 
 Run:
 
@@ -39,18 +39,18 @@ npx vitest run src/fast-canvas-hud.test.ts \
   --no-file-parallelism --maxWorkers=1
 ```
 
-Expected: 두 문구의 현재 폰트가 11px이므로 `every()` 검사가 `false`가 되어
-실패한다.
+Expected: Since the current font for both phrases is 11px, the `every()` check becomes `false`
+It fails.
 
-- [x] **Step 3: 최소 구현**
+- [x] **Step 3: Minimal Implementation**
 
-`src/fast-canvas-hud.ts`의 두 `drawText()` 호출에서 크기 인자를 11에서
-14로 변경한다.
+Change the size argument from 11 in both `drawText()` calls in `src/fast-canvas-hud.ts`.
+Change to 14.
 
 ```ts
 drawText(
   context,
-  `체감 ${Math.round(weather.apparentTemperature)}°  습도 ${Math.round(weather.humidity)}%`,
+  `Feel ${Math.round(weather.apparentTemperature)}° Humidity ${Math.round(weather.humidity)}%`,
   308,
   226,
   14,
@@ -59,7 +59,7 @@ drawText(
 );
 drawText(
   context,
-  `강수 ${Math.round(weather.precipitationProbability)}%  바람 ${Math.round(weather.windSpeed)}km/h`,
+  `Precipitation ${Math.round(weather.precipitationProbability)}% Wind ${Math.round(weather.windSpeed)}km/h`,
   308,
   248,
   14,
@@ -68,7 +68,7 @@ drawText(
 );
 ```
 
-- [x] **Step 4: 직렬 검증**
+- [x] **Step 4: Serial Verification**
 
 Run:
 
@@ -80,10 +80,10 @@ npm run build
 git diff --check
 ```
 
-Expected: HUD 테스트 10개, 타입 검사, 60개 모듈 빌드와 diff 검사가 모두
-통과한다.
+Expected: 10 HUD tests, type checking, 60 module builds and diff checking all in one.
+It passes.
 
-- [x] **Step 5: 커밋과 서버 확인**
+- [x] **Step 5: Check commit and server**
 
 ```bash
 git add src/fast-canvas-hud.ts src/fast-canvas-hud.test.ts \
@@ -93,5 +93,5 @@ curl -fsS -o /dev/null -w '%{http_code}\n' \
   'http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=detail-decks-019'
 ```
 
-Expected: 커밋이 생성되고 기존 단일 개발 서버의 Tailscale URL이 HTTP
-200을 반환한다.
+Expected: A commit is created and the Tailscale URL on the existing single development server is redirected to HTTP
+Returns 200.

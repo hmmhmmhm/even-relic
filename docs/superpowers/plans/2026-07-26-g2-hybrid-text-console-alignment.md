@@ -1,5 +1,9 @@
 # G2 Hybrid Text Console Alignment Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Keep one native Text update per scroll while aligning `/hud-hybrid-z` to a fixed right-hand Text console and preserving a large static map on the left.
@@ -31,7 +35,7 @@ for (const [index, content] of [
   const lines = content.split("\n");
   expect(lines).toHaveLength(8);
   expect(lines[0]).toContain("14:37:42");
-  expect(lines[0]).toContain("23°C 맑음");
+  expect(lines[0]).toContain("23°C sunny");
   expect(lines[0]).toContain(`0${index + 1} / 04`);
   expect(lines[1]).toBe("RELIC // LIVE   HONGDAE");
   expect(lines[2]).toBe("");
@@ -40,9 +44,9 @@ for (const [index, content] of [
 }
 expect(overview.split("\n").slice(3)).toEqual([
   "NEWS // OVERVIEW",
-  "2호선 정상 운행",
-  "홍대입구역 혼잡도 보통",
-  "[ ] 지하철역으로 이동",
+  “Line 2 operates normally”,
+  "Hongik University Station is moderately crowded",
+  "[ ] Go to subway station",
   "MIC -24 dBFS",
 ]);
 ```
@@ -65,7 +69,7 @@ and change the shared prefix to two lines:
 
 ```ts
 return [
-  `${time}  23°C 맑음  ${pageNumber} / 04`,
+  `${time} 23°C Clear ${pageNumber} / 04`,
   "RELIC // LIVE   HONGDAE",
   "",
   ...HYBRID_PAGE_LINES[page],
@@ -77,30 +81,30 @@ Use these five-line page payloads:
 ```ts
 overview: [
   "NEWS // OVERVIEW",
-  "2호선 정상 운행",
-  "홍대입구역 혼잡도 보통",
-  "[ ] 지하철역으로 이동",
+  “Line 2 operates normally”,
+  "Hongik University Station is moderately crowded",
+  "[ ] Go to subway station",
   "MIC -24 dBFS",
 ],
 navigation: [
   "NAVIGATION // ACTIVE",
   "NEXT 120m   DEST 0.8km",
-  "우회전 →",
-  "다음 교차로에서",
-  "우회전",
+  “Turn right →”,
+  “At the next intersection”;
+  "right",
 ],
 news: [
   "NEWS // FOCUS",
-  "2호선 정상 운행",
-  "홍대입구역 혼잡도 보통",
-  "오늘 23°C · 맑음",
-  "강수 확률 10%",
+  “Line 2 operates normally”,
+  "Hongik University Station is moderately crowded",
+  "23°C today, clear",
+  “10% chance of precipitation”;
 ],
 todo: [
   "TODO // FOCUS",
-  "[ ] 지하철역으로 이동",
-  "[ ] 우산 챙기기",
-  "[x] 경로 확인",
+  "[ ] Go to subway station",
+  "[ ] Bring an umbrella",
+  "Check path [x]",
   "G2 + R1 CONNECTED",
 ],
 ```

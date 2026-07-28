@@ -1,5 +1,9 @@
 # G2 Keyless Location and Weather Implementation Plan
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Show a real or clearly labeled fallback location and current Open-Meteo weather without an API key, while preserving fast paging and serialized G2 image sends.
@@ -19,7 +23,7 @@ arrive with location and weather. OSM belongs to the following dedicated plan
 and was not present at this checkpoint. To avoid presenting the schematic as a
 live map, the as-run HUD uses `LOC // LIVE · MAP DEMO`,
 `LOC // LAST FIX · MAP DEMO`, or `LOC // DEMO · MAP DEMO`; the phone WebView
-uses `날씨: Open-Meteo · 지도: 데모 스키매틱`. The original intent is recorded
+uses `Weather: Open-Meteo · Maps: Demo Schematic`. The original intention is recorded
 here as a deviation rather than silently treating the OSM acceptance criteria
 as complete.
 
@@ -368,7 +372,7 @@ const fixture = {
 };
 ```
 
-Expected condition is `대체로 맑음` and precipitation probability is `20`.
+Expected condition is `mostly clear` and precipitation probability is `20`.
 Also assert a failed refresh returns the prior cache as `stale`, while no cache
 returns `unavailable`.
 
@@ -400,17 +404,17 @@ export async function resolveWeather(
 Use short Korean WMO labels:
 
 ```ts
-if (code === 0) return "맑음";
-if (code <= 2) return "대체로 맑음";
-if (code === 3) return "흐림";
-if (code <= 48) return "안개";
-if (code <= 57) return "이슬비";
-if (code <= 67) return "비";
-if (code <= 77) return "눈";
-if (code <= 82) return "소나기";
-if (code <= 86) return "눈 소나기";
-if (code <= 99) return "뇌우";
-return "알 수 없음";
+if (code === 0) return "Sunny";
+if (code <= 2) return "Partly sunny";
+if (code === 3) return "cloudy";
+if (code <= 48) return "fog";
+if (code <= 57) return "drizzle";
+if (code <= 67) return "Rain";
+if (code <= 77) return "eye";
+if (code <= 82) return "shower";
+if (code <= 86) return "Snow Showers";
+if (code <= 99) return "Thunderstorm";
+return "unknown";
 ```
 
 Reject malformed/non-finite fields. If a cache exists, call `onCached` before
@@ -545,9 +549,9 @@ The renderer test must assert:
 ```ts
 expect(hud.values).toEqual(expect.arrayContaining([
   "LOC // LIVE · MAP DEMO",
-  "29°C 대체로 맑음",
-  "체감 31°  습도 67%",
-  "강수 20%  바람 8km/h",
+  "29°C Mostly sunny",
+  “Feeling 31° Humidity 67%”,
+  “Precipitation 20%, wind 8km/h”,
 ]));
 ```
 
@@ -561,7 +565,7 @@ The App test must assert the fast-route WebView credits contain:
 
 ```ts
 expect(screen.getByText(
-  "날씨: Open-Meteo · 지도: 데모 스키매틱",
+  "Weather: Open-Meteo · Maps: Demo Schematic",
 )).toBeTruthy();
 ```
 
@@ -646,7 +650,7 @@ Do not start the session on legacy routes.
 Below the fast-route preview note, render a phone-only credit:
 
 ```text
-날씨: Open-Meteo · 지도: 데모 스키매틱
+Weather: Open-Meteo · Maps: Demo Schematic
 ```
 
 Do not transmit this credit to the G2 Canvas. OSM attribution is deferred until
@@ -660,11 +664,11 @@ Set `app.json` permissions to:
 [
   {
     "name": "location",
-    "desc": "현재 위치를 기반으로 지도와 날씨를 표시합니다."
+    "desc": "Display maps and weather based on your current location."
   },
   {
     "name": "network",
-    "desc": "현재 날씨와 RELIC 라이브 데이터를 불러옵니다.",
+    "desc": "Load current weather and RELIC live data.",
     "whitelist": ["https://api.open-meteo.com"]
   }
 ]
