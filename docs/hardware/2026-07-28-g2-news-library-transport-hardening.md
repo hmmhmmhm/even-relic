@@ -6,7 +6,7 @@ SDK: `0.0.11`
 
 Build: `news-library-025`
 
-Result: `PENDING`
+Result: `SUPERSEDED`
 
 브랜치: `feature/g2-ors-routing`
 
@@ -14,6 +14,9 @@ Result: `PENDING`
 
 URL:
 `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=news-library-025`
+
+이 체크포인트는 지도 빈 상태, 뉴스 본문 페이지 이동, TODO 재토글을 함께
+검증하는 `honest-detail-026` 체크포인트로 대체되었다.
 
 ## 구현 범위
 
