@@ -4,11 +4,11 @@ Date: 2026-07-29
 
 Target branch: `main`
 
-Audited commit: `198722cd057e2b0c48b06cbc00fd1989fe416684`
+Audited commit: `e83798c6b4cd31985cb00815f1ccd722e8dd15c4`
 
 SDK: `@evenrealities/even_hub_sdk` `0.0.11`
 
-Overall status: `PHASE A READY`
+Overall status: `PHASE A PASS — PHASE B READY`
 
 This is the current source of truth for work remaining before release
 preparation. It supersedes the 2026-07-27 completion rubric, which describes an
@@ -52,51 +52,52 @@ Package SHA-256:
 | --- | --- | --- | --- |
 | Four-tile serial image transport on SDK `0.0.11` | PASS | PASS | None |
 | Binocular 576×288 display | PASS | PASS | None |
-| Fail-fast transport with no deferred refresh queue | PASS | PASS | Reconfirm during the final soak |
+| Fail-fast transport with no deferred refresh queue | PASS | PASS | None |
 | Unchanged-tile skip | PASS | PASS, no regression | Exact identical-frame skip remains automated evidence only; not a release blocker |
-| Overview clock, date, battery, weather, and map | PASS | PASS | Reconfirm together on current `main` |
-| News headlines and paginated RSS body | PASS | PASS | Reconfirm page continuation during the final pass |
-| TODO selection, toggle, and local persistence | PASS | PARTIAL | Reopen the app and confirm persisted completion state |
-| Full-screen map and persistent zoom | PASS | PASS | Reconfirm gesture directions |
-| Weather dashboard and full-screen detail deck | PASS | PENDING | Complete the Weather checklist below |
-| Black-frame hide and restore | PASS | PASS | Reconfirm after the soak |
-| Keyless operation without ORS | PASS | PASS | Confirm Navigation remains absent |
+| Overview clock, date, battery, weather, and map | PASS | PASS | None |
+| News headlines and paginated RSS body | PASS | PASS | None |
+| TODO selection, toggle, and local persistence | PASS | PASS | None |
+| Full-screen map and persistent zoom | PASS | PASS | None |
+| Weather dashboard and full-screen detail deck | PASS | PASS | None |
+| Black-frame hide and restore | PASS | PASS | None |
+| Keyless operation without ORS | PASS | PASS | None |
 | ORS destination search and route lifecycle | PASS | BLOCKED | Requires Phase A pass and a real server-side key |
 | SDK `0.0.12` image transport | REPRODUCED FAILURE | FAIL | Wait for an Even Realities compatibility resolution; keep `main` pinned to `0.0.11` |
 
 ## Phase A — keyless physical G2 acceptance
 
-Status: `READY`
+Status: `PASS`
 
 Use the current `main` build with SDK `0.0.11` and no `ORS_API_KEY`.
 
-- [ ] Startup fills all four tiles and remains visible in both eyes.
-- [ ] Dashboard order is `OVERVIEW → NEWS → TODO → WEATHER`.
-- [ ] No Navigation page, route-key message, or destination control appears.
-- [ ] Overview time, date, battery, current weather, and labelled map are legible.
-- [ ] Tapping Overview opens the full-screen map.
-- [ ] Map scrolling uses the approved zoom direction and preserves the selected
+- [x] Startup fills all four tiles and remains visible in both eyes.
+- [x] Dashboard order is `OVERVIEW → NEWS → TODO → WEATHER`.
+- [x] No Navigation page, route-key message, or destination control appears.
+- [x] Overview time, date, battery, current weather, and labelled map are legible.
+- [x] Tapping Overview opens the full-screen map.
+- [x] Map scrolling uses the approved zoom direction and preserves the selected
   zoom after returning.
-- [ ] News opens a real RSS item and continues its remaining body pages before
+- [x] News opens a real RSS item and continues its remaining body pages before
   moving to the next article.
-- [ ] TODO selection and check/uncheck work in both directions.
-- [ ] After reopening the app, the TODO completion state is restored.
-- [ ] Weather dashboard shows only current weather information and a large
+- [x] TODO selection and check/uncheck work in both directions.
+- [x] After reopening the app, the TODO completion state is restored.
+- [x] Weather dashboard shows only current weather information and a large
   representative icon.
-- [ ] Weather detail shows a larger icon, temperature, condition, apparent
+- [x] Weather detail shows a larger icon, temperature, condition, apparent
   temperature, humidity, precipitation, and wind without overlap.
-- [ ] Weather detail consumes scroll input and returns only on double tap.
-- [ ] Double tap hides the HUD with black tiles and restores it without closing
+- [x] Weather detail consumes scroll input and returns only on double tap.
+- [x] Double tap hides the HUD with black tiles and restores it without closing
   the app.
-- [ ] Repeated page changes, live updates, hide/restore, and at least a
+- [x] Repeated page changes, live updates, hide/restore, and at least a
   15-minute idle period produce no deferred work burst, WebView freeze, or
   `SENDFAILED`.
 
-Phase A passes only after the owner reports direct observations for every item.
+The owner confirmed every Phase A observation on 2026-07-29 using build
+`phase-a-main-034` over the keyless Tailscale test server.
 
 ## Phase B — real-key ORS routing
 
-Status: `WAITING FOR PHASE A AND SERVER KEY`
+Status: `READY — WAITING FOR SERVER KEY`
 
 Keep the key only in the server process as `ORS_API_KEY`.
 
