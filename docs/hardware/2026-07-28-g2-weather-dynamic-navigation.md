@@ -4,16 +4,16 @@
 
 SDK: `0.0.11`
 
-Build: `weather-pages-028`
+Build: `weather-icon-029`
 
 Result: `PENDING`
 
 브랜치: `feature/g2-ors-routing`
 
-구현 커밋: `0f8aae5`
+구현 커밋: `ccd4116`
 
 URL:
-`http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=weather-pages-028`
+`http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=weather-icon-029`
 
 ## 구현 범위
 
@@ -28,28 +28,37 @@ URL:
 - fresh, stale, loading, unavailable 상태를 날씨 전용 문구로 표시
 - Weather 상세의 탭·스크롤을 소비하고 두 번 탭만 대시보드 복귀로 사용
 - Weather 상세가 열려 있을 때 날씨 표시값 변경에만 네 타일 전체 갱신
+- 현재 날씨 코드를 태양, 구름, 안개, 비, 눈, 뇌우 1비트 도형으로 변환
+- Weather 대시보드에 약 72px 대표 날씨 아이콘 표시
+- Weather 전체 화면 상세에 약 104px 대표 날씨 아이콘 표시
+- loading과 unavailable 상태에서는 오해를 막기 위해 아이콘을 표시하지 않음
 - 기존 큐 없음, busy 요청 폐기, 타일 제한 시간과 실패 후 독립 입력 규칙 유지
 
 ## 자동 검증
 
 아래 명령은 동시에 실행하지 않고 순서대로 실행했다.
 
-- `npm test`: 36개 파일, 354개 테스트 통과
+- `npm test`: 37개 파일, 371개 테스트 통과
 - `node --test --test-concurrency=1 tests/*.test.mjs`: 28개 테스트 통과
 - `npm run typecheck`: 통과
-- `npm run build`: 66개 모듈 변환, 프로덕션 빌드 통과
+- `npm run build`: 67개 모듈 변환, 프로덕션 빌드 통과
 
 자동 테스트는 동적 4/5페이지 순서와 순환, Navigation 정규화, 날씨
 대시보드·상세의 모든 데이터 상태, 상세 입력 격리, 날씨 변경 기반 전체
 갱신을 검증한다. 지도 줌 방향과 일반 페이지 방향, 뉴스 본문 페이지,
 TODO 재토글, 숨김·복원 전송 회귀도 함께 통과했다.
+대표 아이콘의 코드 매핑, 경로 좌표 경계, 대시보드·상세 크기와 빈 상태
+미출력도 자동 검증한다.
 
 ## 실제 G2 확인 항목
 
 - [ ] 키 없는 상태에서 Overview → News → TODO → Weather 네 페이지만 순환한다.
 - [ ] 키 필요 또는 ORS 안내 문구가 안경에 나타나지 않는다.
 - [ ] Weather 대시보드에는 날씨 정보만 나타난다.
+- [ ] Weather 대시보드에 현재 상태를 나타내는 큰 1비트 아이콘이 보인다.
 - [ ] Weather 탭으로 전체 화면 상세에 진입한다.
+- [ ] Weather 상세에는 대시보드보다 더 큰 대표 아이콘이 보인다.
+- [ ] 아이콘과 기온·상태·지표 글자가 서로 겹치지 않는다.
 - [ ] 현재 기온, 상태, 체감, 습도, 강수, 바람이 선명하게 읽힌다.
 - [ ] stale 상태에서는 `WEATHER // LAST`와 `LAST DATA`가 표시된다.
 - [ ] Weather 상세 스크롤은 페이지를 바꾸지 않고 두 번 탭은 복귀한다.
