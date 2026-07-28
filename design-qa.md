@@ -1,4 +1,4 @@
-# RELIC HUD Design QA
+# Sandevistan HUD Design QA
 
 - source visual truth path: `docs/design/selected-peripheral-focus.png`
 - implementation screenshot path: unavailable

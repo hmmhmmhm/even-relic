@@ -1,27 +1,27 @@
-# RELIC HUD 디자인 기준
+# Sandevistan HUD design criteria
 
-## 선택한 방향
+## Selected direction
 
-첫 프로토타입은 `selected-peripheral-focus.png`를 시각 기준으로 사용한다.
+The first prototype uses `selected-peripheral-focus.png` as the visual reference.
 
-- 중앙 시야는 대부분 비운다.
-- 시간과 장소는 좌측 상단에 둔다.
-- 방위는 상단 중앙에 배치한다.
-- 미니맵은 좌측 하단에 둔다.
-- 오디오와 가속도는 우측에 쌓는다.
-- STT는 하단 중앙, 현재 퀘스트와 뉴스는 하단 우측에 둔다.
+- The central field of view is mostly empty.
+- Place the time and place in the upper left corner.
+- The direction is placed at the top center.
+- The minimap is placed at the bottom left.
+- Audio and acceleration are stacked on the right.
+- STT is placed at the bottom center, and current quests and news are placed at the bottom right.
 
-## 실제 G2에 맞춘 차이
+## Differences tailored to the actual G2
 
-생성된 시안은 방향 탐색용 이미지다. 구현에서는 다음 하드웨어 제약을 더 엄격하게 적용한다.
+The generated draft is an image for direction finding. The implementation applies the following hardware constraints more strictly:
 
-- 논리 화면은 576 x 288이다.
-- 검은색은 꺼진 픽셀이며 실제 환경이 비치는 영역이다.
-- 안경에 올릴 수 있는 기본 요소는 Text, List, Image뿐이다.
-- 한 페이지는 Text/List 최대 8개, Image 최대 4개, 전체 최대 12개다.
-- 커스텀 폰트, 글꼴 크기, 굵기, 정렬은 사용할 수 없다.
-- 이미지는 최대 288 x 144이고 잦은 갱신에 부적합하다.
+- The logical screen is 576 x 288.
+- Black is a pixel that is turned off and is an area where the real environment is reflected.
+- The only basic elements that can be uploaded to glasses are Text, List, and Image.
+- One page can contain up to 8 Text/List, up to 4 Images, and up to 12 total.
+- Custom fonts, font size, thickness, and alignment cannot be used.
+- Images can be up to 288 x 144 and are unsuitable for frequent updates.
 
-## 프로토타입 범위
+## Prototype scope
 
-이번 버전은 HUD의 밀도와 형태만 평가한다. 시간, 지도, 위치, dB, STT, 방향, 가속도, 퀘스트와 뉴스는 모두 고정 목업 데이터다.
+This version only evaluates the density and shape of the HUD. Time, map, location, dB, STT, direction, acceleration, quest and news are all static mockup data.

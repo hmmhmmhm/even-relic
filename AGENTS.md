@@ -8,7 +8,7 @@ When implementing from a selected generated mock, treat that image as the source
 
 Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts/prepare-sites-build.mjs`, and `tests/sites-worker.test.mjs` intact so the same local prototype can be handed to Sites. Before a Sites handoff, run `npm run build` and `npm run test:sites`; the build must leave `dist/client/index.html`, `dist/server/index.js`, and `dist/.openai/hosting.json`.
 
-## RELIC design direction
+## Sandevistan design direction
 
 - The selected visual target is `docs/design/selected-peripheral-focus.png`.
 - Preserve a mostly empty center so the real world remains readable.
@@ -69,8 +69,8 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   transmitted grayscale Canvas palette unchanged and do not add preview
   shadows or radial glow.
 - Keep general live features keyless: use the Even SDK for phone location,
-  Open-Meteo for weather, allowlisted RSS feeds through the RELIC Worker, and
-  OSM-derived road geometry rendered by RELIC's own Canvas code.
+  Open-Meteo for weather, allowlisted RSS feeds through the Sandevistan Worker, and
+  OSM-derived road geometry rendered by Sandevistan's own Canvas code.
 - The physical G2 approves SDK `0.0.11` for bilateral fast startup,
   `3/5/2/4` full transfers, `3/5` paging, and double-tap hide/restore. Use it
   as the live-data baseline; keep SDK `0.0.12` blocked until separately proven
