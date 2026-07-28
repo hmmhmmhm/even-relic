@@ -14,7 +14,7 @@
   <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-blue.svg">
 </p>
 
-![Sandevistan tactical HUD preview](docs/design/selected-peripheral-focus.png)
+![Sandevistan running on Even Realities G2 with dashboard, map, weather, and news views](docs/design/sandevistan-g2-showcase.png)
 
 Sandevistan is an unofficial, fan-made personal HUD for the Even Realities G2.
 It renders a 576×288 tactical interface to Canvas, splits it into four 288×144
