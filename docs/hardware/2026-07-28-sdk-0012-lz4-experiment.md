@@ -42,8 +42,15 @@ URL:
 ## 자동 검증
 
 - SDK 버전·앱 최소 버전·QR 표식 테스트: 2/2 통과
-- 전체 앱 테스트, 서버 테스트, 타입검사와 빌드는 실기 서버를 열기 전에
-  직렬로 다시 실행한다.
+- `npm test`: 37개 파일, 371개 테스트 통과
+- `npm run test:sites`: 4개 테스트 통과
+- `npm run typecheck`: 통과
+- `npm run build`: 67개 모듈 변환, 프로덕션 빌드 통과
+- 설치 확인: `@evenrealities/even_hub_sdk@0.0.12`
+- payload 확인: `compressMode: 2`
+- Tailscale 실험 URL: HTTP 200
+
+위 명령은 동시에 실행하지 않고 한 프로세스에서 순서대로 실행했다.
 
 ## 실제 G2 직렬 확인 순서
 
