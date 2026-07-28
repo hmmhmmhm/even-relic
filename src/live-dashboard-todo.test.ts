@@ -103,6 +103,12 @@ describe("live dashboard todos", () => {
     expect(updates.at(-1)?.target).toBe("right");
     expect(JSON.parse(bridge.values.get("relic:todos:v1")!)[0].completed)
       .toBe(true);
+
+    await expect(session.toggleTodo(1)).resolves.toBe(true);
+
+    expect(session.getState().todos.value?.[1].completed).toBe(false);
+    expect(JSON.parse(bridge.values.get("relic:todos:v1")!)[1].completed)
+      .toBe(false);
   });
 
   it("rejects invalid or disposed toggles without a write", async () => {

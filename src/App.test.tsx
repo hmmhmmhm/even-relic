@@ -661,9 +661,26 @@ describe("RELIC peripheral HUD", () => {
       return vi.fn();
     });
     mocks.waitForBridge.mockResolvedValue({});
+    let todoState = createInitialLiveDashboardState();
+    const toggleTodo = vi.fn(async (index: number) => {
+      const items = todoState.todos.value!.map((item, itemIndex) =>
+        itemIndex === index
+          ? { ...item, completed: !item.completed }
+          : item
+      );
+      todoState = {
+        ...todoState,
+        todos: {
+          status: "fresh",
+          value: items,
+        },
+      };
+      sessionOptions().onUpdate({ state: todoState, target: "right" });
+      return true;
+    });
     const session = {
       start: vi.fn(async () => undefined),
-      toggleTodo: vi.fn(async () => true),
+      toggleTodo,
       getState: vi.fn(),
       dispose: vi.fn(),
     };
@@ -682,13 +699,49 @@ describe("RELIC peripheral HUD", () => {
     await navigate?.("next");
     expect(await fastOptions().onInput?.("tap")).toBe("redraw");
     expect(await fastOptions().onInput?.("scroll-next")).toBe("redraw");
-    expect(await fastOptions().onInput?.("tap")).toBe("consume");
+    expect(await fastOptions().onInput?.("tap")).toBe("redraw");
     expect(session.toggleTodo).toHaveBeenCalledOnce();
     expect(session.toggleTodo).toHaveBeenCalledWith(1);
     expect(mocks.drawDetail).toHaveBeenLastCalledWith(
       expect.any(HTMLCanvasElement),
-      expect.objectContaining({ mode: "todo", todoIndex: 1 }),
+      expect.objectContaining({
+        mode: "todo",
+        todoIndex: 1,
+        live: expect.objectContaining({
+          todos: expect.objectContaining({
+            value: expect.arrayContaining([
+              expect.objectContaining({
+                id: "umbrella",
+                completed: true,
+              }),
+            ]),
+          }),
+        }),
+      }),
     );
+
+    expect(await fastOptions().onInput?.("tap")).toBe("redraw");
+    expect(session.toggleTodo).toHaveBeenCalledTimes(2);
+    expect(mocks.drawDetail).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.objectContaining({
+        live: expect.objectContaining({
+          todos: expect.objectContaining({
+            value: expect.arrayContaining([
+              expect.objectContaining({
+                id: "umbrella",
+                completed: false,
+              }),
+            ]),
+          }),
+        }),
+      }),
+    );
+
+    toggleTodo.mockResolvedValueOnce(false);
+    const drawsBeforeRejectedToggle = mocks.drawDetail.mock.calls.length;
+    expect(await fastOptions().onInput?.("tap")).toBe("consume");
+    expect(mocks.drawDetail).toHaveBeenCalledTimes(drawsBeforeRejectedToggle);
     view.unmount();
   });
 

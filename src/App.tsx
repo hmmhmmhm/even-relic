@@ -266,8 +266,12 @@ export function App({ autoStart = true }: AppProps) {
                     : ""),
               );
               if (transition.effect?.type === "toggle-todo") {
-                await liveSession?.toggleTodo(transition.effect.index);
-                return transition.result;
+                const changed = await liveSession?.toggleTodo(
+                  transition.effect.index,
+                ) ?? false;
+                if (!changed) return "consume";
+                drawCurrentPage();
+                return "redraw";
               }
               if (transition.result === "redraw") drawCurrentPage();
               if (
