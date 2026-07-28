@@ -53,12 +53,34 @@ The warning must remain near the top so readers see the development and
 distribution status before interpreting test badges or hardware-validation
 claims.
 
+## HUD page documentation
+
+Bring the README page table into line with the fast HUD implementation:
+
+1. `OVERVIEW`
+2. `NEWS`
+3. `TODO`
+4. `WEATHER`
+5. `NAVIGATION`, appended only while routing is enabled
+
+Add the following purpose for the missing page:
+
+> Current conditions, apparent temperature, humidity, precipitation, and wind
+
+Mark `NAVIGATION` as available only when a route is active. In the detail-deck
+list, label the existing weather description as `WEATHER` so all five page
+names use the same format.
+
 ## Scope and validation
 
-- Modify only the README warning and GitHub repository metadata.
+- Modify only the README warning, the HUD page documentation, and GitHub
+  repository metadata.
 - Preserve all existing README badges, screenshots, and project copy.
 - Keep repository documentation in English.
 - Verify the GitHub alert syntax renders as a warning block.
+- Verify the documented keyless page order matches
+  `OVERVIEW → NEWS → TODO → WEATHER`.
+- Verify `NAVIGATION` is described as conditional on an active route.
 - Run the repository copy check and whitespace validation serially.
 - Read the repository metadata back from GitHub after updating it.
 - Confirm the local `main` branch and `origin/main` point to the same commit
