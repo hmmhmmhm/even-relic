@@ -5,7 +5,7 @@ import {
   type LiveDashboardState,
 } from "./live-state";
 
-type HudPage = "overview" | "navigation" | "news" | "todo";
+type FastHudPage = "overview" | "navigation" | "news" | "todo" | "weather";
 type FastCanvasBattery = {
   label: "G1" | "G2" | "R1";
   level?: number;
@@ -33,16 +33,11 @@ type PathRecord = {
   points: Array<[number, number]>;
 };
 type FastHudModule = {
-  FAST_HUD_PAGES?: readonly HudPage[];
   truncateHudTitle?: (title: string, maxUnits: number) => string;
-  getAdjacentFastHudPage?: (
-    page: HudPage,
-    direction: "next" | "previous",
-  ) => HudPage;
   drawFastCanvasHud?: (
     canvas: HTMLCanvasElement,
     now?: Date,
-    page?: HudPage,
+    page?: FastHudPage,
     data?: FastCanvasHudData,
   ) => void;
 };
@@ -58,7 +53,7 @@ async function loadFastHud() {
 
 function renderFastHud(
   module: FastHudModule,
-  page: HudPage,
+  page: FastHudPage,
   data?: Partial<FastCanvasHudData>,
 ) {
   const rectangles: Rectangle[] = [];
@@ -172,37 +167,17 @@ function leftSnapshot(hud: ReturnType<typeof renderFastHud>) {
 }
 
 describe("fast split Canvas HUD", () => {
-  it("uses the approved fast-only circular page order", async () => {
-    const module = await loadFastHud();
-    if (!module) return;
-
-    expect(module.FAST_HUD_PAGES).toEqual([
-      "overview",
-      "news",
-      "todo",
-      "navigation",
-    ]);
-    expect(module.getAdjacentFastHudPage).toBeTypeOf("function");
-    expect(module.getAdjacentFastHudPage?.("overview", "next")).toBe("news");
-    expect(module.getAdjacentFastHudPage?.("navigation", "next")).toBe(
-      "overview",
-    );
-    expect(module.getAdjacentFastHudPage?.("overview", "previous")).toBe(
-      "navigation",
-    );
-  });
-
   it("keeps a static left map and draws high-contrast right pages", async () => {
     const module = await loadFastHud();
     if (!module) return;
     expect(module.drawFastCanvasHud).toBeTypeOf("function");
     if (!module.drawFastCanvasHud) return;
 
-    const pageNames: HudPage[] = [
+    const pageNames: FastHudPage[] = [
       "overview",
       "news",
       "todo",
-      "navigation",
+      "weather",
     ];
     const pages = pageNames.map((page) => renderFastHud(module, page));
 
@@ -236,12 +211,9 @@ describe("fast split Canvas HUD", () => {
       leftSnapshot(pages[0]),
       leftSnapshot(pages[0]),
     ]);
-    expect(pages[3].values).toEqual(expect.arrayContaining([
-      "NAV // READY",
-      "경로 키 필요",
-      "ORS 연결 후 사용",
-    ]));
-    expect(pages[3].values).not.toContain("NAV // ACTIVE");
+    expect(pages[3].values).toContain("WEATHER // LOADING");
+    expect(pages[3].values).not.toContain("경로 키 필요");
+    expect(pages[3].values).not.toContain("ORS 연결 후 사용");
     expect(pages[1].values).toContain("NEWS LOADING");
     expect(pages[1].values.filter((value) => value.startsWith("· "))).toHaveLength(
       0,
@@ -256,6 +228,74 @@ describe("fast split Canvas HUD", () => {
     ]));
     expect(pages[2].values).not.toContain("CONNECTED");
     expect(pages[2].values).not.toContain("LINK // G2 + R1");
+  });
+
+  it("focuses the fourth keyless page on current weather", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+    const initial = createInitialLiveDashboardState();
+    const live: LiveDashboardState = {
+      ...initial,
+      weather: {
+        status: "fresh",
+        fetchedAt: 1_800_000_000_000,
+        value: {
+          temperature: 28.4,
+          apparentTemperature: 29.6,
+          humidity: 63,
+          windSpeed: 8.2,
+          precipitationProbability: 20,
+          weatherCode: 0,
+          condition: "맑음",
+        },
+      },
+    };
+    const weather = renderFastHud(module, "weather", { live });
+
+    expect(weather.values).toEqual(expect.arrayContaining([
+      "WEATHER // NOW",
+      "28°C",
+      "맑음",
+      "체감 30°",
+      "습도 63%",
+      "강수 20%",
+      "바람 8km/h",
+      "04 / 04",
+    ]));
+    expect(weather.values).not.toContain("BATTERY --");
+    expect(weather.values).not.toContain("경로 키 필요");
+    expect(weather.values).not.toContain("ORS 연결 후 사용");
+  });
+
+  it("adds Navigation fifth only when routing is enabled", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+    const initial = createInitialLiveDashboardState();
+    const live: LiveDashboardState = {
+      ...initial,
+      route: { status: "fresh" },
+    };
+    const navigation = renderFastHud(module, "navigation", { live });
+
+    expect(navigation.values).toEqual(expect.arrayContaining([
+      "05 / 05",
+      "NAV // READY",
+      "목적지를 선택하세요",
+    ]));
+    expect(navigation.values).not.toContain("경로 키 필요");
+  });
+
+  it("normalizes disabled Navigation rendering to Weather", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+    const navigation = renderFastHud(module, "navigation");
+
+    expect(navigation.values).toEqual(expect.arrayContaining([
+      "04 / 04",
+      "WEATHER // LOADING",
+    ]));
+    expect(navigation.values).not.toContain("NAV // DISABLED");
+    expect(navigation.values).not.toContain("키 설정 필요");
   });
 
   it("renders one SDK battery snapshot with a safe fallback", async () => {
@@ -450,7 +490,7 @@ describe("fast split Canvas HUD", () => {
     )).toBe("아주 긴 한국어 기사 제…");
   });
 
-  it("renders disabled, ready, loading, active, and stale route states", async () => {
+  it("hides disabled routing and renders enabled route states", async () => {
     const module = await loadFastHud();
     if (!module?.drawFastCanvasHud) return;
     const initial = createInitialLiveDashboardState();
@@ -476,11 +516,11 @@ describe("fast split Canvas HUD", () => {
 
     expect(values({ status: "disabled" })).toEqual(
       expect.arrayContaining([
-        "NAV // READY",
-        "경로 키 필요",
-        "ORS 연결 후 사용",
+        "WEATHER // LOADING",
+        "날씨 불러오는 중",
       ]),
     );
+    expect(values({ status: "disabled" })).not.toContain("경로 키 필요");
     expect(values({ status: "fresh" })).toEqual(
       expect.arrayContaining([
         "NAV // READY",

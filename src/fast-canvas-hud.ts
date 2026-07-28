@@ -1,5 +1,9 @@
-import type { HudPage } from "./canvas-hud";
 import type { FastCanvasBattery } from "./glasses";
+import {
+  getFastHudPages,
+  normalizeFastHudPage,
+  type FastHudPage,
+} from "./fast-hud-pages";
 import { drawFastMap } from "./fast-map";
 import {
   createInitialLiveDashboardState,
@@ -25,29 +29,13 @@ const WEEKDAYS = [
   "토요일",
 ] as const;
 
-export const FAST_HUD_PAGES = [
-  "overview",
-  "news",
-  "todo",
-  "navigation",
-] as const satisfies readonly HudPage[];
-
 export type FastCanvasHudData = {
   readonly battery?: FastCanvasBattery;
   readonly live: LiveDashboardState;
   readonly mapRadiusMeters?: number;
 };
 
-export function getAdjacentFastHudPage(
-  page: HudPage,
-  direction: "next" | "previous",
-) {
-  const offset = direction === "next" ? 1 : -1;
-  const index = FAST_HUD_PAGES.indexOf(page);
-  return FAST_HUD_PAGES[
-    (index + offset + FAST_HUD_PAGES.length) % FAST_HUD_PAGES.length
-  ];
-}
+export { getAdjacentFastHudPage } from "./fast-hud-pages";
 
 function formatTime(now: Date) {
   return [now.getHours(), now.getMinutes()]
@@ -109,7 +97,7 @@ function drawCheckbox(
 function drawDynamicHeader(
   context: CanvasRenderingContext2D,
   now: Date,
-  page: HudPage,
+  page: FastHudPage,
   live: LiveDashboardState,
 ) {
   drawFrame(context, 296, 8, 272, 54);
@@ -124,10 +112,13 @@ function drawDynamicHeader(
     COLOR.secondary,
     "bold",
   );
-  const pageNumber = FAST_HUD_PAGES.indexOf(page) + 1;
+  const pages = getFastHudPages(live.route.status);
+  const pageNumber = pages.indexOf(page) + 1;
   drawText(
     context,
-    `${String(pageNumber).padStart(2, "0")} / 04`,
+    `${String(pageNumber).padStart(2, "0")} / ${
+      String(pages.length).padStart(2, "0")
+    }`,
     516,
     18,
     9,
@@ -177,6 +168,89 @@ function drawOverview(
   } else {
     drawText(context, "LIVE DATA UNAVAILABLE", 308, 244, 11, COLOR.dim, "bold");
   }
+}
+
+function drawWeather(
+  context: CanvasRenderingContext2D,
+  live: LiveDashboardState,
+) {
+  const weather = usableWeather(live);
+  const status = live.weather.status === "stale"
+    ? "WEATHER // LAST"
+    : live.weather.status === "loading"
+      ? "WEATHER // LOADING"
+      : weather
+        ? "WEATHER // NOW"
+        : "WEATHER // UNAVAILABLE";
+  drawText(context, status, 308, 82, 11, COLOR.secondary, "bold");
+  if (!weather) {
+    drawText(
+      context,
+      live.weather.status === "loading"
+        ? "날씨 불러오는 중"
+        : "WEATHER DATA UNAVAILABLE",
+      308,
+      112,
+      18,
+      COLOR.primary,
+      "bold",
+    );
+    return;
+  }
+  drawText(
+    context,
+    `${Math.round(weather.temperature)}°C`,
+    308,
+    104,
+    30,
+    COLOR.primary,
+    "bold",
+  );
+  drawText(
+    context,
+    weather.condition,
+    410,
+    112,
+    18,
+    COLOR.secondary,
+    "bold",
+  );
+  drawText(
+    context,
+    `체감 ${Math.round(weather.apparentTemperature)}°`,
+    308,
+    158,
+    15,
+    COLOR.primary,
+    "bold",
+  );
+  drawText(
+    context,
+    `습도 ${Math.round(weather.humidity)}%`,
+    430,
+    158,
+    15,
+    COLOR.primary,
+    "bold",
+  );
+  drawText(
+    context,
+    `강수 ${Math.round(weather.precipitationProbability)}%`,
+    308,
+    230,
+    15,
+    COLOR.secondary,
+    "bold",
+  );
+  drawText(
+    context,
+    `바람 ${Math.round(weather.windSpeed)}km/h`,
+    430,
+    230,
+    15,
+    COLOR.primary,
+    "bold",
+  );
 }
 
 function usableWeather(live: LiveDashboardState) {
@@ -411,7 +485,7 @@ function drawTodo(context: CanvasRenderingContext2D, live: LiveDashboardState) {
 
 function drawDynamicPage(
   context: CanvasRenderingContext2D,
-  page: HudPage,
+  page: FastHudPage,
   data: FastCanvasHudData,
 ) {
   drawFrame(context, 296, 72, 272, 134);
@@ -420,12 +494,13 @@ function drawDynamicPage(
   if (page === "navigation") drawNavigation(context, data.live.route);
   if (page === "news") drawNews(context, data.live);
   if (page === "todo") drawTodo(context, data.live);
+  if (page === "weather") drawWeather(context, data.live);
 }
 
 export function drawFastCanvasHud(
   canvas: HTMLCanvasElement,
   now = new Date(),
-  page: HudPage = "overview",
+  page: FastHudPage = "overview",
   data: FastCanvasHudData = {
     live: createInitialLiveDashboardState(),
   },
@@ -437,7 +512,8 @@ export function drawFastCanvasHud(
   context.imageSmoothingEnabled = false;
   context.fillStyle = COLOR.background;
   context.fillRect(0, 0, WIDTH, HEIGHT);
+  const visiblePage = normalizeFastHudPage(page, data.live.route.status);
   drawFastMap(context, data.live, data.mapRadiusMeters ?? 650);
-  drawDynamicHeader(context, now, page, data.live);
-  drawDynamicPage(context, page, data);
+  drawDynamicHeader(context, now, visiblePage, data.live);
+  drawDynamicPage(context, visiblePage, data);
 }
