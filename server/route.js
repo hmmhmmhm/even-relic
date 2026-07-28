@@ -312,7 +312,7 @@ export async function handleRouteRequest(
             [payload.destination.longitude, payload.destination.latitude],
           ],
           instructions: true,
-          language: "ko",
+          language: "en",
         }),
         redirect: "error",
         signal: timeout.signal,

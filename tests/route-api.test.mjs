@@ -226,7 +226,7 @@ test("normalizes a directions result and sends the exact ORS request", async () 
         [126.9707, 37.5547],
       ],
       instructions: true,
-      language: "ko",
+      language: "en",
     }),
     redirect: "error",
     signal: calls[0].options.signal,
