@@ -4,6 +4,12 @@ Date: 2026-07-27
 
 Target branch: `feature/g2-ors-routing`
 
+> [!NOTE]
+> This historical rubric has been superseded by the
+> [2026-07-29 project readiness audit](2026-07-29-project-readiness-audit.md),
+> which tracks the current `main` branch, Weather page, 374-test baseline, and
+> the owner-approved order of remaining work.
+
 This document links the product requirements finalized in the conversation with the current level of verification.
 The most up-to-date link to each item in this document rather than the incomplete checkbox in past experiment documents.
 Prioritize checkpoints.
