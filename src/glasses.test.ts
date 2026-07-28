@@ -6,7 +6,7 @@ import {
   OsEventTypeList,
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { diagnosticLogger } from "./diagnostic-log";
 
 async function loadGlasses() {
@@ -203,6 +203,8 @@ async function createFastRefreshHarness(
     },
   };
 }
+
+afterEach(() => vi.useRealTimers());
 
 describe("G2 raster transport", () => {
   it("covers the 576 by 288 display with four ordered tiles", async () => {
@@ -841,6 +843,40 @@ describe("G2 raster transport", () => {
       [2, 4],
     ]);
     expect(harness.imageIds).toEqual([3, 5, 2, 4, 3, 2, 4]);
+  });
+
+  it("times out a stalled tile, releases busy, and ignores late settlement", async () => {
+    const stalled = deferred();
+    const harness = await createFastRefreshHarness({
+      update: async (_id, _call, encodeAttempt) => {
+        if (encodeAttempt === 2) {
+          await stalled.promise;
+        }
+        return "success";
+      },
+    });
+    vi.useFakeTimers();
+
+    harness.request("right");
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(harness.imageIds).toHaveLength(5);
+
+    await vi.advanceTimersByTimeAsync(12_000);
+    expect(harness.progress.some((message) => message.includes("12000ms")))
+      .toBe(true);
+
+    harness.request("left");
+    await vi.advanceTimersByTimeAsync(0);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4, 3, 2, 4]);
+    expect(harness.committedMinutes).toEqual([1_234, 1_234]);
+
+    stalled.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(harness.imageIds).toEqual([3, 5, 2, 4, 3, 2, 4]);
+    expect(harness.committedMinutes).toEqual([1_234, 1_234]);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("live refresh skips hidden work and restores the newest full HUD", async () => {
