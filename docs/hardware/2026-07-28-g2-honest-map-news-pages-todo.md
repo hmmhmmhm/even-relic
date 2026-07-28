@@ -6,7 +6,7 @@ SDK: `0.0.11`
 
 Build: `page-direction-027`
 
-Result: `PENDING`
+Result: `SUPERSEDED`
 
 브랜치: `feature/g2-ors-routing`
 
@@ -14,6 +14,9 @@ Result: `PENDING`
 
 URL:
 `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=page-direction-027`
+
+이 체크포인트는 날씨 상세와 동적 내비게이션 페이지를 함께 검증하는
+`weather-pages-028` 체크포인트로 대체되었다.
 
 ## 구현 범위
 
