@@ -92,6 +92,7 @@ describe("drawFastDetailHud", () => {
       mode: "news",
       live: liveState(),
       newsIndex: 0,
+      newsPage: 0,
       todoIndex: 0,
       navigationIndex: 0,
     });
@@ -101,7 +102,7 @@ describe("drawFastDetailHud", () => {
     expect(rectangles[0]).toEqual([0, 0, 576, 288]);
     expect(values(texts)).toEqual(expect.arrayContaining([
       "NEWS // LIVE",
-      "01 / 06",
+      "01/06 · P1/1",
       "첫 번째 실제 기사 제목",
       "RSS 요약 내용이 안경 전체 화면에 선명하게 표시됩니다.",
       "DOUBLE TAP // BACK",
@@ -119,6 +120,7 @@ describe("drawFastDetailHud", () => {
       mode: "todo",
       live: liveState(),
       newsIndex: 0,
+      newsPage: 0,
       todoIndex: 1,
       navigationIndex: 0,
     });
@@ -141,6 +143,7 @@ describe("drawFastDetailHud", () => {
       mode: "navigation",
       live: liveState(),
       newsIndex: 0,
+      newsPage: 0,
       todoIndex: 0,
       navigationIndex: 0,
     });
@@ -177,11 +180,60 @@ describe("drawFastDetailHud", () => {
       mode,
       live,
       newsIndex: 0,
+      newsPage: 0,
       todoIndex: 0,
       navigationIndex: 0,
     });
 
     expect(values(texts)).toContain(expected);
     expect(values(texts)).toContain("DOUBLE TAP // BACK");
+  });
+
+  it("renders every long summary page without changing the article title", () => {
+    const base = liveState();
+    const summary = [
+      "A".repeat(50),
+      "B".repeat(50),
+      "C".repeat(50),
+      "D".repeat(50),
+      "E".repeat(50),
+    ].join(" ");
+    const live: LiveDashboardState = {
+      ...base,
+      news: {
+        ...base.news,
+        value: [{
+          ...base.news.value![0],
+          summary,
+        }],
+      },
+    };
+    const first = createCanvas();
+    const second = createCanvas();
+
+    drawFastDetailHud(first.canvas, {
+      mode: "news",
+      live,
+      newsIndex: 0,
+      newsPage: 0,
+      todoIndex: 0,
+      navigationIndex: 0,
+    });
+    drawFastDetailHud(second.canvas, {
+      mode: "news",
+      live,
+      newsIndex: 0,
+      newsPage: 1,
+      todoIndex: 0,
+      navigationIndex: 0,
+    });
+
+    expect(values(first.texts)).toContain("01/01 · P1/2");
+    expect(values(first.texts)).toContain("A".repeat(50));
+    expect(values(first.texts)).not.toContain("E".repeat(50));
+    expect(values(second.texts)).toContain("01/01 · P2/2");
+    expect(values(second.texts)).toContain("첫 번째 실제 기사 제목");
+    expect(values(second.texts)).toContain("E".repeat(50));
+    expect(values(second.texts)).not.toContain("A".repeat(50));
   });
 });

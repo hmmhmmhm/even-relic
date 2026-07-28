@@ -3,10 +3,8 @@ import {
   drawFastCanvasText as drawText,
   FAST_CANVAS_COLOR as COLOR,
 } from "./fast-canvas-style";
-import {
-  wrapHudText,
-  wrapHudTextByWidth,
-} from "./fast-detail-text";
+import { wrapHudText } from "./fast-detail-text";
+import { paginateFastNewsSummary } from "./fast-news-pages";
 import type {
   DataState,
   LiveDashboardState,
@@ -22,6 +20,7 @@ export type FastDetailHudOptions = {
   readonly mode: "news" | "todo" | "navigation";
   readonly live: LiveDashboardState;
   readonly newsIndex: number;
+  readonly newsPage: number;
   readonly todoIndex: number;
   readonly navigationIndex: number;
 };
@@ -57,7 +56,17 @@ function drawHeader(
   context.fillRect(0, 0, WIDTH, 38);
   drawText(context, title, 14, 10, 16, COLOR.primary, "bold");
   if (counter) {
-    drawText(context, counter, 474, 11, 13, COLOR.secondary, "bold");
+    context.font = 'bold 13px "SFMono-Regular", Consolas, monospace';
+    const width = context.measureText(counter).width;
+    drawText(
+      context,
+      counter,
+      Math.max(300, 562 - width),
+      11,
+      13,
+      COLOR.secondary,
+      "bold",
+    );
   }
   context.fillStyle = COLOR.dim;
   context.fillRect(14, 36, 548, 1);
@@ -97,18 +106,40 @@ function newsLabel(state: DataState<readonly NewsItem[]>): string {
   return "NEWS // UNAVAILABLE";
 }
 
+function compactPosition(index: number, count: number): string {
+  const width = Math.max(2, String(Math.max(0, count)).length);
+  const current = count > 0 ? Math.min(index, count - 1) + 1 : 0;
+  return `${String(current).padStart(width, "0")}/${
+    String(count).padStart(width, "0")
+  }`;
+}
+
 function drawNews(
   context: CanvasRenderingContext2D,
   state: DataState<readonly NewsItem[]>,
   selectedIndex: number,
+  selectedPage: number,
 ) {
   const items = state.value ?? [];
   const index = Math.min(Math.max(0, selectedIndex), Math.max(0, items.length - 1));
-  drawHeader(context, newsLabel(state), formatPosition(index, items.length));
-  drawFrame(context, 14, 44, 548, 204);
   const item = (state.status === "fresh" || state.status === "stale")
     ? items[index]
     : undefined;
+  const pages = item
+    ? paginateFastNewsSummary(context, item.summary)
+    : [["요약 없음"]];
+  const page = Math.min(
+    Math.max(0, selectedPage),
+    Math.max(0, pages.length - 1),
+  );
+  drawHeader(
+    context,
+    newsLabel(state),
+    item
+      ? `${compactPosition(index, items.length)} · P${page + 1}/${pages.length}`
+      : formatPosition(index, items.length),
+  );
+  drawFrame(context, 14, 44, 548, 204);
   if (!item) {
     const loading = state.status === "loading";
     drawEmptyState(
@@ -116,7 +147,7 @@ function drawNews(
       loading ? "뉴스 불러오는 중" : "뉴스를 표시할 수 없음",
       loading ? "RSS 업데이트를 기다리고 있습니다." : "연결 후 자동으로 다시 시도합니다.",
     );
-    drawFooter(context, "SCROLL // ARTICLES");
+    drawFooter(context, "SCROLL // TEXT / ARTICLES");
     return;
   }
 
@@ -132,13 +163,7 @@ function drawNews(
       "bold",
     );
   });
-  context.font = 'bold 21px "SFMono-Regular", Consolas, monospace';
-  const summaryLines = wrapHudTextByWidth(
-    item.summary ?? "요약 없음",
-    (value) => context.measureText(value).width,
-    528,
-    4,
-  );
+  const summaryLines = pages[page];
   summaryLines.forEach((line, lineIndex) => {
     drawText(
       context,
@@ -159,7 +184,7 @@ function drawNews(
     COLOR.dim,
     "bold",
   );
-  drawFooter(context, "SCROLL // ARTICLES");
+  drawFooter(context, "SCROLL // TEXT / ARTICLES");
 }
 
 function todoLabel(state: DataState<readonly TodoItem[]>): string {
@@ -311,7 +336,12 @@ export function drawFastDetailHud(
   context.fillRect(0, 0, WIDTH, HEIGHT);
 
   if (options.mode === "news") {
-    drawNews(context, options.live.news, options.newsIndex);
+    drawNews(
+      context,
+      options.live.news,
+      options.newsIndex,
+      options.newsPage,
+    );
   } else if (options.mode === "todo") {
     drawTodo(context, options.live.todos, options.todoIndex);
   } else {

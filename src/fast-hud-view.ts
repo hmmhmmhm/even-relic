@@ -18,6 +18,7 @@ export type FastHudViewState = {
   readonly mode: FastHudViewMode;
   readonly zoomIndex: number;
   readonly newsIndex: number;
+  readonly newsPage: number;
   readonly todoIndex: number;
   readonly navigationIndex: number;
   readonly navigationFollowsActive: boolean;
@@ -25,6 +26,7 @@ export type FastHudViewState = {
 
 export type FastHudViewContext = {
   readonly newsCount: number;
+  readonly newsPageCounts: readonly number[];
   readonly todoCount: number;
   readonly maneuverCount: number;
   readonly activeManeuverIndex: number;
@@ -48,6 +50,16 @@ function clampIndex(index: number, count: number): number {
 
 function clampZoom(index: number): number {
   return clampIndex(index, FAST_MAP_ZOOM_RADII.length);
+}
+
+function newsPageCount(
+  context: FastHudViewContext,
+  newsIndex: number,
+): number {
+  return Math.max(
+    1,
+    Math.floor(context.newsPageCounts[newsIndex] ?? 1),
+  );
 }
 
 function pageMode(page: HudPage): Exclude<FastHudViewMode, "dashboard"> {
@@ -82,6 +94,7 @@ export function createFastHudViewState(): FastHudViewState {
     mode: "dashboard",
     zoomIndex: FAST_MAP_DEFAULT_ZOOM_INDEX,
     newsIndex: 0,
+    newsPage: 0,
     todoIndex: 0,
     navigationIndex: 0,
     navigationFollowsActive: true,
@@ -96,10 +109,15 @@ export function syncFastHudView(
     context.activeManeuverIndex,
     context.maneuverCount,
   );
+  const newsIndex = clampIndex(state.newsIndex, context.newsCount);
   return {
     ...state,
     zoomIndex: clampZoom(state.zoomIndex),
-    newsIndex: clampIndex(state.newsIndex, context.newsCount),
+    newsIndex,
+    newsPage: clampIndex(
+      state.newsPage,
+      newsPageCount(context, newsIndex),
+    ),
     todoIndex: clampIndex(state.todoIndex, context.todoCount),
     navigationIndex: state.navigationFollowsActive
       ? activeIndex
@@ -139,6 +157,13 @@ export function reduceFastHudInput(
       ? {
           ...current,
           newsIndex: clampIndex(current.newsIndex, context.newsCount),
+          newsPage: clampIndex(
+            current.newsPage,
+            newsPageCount(
+              context,
+              clampIndex(current.newsIndex, context.newsCount),
+            ),
+          ),
         }
       : current.mode === "todo"
         ? {
@@ -177,12 +202,46 @@ export function reduceFastHudInput(
   }
 
   if (state.mode === "news") {
-    return moveIndex(
-      state,
-      "newsIndex",
-      input,
-      context.newsCount,
-    );
+    if (input !== "scroll-next" && input !== "scroll-previous") {
+      return { state, result: "consume" };
+    }
+    if (context.newsCount <= 0) return { state, result: "consume" };
+    if (input === "scroll-next") {
+      const pages = newsPageCount(context, state.newsIndex);
+      if (state.newsPage < pages - 1) {
+        return {
+          state: { ...state, newsPage: state.newsPage + 1 },
+          result: "redraw",
+        };
+      }
+      if (state.newsIndex >= context.newsCount - 1) {
+        return { state, result: "consume" };
+      }
+      return {
+        state: {
+          ...state,
+          newsIndex: state.newsIndex + 1,
+          newsPage: 0,
+        },
+        result: "redraw",
+      };
+    }
+    if (state.newsPage > 0) {
+      return {
+        state: { ...state, newsPage: state.newsPage - 1 },
+        result: "redraw",
+      };
+    }
+    if (state.newsIndex <= 0) return { state, result: "consume" };
+    const newsIndex = state.newsIndex - 1;
+    return {
+      state: {
+        ...state,
+        newsIndex,
+        newsPage: newsPageCount(context, newsIndex) - 1,
+      },
+      result: "redraw",
+    };
   }
 
   if (state.mode === "todo") {

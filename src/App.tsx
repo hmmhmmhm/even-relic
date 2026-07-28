@@ -25,6 +25,7 @@ import {
   getAdjacentFastHudPage,
 } from "./fast-canvas-hud";
 import { drawFastDetailHud } from "./fast-detail-hud";
+import { paginateFastNewsSummary } from "./fast-news-pages";
 import { detailRefreshTarget } from "./fast-detail-refresh";
 import { drawFastFullscreenMap } from "./fast-map";
 import {
@@ -106,6 +107,8 @@ export function App({ autoStart = true }: AppProps) {
     let lastSuccessfulDisplayMinute: number | undefined;
     let lastMinuteAttempt: number | undefined;
     let stopDiagnosticHeartbeat: (() => void) | undefined;
+    let newsPageCacheKey = "";
+    let newsPageCounts: readonly number[] = [];
     const canvas = canvasRef.current;
     const onWindowError = (event: ErrorEvent) => {
       logDiagnostic(
@@ -130,8 +133,28 @@ export function App({ autoStart = true }: AppProps) {
     };
     const viewContext = (): FastHudViewContext => {
       const route = live.route.value;
+      const news = live.news.value ?? [];
+      const nextNewsPageCacheKey = [
+        live.news.status,
+        live.news.fetchedAt ?? "",
+        news.length,
+      ].join(":");
+      if (nextNewsPageCacheKey !== newsPageCacheKey) {
+        if (news.length === 0) {
+          newsPageCounts = [];
+        } else {
+          const context = canvas.getContext("2d");
+          newsPageCounts = context
+            ? news.map((item) =>
+                paginateFastNewsSummary(context, item.summary).length
+              )
+            : news.map(() => 1);
+        }
+        newsPageCacheKey = nextNewsPageCacheKey;
+      }
       return {
-        newsCount: live.news.value?.length ?? 0,
+        newsCount: news.length,
+        newsPageCounts,
         todoCount: live.todos.value?.length ?? 0,
         maneuverCount: route?.maneuvers.length ?? 0,
         activeManeuverIndex: route?.activeManeuverIndex ?? 0,
@@ -151,6 +174,7 @@ export function App({ autoStart = true }: AppProps) {
           mode,
           live,
           newsIndex: view.newsIndex,
+          newsPage: view.newsPage,
           todoIndex: view.todoIndex,
           navigationIndex: view.navigationIndex,
         });

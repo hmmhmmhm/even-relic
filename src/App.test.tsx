@@ -126,6 +126,12 @@ vi.mock("./routing", async (importOriginal) => ({
 }));
 
 beforeEach(() => {
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+    font: "",
+    measureText: (value: string) => ({
+      width: [...value].length * 10,
+    }),
+  } as unknown as CanvasRenderingContext2D);
   mocks.createSession.mockReset();
   mocks.drawDetail.mockReset();
   mocks.drawFast.mockReset();
@@ -141,6 +147,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   window.history.replaceState({}, "", "/");
 });
 
@@ -636,7 +643,7 @@ describe("RELIC peripheral HUD", () => {
     expect(mocks.drawFullscreen).not.toHaveBeenCalled();
     expect(mocks.drawDetail).toHaveBeenLastCalledWith(
       expect.any(HTMLCanvasElement),
-      expect.objectContaining({ mode: "news", newsIndex: 0 }),
+      expect.objectContaining({ mode: "news", newsIndex: 0, newsPage: 0 }),
     );
     view.unmount();
   });

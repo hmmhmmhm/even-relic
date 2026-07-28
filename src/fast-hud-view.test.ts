@@ -11,6 +11,7 @@ import {
 
 const CONTEXT: FastHudViewContext = {
   newsCount: 6,
+  newsPageCounts: [2, 3, 1, 1, 1, 1],
   todoCount: 3,
   maneuverCount: 4,
   activeManeuverIndex: 1,
@@ -85,20 +86,40 @@ describe("fast HUD detail state", () => {
     ).result).toBe("consume");
   });
 
-  it("moves through news and consumes taps and list boundaries", () => {
+  it("moves through body pages before crossing article boundaries", () => {
     const state: FastHudViewState = {
       ...createFastHudViewState(),
       mode: "news",
-      newsIndex: 1,
+      newsIndex: 0,
+      newsPage: 0,
     };
 
-    expect(reduceFastHudInput(
+    const nextPage = reduceFastHudInput(
       state,
       "news",
       "scroll-next",
       CONTEXT,
+    );
+    expect(nextPage).toMatchObject({
+      state: { newsIndex: 0, newsPage: 1 },
+      result: "redraw",
+    });
+    expect(reduceFastHudInput(
+      nextPage.state,
+      "news",
+      "scroll-next",
+      CONTEXT,
     )).toMatchObject({
-      state: { newsIndex: 2 },
+      state: { newsIndex: 1, newsPage: 0 },
+      result: "redraw",
+    });
+    expect(reduceFastHudInput(
+      { ...state, newsIndex: 1, newsPage: 0 },
+      "news",
+      "scroll-previous",
+      CONTEXT,
+    )).toMatchObject({
+      state: { newsIndex: 0, newsPage: 1 },
       result: "redraw",
     });
     expect(reduceFastHudInput(state, "news", "tap", CONTEXT)).toEqual({
@@ -106,9 +127,15 @@ describe("fast HUD detail state", () => {
       result: "consume",
     });
     expect(reduceFastHudInput(
-      { ...state, newsIndex: 5 },
+      { ...state, newsIndex: 5, newsPage: 0 },
       "news",
       "scroll-next",
+      CONTEXT,
+    ).result).toBe("consume");
+    expect(reduceFastHudInput(
+      state,
+      "news",
+      "scroll-previous",
       CONTEXT,
     ).result).toBe("consume");
   });
@@ -182,6 +209,7 @@ describe("fast HUD detail state", () => {
         mode,
         zoomIndex: 3,
         newsIndex: 2,
+        newsPage: 1,
         todoIndex: 1,
         navigationIndex: 2,
         navigationFollowsActive: false,
@@ -193,7 +221,11 @@ describe("fast HUD detail state", () => {
         "double-tap",
         CONTEXT,
       )).toEqual({
-        state: { ...state, mode: "dashboard" },
+        state: {
+          ...state,
+          mode: "dashboard",
+          newsPage: mode === "news" ? 0 : state.newsPage,
+        },
         result: "redraw",
       });
     }
@@ -204,6 +236,7 @@ describe("fast HUD detail state", () => {
       mode: "navigation",
       zoomIndex: 99,
       newsIndex: 5,
+      newsPage: 99,
       todoIndex: 2,
       navigationIndex: 3,
       navigationFollowsActive: true,
@@ -211,6 +244,7 @@ describe("fast HUD detail state", () => {
 
     expect(syncFastHudView(state, {
       newsCount: 2,
+      newsPageCounts: [2, 3],
       todoCount: 1,
       maneuverCount: 3,
       activeManeuverIndex: 2,
@@ -218,6 +252,7 @@ describe("fast HUD detail state", () => {
       mode: "navigation",
       zoomIndex: FAST_MAP_ZOOM_RADII.length - 1,
       newsIndex: 1,
+      newsPage: 2,
       todoIndex: 0,
       navigationIndex: 2,
       navigationFollowsActive: true,
