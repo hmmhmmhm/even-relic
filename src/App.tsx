@@ -22,8 +22,12 @@ import {
 } from "./canvas-hud";
 import {
   drawFastCanvasHud,
-  getAdjacentFastHudPage,
 } from "./fast-canvas-hud";
+import {
+  getAdjacentFastHudPage,
+  normalizeFastHudPage,
+  type FastHudPage,
+} from "./fast-hud-pages";
 import { drawFastDetailHud } from "./fast-detail-hud";
 import { paginateFastNewsSummary } from "./fast-news-pages";
 import { detailRefreshTarget } from "./fast-detail-refresh";
@@ -98,7 +102,7 @@ export function App({ autoStart = true }: AppProps) {
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
     let liveSession: ReturnType<typeof createLiveDashboardSession> | undefined;
-    let page: HudPage = HUD_PAGES[0];
+    let page: FastHudPage = HUD_PAGES[0];
     let view = createFastHudViewState();
     let battery: FastCanvasBattery | undefined;
     let live: LiveDashboardState = createInitialLiveDashboardState();
@@ -162,13 +166,27 @@ export function App({ autoStart = true }: AppProps) {
     };
     const currentMapRadius = () => FAST_MAP_ZOOM_RADII[view.zoomIndex];
     const drawCurrentPage = () => {
+      if (fastCanvasHudMode) {
+        page = normalizeFastHudPage(page, live.route.status);
+        if (
+          view.mode === "navigation"
+          && live.route.status === "disabled"
+        ) {
+          view = { ...view, mode: "weather" };
+        }
+      }
       view = syncFastHudView(view, viewContext());
       const mode = view.mode;
       if (fastCanvasHudMode && mode === "map") {
         drawFastFullscreenMap(canvas, live, currentMapRadius());
       } else if (
         fastCanvasHudMode
-        && (mode === "news" || mode === "todo" || mode === "navigation")
+        && (
+          mode === "news"
+          || mode === "todo"
+          || mode === "weather"
+          || mode === "navigation"
+        )
       ) {
         drawFastDetailHud(canvas, {
           mode,
@@ -185,7 +203,7 @@ export function App({ autoStart = true }: AppProps) {
           mapRadiusMeters: currentMapRadius(),
         });
       }
-      else drawDenseCanvasHud(canvas, new Date(), page);
+      else drawDenseCanvasHud(canvas, new Date(), page as HudPage);
     };
     const requestVisibleRefresh = (target: FastCanvasRefreshTarget) => {
       if (!requestLiveRefresh) return;
@@ -193,8 +211,8 @@ export function App({ autoStart = true }: AppProps) {
     };
     const navigateCanvas = async (direction: "next" | "previous") => {
       page = fastCanvasHudMode
-        ? getAdjacentFastHudPage(page, direction)
-        : getAdjacentHudPage(page, direction);
+        ? getAdjacentFastHudPage(page, direction, live.route.status)
+        : getAdjacentHudPage(page as HudPage, direction);
       drawCurrentPage();
     };
     const transmitHybrid = layeredHybridHudMode
@@ -390,12 +408,12 @@ export function App({ autoStart = true }: AppProps) {
           ? await transmitOfficialSample(report)
           : hybridHudMode
             ? await transmitHybrid(
-                canvas,
-                formatHybridHudText(page),
-                report,
-                async (direction) => {
-                  page = getAdjacentHudPage(page, direction);
-                  return formatHybridHudText(page);
+              canvas,
+              formatHybridHudText(page as HudPage),
+              report,
+              async (direction) => {
+                  page = getAdjacentHudPage(page as HudPage, direction);
+                  return formatHybridHudText(page as HudPage);
                 },
               )
           : await transmitCanvas(

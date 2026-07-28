@@ -648,6 +648,138 @@ describe("RELIC peripheral HUD", () => {
     view.unmount();
   });
 
+  it("cycles keyless Weather fourth and adds Navigation only when routed", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    let navigate:
+      | ((direction: "next" | "previous") => Promise<void>)
+      | undefined;
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      navigate = args[2] as typeof navigate;
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return vi.fn();
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+    await navigate?.("next");
+    await navigate?.("next");
+    await navigate?.("next");
+    expect(mocks.drawFast).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.any(Date),
+      "weather",
+      expect.any(Object),
+    );
+
+    expect(await fastOptions().onInput?.("tap")).toBe("redraw");
+    expect(mocks.drawDetail).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.objectContaining({ mode: "weather" }),
+    );
+    expect(await fastOptions().onInput?.("scroll-next")).toBe("consume");
+    expect(await fastOptions().onInput?.("double-tap")).toBe("redraw");
+
+    await navigate?.("next");
+    expect(mocks.drawFast).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.any(Date),
+      "overview",
+      expect.any(Object),
+    );
+
+    const routed: LiveDashboardState = {
+      ...createInitialLiveDashboardState(),
+      route: { status: "fresh" },
+    };
+    sessionOptions().onUpdate({ state: routed, target: "right" });
+    await navigate?.("next");
+    await navigate?.("next");
+    await navigate?.("next");
+    await navigate?.("next");
+    expect(mocks.drawFast).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.any(Date),
+      "navigation",
+      expect.objectContaining({ live: routed }),
+    );
+    view.unmount();
+  });
+
+  it("refreshes only weather changes while Weather detail is open", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    let navigate:
+      | ((direction: "next" | "previous") => Promise<void>)
+      | undefined;
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      navigate = args[2] as typeof navigate;
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return vi.fn();
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+
+    await navigate?.("next");
+    await navigate?.("next");
+    await navigate?.("next");
+    await fastOptions().onInput?.("tap");
+    requestRefresh.mockClear();
+
+    const weather: LiveDashboardState = {
+      ...createInitialLiveDashboardState(),
+      weather: {
+        status: "fresh",
+        fetchedAt: 1,
+        value: {
+          temperature: 28,
+          apparentTemperature: 30,
+          humidity: 63,
+          windSpeed: 8,
+          precipitationProbability: 20,
+          weatherCode: 0,
+          condition: "맑음",
+        },
+      },
+    };
+    sessionOptions().onUpdate({ state: weather, target: "right" });
+    expect(requestRefresh).toHaveBeenCalledWith("all");
+    requestRefresh.mockClear();
+
+    const news: LiveDashboardState = {
+      ...weather,
+      news: {
+        status: "fresh",
+        fetchedAt: 2,
+        value: [{ id: "news", title: "새 기사" }],
+      },
+    };
+    sessionOptions().onUpdate({ state: news, target: "right" });
+    expect(requestRefresh).not.toHaveBeenCalled();
+    await fastOptions().beforeExternalRefresh?.();
+    expect(mocks.drawDetail).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.objectContaining({ mode: "weather", live: news }),
+    );
+    view.unmount();
+  });
+
   it("opens news and TODO detail decks and applies a selected TODO toggle", async () => {
     window.history.replaceState({}, "", "/hud-canvas-fast");
     const requestRefresh = vi.fn();
