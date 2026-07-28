@@ -1,8 +1,8 @@
-import type { HudPage } from "./canvas-hud";
 import type {
   FastCanvasInput,
   FastCanvasInputResult,
 } from "./fast-canvas-transport";
+import type { FastHudPage } from "./fast-hud-pages";
 
 export const FAST_MAP_ZOOM_RADII = [850, 650, 500, 375, 280] as const;
 export const FAST_MAP_DEFAULT_ZOOM_INDEX = 1;
@@ -12,6 +12,7 @@ export type FastHudViewMode =
   | "map"
   | "news"
   | "todo"
+  | "weather"
   | "navigation";
 
 export type FastHudViewState = {
@@ -62,7 +63,7 @@ function newsPageCount(
   );
 }
 
-function pageMode(page: HudPage): Exclude<FastHudViewMode, "dashboard"> {
+function pageMode(page: FastHudPage): Exclude<FastHudViewMode, "dashboard"> {
   return page === "overview" ? "map" : page;
 }
 
@@ -127,7 +128,7 @@ export function syncFastHudView(
 
 export function reduceFastHudInput(
   current: FastHudViewState,
-  page: HudPage,
+  page: FastHudPage,
   input: FastCanvasInput,
   context: FastHudViewContext,
 ): FastHudTransition {
@@ -170,18 +171,20 @@ export function reduceFastHudInput(
             ...current,
             todoIndex: clampIndex(current.todoIndex, context.todoCount),
           }
-        : {
-            ...current,
-            navigationIndex: current.navigationFollowsActive
-              ? clampIndex(
-                  context.activeManeuverIndex,
-                  context.maneuverCount,
-                )
-              : clampIndex(
-                  current.navigationIndex,
-                  context.maneuverCount,
-                ),
-          };
+        : current.mode === "weather"
+          ? current
+          : {
+              ...current,
+              navigationIndex: current.navigationFollowsActive
+                ? clampIndex(
+                    context.activeManeuverIndex,
+                    context.maneuverCount,
+                  )
+                : clampIndex(
+                    current.navigationIndex,
+                    context.maneuverCount,
+                  ),
+            };
 
   if (input === "double-tap") {
     return {
@@ -242,6 +245,10 @@ export function reduceFastHudInput(
       },
       result: "redraw",
     };
+  }
+
+  if (state.mode === "weather") {
+    return { state, result: "consume" };
   }
 
   if (state.mode === "todo") {

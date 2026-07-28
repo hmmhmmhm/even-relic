@@ -27,6 +27,8 @@ describe("fast HUD detail state", () => {
       .toBe("news");
     expect(reduceFastHudInput(initial, "todo", "tap", CONTEXT).state.mode)
       .toBe("todo");
+    expect(reduceFastHudInput(initial, "weather", "tap", CONTEXT).state.mode)
+      .toBe("weather");
     expect(
       reduceFastHudInput(initial, "navigation", "tap", CONTEXT).state,
     ).toMatchObject({
@@ -202,8 +204,41 @@ describe("fast HUD detail state", () => {
     });
   });
 
+  it("consumes weather detail gestures and returns on double tap", () => {
+    const state: FastHudViewState = {
+      ...createFastHudViewState(),
+      mode: "weather",
+    };
+
+    for (const input of [
+      "tap",
+      "scroll-next",
+      "scroll-previous",
+    ] as const) {
+      expect(reduceFastHudInput(state, "weather", input, CONTEXT)).toEqual({
+        state,
+        result: "consume",
+      });
+    }
+    expect(reduceFastHudInput(
+      state,
+      "weather",
+      "double-tap",
+      CONTEXT,
+    )).toMatchObject({
+      state: { mode: "dashboard" },
+      result: "redraw",
+    });
+  });
+
   it("returns from every detail deck on double tap and retains indices", () => {
-    for (const mode of ["map", "news", "todo", "navigation"] as const) {
+    for (const mode of [
+      "map",
+      "news",
+      "todo",
+      "weather",
+      "navigation",
+    ] as const) {
       const state: FastHudViewState = {
         ...createFastHudViewState(),
         mode,
