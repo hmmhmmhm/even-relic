@@ -1,5 +1,10 @@
 # even-relic
 
+> **SDK 0.0.12 reproduction branch:** This branch preserves a physical G2
+> `updateImageRawData` failure. Start with
+> [SDK-0.0.12-REPRO.md](SDK-0.0.12-REPRO.md) for the isolated reproduction,
+> exact log, and SDK 0.0.11 control result.
+
 Even Realities G2에서 빠르게 읽을 수 있는 개인용 전술 HUD를 만드는
 팬메이드 프로토타입이다. 현재 기준 화면은 `/hud-canvas-fast`이며,
 576×288 Canvas 한 장을 네 개의 288×144 이미지로 나누어 G2에 직렬

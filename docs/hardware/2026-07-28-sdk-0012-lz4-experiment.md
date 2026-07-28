@@ -4,18 +4,18 @@
 
 SDK: `0.0.12`
 
-Build: `sdk-lz4-030`
+Build: `sdk-0012-repro-033`
 
-Result: `PENDING`
+Result: `FAIL`
 
-브랜치: `feature/g2-ors-routing`
+브랜치: `0.0.12-reproduce`
 
 원격 기준선 커밋: `90a9421`
 
 SDK 교체 커밋: `588c9fc`
 
-URL:
-`http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.12&build=sdk-lz4-030`
+로컬 URL:
+`http://localhost:4177/hud-canvas-fast?sdk=0.0.12&build=sdk-0012-repro-033`
 
 ## 목적
 
@@ -52,10 +52,29 @@ URL:
 
 위 명령은 동시에 실행하지 않고 한 프로세스에서 순서대로 실행했다.
 
+## 실제 G2 결과
+
+최초 실행에서 Canvas 네 타일 인코딩은 55ms에 정상 완료됐지만 첫 번째
+`relicTR` 전송이 7ms 만에 `sendFailed`를 반환했다. 나머지 세 타일은
+전송하지 않았고 양안 모두 아무 화면도 표시되지 않았다.
+
+```text
+[15:35:46.275] [ENCODE] start · 4 tiles
+[15:35:46.330] [ENCODE] complete · 4 tiles · 55ms
+[15:35:46.330] [TILE] relicTR start · 1/4
+[15:35:46.337] [ERROR] relicTR failed · sendFailed · 7ms
+[15:35:46.338] [ERROR] app startup failed · Error
+```
+
+전송 스케줄러와 Canvas 소스는 SDK 0.0.11 기준선에서 바뀌지 않았다.
+호출자가 만드는 `ImageRawDataUpdate` 필드도 같다. 직렬화된 payload에서
+확인한 차이는 SDK 0.0.12가 자동 추가한 `compressMode: 2`다. 이는 조사
+단서이며 압축이 확정 원인이라는 결론은 내리지 않는다.
+
 ## 실제 G2 직렬 확인 순서
 
-- [ ] 최초 실행에서 네 타일과 양안 표시가 완료된다.
-- [ ] 최초 실행의 타일별 전송 시간이 진단 로그에 남는다.
+- [x] 최초 실행의 첫 타일 실패 시간이 진단 로그에 남는다.
+- [ ] 최초 실행에서 네 타일과 양안 표시가 완료된다. (`sendFailed`)
 - [ ] 일반 페이지 다음·이전 이동이 한 번에 한 페이지만 이동한다.
 - [ ] 오른쪽 두 타일 갱신 시간이 진단 로그에 남는다.
 - [ ] Overview, News, TODO, Weather 상세 진입과 복귀가 동작한다.
@@ -65,9 +84,12 @@ URL:
 - [ ] `SENDFAILED`가 발생하지 않는다.
 - [ ] 가만히 둔 상태에서 WebView가 정지하지 않는다.
 
-## 판정
+## 판정과 대조군
 
-모든 항목을 동시에 시험하지 않는다. 최초 표시, 페이지 이동, 상세 화면,
-숨김·복원, 유휴 안정성 순서로 하나씩 확인한다. 물리 G2 결과를 받은 뒤
-이 문서의 체크 항목과 `Result`를 갱신하며, 그 전에는 SDK 실험 커밋을
-원격에 푸시하지 않는다.
+최초 표시 게이트에서 실패했으므로 후속 동작 시험을 중단했다. 같은 물리
+G2에서 SDK 0.0.11로 고정한 동일 페이지, PNG 인코더, 컨테이너 구조,
+호출 형태와 직렬 스케줄러는 정상 표시된다.
+
+공식팀 재현 절차와 영문 설명은 저장소 루트의
+`SDK-0.0.12-REPRO.md`에 보존한다. Even Hub가 다른 기기에서 실행되면
+로컬 URL의 `localhost`를 개발 PC의 접근 가능한 LAN 주소로 바꾼다.
