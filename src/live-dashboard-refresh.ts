@@ -81,6 +81,7 @@ function isSameNewsState(
       return item.id === other?.id
         && item.title === other.title
         && item.url === other.url
+        && item.summary === other.summary
         && item.publishedAt === other.publishedAt;
     });
 }

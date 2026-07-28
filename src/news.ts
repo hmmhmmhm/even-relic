@@ -1,10 +1,11 @@
 import { readCache, writeCache, type EvenStorage } from "./live-cache";
 import type { DataState, NewsItem } from "./live-state";
+import { logDiagnostic } from "./diagnostic-log";
 
-export const NEWS_MAX_AGE_MS = 10 * 60 * 1000;
+export const NEWS_MAX_AGE_MS = 60 * 60 * 1000;
+export const NEWS_LIMIT = 100;
 const NEWS_TIMEOUT_MS = 8_000;
 const NEWS_URL = "/api/news?feed=sbs-latest";
-const NEWS_LIMIT = 6;
 const NEWS_SUMMARY_MAX_CODE_POINTS = 360;
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
@@ -107,6 +108,32 @@ function cloneItems(items: readonly NewsItem[]): readonly NewsItem[] {
   return items.map((item) => ({ ...item }));
 }
 
+export function mergeNewsItems(
+  network: readonly NewsItem[],
+  cached: readonly NewsItem[],
+): readonly NewsItem[] {
+  const records: Array<NewsItem & { readonly mergeIndex: number }> = [];
+  const seen = new Set<string>();
+  for (const [mergeIndex, item] of [...network, ...cached].entries()) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    records.push({ ...item, mergeIndex });
+  }
+  records.sort((left, right) => {
+    const leftHasDate = left.publishedAt !== undefined;
+    const rightHasDate = right.publishedAt !== undefined;
+    if (leftHasDate && rightHasDate) {
+      const dateOrder = right.publishedAt! - left.publishedAt!;
+      return dateOrder || left.mergeIndex - right.mergeIndex;
+    }
+    if (leftHasDate !== rightHasDate) return leftHasDate ? -1 : 1;
+    return left.mergeIndex - right.mergeIndex;
+  });
+  return records
+    .slice(0, NEWS_LIMIT)
+    .map(({ mergeIndex: _, ...item }) => item);
+}
+
 export function parseNewsRss(xml: string): readonly NewsItem[] {
   const document = new DOMParser().parseFromString(xml, "application/xml");
   if (
@@ -203,7 +230,11 @@ export async function resolveNews(
     const items = parseNewsRss(await response.text());
     if (items.length === 0) throw new Error("NEWS_EMPTY");
 
-    const value = cloneItems(items);
+    const value = mergeNewsItems(items, usableCache?.value ?? []);
+    logDiagnostic(
+      "LIVE",
+      `news merged · network ${items.length} · total ${value.length}`,
+    );
     const cache: NewsCache = { value, fetchedAt: now };
     await writeCache(storage, "news", cache);
     return {

@@ -3,7 +3,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EvenStorage } from "./live-cache";
 import type { NewsItem } from "./live-state";
 import {
+  NEWS_LIMIT,
   NEWS_MAX_AGE_MS,
+  mergeNewsItems,
   parseNewsRss,
   resolveNews,
 } from "./news";
@@ -96,14 +98,27 @@ function setCache(
   );
 }
 
+function rssWithItems(count: number): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+    <rss version="2.0"><channel>
+      ${Array.from({ length: count }, (_, index) => `
+        <item>
+          <title>기사 ${index + 1}</title>
+          <guid>item-${index + 1}</guid>
+          <pubDate>${new Date(NOW - index * 60_000).toUTCString()}</pubDate>
+        </item>
+      `).join("")}
+    </channel></rss>`;
+}
+
 afterEach(() => vi.useRealTimers());
 
 describe("parseNewsRss", () => {
-  it("sanitizes, deduplicates, sorts, and limits headlines to six", () => {
+  it("sanitizes, deduplicates, and sorts all available headlines", () => {
     const items = parseNewsRss(RSS);
 
     expect(items[0]).toEqual(ITEMS[0]);
-    expect(items).toHaveLength(6);
+    expect(items).toHaveLength(7);
     expect(items.map(({ title }) => title)).toEqual([
       "첫 번째 최신 기사",
       "두 번째 & 주요 기사",
@@ -111,8 +126,16 @@ describe("parseNewsRss", () => {
       "네 번째 기사",
       "다섯 번째 기사",
       "여섯 번째 기사",
+      "일곱 번째 제외 기사",
     ]);
     expect(items.every(({ title }) => !/[<>]/.test(title))).toBe(true);
+  });
+
+  it("limits one RSS snapshot to one hundred articles", () => {
+    const items = parseNewsRss(rssWithItems(NEWS_LIMIT + 1));
+
+    expect(items).toHaveLength(NEWS_LIMIT);
+    expect(items.at(-1)?.id).toBe("guid:item-100");
   });
 
   it("removes active markup and limits summaries to 360 code points", () => {
@@ -143,6 +166,33 @@ describe("parseNewsRss", () => {
     expect(items[0].id).toBe("link:https://news.sbs.co.kr/link");
     expect(items[1].id).toMatch(/^title:[0-9a-f]{8}$/);
   });
+
+  it("merges new articles ahead of cached duplicates and caps the library", () => {
+    const cached = Array.from({ length: NEWS_LIMIT }, (_, index) => ({
+      id: `cached-${index}`,
+      title: `캐시 기사 ${index}`,
+      publishedAt: NOW - (index + 1) * 60_000,
+    }));
+
+    const merged = mergeNewsItems([
+      { id: "new", title: "새 기사", publishedAt: NOW },
+      {
+        id: "cached-0",
+        title: "갱신된 캐시 기사",
+        publishedAt: NOW - 30_000,
+      },
+    ], cached);
+
+    expect(merged).toHaveLength(NEWS_LIMIT);
+    expect(merged.slice(0, 3).map(({ id }) => id)).toEqual([
+      "new",
+      "cached-0",
+      "cached-1",
+    ]);
+    expect(merged[1].title).toBe("갱신된 캐시 기사");
+    expect(merged.some(({ id }) => id === `cached-${NEWS_LIMIT - 1}`))
+      .toBe(false);
+  });
 });
 
 describe("resolveNews", () => {
@@ -170,7 +220,11 @@ describe("resolveNews", () => {
 
   it("shows stale cache before refreshing it", async () => {
     const storage = new TestStorage();
-    setCache(storage, [{ ...ITEMS[0], title: "이전 기사" }], NOW - NEWS_MAX_AGE_MS - 1);
+    setCache(storage, [{
+      id: "cached-only",
+      title: "이전 기사",
+      publishedAt: NOW - NEWS_MAX_AGE_MS,
+    }], NOW - NEWS_MAX_AGE_MS - 1);
     const order: string[] = [];
     const fetchImpl = vi.fn(async () => {
       order.push("fetch");
@@ -190,6 +244,7 @@ describe("resolveNews", () => {
     expect(order).toEqual(["cache", "fetch"]);
     expect(result.status).toBe("fresh");
     expect(result.value?.[0].title).toBe("첫 번째 최신 기사");
+    expect(result.value?.some(({ id }) => id === "cached-only")).toBe(true);
   });
 
   it("keeps stale headlines on refresh failure", async () => {
@@ -233,6 +288,15 @@ describe("resolveNews", () => {
     );
     const future = new TestStorage();
     setCache(future, ITEMS, NOW + 1);
+    const oversized = new TestStorage();
+    setCache(
+      oversized,
+      Array.from({ length: NEWS_LIMIT + 1 }, (_, index) => ({
+        id: `oversized-${index}`,
+        title: `초과 기사 ${index}`,
+      })),
+      NOW,
+    );
 
     await expect(
       resolveNews(corrupt, xmlFetch("", { ok: false }), NOW),
@@ -246,9 +310,12 @@ describe("resolveNews", () => {
     await expect(
       resolveNews(controlSummary, xmlFetch("", { ok: false }), NOW),
     ).resolves.toEqual({ status: "unavailable" });
+    await expect(
+      resolveNews(oversized, xmlFetch("", { ok: false }), NOW),
+    ).resolves.toEqual({ status: "unavailable" });
   });
 
-  it("persists six normalized items and survives storage failures", async () => {
+  it("persists the normalized library and survives storage failures", async () => {
     const storage = new TestStorage();
     const writeFailure = new TestStorage("write-fails");
     const readFailure = new TestStorage("read-fails");
