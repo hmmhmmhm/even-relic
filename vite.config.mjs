@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { relicDevApi } from "./server/dev-api.js";
+import { sandevistanDevApi } from "./server/dev-api.js";
 
 export default defineConfig({
   build: {
@@ -21,5 +21,5 @@ export default defineConfig({
     fileParallelism: false,
     maxWorkers: 1,
   },
-  plugins: [relicDevApi(), react()],
+  plugins: [sandevistanDevApi(), react()],
 });

@@ -164,7 +164,7 @@ describe("createLiveDashboardSession", () => {
 
   it("emits a fresh cached weather snapshot only once", async () => {
     const bridge = new TestBridge();
-    bridge.values.set("relic:weather:v1", JSON.stringify({
+    bridge.values.set("sandevistan:weather:v1", JSON.stringify({
       value: {
         temperature: 24,
         apparentTemperature: 25,
@@ -205,7 +205,7 @@ describe("createLiveDashboardSession", () => {
 
   it("does not emit the same stale cache again after a failed refresh", async () => {
     const bridge = new TestBridge();
-    bridge.values.set("relic:weather:v1", JSON.stringify({
+    bridge.values.set("sandevistan:weather:v1", JSON.stringify({
       value: {
         temperature: 24,
         apparentTemperature: 25,
@@ -245,7 +245,7 @@ describe("createLiveDashboardSession", () => {
 
   it("emits stale cache followed by different fresh network weather", async () => {
     const bridge = new TestBridge();
-    bridge.values.set("relic:weather:v1", JSON.stringify({
+    bridge.values.set("sandevistan:weather:v1", JSON.stringify({
       value: {
         temperature: 24,
         apparentTemperature: 25,
@@ -346,7 +346,7 @@ describe("createLiveDashboardSession", () => {
     let now = NOW;
     let canRefreshNews = false;
     const bridge = new TestBridge();
-    bridge.values.set("relic:news:v1", JSON.stringify({
+    bridge.values.set("sandevistan:news:v1", JSON.stringify({
       value: [{
         id: "guid:cached",
         title: "캐시 뉴스",

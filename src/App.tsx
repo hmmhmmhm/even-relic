@@ -496,7 +496,7 @@ export function App({ autoStart = true }: AppProps) {
     <main className="preview-stage">
       <header className="preview-header">
         <div>
-          <strong>RELIC / G2 RASTER TEST</strong>
+          <strong>SANDEVISTAN / G2 RASTER TEST</strong>
           <span>
             {hardwareBmpMode
               ? "1-BIT BMP · CLICK TO SEND"
@@ -550,14 +550,14 @@ export function App({ autoStart = true }: AppProps) {
         data-pages={
           canvasHudMode || hybridHudMode ? HUD_PAGES.length : undefined
         }
-        aria-label="RELIC 이미지 전송 시안"
+        aria-label="SANDEVISTAN 이미지 전송 시안"
       >
         <canvas
           ref={canvasRef}
           width="576"
           height="288"
           role="img"
-          aria-label="RELIC HUD 안경 프레임"
+          aria-label="SANDEVISTAN HUD 안경 프레임"
         />
       </section>
 

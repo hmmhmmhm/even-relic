@@ -19,9 +19,9 @@ function requestHeaders(incoming) {
   return headers;
 }
 
-export function relicDevApi() {
+export function sandevistanDevApi() {
   return {
-    name: "relic-dev-api",
+    name: "sandevistan-dev-api",
     configureServer(server) {
       server.middlewares.use(async (incoming, outgoing, next) => {
         const method = incoming.method ?? "GET";
@@ -46,7 +46,7 @@ export function relicDevApi() {
             {
               error: {
                 code: "INTERNAL_ERROR",
-                message: "RELIC API failed",
+                message: "SANDEVISTAN API failed",
               },
             },
             { status: 500 },

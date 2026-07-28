@@ -215,10 +215,10 @@ describe("G2 raster transport", () => {
     if (!module) return;
 
     expect(module.G2_TILES).toEqual([
-      { id: 2, name: "relicTL", x: 0, y: 0, width: 288, height: 144 },
-      { id: 3, name: "relicTR", x: 288, y: 0, width: 288, height: 144 },
-      { id: 4, name: "relicBL", x: 0, y: 144, width: 288, height: 144 },
-      { id: 5, name: "relicBR", x: 288, y: 144, width: 288, height: 144 },
+      { id: 2, name: "sandevistanTL", x: 0, y: 0, width: 288, height: 144 },
+      { id: 3, name: "sandevistanTR", x: 288, y: 0, width: 288, height: 144 },
+      { id: 4, name: "sandevistanBL", x: 0, y: 144, width: 288, height: 144 },
+      { id: 5, name: "sandevistanBR", x: 288, y: 144, width: 288, height: 144 },
     ]);
   });
 
@@ -736,10 +736,10 @@ describe("G2 raster transport", () => {
 
     expect(harness.imageIds).toEqual([3, 5, 2, 4]);
     expect(diagnosticLogger.text()).toContain(
-      "[TILE] relicTR skipped · unchanged",
+      "[TILE] sandevistanTR skipped · unchanged",
     );
     expect(diagnosticLogger.text()).toContain(
-      "[TILE] relicBR skipped · unchanged",
+      "[TILE] sandevistanBR skipped · unchanged",
     );
     expect(diagnosticLogger.text()).toContain(
       "[REFRESH] image refresh complete · sent 0 · skipped 2",
@@ -787,10 +787,10 @@ describe("G2 raster transport", () => {
 
     expect(harness.imageIds).toEqual([3, 5, 2, 4, 3, 5, 5]);
     expect(diagnosticLogger.text()).toContain(
-      "[TILE] relicTR skipped · unchanged",
+      "[TILE] sandevistanTR skipped · unchanged",
     );
     expect(diagnosticLogger.text()).toContain(
-      "[TILE] relicBR success",
+      "[TILE] sandevistanBR success",
     );
   });
 
@@ -1202,7 +1202,7 @@ describe("G2 raster transport", () => {
     expect(trace).toContain("[INPUT] raw");
     expect(trace).toContain("[REFRESH] input tap accepted");
     expect(trace).toContain("[ENCODE] start · 4 tiles");
-    expect(trace).toContain("[TILE] relicTR success");
+    expect(trace).toContain("[TILE] sandevistanTR success");
     expect(trace).toContain("[REFRESH] hide complete");
     expect(harness.imageIds).toHaveLength(12);
   });

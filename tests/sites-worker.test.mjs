@@ -60,7 +60,7 @@ test("does not turn missing API or write requests into the app shell", async () 
   assert.deepEqual(await apiResponse.json(), {
     error: {
       code: "API_NOT_FOUND",
-      message: "Unknown RELIC API route",
+      message: "Unknown SANDEVISTAN API route",
     },
   });
   assert.equal(apiAssetCalls, 0);

@@ -93,7 +93,7 @@ function setCache(
   fetchedAt: number,
 ) {
   storage.values.set(
-    "relic:news:v1",
+    "sandevistan:news:v1",
     JSON.stringify({ value, fetchedAt }),
   );
 }
@@ -273,7 +273,7 @@ describe("resolveNews", () => {
 
   it("ignores corrupt and future caches", async () => {
     const corrupt = new TestStorage();
-    corrupt.values.set("relic:news:v1", "{bad");
+    corrupt.values.set("sandevistan:news:v1", "{bad");
     const invalidSummary = new TestStorage();
     setCache(
       invalidSummary,
@@ -322,7 +322,7 @@ describe("resolveNews", () => {
 
     const result = await resolveNews(storage, xmlFetch(RSS), NOW);
     expect(storage.writes).toEqual([[
-      "relic:news:v1",
+      "sandevistan:news:v1",
       JSON.stringify({ value: result.value, fetchedAt: NOW }),
     ]]);
     await expect(resolveNews(writeFailure, xmlFetch(RSS), NOW))

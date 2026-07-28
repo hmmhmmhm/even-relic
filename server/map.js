@@ -201,7 +201,7 @@ function normalizeMapPayload(payload, cell) {
 
 function cacheRequest(cell) {
   return new Request(
-    `https://relic-map-cache.invalid/roads-labels-v3?cell=${encodeURIComponent(cell)}`,
+    `https://sandevistan-map-cache.invalid/roads-labels-v3?cell=${encodeURIComponent(cell)}`,
   );
 }
 
@@ -255,7 +255,7 @@ export async function handleMapRequest(
       method: "POST",
       headers: {
         "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
-        "user-agent": "RELIC-G2-Personal-Prototype/0.1",
+        "user-agent": "SANDEVISTAN-G2-Personal-Prototype/0.1",
       },
       body: new URLSearchParams({
         data: buildOverpassQuery(latitude, longitude),

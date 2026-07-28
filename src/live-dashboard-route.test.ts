@@ -83,7 +83,7 @@ class BlockingRouteStorageBridge extends StreamingBridge {
   readonly releaseRouteWrite = deferred<void>();
 
   override async setLocalStorage(key: string, value: string) {
-    if (key === "relic:active-route:v1" && value !== "") {
+    if (key === "sandevistan:active-route:v1" && value !== "") {
       this.routeWriteStarted.resolve();
       await this.releaseRouteWrite.promise;
     }
@@ -243,7 +243,7 @@ describe("live dashboard optional routing", () => {
     });
     expect(updates.at(-1)?.target).toBe("all");
     expect(JSON.parse(
-      bridge.values.get("relic:active-route:v1") ?? "{}",
+      bridge.values.get("sandevistan:active-route:v1") ?? "{}",
     )).toMatchObject({
       destination: DESTINATION,
       route: { destinationName: "서울역" },
@@ -265,7 +265,7 @@ describe("live dashboard optional routing", () => {
 
     await session.endRoute();
     expect(session.getState().route).toEqual({ status: "fresh" });
-    expect(bridge.values.get("relic:active-route:v1")).toBe("");
+    expect(bridge.values.get("sandevistan:active-route:v1")).toBe("");
     expect(updates.at(-1)?.target).toBe("all");
     expect(bridge.startCalls.at(-1)).toEqual({
       accuracy: AppLocationAccuracy.Medium,
@@ -329,7 +329,7 @@ describe("live dashboard optional routing", () => {
     await starting;
 
     expect(session.getState().route).toEqual({ status: "fresh" });
-    expect(bridge.values.get("relic:active-route:v1")).toBe("");
+    expect(bridge.values.get("sandevistan:active-route:v1")).toBe("");
     session.dispose();
   });
 
@@ -351,7 +351,7 @@ describe("live dashboard optional routing", () => {
     await Promise.all([starting, ending]);
 
     expect(session.getState().route).toEqual({ status: "fresh" });
-    expect(bridge.values.get("relic:active-route:v1")).toBe("");
+    expect(bridge.values.get("sandevistan:active-route:v1")).toBe("");
     expect(bridge.startCalls.at(-1)).toEqual({
       accuracy: AppLocationAccuracy.Medium,
       intervalMs: 15_000,
@@ -362,7 +362,7 @@ describe("live dashboard optional routing", () => {
 
   it("restores a recent route as stale and resumes only on request", async () => {
     const bridge = new TestBridge();
-    bridge.values.set("relic:active-route:v1", JSON.stringify({
+    bridge.values.set("sandevistan:active-route:v1", JSON.stringify({
       destination: DESTINATION,
       route: {
         destinationName: "서울역",

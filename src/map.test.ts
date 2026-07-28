@@ -78,7 +78,7 @@ function setCache(
   fetchedAt: number,
 ) {
   storage.values.set(
-    "relic:map-labels:v1",
+    "sandevistan:map-labels:v1",
     JSON.stringify({ value, fetchedAt, cell: value.cell }),
   );
 }
@@ -289,7 +289,7 @@ describe("resolveMap", () => {
       fetchedAt: NOW,
     });
     expect(storage.writes).toEqual([[
-      "relic:map-labels:v1",
+      "sandevistan:map-labels:v1",
       JSON.stringify({
         value: VALUE,
         fetchedAt: NOW,
@@ -307,7 +307,7 @@ describe("resolveMap", () => {
 
   it("ignores the old road-only cache contract", async () => {
     const storage = new TestStorage();
-    storage.values.set("relic:map:v1", JSON.stringify({
+    storage.values.set("sandevistan:map:v1", JSON.stringify({
       value: {
         cell: VALUE.cell,
         attribution: VALUE.attribution,
@@ -321,6 +321,6 @@ describe("resolveMap", () => {
     await expect(resolveMap(storage, CENTER, fetchImpl, NOW))
       .resolves.toMatchObject({ status: "fresh", value: VALUE });
     expect(fetchImpl).toHaveBeenCalledOnce();
-    expect(storage.values.has("relic:map-labels:v1")).toBe(true);
+    expect(storage.values.has("sandevistan:map-labels:v1")).toBe(true);
   });
 });

@@ -1,7 +1,7 @@
 {
-  "package_id": "com.hmmhmmhm.evenrelic",
+  "package_id": "com.hmmhmmhm.sandevistan",
   "edition": "202601",
-  "name": "RELIC",
+  "name": "SANDEVISTAN",
   "version": "0.1.0",
   "min_app_version": "2.0.0",
   "min_sdk_version": "0.0.11",
@@ -13,7 +13,7 @@
     },
     {
       "name": "network",
-      "desc": "현재 날씨와 RELIC 라이브 데이터를 불러옵니다.",
+      "desc": "현재 날씨와 SANDEVISTAN 라이브 데이터를 불러옵니다.",
       "whitelist": ["https://api.open-meteo.com"]
     }
   ],

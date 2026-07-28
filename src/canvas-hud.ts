@@ -164,7 +164,7 @@ function drawHeader(
   drawText(context, "E", 382, 36, 11, COLOR.secondary);
 
   drawFrame(context, 432, 8, 136, 54);
-  drawText(context, "RELIC // LIVE", 440, 13, 10, COLOR.primary, "bold");
+  drawText(context, "SANDEVISTAN // LIVE", 440, 13, 10, COLOR.primary, "bold");
   const pageNumber = HUD_PAGES.indexOf(page) + 1;
   drawText(
     context,

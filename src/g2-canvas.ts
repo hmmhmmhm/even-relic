@@ -35,10 +35,10 @@ const FULLSCREEN_EVENT_LAYER: EventLayerGeometry = {
 };
 
 export const G2_TILES = [
-  { id: 2, name: "relicTL", x: 0, y: 0, width: 288, height: 144 },
-  { id: 3, name: "relicTR", x: 288, y: 0, width: 288, height: 144 },
-  { id: 4, name: "relicBL", x: 0, y: 144, width: 288, height: 144 },
-  { id: 5, name: "relicBR", x: 288, y: 144, width: 288, height: 144 },
+  { id: 2, name: "sandevistanTL", x: 0, y: 0, width: 288, height: 144 },
+  { id: 3, name: "sandevistanTR", x: 288, y: 0, width: 288, height: 144 },
+  { id: 4, name: "sandevistanBL", x: 0, y: 144, width: 288, height: 144 },
+  { id: 5, name: "sandevistanBR", x: 288, y: 144, width: 288, height: 144 },
 ] as const;
 export const G2_FAST_TILES = [
   G2_TILES[1],

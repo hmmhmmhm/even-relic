@@ -30,7 +30,7 @@ export async function handleApiRequest(request, env, dependencies = {}) {
     {
       error: {
         code: "API_NOT_FOUND",
-        message: "Unknown RELIC API route",
+        message: "Unknown SANDEVISTAN API route",
       },
     },
     { status: 404 },

@@ -17,7 +17,7 @@ test("returns a stable JSON error for an unknown API route", async () => {
   assert.deepEqual(await response.json(), {
     error: {
       code: "API_NOT_FOUND",
-      message: "Unknown RELIC API route",
+      message: "Unknown SANDEVISTAN API route",
     },
   });
 });

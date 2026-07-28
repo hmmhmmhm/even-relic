@@ -36,13 +36,13 @@ describe("live cache", () => {
 
     expect(await writeCache(storage, "weather", value)).toBe(true);
     expect(storage.writes).toEqual([
-      ["relic:weather:v1", JSON.stringify(value)],
+      ["sandevistan:weather:v1", JSON.stringify(value)],
     ]);
 
     expect(
       await readCache(storage, "weather", isWeatherCache),
     ).toEqual(value);
-    expect(storage.reads).toEqual(["relic:weather:v1"]);
+    expect(storage.reads).toEqual(["sandevistan:weather:v1"]);
   });
 
   it("returns undefined when the cache is absent, malformed, or invalid", async () => {
@@ -52,10 +52,10 @@ describe("live cache", () => {
 
     expect(await readCache(storage, "missing", isObject)).toBeUndefined();
 
-    storage.values.set("relic:news:v1", "{not-json");
+    storage.values.set("sandevistan:news:v1", "{not-json");
     await expect(readCache(storage, "news", isObject)).resolves.toBeUndefined();
 
-    storage.values.set("relic:weather:v1", JSON.stringify("not an object"));
+    storage.values.set("sandevistan:weather:v1", JSON.stringify("not an object"));
     await expect(
       readCache(storage, "weather", isObject),
     ).resolves.toBeUndefined();
@@ -90,10 +90,10 @@ describe("live cache", () => {
 
   it("clears a cache entry by writing an empty string", async () => {
     const storage = new MemoryStorage();
-    storage.values.set("relic:weather:v1", "cached");
+    storage.values.set("sandevistan:weather:v1", "cached");
 
     expect(await clearCache(storage, "weather")).toBe(true);
-    expect(storage.writes).toEqual([["relic:weather:v1", ""]]);
+    expect(storage.writes).toEqual([["sandevistan:weather:v1", ""]]);
     await expect(
       readCache(storage, "weather", (_value): _value is unknown => true),
     ).resolves.toBeUndefined();

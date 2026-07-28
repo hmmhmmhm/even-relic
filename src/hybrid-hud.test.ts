@@ -149,7 +149,7 @@ describe("hybrid native Text HUD", () => {
       expect(lines[0]).toContain("14:37:42");
       expect(lines[0]).toContain("23°C 맑음");
       expect(lines[0]).toContain(`0${index + 1} / 04`);
-      expect(lines[1]).toBe("RELIC // LIVE   HONGDAE");
+      expect(lines[1]).toBe("SANDEVISTAN // LIVE   HONGDAE");
       expect(lines[2]).toBe("");
       expect(Math.max(...lines.map((line) => Array.from(line).length)))
         .toBeLessThanOrEqual(27);

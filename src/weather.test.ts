@@ -67,7 +67,7 @@ class TestStorage implements EvenStorage {
 }
 
 function setCache(storage: TestStorage, cache: unknown): void {
-  storage.values.set("relic:weather:v1", JSON.stringify(cache));
+  storage.values.set("sandevistan:weather:v1", JSON.stringify(cache));
 }
 
 function jsonFetch(
@@ -350,7 +350,7 @@ describe("resolveWeather", () => {
     ],
   ])("ignores %s cache data", async (_name, raw) => {
     const storage = new TestStorage();
-    storage.values.set("relic:weather:v1", raw);
+    storage.values.set("sandevistan:weather:v1", raw);
     const cachedStates: unknown[] = [];
 
     await expect(
@@ -399,7 +399,7 @@ describe("resolveWeather", () => {
 
     expect(storage.writes).toEqual([
       [
-        "relic:weather:v1",
+        "sandevistan:weather:v1",
         JSON.stringify({ value: WEATHER, fetchedAt: NOW, coordinate: SEOUL }),
       ],
     ]);

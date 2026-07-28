@@ -28,7 +28,7 @@ export async function readCache<T>(
   logDiagnostic("STORAGE", `read ${key} start`);
   let raw: string;
   try {
-    raw = await storage.getLocalStorage(`relic:${key}:v1`);
+    raw = await storage.getLocalStorage(`sandevistan:${key}:v1`);
   } catch (error) {
     logDiagnostic(
       "ERROR",
@@ -73,7 +73,7 @@ export async function writeCache<T>(
   logDiagnostic("STORAGE", `write ${key} start`);
   try {
     const result = await storage.setLocalStorage(
-      `relic:${key}:v1`,
+      `sandevistan:${key}:v1`,
       JSON.stringify(value),
     );
     logDiagnostic(
@@ -99,7 +99,7 @@ export async function clearCache(
   const startedAt = diagnosticNow();
   logDiagnostic("STORAGE", `clear ${key} start`);
   try {
-    const result = await storage.setLocalStorage(`relic:${key}:v1`, "");
+    const result = await storage.setLocalStorage(`sandevistan:${key}:v1`, "");
     logDiagnostic(
       "STORAGE",
       `clear ${key} ${result ? "success" : "rejected"}`,

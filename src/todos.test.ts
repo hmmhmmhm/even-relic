@@ -32,14 +32,14 @@ const SAVED_TODOS = [
 ] as const;
 
 function setTodos(storage: TestStorage, value: unknown): void {
-  storage.values.set("relic:todos:v1", JSON.stringify(value));
+  storage.values.set("sandevistan:todos:v1", JSON.stringify(value));
 }
 
 describe("resolveTodos", () => {
   it("uses the three default tasks when no valid cache exists", async () => {
     const empty = new TestStorage();
     const corrupt = new TestStorage();
-    corrupt.values.set("relic:todos:v1", "{bad");
+    corrupt.values.set("sandevistan:todos:v1", "{bad");
 
     await expect(resolveTodos(empty)).resolves.toEqual([
       { id: "station", title: "지하철역으로 이동", completed: false },
@@ -112,7 +112,7 @@ describe("todo changes", () => {
 
     await expect(writeTodos(working, changed)).resolves.toBe(true);
     expect(working.writes).toEqual([[
-      "relic:todos:v1",
+      "sandevistan:todos:v1",
       JSON.stringify(changed),
     ]]);
     await expect(writeTodos(new TestStorage(true), changed))

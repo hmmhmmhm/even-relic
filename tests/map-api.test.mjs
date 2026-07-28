@@ -106,7 +106,7 @@ test("builds a bounded labelled Overpass query and normalizes geometry", async (
   assert.equal(calls[0].options.redirect, "error");
   assert.deepEqual(calls[0].options.headers, {
     "content-type": "application/x-www-form-urlencoded;charset=UTF-8",
-    "user-agent": "RELIC-G2-Personal-Prototype/0.1",
+    "user-agent": "SANDEVISTAN-G2-Personal-Prototype/0.1",
   });
   const query = calls[0].options.body.get("data");
   assert.match(query, /way\["highway"\]\(around:650,37\.5563,126\.922\)/);

@@ -151,12 +151,12 @@ afterEach(() => {
   window.history.replaceState({}, "", "/");
 });
 
-describe("RELIC peripheral HUD", () => {
+describe("SANDEVISTAN peripheral HUD", () => {
   it("uses one 576 by 288 canvas as the only visible HUD surface", () => {
     render(<App autoStart={false} />);
 
     const hud = screen.getByTestId("hud-frame");
-    const canvas = screen.getByRole("img", { name: "RELIC HUD 안경 프레임" });
+    const canvas = screen.getByRole("img", { name: "SANDEVISTAN HUD 안경 프레임" });
 
     expect(hud.getAttribute("data-logical-size")).toBe("576x288");
     expect(hud.dataset.textContainers).toBe("1");

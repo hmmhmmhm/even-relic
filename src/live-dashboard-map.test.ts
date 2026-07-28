@@ -271,7 +271,7 @@ describe("live dashboard map integration", () => {
     expect(vi.mocked(fetchImpl).mock.calls.filter(
       ([input]) => String(input).startsWith("/api/map"),
     )).toHaveLength(mapCallsAtStart);
-    expect(JSON.parse(bridge.values.get("relic:location:v1") ?? "{}"))
+    expect(JSON.parse(bridge.values.get("sandevistan:location:v1") ?? "{}"))
       .toMatchObject({
         value: {
           coordinate: { latitude: 37.55645, longitude: 126.922 },
@@ -329,7 +329,7 @@ describe("live dashboard map integration", () => {
     ));
     await vi.waitFor(() => expect(session.getState().map.status).toBe("fresh"));
     expect(session.getState().location.value?.coordinate).toEqual(firstMoved);
-    expect(JSON.parse(bridge.values.get("relic:location:v1") ?? "{}"))
+    expect(JSON.parse(bridge.values.get("sandevistan:location:v1") ?? "{}"))
       .toMatchObject({ value: { coordinate: firstMoved } });
     expect(diagnosticLogger.text()).not.toContain("pending");
 
@@ -446,7 +446,7 @@ describe("live dashboard map integration", () => {
     });
     await session.start();
     const initialMap = session.getState().map.value;
-    bridge.values.delete("relic:map-labels:v1");
+    bridge.values.delete("sandevistan:map-labels:v1");
 
     currentTime += 15_000;
     bridge.emit({

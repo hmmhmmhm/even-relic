@@ -58,7 +58,7 @@ function bridgeReturning(
 }
 
 function setLocationCache(bridge: TestLocationBridge, cache: unknown): void {
-  bridge.values.set("relic:location:v1", JSON.stringify(cache));
+  bridge.values.set("sandevistan:location:v1", JSON.stringify(cache));
 }
 
 describe("resolveInitialLocation", () => {
@@ -95,7 +95,7 @@ describe("resolveInitialLocation", () => {
     ]);
     expect(bridge.writes).toEqual([
       [
-        "relic:location:v1",
+        "sandevistan:location:v1",
         JSON.stringify({
           value: {
             coordinate: { latitude: 37.5665, longitude: 126.978 },
@@ -135,7 +135,7 @@ describe("resolveInitialLocation", () => {
       fetchedAt,
     });
     expect(bridge.locationOptions).toHaveLength(1);
-    expect(bridge.reads).toEqual(["relic:location:v1"]);
+    expect(bridge.reads).toEqual(["sandevistan:location:v1"]);
   });
 
   it("falls back from a thrown SDK error to a valid cache", async () => {
@@ -425,7 +425,7 @@ describe("resolveInitialLocation", () => {
       status: "unavailable",
       value: { source: "demo" },
     });
-    expect(bridge.reads).toEqual(["relic:location:v1"]);
+    expect(bridge.reads).toEqual(["sandevistan:location:v1"]);
   });
 
   it("returns a fresh demo coordinate that cannot mutate the global default", async () => {
@@ -501,7 +501,7 @@ describe("continuous location helpers", () => {
 
     await expect(persistLiveLocation(bridge, state)).resolves.toBe(true);
     expect(bridge.writes).toEqual([[
-      "relic:location:v1",
+      "sandevistan:location:v1",
       JSON.stringify({
         value: state.value,
         fetchedAt: state.fetchedAt,
