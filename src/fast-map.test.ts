@@ -25,6 +25,13 @@ type Rectangle = {
   readonly args: readonly [number, number, number, number];
   readonly order: number;
 };
+type Arc = {
+  readonly x: number;
+  readonly y: number;
+  readonly radius: number;
+  readonly startAngle: number;
+  readonly endAngle: number;
+};
 
 function liveState(): LiveDashboardState {
   const initial = createInitialLiveDashboardState();
@@ -115,6 +122,7 @@ function draw(
   }> = [];
   const texts: Text[] = [];
   const rectangles: Rectangle[] = [];
+  const arcs: Arc[] = [];
   let fillStyle = "";
   let strokeStyle = "";
   let lineWidth = 1;
@@ -170,6 +178,15 @@ function draw(
     lineTo: (x: number, y: number) => {
       points.push([x, y]);
     },
+    arc: (
+      x: number,
+      y: number,
+      radius: number,
+      startAngle: number,
+      endAngle: number,
+    ) => {
+      arcs.push({ x, y, radius, startAngle, endAngle });
+    },
     closePath: () => undefined,
     stroke: () => {
       strokes.push({
@@ -191,7 +208,7 @@ function draw(
   } as unknown as HTMLCanvasElement;
   if (fullscreen) drawFastFullscreenMap(canvas, live, radiusMeters);
   else drawFastMap(context, live, radiusMeters);
-  return { canvas, strokes, fills, texts, rectangles };
+  return { arcs, canvas, strokes, fills, texts, rectangles };
 }
 
 describe("fast OSM map Canvas layer", () => {
@@ -256,7 +273,7 @@ describe("fast OSM map Canvas layer", () => {
     }
   });
 
-  it("always shows attribution and labels a fallback as schematic", () => {
+  it("shows honest empty states without schematic geometry or markers", () => {
     expect(draw(liveState()).texts.map(({ value }) => value)).toEqual(
       expect.arrayContaining([
       "LOC // LIVE · OSM",
@@ -265,16 +282,63 @@ describe("fast OSM map Canvas layer", () => {
     );
 
     const initial = createInitialLiveDashboardState();
-    const fallback = draw({
-      ...initial,
+    const noGps = draw(initial);
+    expect(noGps.texts.map(({ value }) => value)).toContain("NO GPS DATA");
+    expect(noGps.strokes).toEqual([]);
+    expect(noGps.fills).toEqual([]);
+
+    const base = liveState();
+    const noMap = draw({
+      ...base,
       map: { status: "unavailable" },
     });
-    expect(fallback.texts.map(({ value }) => value)).toEqual(
-      expect.arrayContaining([
-      "LOC // DEMO · SCHEMATIC",
-      "© OSM CONTRIBUTORS",
-      ]),
-    );
+    expect(noMap.texts.map(({ value }) => value)).toContain("NO DATA");
+    expect(noMap.strokes).toEqual([]);
+    expect(noMap.fills).toEqual([]);
+
+    const emptyMap = draw({
+      ...base,
+      map: {
+        status: "fresh",
+        value: {
+          cell: "37.555,126.920",
+          attribution: "© OSM CONTRIBUTORS",
+          roads: [],
+          labels: [],
+        },
+      },
+    });
+    expect(emptyMap.texts.map(({ value }) => value)).toContain("NO DATA");
+    expect(emptyMap.strokes).toEqual([]);
+    expect(emptyMap.fills).toEqual([]);
+  });
+
+  it("draws a hollow circle only when map data exists without heading", () => {
+    const base = liveState();
+    const withoutHeading = draw({
+      ...base,
+      location: {
+        ...base.location,
+        value: {
+          coordinate: base.location.value!.coordinate,
+          source: "live",
+        },
+      },
+      route: { status: "disabled" },
+    });
+
+    expect(withoutHeading.arcs).toEqual([{
+      x: 144,
+      y: 144,
+      radius: 8,
+      startAngle: 0,
+      endAngle: Math.PI * 2,
+    }]);
+    expect(withoutHeading.fills).toEqual([]);
+    expect(withoutHeading.strokes.at(-1)).toMatchObject({
+      style: "#ffffff",
+      width: 2,
+    });
   });
 
   it("draws live geometry, zoom, and guidance across the full display", () => {
@@ -310,6 +374,7 @@ describe("fast OSM map Canvas layer", () => {
       [288, 148],
       [281, 152],
     ]);
+    expect(full.arcs).toEqual([]);
     expect(full.texts.filter(({ value }) => [
       "홍대입구역",
       "양화로",

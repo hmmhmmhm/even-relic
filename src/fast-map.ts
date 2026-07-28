@@ -104,14 +104,22 @@ function mapDescriptor(
   location: DataState<LocationValue>,
   map: DataState<MapValue>,
 ) {
-  const source = location.value?.source === "live"
+  const source = !location.value || location.value.source === "demo"
+    ? "NO GPS"
+    : location.value.source === "live"
     ? "LIVE"
     : location.value?.source === "cache"
       ? "LAST FIX"
-      : "DEMO";
-  const layer = map.status === "fresh" || map.status === "stale"
+      : "NO GPS";
+  const value = map.status === "fresh" || map.status === "stale"
+    ? map.value
+    : undefined;
+  const hasMapData = Boolean(
+    value && (value.roads.length > 0 || value.labels.length > 0),
+  );
+  const layer = hasMapData
     ? map.status === "stale" ? "OSM LAST" : "OSM"
-    : "SCHEMATIC";
+    : "NO DATA";
   return { source, layer };
 }
 
@@ -121,36 +129,6 @@ function mapHeader(
 ) {
   const { source, layer } = mapDescriptor(location, map);
   return `LOC // ${source} · ${layer}`;
-}
-
-function drawSchematicRoads(
-  context: CanvasRenderingContext2D,
-  viewport: MapLabelViewport,
-) {
-  const roads: readonly Point[][] = [
-    [[18, 52], [78, 42], [130, 64], [202, 48], [270, 62]],
-    [[18, 88], [68, 82], [126, 94], [190, 78], [270, 90]],
-    [[18, 126], [76, 114], [134, 132], [198, 118], [270, 128]],
-    [[18, 166], [62, 152], [126, 172], [202, 154], [270, 166]],
-    [[18, 208], [82, 192], [144, 214], [214, 198], [270, 208]],
-    [[46, 34], [52, 244]],
-    [[108, 34], [98, 244]],
-    [[172, 34], [182, 244]],
-    [[234, 34], [226, 244]],
-  ];
-  const scaleX = (viewport.maxX - viewport.minX) / (270 - 18);
-  const scaleY = (viewport.maxY - viewport.minY) / (244 - 34);
-  for (const road of roads) {
-    drawPath(
-      context,
-      road.map(([x, y]) => [
-        viewport.minX + (x - 18) * scaleX,
-        viewport.minY + (y - 34) * scaleY,
-      ]),
-      COLOR.dim,
-      1,
-    );
-  }
 }
 
 function drawRoads(
@@ -231,12 +209,26 @@ function drawRoute(
   drawPath(context, points, COLOR.primary, 3);
 }
 
-function drawPositionArrow(
+function drawPositionMarker(
   context: CanvasRenderingContext2D,
   viewport: MapLabelViewport,
-  heading = 0,
+  heading: number | undefined,
 ) {
-  const angle = Number.isFinite(heading) ? heading * Math.PI / 180 : 0;
+  if (!Number.isFinite(heading)) {
+    context.beginPath();
+    context.arc(
+      viewport.centerX,
+      viewport.centerY,
+      8,
+      0,
+      Math.PI * 2,
+    );
+    context.strokeStyle = COLOR.primary;
+    context.lineWidth = 2;
+    context.stroke();
+    return;
+  }
+  const angle = heading! * Math.PI / 180;
   const cosine = Math.cos(angle);
   const sine = Math.sin(angle);
   const points: readonly Point[] = [
@@ -260,19 +252,22 @@ function drawFooter(
   map: DataState<MapValue>,
   route: DataState<RouteValue>,
   radiusMeters: number,
+  mapStatus: "ready" | "NO GPS DATA" | "NO DATA",
 ) {
   context.fillStyle = COLOR.background;
   context.fillRect(12, 250, 264, 25);
   context.fillStyle = COLOR.dim;
   context.fillRect(12, 249, 264, 1);
   const active = activeRoute(route);
-  const status = active
+  const status = mapStatus !== "ready"
+    ? mapStatus
+    : active
     ? `ROUTE ${(active.remainingDistance / 1_000).toFixed(1)}km`
     : map.status === "fresh"
       ? "OSM LIVE"
       : map.status === "stale"
         ? "OSM LAST"
-        : "SCHEMATIC";
+        : "NO DATA";
   drawText(context, status, 18, 256, 10, COLOR.primary, "bold");
   drawText(
     context,
@@ -294,36 +289,73 @@ function drawFooter(
   );
 }
 
+type MapAreaState =
+  | { readonly status: "NO GPS DATA" | "NO DATA" }
+  | {
+      readonly status: "ready";
+      readonly center: Coordinate;
+      readonly map: MapValue;
+    };
+
+function mapAreaState(live: LiveDashboardState): MapAreaState {
+  const location = live.location.value;
+  if (!location?.coordinate || location.source === "demo") {
+    return { status: "NO GPS DATA" };
+  }
+  const map = live.map.status === "fresh" || live.map.status === "stale"
+    ? live.map.value
+    : undefined;
+  if (!map || (map.roads.length === 0 && map.labels.length === 0)) {
+    return { status: "NO DATA" };
+  }
+  return {
+    status: "ready",
+    center: location.coordinate,
+    map,
+  };
+}
+
+function drawMapStatus(
+  context: CanvasRenderingContext2D,
+  viewport: MapLabelViewport,
+  status: "NO GPS DATA" | "NO DATA",
+) {
+  context.fillStyle = COLOR.primary;
+  context.font = 'bold 18px "SFMono-Regular", Consolas, monospace';
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.fillText(status, viewport.centerX, viewport.centerY);
+}
+
 function drawMapLayers(
   context: CanvasRenderingContext2D,
   live: LiveDashboardState,
   viewport: MapLabelViewport,
   radiusMeters: number,
   maximumLabels: number,
-) {
-  const center = live.location.value?.coordinate;
-  const map = live.map.status === "fresh" || live.map.status === "stale"
-    ? live.map.value
-    : undefined;
-  if (center && map) {
-    drawRoads(context, map, center, viewport, radiusMeters);
-    drawMapLabels(
-      context,
-      map,
-      center,
-      viewport,
-      radiusMeters,
-      maximumLabels,
-    );
-  } else {
-    drawSchematicRoads(context, viewport);
+): MapAreaState {
+  const area = mapAreaState(live);
+  if (area.status !== "ready") {
+    drawMapStatus(context, viewport, area.status);
+    return area;
   }
 
+  const { center, map } = area;
+  drawRoads(context, map, center, viewport, radiusMeters);
+  drawMapLabels(
+    context,
+    map,
+    center,
+    viewport,
+    radiusMeters,
+    maximumLabels,
+  );
   const route = activeRoute(live.route);
-  if (center && route) {
+  if (route) {
     drawRoute(context, route, center, viewport, radiusMeters);
   }
-  drawPositionArrow(context, viewport, live.location.value?.heading);
+  drawPositionMarker(context, viewport, live.location.value?.heading);
+  return area;
 }
 
 export function drawFastMap(
@@ -341,14 +373,14 @@ export function drawFastMap(
     COLOR.secondary,
     "bold",
   );
-  drawMapLayers(
+  const area = drawMapLayers(
     context,
     live,
     EMBEDDED_MAP_VIEWPORT,
     radiusMeters,
     10,
   );
-  drawFooter(context, live.map, live.route, radiusMeters);
+  drawFooter(context, live.map, live.route, radiusMeters, area.status);
 }
 
 function drawFullscreenHeader(
