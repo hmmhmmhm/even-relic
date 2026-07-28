@@ -5,9 +5,11 @@ Even Realities G2에서 빠르게 읽을 수 있는 개인용 전술 HUD를 만�
 576×288 Canvas 한 장을 네 개의 288×144 이미지로 나누어 G2에 직렬
 전송한다.
 
-SDK는 `@evenrealities/even_hub_sdk` `0.0.11`로 고정한다. 실제 G2에서
-`0.0.12`의 LZ4 이미지 전송이 `SENDFAILED`를 일으켰기 때문에 별도의
-실제 기기 검증 전에는 올리지 않는다.
+SDK는 물리 G2에서 검증된 `@evenrealities/even_hub_sdk` `0.0.11`로
+고정한다. 격리한 `0.0.12` 실험은 동일한 Canvas·타일·직렬 전송 코드에서
+첫 타일을 `7ms` 만에 `sendFailed`로 거부했고 안경에는 아무 화면도
+표시하지 못했다. `0.0.12`가 자동 추가한 `compressMode: 2` 경로는 현재
+Even 앱/안경 조합에서 호환되지 않는 것으로 기록하고 다시 차단한다.
 
 ## 현재 HUD
 
@@ -28,8 +30,9 @@ G2 전송 계약은 다음과 같다.
 - 페이지 전환: 오른쪽 `3 → 5`
 - 지도 이동: 왼쪽 `2 → 4`
 - 시계와 보이는 배터리 변경: 오른쪽 위 `3`
-- 모든 이미지 전송은 하나의 큐에서 직렬 실행
-- 서로 다른 영역의 갱신이 겹치면 최신 상태의 네 타일로 통합
+- 승인된 한 번의 이미지 갱신 안에서만 타일을 직렬 전송
+- 마지막으로 전송에 성공한 바이트와 동일한 타일은 SDK 호출 생략
+- 전송 중 들어온 갱신 요청은 적재·통합·재시도하지 않고 즉시 폐기
 
 ## 키 없이 동작하는 기능
 
@@ -131,17 +134,20 @@ ORS_API_KEY='<server-only-key>' \
 Even 앱의 `Even Hub → Scan QR`에서 다음 형태의 주소를 연다.
 
 ```text
-http://<TAILSCALE-IP>:4176/hud-canvas-fast?sdk=0.0.11&build=<BUILD-ID>
+http://<TAILSCALE-IP>:4176/hud-canvas-fast?sdk=<SDK>&build=<BUILD-ID>
 ```
 
 일반 Safari에서는 Canvas 미리보기만 보이며 안경 전송은 일어나지 않는다.
 G2 전송은 Even 앱 브리지로 열었을 때만 시작한다.
 
-현재 물리 테스트에 고정된 상세 덱 빌드는 다음과 같다.
+현재 물리 테스트 실험 URL은 다음과 같다.
 
 ```text
-http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=detail-decks-019
+http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=dirty-tiles-032
 ```
+
+실험이 실패해도 복구할 수 있도록 원격 커밋 `90a9421`에는 생략 로직이
+없는 `0.0.11` 기준선이 보존되어 있다.
 
 ## 검증
 
@@ -188,6 +194,8 @@ npm run pack
 
 - [최초 G2 이미지 전송 성공](docs/hardware/2026-07-26-first-g2-image-success.md)
 - [SDK 0.0.11 전송 성공](docs/hardware/2026-07-27-sdk-0011-transport-success.md)
+- [SDK 0.0.12 LZ4 실험](docs/hardware/2026-07-28-sdk-0012-lz4-experiment.md)
+- [동일 G2 타일 전송 생략 실험](docs/hardware/2026-07-28-g2-unchanged-tile-skip.md)
 - [실시간 시계, 배터리, 이동 지도](docs/hardware/2026-07-27-g2-live-refresh.md)
 - [OSM 지명 가독성](docs/hardware/2026-07-27-balanced-osm-labels.md)
 - [전체 화면 지도 체크포인트](docs/hardware/2026-07-27-g2-fullscreen-map.md)

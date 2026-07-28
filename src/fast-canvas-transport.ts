@@ -53,6 +53,17 @@ const diagnosticError = (error: unknown) => (
   error instanceof Error ? error.message : String(error)
 );
 
+const bytesEqual = (
+  left: Uint8Array | undefined,
+  right: Uint8Array,
+) => {
+  if (!left || left.length !== right.length) return false;
+  for (let index = 0; index < right.length; index += 1) {
+    if (left[index] !== right[index]) return false;
+  }
+  return true;
+};
+
 const TILE_SEND_TIMEOUT_MS = 12_000;
 
 function waitForTileSend<T>(
@@ -128,6 +139,7 @@ export async function transmitCanvas(
     throw new Error(`안경 페이지 생성 실패: ${created}`);
   }
 
+  const lastSuccessfulTilePayload = new Map<number, Uint8Array>();
   const refreshImages = async (
     imageSource: HTMLCanvasElement,
     targetTiles: readonly Tile[],
@@ -161,9 +173,16 @@ export async function transmitCanvas(
       throw error;
     }
     if (!shouldContinue()) return;
+    let sentCount = 0;
+    let skippedCount = 0;
     await sendTilesSequentially(encodedTiles, async (bytes, index) => {
       if (!shouldContinue()) return;
       const tile = targetTiles[index];
+      if (bytesEqual(lastSuccessfulTilePayload.get(tile.id), bytes)) {
+        skippedCount += 1;
+        logDiagnostic("TILE", `${tile.name} skipped · unchanged`);
+        return;
+      }
       const tileStartedAt = diagnosticNow();
       logDiagnostic(
         "TILE",
@@ -202,9 +221,15 @@ export async function transmitCanvas(
         `${tile.name} success`,
         diagnosticDuration(tileStartedAt),
       );
+      lastSuccessfulTilePayload.set(tile.id, bytes.slice());
+      sentCount += 1;
       onProgress(`안경 이미지 전송 중 ${index + 1}/${targetTiles.length}`);
     });
     if (!shouldContinue()) return;
+    logDiagnostic(
+      "REFRESH",
+      `image refresh complete · sent ${sentCount} · skipped ${skippedCount}`,
+    );
     onProgress(completionMessage);
     try {
       onDisplayCommitted?.();

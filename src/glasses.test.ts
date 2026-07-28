@@ -160,7 +160,7 @@ async function createFastRefreshHarness(
             ids,
             currentEncodeAttempt,
             sourceName,
-          ) ?? ids.map((id) => new Uint8Array([id]));
+          ) ?? ids.map((id) => new Uint8Array([id, currentEncodeAttempt]));
         },
       },
       onInput: (input) => {
@@ -570,7 +570,10 @@ describe("G2 raster transport", () => {
           ) => {
             order.push("encode");
             encodedTileIds.push(tiles.map(({ id }) => id));
-            return tiles.map(({ id }) => new Uint8Array([id]));
+            return tiles.map(({ id }) => new Uint8Array([
+              id,
+              encodedTileIds.length,
+            ]));
           },
         },
         onBattery: (battery: unknown) => batteries.push(battery),
@@ -720,6 +723,77 @@ describe("G2 raster transport", () => {
     expect(harness.imageIds).toEqual([3, 5, 2, 4, 3]);
   });
 
+  it("skips every unchanged tile without calling the image bridge", async () => {
+    const harness = await createFastRefreshHarness({
+      encode: async (ids) => ids.map((id) => new Uint8Array([id])),
+    });
+    diagnosticLogger.clear();
+
+    harness.request("right");
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "[REFRESH] external right complete",
+    ));
+
+    expect(harness.imageIds).toEqual([3, 5, 2, 4]);
+    expect(diagnosticLogger.text()).toContain(
+      "[TILE] relicTR skipped · unchanged",
+    );
+    expect(diagnosticLogger.text()).toContain(
+      "[TILE] relicBR skipped · unchanged",
+    );
+    expect(diagnosticLogger.text()).toContain(
+      "[REFRESH] image refresh complete · sent 0 · skipped 2",
+    );
+  });
+
+  it("sends only the tile whose encoded payload changed", async () => {
+    const harness = await createFastRefreshHarness({
+      encode: async (ids, attempt) => ids.map((id) => new Uint8Array([
+        id,
+        attempt > 1 && id === 5 ? 1 : 0,
+      ])),
+    });
+
+    harness.request("right");
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(5));
+
+    expect(harness.imageIds).toEqual([3, 5, 2, 4, 5]);
+    expect(diagnosticLogger.text()).toContain(
+      "[REFRESH] image refresh complete · sent 1 · skipped 1",
+    );
+  });
+
+  it("keeps successful tile cache entries when a later tile send fails", async () => {
+    const harness = await createFastRefreshHarness({
+      encode: async (ids, attempt) => ids.map((id) => new Uint8Array([
+        id,
+        attempt > 1 ? 1 : 0,
+      ])),
+      update: async (id, _call, encodeAttempt) => (
+        encodeAttempt === 2 && id === 5 ? "sendFailed" : "success"
+      ),
+    });
+
+    harness.request("right");
+    await vi.waitFor(() => expect(
+      harness.progress.some((message) => message.includes("sendFailed")),
+    ).toBe(true));
+    diagnosticLogger.clear();
+
+    harness.request("right");
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "[REFRESH] external right complete",
+    ));
+
+    expect(harness.imageIds).toEqual([3, 5, 2, 4, 3, 5, 5]);
+    expect(diagnosticLogger.text()).toContain(
+      "[TILE] relicTR skipped · unchanged",
+    );
+    expect(diagnosticLogger.text()).toContain(
+      "[TILE] relicBR success",
+    );
+  });
+
   it("accepts a new target only after the prior refresh completes", async () => {
     const harness = await createFastRefreshHarness();
 
@@ -745,9 +819,9 @@ describe("G2 raster transport", () => {
       beforeExternalRefresh: async () => {
         order.push("redraw");
       },
-      encode: async (ids) => {
+      encode: async (ids, attempt) => {
         if (initialized) order.push(`encode:${ids.join(",")}`);
-        return ids.map((id) => new Uint8Array([id]));
+        return ids.map((id) => new Uint8Array([id, attempt]));
       },
     });
     initialized = true;
@@ -804,7 +878,7 @@ describe("G2 raster transport", () => {
           failNextExternalEncode = false;
           throw new Error("encode exploded");
         }
-        return ids.map((id) => new Uint8Array([id]));
+        return ids.map((id) => new Uint8Array([id, attempt]));
       },
     });
 
@@ -924,7 +998,10 @@ describe("G2 raster transport", () => {
       },
       encode: async (ids, attempt, source) => {
         if (attempt > 1) order.push(`encode:${source}:${ids.join(",")}`);
-        return ids.map((id) => new Uint8Array([id]));
+        return ids.map((id) => new Uint8Array([
+          id,
+          source === "black" ? 1 : 0,
+        ]));
       },
     });
 
@@ -1344,7 +1421,10 @@ describe("G2 raster transport", () => {
               source: source === blackSource ? "black" : "hud",
               ids: tiles.map(({ id }) => id),
             });
-            return tiles.map(({ id }) => new Uint8Array([id]));
+            return tiles.map(({ id }) => new Uint8Array([
+              id,
+              encodes.length,
+            ]));
           },
         },
         createHiddenSource: () => blackSource,
@@ -1447,7 +1527,10 @@ describe("G2 raster transport", () => {
               activeTransfer = "scroll";
             }
             transfers.push(activeTransfer);
-            return tiles.map(({ id }) => new Uint8Array([id]));
+            return tiles.map(({ id }) => new Uint8Array([
+              id,
+              transfers.length,
+            ]));
           },
         },
         createHiddenSource: () => blackSource,
@@ -1850,12 +1933,19 @@ describe("G2 raster transport", () => {
       shutDownPageContainer: async () => true,
     };
 
+    let encodeAttempt = 0;
     const unsubscribe = await module.transmitCanvas(
       {} as HTMLCanvasElement,
       () => undefined,
       {
         waitForBridge: async () => bridge,
-        encode: async () => module.G2_TILES.map(({ id }) => new Uint8Array([id])),
+        encode: async () => {
+          encodeAttempt += 1;
+          return module.G2_TILES.map(({ id }) => new Uint8Array([
+            id,
+            encodeAttempt,
+          ]));
+        },
       },
       module.G2_TILES,
       async (direction: string) => {
@@ -1917,12 +2007,19 @@ describe("G2 raster transport", () => {
       shutDownPageContainer: async () => true,
     };
 
+    let encodeAttempt = 0;
     await module.transmitCanvas(
       {} as HTMLCanvasElement,
       () => undefined,
       {
         waitForBridge: async () => bridge,
-        encode: async () => module.G2_TILES.map(({ id }) => new Uint8Array([id])),
+        encode: async () => {
+          encodeAttempt += 1;
+          return module.G2_TILES.map(({ id }) => new Uint8Array([
+            id,
+            encodeAttempt,
+          ]));
+        },
       },
       module.G2_TILES,
       async (direction: string) => {
