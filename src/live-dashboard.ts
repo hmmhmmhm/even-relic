@@ -44,6 +44,7 @@ type DocumentTarget = Pick<
 type LiveDashboardSessionOptions = {
   readonly bridge: LocationBridge;
   readonly onUpdate: (update: LiveDashboardUpdate) => void;
+  readonly canRefreshNews?: () => boolean;
   readonly fetchImpl?: typeof fetch;
   readonly now?: () => number;
   readonly documentTarget?: DocumentTarget;
@@ -99,6 +100,7 @@ export function createLiveDashboardSession(
   ): Promise<void>;
   resumeRoute(): Promise<void>;
   endRoute(): Promise<void>;
+  refreshNewsIfDue(): void;
   toggleTodo(index: number): Promise<boolean>;
   getState(): LiveDashboardState;
   dispose(): void;
@@ -377,18 +379,32 @@ export function createLiveDashboardSession(
     ) {
       void refresh.refreshWeather();
     }
-    if (
-      state.news.fetchedAt === undefined
-      || currentTime - state.news.fetchedAt >= NEWS_MAX_AGE_MS
-    ) {
-      void refresh.refreshNews();
-    }
+    refreshNewsIfDue();
     if (
       state.map.fetchedAt === undefined
       || currentTime - state.map.fetchedAt >= MAP_MAX_AGE_MS
     ) {
       void refresh.refreshMap();
     }
+  };
+
+  const refreshNewsIfDue = () => {
+    if (disposed) {
+      logDiagnostic("LIVE", "news due check skipped · disposed");
+      return;
+    }
+    if (options.canRefreshNews && !options.canRefreshNews()) {
+      logDiagnostic("LIVE", "news refill skipped · reading");
+      return;
+    }
+    const fetchedAt = state.news.fetchedAt;
+    if (
+      fetchedAt !== undefined
+      && now() - fetchedAt < NEWS_MAX_AGE_MS
+    ) {
+      return;
+    }
+    void refresh.refreshNews();
   };
 
   const start = (): Promise<void> => {
@@ -473,6 +489,7 @@ export function createLiveDashboardSession(
     startRoute: routeSession.startRoute,
     resumeRoute: routeSession.resumeRoute,
     endRoute: routeSession.endRoute,
+    refreshNewsIfDue,
     toggleTodo: toggleTodoAt,
     getState: () => clone(state),
     dispose: () => {

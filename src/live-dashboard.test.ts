@@ -6,6 +6,7 @@ import {
   createLiveDashboardSession,
   type LiveDashboardUpdate,
 } from "./live-dashboard";
+import { NEWS_MAX_AGE_MS } from "./news";
 import { WEATHER_MAX_AGE_MS } from "./weather";
 
 const NOW = Date.parse("2026-07-27T14:20:00Z");
@@ -339,6 +340,56 @@ describe("createLiveDashboardSession", () => {
     await vi.waitFor(() => {
       expect(updates.at(-1)?.state.weather.value?.temperature).toBe(30.4);
     });
+  });
+
+  it("drops due news checks while reading or busy without replaying them", async () => {
+    let now = NOW;
+    let canRefreshNews = false;
+    const bridge = new TestBridge();
+    bridge.values.set("relic:news:v1", JSON.stringify({
+      value: [{
+        id: "guid:cached",
+        title: "캐시 뉴스",
+        publishedAt: NOW - 60_000,
+      }],
+      fetchedAt: NOW,
+    }));
+    const pendingNews = deferred<Response>();
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.startsWith("/api/news")) return pendingNews.promise;
+      if (url.startsWith("/api/map")) return mapResponse();
+      return weatherResponse();
+    }) as unknown as typeof fetch;
+    const session = createLiveDashboardSession({
+      bridge,
+      fetchImpl,
+      now: () => now,
+      canRefreshNews: () => canRefreshNews,
+      onUpdate: vi.fn(),
+    });
+
+    await session.start();
+    const newsCalls = () => vi.mocked(fetchImpl).mock.calls.filter(
+      ([input]) => String(input).startsWith("/api/news"),
+    ).length;
+    expect(newsCalls()).toBe(0);
+
+    now += NEWS_MAX_AGE_MS + 1;
+    session.refreshNewsIfDue();
+    session.refreshNewsIfDue();
+    expect(newsCalls()).toBe(0);
+
+    canRefreshNews = true;
+    session.refreshNewsIfDue();
+    session.refreshNewsIfDue();
+    await vi.waitFor(() => expect(newsCalls()).toBe(1));
+    pendingNews.resolve(newsResponse());
+    await vi.waitFor(() => {
+      expect(session.getState().news.fetchedAt).toBe(now);
+    });
+    await Promise.resolve();
+    expect(newsCalls()).toBe(1);
   });
 
   it("disposes once and blocks late state, emissions, refresh, and restart", async () => {

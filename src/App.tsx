@@ -226,6 +226,7 @@ export function App({ autoStart = true }: AppProps) {
               );
             },
             onInput: async (input) => {
+              const previousMode = view.mode;
               const transition = reduceFastHudInput(
                 view,
                 page,
@@ -245,6 +246,12 @@ export function App({ autoStart = true }: AppProps) {
                 return transition.result;
               }
               if (transition.result === "redraw") drawCurrentPage();
+              if (
+                previousMode === "news"
+                && view.mode !== "news"
+              ) {
+                liveSession?.refreshNewsIfDue?.();
+              }
               return transition.result;
             },
             onRawEvent: (event) => {
@@ -265,6 +272,11 @@ export function App({ autoStart = true }: AppProps) {
                 (minute) => {
                   if (lastMinuteAttempt === minute) return;
                   lastMinuteAttempt = minute;
+                  if (view.mode !== "news") {
+                    liveSession?.refreshNewsIfDue?.();
+                  } else {
+                    logDiagnostic("LIVE", "news refill skipped · reading");
+                  }
                   if (lastSuccessfulDisplayMinute === minute) {
                     logDiagnostic(
                       "TIMER",
@@ -310,6 +322,7 @@ export function App({ autoStart = true }: AppProps) {
         liveSession = createLiveDashboardSession({
           bridge,
           routingStatus: nextRoutingStatus,
+          canRefreshNews: () => view.mode !== "news",
           onUpdate: (update) => {
             if (cancelled) return;
             const refreshTarget = detailRefreshTarget(

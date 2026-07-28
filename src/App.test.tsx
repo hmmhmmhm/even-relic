@@ -44,6 +44,7 @@ type FastTestOptions = {
   ) => void;
 };
 type SessionTestOptions = {
+  readonly canRefreshNews?: () => boolean;
   readonly onUpdate: (update: {
     readonly state: LiveDashboardState;
     readonly target: RefreshTarget;
@@ -320,6 +321,51 @@ describe("RELIC peripheral HUD", () => {
 
     view.unmount();
     expect(stopMinuteRefresh).toHaveBeenCalledOnce();
+  });
+
+  it("checks due news each minute except while reading and checks on exit", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    let onMinute: ((minute: number) => void) | undefined;
+    let navigate:
+      | ((direction: "next" | "previous") => Promise<void>)
+      | undefined;
+    mocks.minuteStart.mockImplementation((callback: (minute: number) => void) => {
+      onMinute = callback;
+      return vi.fn();
+    });
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      navigate = args[2] as typeof navigate;
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(vi.fn());
+      return vi.fn();
+    });
+    mocks.waitForBridge.mockResolvedValue({});
+    const refreshNewsIfDue = vi.fn();
+    const session = {
+      start: vi.fn(async () => undefined),
+      refreshNewsIfDue,
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+    expect(sessionOptions().canRefreshNews?.()).toBe(true);
+
+    onMinute?.(1_234);
+    expect(refreshNewsIfDue).toHaveBeenCalledOnce();
+
+    await navigate?.("next");
+    expect(await fastOptions().onInput?.("tap")).toBe("redraw");
+    expect(sessionOptions().canRefreshNews?.()).toBe(false);
+    onMinute?.(1_235);
+    expect(refreshNewsIfDue).toHaveBeenCalledOnce();
+
+    expect(await fastOptions().onInput?.("double-tap")).toBe("redraw");
+    expect(sessionOptions().canRefreshNews?.()).toBe(true);
+    expect(refreshNewsIfDue).toHaveBeenCalledTimes(2);
+    view.unmount();
   });
 
   it("skips clock refresh when another transfer committed this minute", async () => {
