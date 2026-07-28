@@ -17,6 +17,8 @@ type DrawnText = {
 function createCanvas() {
   const texts: DrawnText[] = [];
   const rectangles: number[][] = [];
+  const strokedPaths: Array<Array<[number, number]>> = [];
+  let currentPath: Array<[number, number]> = [];
   const rawContext = {
     fillStyle: "",
     font: "",
@@ -24,6 +26,20 @@ function createCanvas() {
     textBaseline: "top",
     imageSmoothingEnabled: true,
     fillRect: (...args: number[]) => rectangles.push(args),
+    beginPath: () => {
+      currentPath = [];
+    },
+    moveTo: (x: number, y: number) => {
+      currentPath.push([x, y]);
+    },
+    lineTo: (x: number, y: number) => {
+      currentPath.push([x, y]);
+    },
+    closePath: () => undefined,
+    stroke: () => {
+      strokedPaths.push([...currentPath]);
+    },
+    fill: () => undefined,
     measureText: (value: string) => ({
       width: [...value].length * 10,
     }),
@@ -43,7 +59,7 @@ function createCanvas() {
     height: 0,
     getContext: () => context,
   } as unknown as HTMLCanvasElement;
-  return { canvas, texts, rectangles };
+  return { canvas, texts, rectangles, strokedPaths };
 }
 
 function liveState(): LiveDashboardState {
@@ -127,7 +143,7 @@ describe("drawFastDetailHud", () => {
   });
 
   it("draws all TODOs, progress, selection, and controls", () => {
-    const { canvas, texts } = createCanvas();
+    const { canvas, texts, strokedPaths } = createCanvas();
 
     drawFastDetailHud(canvas, {
       mode: "todo",
@@ -173,7 +189,7 @@ describe("drawFastDetailHud", () => {
   });
 
   it("draws a full-screen current weather dashboard", () => {
-    const { canvas, texts } = createCanvas();
+    const { canvas, texts, strokedPaths } = createCanvas();
 
     drawFastDetailHud(canvas, {
       mode: "weather",
@@ -201,6 +217,16 @@ describe("drawFastDetailHud", () => {
     expect(values(texts)).not.toContain("경로 키 필요");
     expect(texts.find(({ value }) => value === "28°C")?.font)
       .toContain("48px");
+    const iconPoints = strokedPaths.flat();
+    expect(iconPoints.length).toBeGreaterThan(10);
+    expect(
+      Math.max(...iconPoints.map(([x]) => x))
+        - Math.min(...iconPoints.map(([x]) => x)),
+    ).toBeGreaterThanOrEqual(70);
+    expect(
+      Math.max(...iconPoints.map(([, y]) => y))
+        - Math.min(...iconPoints.map(([, y]) => y)),
+    ).toBeGreaterThanOrEqual(70);
   });
 
   it.each([
@@ -219,7 +245,7 @@ describe("drawFastDetailHud", () => {
         ? { ...base.weather, status }
         : { status },
     };
-    const { canvas, texts } = createCanvas();
+    const { canvas, texts, strokedPaths } = createCanvas();
 
     drawFastDetailHud(canvas, {
       mode: "weather",
@@ -234,6 +260,9 @@ describe("drawFastDetailHud", () => {
     expect(values(texts)).toContain(copy);
     expect(values(texts)).not.toContain("ORS");
     expect(values(texts)).not.toContain("키 설정 필요");
+    if (status !== "stale") {
+      expect(strokedPaths).toHaveLength(0);
+    }
   });
 
   it.each([

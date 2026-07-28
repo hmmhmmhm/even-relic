@@ -16,6 +16,7 @@ import {
   drawFastCanvasText as drawText,
   FAST_CANVAS_COLOR as COLOR,
 } from "./fast-canvas-style";
+import { drawFastWeatherIcon } from "./fast-weather-icon";
 
 const WIDTH = 576;
 const HEIGHT = 288;
@@ -197,10 +198,17 @@ function drawWeather(
     );
     return;
   }
+  drawFastWeatherIcon(
+    context,
+    weather.weatherCode,
+    310,
+    98,
+    72,
+  );
   drawText(
     context,
     `${Math.round(weather.temperature)}°C`,
-    308,
+    400,
     104,
     30,
     COLOR.primary,
@@ -209,9 +217,9 @@ function drawWeather(
   drawText(
     context,
     weather.condition,
-    410,
-    112,
-    18,
+    400,
+    142,
+    17,
     COLOR.secondary,
     "bold",
   );
@@ -219,7 +227,7 @@ function drawWeather(
     context,
     `체감 ${Math.round(weather.apparentTemperature)}°`,
     308,
-    158,
+    228,
     15,
     COLOR.primary,
     "bold",
@@ -228,7 +236,7 @@ function drawWeather(
     context,
     `습도 ${Math.round(weather.humidity)}%`,
     430,
-    158,
+    228,
     15,
     COLOR.primary,
     "bold",
@@ -237,7 +245,7 @@ function drawWeather(
     context,
     `강수 ${Math.round(weather.precipitationProbability)}%`,
     308,
-    230,
+    252,
     15,
     COLOR.secondary,
     "bold",
@@ -246,7 +254,7 @@ function drawWeather(
     context,
     `바람 ${Math.round(weather.windSpeed)}km/h`,
     430,
-    230,
+    252,
     15,
     COLOR.primary,
     "bold",

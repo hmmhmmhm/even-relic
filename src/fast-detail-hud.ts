@@ -5,6 +5,7 @@ import {
 } from "./fast-canvas-style";
 import { wrapHudText } from "./fast-detail-text";
 import { paginateFastNewsSummary } from "./fast-news-pages";
+import { drawFastWeatherIcon } from "./fast-weather-icon";
 import type {
   DataState,
   LiveDashboardState,
@@ -268,10 +269,17 @@ function drawWeather(
     return;
   }
 
+  drawFastWeatherIcon(
+    context,
+    weather.weatherCode,
+    28,
+    48,
+    104,
+  );
   drawText(
     context,
     `${Math.round(weather.temperature)}°C`,
-    30,
+    160,
     56,
     48,
     COLOR.primary,
@@ -280,14 +288,14 @@ function drawWeather(
   drawText(
     context,
     weather.condition,
-    190,
+    318,
     72,
     25,
     COLOR.secondary,
     "bold",
   );
   if (state.status === "stale") {
-    drawText(context, "LAST DATA", 456, 78, 12, COLOR.dim, "bold");
+    drawText(context, "LAST DATA", 468, 108, 12, COLOR.dim, "bold");
   }
 
   const metrics = [
@@ -297,15 +305,15 @@ function drawWeather(
     ["바람", `${Math.round(weather.windSpeed)}km/h`],
   ] as const;
   const positions = [
-    [34, 136],
-    [308, 136],
-    [34, 196],
-    [308, 196],
+    [34, 156],
+    [308, 156],
+    [34, 208],
+    [308, 208],
   ] as const;
   metrics.forEach(([label, value], index) => {
     const [x, y] = positions[index];
     drawText(context, label, x, y, 14, COLOR.secondary, "bold");
-    drawText(context, value, x, y + 20, 25, COLOR.primary, "bold");
+    drawText(context, value, x, y + 18, 25, COLOR.primary, "bold");
   });
   drawFooter(context, "SOURCE // OPEN-METEO");
 }

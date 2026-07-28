@@ -265,6 +265,23 @@ describe("fast split Canvas HUD", () => {
     expect(weather.values).not.toContain("BATTERY --");
     expect(weather.values).not.toContain("경로 키 필요");
     expect(weather.values).not.toContain("ORS 연결 후 사용");
+    const iconPoints = weather.strokedPaths
+      .filter(({ points }) => points.every(([x]) => x >= 296))
+      .flatMap(({ points }) => points);
+    expect(iconPoints.length).toBeGreaterThan(10);
+    expect(
+      Math.max(...iconPoints.map(([x]) => x))
+        - Math.min(...iconPoints.map(([x]) => x)),
+    ).toBeGreaterThanOrEqual(50);
+    expect(
+      Math.max(...iconPoints.map(([, y]) => y))
+        - Math.min(...iconPoints.map(([, y]) => y)),
+    ).toBeGreaterThanOrEqual(50);
+
+    const loading = renderFastHud(module, "weather");
+    expect(loading.strokedPaths.filter(({ points }) =>
+      points.some(([x]) => x >= 296)
+    )).toHaveLength(0);
   });
 
   it("adds Navigation fifth only when routing is enabled", async () => {
