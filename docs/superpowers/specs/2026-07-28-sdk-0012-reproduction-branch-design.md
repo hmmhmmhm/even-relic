@@ -13,7 +13,7 @@ Even Realities 팀이 G2 이미지 전송 실패를 같은 조건에서 검토�
 - SDK: `@evenrealities/even_hub_sdk` 정확히 `0.0.12`
 - 앱 최소 SDK: `0.0.12`
 - 재현 경로: `/hud-canvas-fast`
-- 재현 서버: Tailscale `100.96.68.73:4177`
+- 로컬 재현 서버: `localhost:4177`
 - Build 표식: `sdk-0012-repro-033`
 
 기준 커밋은 물리 실패 직전 자동 검증까지 끝낸 정확한 0.0.12 상태다.
@@ -55,7 +55,7 @@ Even 앱 또는 펌웨어의 호환 여부는 Even Realities 팀이 판단한다
 
 재현성을 유지하기 위해 다음 변경만 허용한다.
 
-- QR 스크립트의 포트를 4177로 분리하고 Build 표식을
+- QR 스크립트를 `localhost:4177`로 분리하고 Build 표식을
   `sdk-0012-repro-033`으로 변경
 - QR·SDK·직렬화 계약 테스트 갱신
 - 공식팀용 영문 `SDK-0.0.12-REPRO.md` 추가
@@ -71,15 +71,17 @@ Even 앱 또는 펌웨어의 호환 여부는 Even Realities 팀이 판단한다
   `npm run test:sites`를 실행한다.
 - SDK 0.0.12 설치와 `compressMode: 2` 직렬화를 단위 테스트로 확인한다.
 - 4176의 SDK 0.0.11 서버는 계속 유지한다.
-- 재현 브랜치는 4177에서 별도 Vite 서버로 실행한다.
-- Tailscale URL은 사용자 물리 확인용이며 외부 공식팀은 저장소를
-  복제해 같은 경로를 실행한다.
+- 재현 브랜치는 localhost 4177에서 별도 Vite 서버로 실행한다.
+- 공식팀은 저장소를 복제해 같은 경로를 실행한다. Even Hub가 실행되는
+  휴대폰에서 열 때는 `localhost`를 개발 PC의 접근 가능한 LAN 주소로
+  바꾼다.
+- Tailscale URL은 사용자 물리 확인용 보조 링크로만 제공한다.
 
 ## 완료 기준
 
 - `0.0.12-reproduce` 브랜치가 GitHub에 푸시되어 있다.
 - 영문 문서만 읽고 설치, 실행, QR 스캔과 예상 실패 로그를 재현할 수 있다.
-- 4177 테스트 URL이 HTTP 200을 반환한다.
+- localhost 4177 테스트 URL이 HTTP 200을 반환한다.
 - 4176 SDK 0.0.11 테스트 서버가 중단되지 않는다.
 - 사용자에게 GitHub 브랜치 링크, 테스트 URL과 공식 전달용 영문 메시지를
   함께 제공한다.

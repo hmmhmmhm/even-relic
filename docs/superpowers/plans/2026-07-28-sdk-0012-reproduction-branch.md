@@ -4,7 +4,7 @@
 
 **Goal:** Publish the exact SDK 0.0.12 application state that returned `sendFailed` on a physical G2, with an isolated QR URL and an English reproduction guide for Even Realities.
 
-**Architecture:** Preserve the transport and renderer sources from verified failure commit `7c1053a`. Change only the QR metadata to use Tailscale port 4177, add evidence-backed reproduction documentation, verify serially, and push branch `0.0.12-reproduce` without disturbing the SDK 0.0.11 server on port 4176.
+**Architecture:** Preserve the transport and renderer sources from verified failure commit `7c1053a`. Change only the QR metadata to use localhost port 4177, add evidence-backed reproduction documentation, verify serially, and push branch `0.0.12-reproduce` without disturbing the SDK 0.0.11 server on port 4176.
 
 **Tech Stack:** TypeScript 5.9, React 19, Vite 6, Vitest 4, `@evenrealities/even_hub_sdk` 0.0.12, Even Hub G2 image containers.
 
@@ -22,7 +22,7 @@ Replace the expected QR command with:
 
 ```ts
 expect(packageManifest.scripts.qr).toBe(
-  'evenhub qr --url "http://100.96.68.73:4177/hud-canvas-fast?sdk=0.0.12&build=sdk-0012-repro-033"',
+  'evenhub qr --url "http://localhost:4177/hud-canvas-fast?sdk=0.0.12&build=sdk-0012-repro-033"',
 );
 ```
 
@@ -45,7 +45,7 @@ Build `sdk-lz4-030`; the serialization test passes.
 Set `package.json`:
 
 ```json
-"qr": "evenhub qr --url \"http://100.96.68.73:4177/hud-canvas-fast?sdk=0.0.12&build=sdk-0012-repro-033\""
+"qr": "evenhub qr --url \"http://localhost:4177/hud-canvas-fast?sdk=0.0.12&build=sdk-0012-repro-033\""
 ```
 
 Do not modify the SDK dependency, app manifest, transport, renderer, tile
@@ -95,8 +95,9 @@ Even Realities G2 returned `sendFailed` on the first image update.
 1. Run `npm install`.
 2. Run `npm run dev -- --host 0.0.0.0 --port 4177 --strictPort`.
 3. Open
-   `http://<HOST>:4177/hud-canvas-fast?sdk=0.0.12&build=sdk-0012-repro-033`
-   through Even Hub on a paired G2.
+   `http://localhost:4177/hud-canvas-fast?sdk=0.0.12&build=sdk-0012-repro-033`.
+   When Even Hub runs on another device, replace `localhost` with the
+   development computer's LAN address that the device can reach.
 4. Observe the first `updateImageRawData` result in `WEBVIEW TRACE`.
 
 ## Image update call
@@ -230,7 +231,7 @@ Confirm HTTP 200 for:
 
 ```text
 http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=dirty-tiles-032
-http://100.96.68.73:4177/hud-canvas-fast?sdk=0.0.12&build=sdk-0012-repro-033
+http://localhost:4177/hud-canvas-fast?sdk=0.0.12&build=sdk-0012-repro-033
 ```
 
 - [ ] **Step 6: Push the reproduction branch**
@@ -248,7 +249,8 @@ Provide a concise message that includes:
 
 - the GitHub branch URL;
 - the reproduction guide URL;
-- the user-only Tailscale URL, clearly labeled as private;
+- the localhost URL and the instruction to substitute a reachable LAN host;
+- the user-only Tailscale URL as an optional private check;
 - SDK 0.0.12 actual result and SDK 0.0.11 control;
 - the automatic `compressMode: 2` observation;
 - a request for the expected compression/API contract.
