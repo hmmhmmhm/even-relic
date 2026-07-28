@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "preview": "vite preview",
-    "test": "vitest run src --no-file-parallelism --maxWorkers=1",
+    "test": "vitest run --dir src --no-file-parallelism --maxWorkers=1",
     "test:repo": "node --test --test-concurrency=1 tests/repository-copy.test.mjs && node scripts/check-repository-copy.mjs",
     "typecheck": "tsc --noEmit",
     "test:sites": "node --test --test-concurrency=1 tests/sites-worker.test.mjs",

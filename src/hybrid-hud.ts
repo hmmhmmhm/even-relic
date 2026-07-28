@@ -201,7 +201,7 @@ export function formatHybridHudText(
   const pageNumber = String(HUD_PAGES.indexOf(page) + 1).padStart(2, "0");
   return [
     `${time}  23°C 맑음  ${pageNumber} / 04`,
-    "SANDEVISTAN // LIVE   HONGDAE",
+    "SANDEVISTAN // LIVE",
     "",
     ...HYBRID_PAGE_LINES[page],
   ].join("\n");

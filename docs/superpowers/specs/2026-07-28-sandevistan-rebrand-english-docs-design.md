@@ -3,7 +3,7 @@
 ## Goal
 
 Rename the current project from `even-relic` / `RELIC` to `sandevistan` /
-`Sandevistan`, publish a polished English-facing repository, and translate
+`SANDEVISTAN`, publish a polished English-facing repository, and translate
 every Markdown document into English without deleting or consolidating the
 historical implementation record.
 

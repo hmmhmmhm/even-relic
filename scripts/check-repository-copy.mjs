@@ -125,6 +125,8 @@ export function checkRepository(repositoryRoot = process.cwd()) {
     "package-lock.json",
     "app.json",
     "index.html",
+    "vite.config.mjs",
+    "server/**",
     "src/**",
   ]);
   const packageManifest = JSON.parse(

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -66,4 +67,12 @@ test("validateRepositoryMetadata requires Sandevistan and a private package", ()
     }),
     [],
   );
+});
+
+test("the npm test script limits Vitest discovery to the main src directory", () => {
+  const packageManifest = JSON.parse(
+    readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+  );
+
+  assert.match(packageManifest.scripts.test, /\bvitest run --dir src\b/u);
 });
