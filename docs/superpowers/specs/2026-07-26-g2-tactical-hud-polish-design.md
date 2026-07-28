@@ -1,114 +1,114 @@
-# G2 전술 HUD 폴리시 설계
+# G2 Tactical HUD Policy Design
 
-## 배경
+## Background
 
-첫 번째 `576×288` Canvas HUD는 실제 G2에서 기존 대시보드와 같은 체감
-크기로 표시됐고, 큰 글자와 지도는 선명하게 읽혔다. 다만 모든 정보를 같은
-굵기의 닫힌 사각 패널에 넣고 중앙 회전 지시를 채운 화살표로 표현해 게임
-HUD보다 계기판이나 관리 화면에 가까운 인상이 남았다.
+The first `576×288` Canvas HUD feels the same as the existing dashboard on the actual G2.
+It was displayed in size, and large letters and maps were clearly readable. However, all information is the same
+The game is placed in a thick closed square panel and the central rotation indication is expressed as a filled arrow.
+It left the impression that it was closer to an instrument panel or management screen than a HUD.
 
-이번 변경은 성공한 크기와 전송 경로를 건드리지 않고 정보 위계와 그래픽
-문법만 개선한다.
+This change changes the information hierarchy and graphics without affecting the successful size and transmission path.
+Just improve the grammar.
 
-## 목표
+## Target
 
-- `ACC` 패널과 X/Y/Z 값을 완전히 제거한다.
-- 우측 하단 `404,142,164×138`을 하나의 큰 뉴스·미션 카드로 통합한다.
-- 뉴스·미션의 핵심 한국어 문구를 최소 17픽셀로 키운다.
-- 기존 지도 크기, 시간 크기, 중앙 안내 면적과 `576×288` 논리 해상도를
-  유지한다.
-- 반복되는 닫힌 사각형 대신 열린 코너, 절개선, 인덱스 표식과 밝기 위계로
-  고품질 전술 게임 HUD의 인상을 만든다.
-- SDK `0.0.10` 네 타일 전송 방식은 변경하지 않는다.
+- Completely removes the `ACC` panel and X/Y/Z values.
+- Integrate `404,142,164×138` in the lower right corner into one large news/mission card.
+- Increase key Korean phrases in news and missions to at least 17 pixels.
+- Existing map size, time size, central guide area and `576×288` logical resolution
+  maintain
+- Open corners, cut lines, index marks and brightness hierarchy instead of repeated closed squares
+  Creates the impression of a high-quality tactical gaming HUD.
+- SDK `0.0.10` does not change the tile transmission method.
 
-## 디자인 방향
+## Design direction
 
-### 1. 열린 전술 프레임
+### 1. Open tactical frame
 
-주요 영역의 전체 테두리를 모두 그리지 않는다. 각 영역에는 10~16픽셀의
-코너 브래킷과 짧은 가장자리만 배치하고, 선택된 핵심 코너 하나를 흰색으로
-강조한다. 프레임 사이에는 `01`, `02`, `03` 같은 작은 섹션 인덱스와 짧은
-눈금을 넣는다.
+Do not draw the entire border of the main area. Each area contains 10 to 16 pixels.
+Place only the corner brackets and short edges, with one selected key corner white.
+Emphasize. Between frames there are small section indices such as `01`, `02`, `03` and short
+Enter the scale.
 
-이 방식은 영역 구분을 유지하면서도 겹겹이 쌓인 대시보드 상자 느낌을
-줄인다. 프레임은 낮은 밝기, 보조 정보는 중간 밝기, 현재 행동과 경로만 최대
-밝기를 사용한다.
+This method maintains area separation while creating a feeling of layered dashboard boxes.
+Reduce. Low brightness for frames, medium brightness for auxiliary information, only current action and path at maximum.
+Use brightness.
 
-### 2. 지도 깊이
+### 2. Map depth
 
-지도 면적 `8,72,184×172`과 하단 범례 `8,252,184×28`은 유지한다. 도로망은
-낮은 밝기의 한 줄로 두고, 활성 경로는 6픽셀 중간 밝기 아래선과 2픽셀 흰색
-중심선을 겹쳐 그린다. 현재 위치는 화살촉과 작은 중심 절개로, 목적지는
-이중 사각 표적으로 표현한다.
+The map area `8,72,184×172` and the bottom legend `8,252,184×28` are maintained. The road network is
+A single line of low brightness, with the active path being a 6-pixel mid-bright bottom line and a 2-pixel white line.
+Overlap the center lines. The current location is indicated by an arrowhead and a small central incision, and the destination is
+Expressed as a double square target.
 
-### 3. 중앙 방향 안내
+### 3. Central direction guidance
 
-중앙 면적 `204,72,188×130`은 그대로 사용하되 큰 채운 화살표를 제거한다.
-대신 꺾이는 경로를 8픽셀 중간 밝기 아래선과 3픽셀 흰색 중심선으로 그려
-지도 경로와 같은 시각 언어를 사용한다. 오른쪽 끝에는 열린 화살촉을
-연결한다. `NAV // ROUTE 01`, `120m`, `우회전`의 순서로 정보 위계를 둔다.
+The central area `204,72,188×130` is used as is, but the large filled arrow is removed.
+Instead, the bending path is drawn with an 8-pixel mid-bright bottom line and a 3-pixel white center line.
+Use visual language such as map paths. At the right end is an open arrowhead.
+Connect. The information hierarchy is in the following order: `NAV // ROUTE 01`, `120m`, and `turn right`.
 
-하단 안내 `204,214,188×66`에는 `다음 교차로`, 큰 `우회전`, 작은 방향
-기호를 분리해 배치한다.
+The bottom guide '204,214,188×66' contains 'next intersection', large 'right turn', and small direction.
+Place symbols separately.
 
-### 4. 우측 정보 구조
+### 4. Right information structure
 
-마이크 영역 `404,72,164×62`는 유지하되 파형과 기준선을 더 정돈한다.
+The microphone area '404,72,164×62' is maintained, but the waveform and baseline are further refined.
 
-`ACC`와 기존 50픽셀 높이의 뉴스 칸은 모두 제거하고,
-`404,142,164×138`의 단일 카드로 합친다.
+Remove `ACC` and all existing 50-pixel-high news boxes,
+Combine into a single card of `404,142,164×138`.
 
-- 상단: `NEWS // 02`, `MISSION ACTIVE`
-- 본문: `지하철역으로` 17픽셀, `이동` 24픽셀
-- 하단: `ROUTE UPDATED`, `02:14`
+- Top: `NEWS // 02`, `MISSION ACTIVE`
+- Body: ‘To subway station’ 17 pixels, ‘Move’ 24 pixels
+- Bottom: `ROUTE UPDATED`, `02:14`
 
-큰 본문과 넉넉한 행간으로 실제 안경에서 즉시 읽히게 한다. 카드의 좌측
-가장자리에는 세로 상태선과 작은 진행 눈금을 두어 미션 카드임을 강조한다.
+The large text and ample line spacing make it immediately readable with actual glasses. left side of card
+There is a vertical status line and a small progress scale at the edge to emphasize that it is a mission card.
 
-## 고정 팔레트와 타이포그래피
+## Fixed palette and typography
 
-- 배경: `#000000`
-- 핵심 정보: `#ffffff`
-- 활성 경로 아래선과 보조 정보: `#aaaaaa`
-- 프레임, 도로, 장식: `#555555`
-- 고정폭 글꼴: `"SFMono-Regular", Consolas, monospace`
-- 시간: 26픽셀
-- 핵심 행동: 22~24픽셀
-- 뉴스 본문: 17픽셀 이상
-- 일반 정보: 11~14픽셀
-- 미세 라벨: 8~10픽셀
+- Background: `#000000`
+- Key information: `#ffffff`
+- Line below the active path and auxiliary information: `#aaaaaa`
+- Frame, road, decoration: `#555555`
+- Monospace font: `"SFMono-Regular", Consolas, monospace`
+- Time: 26 pixels
+- Core action: 22-24 pixels
+- News body: 17 pixels or more
+- General information: 11 to 14 pixels
+- Fine label: 8-10 pixels
 
-색상 수를 늘리거나 블러, 그림자, 투명도 효과를 쓰지 않는다. G2의
-단색 래스터 변환과 1비트에 가까운 실제 표시 특성을 우선한다.
+Do not increase the number of colors or use blur, shadow, or transparency effects. G2's
+Priority is given to monochromatic raster conversion and actual display characteristics close to 1 bit.
 
-## 호환성과 비목표
+## Compatibility and off-target
 
-- `/hud-canvas` 경로와 `drawDenseCanvasHud()` 공개 함수명은 유지한다.
-- 루트 이미지 HUD, 진단, 보정 경로는 변경하지 않는다.
-- 실시간 센서 연결, 뉴스 API, 위치 데이터 바인딩은 이번 범위가 아니다.
-- Canvas를 이미지 에셋이나 SVG로 교체하지 않는다.
-- 전송 재시도와 BLE 프로토콜은 변경하지 않는다.
+- The `/hud-canvas` path and the `drawDenseCanvasHud()` public function name are maintained.
+- Root image HUD, diagnosis, and correction path do not change.
+- Real-time sensor connectivity, news API, and location data binding are out of scope.
+- Do not replace Canvas with image assets or SVG.
+- Transmission retry and BLE protocol do not change.
 
-## 자동 검증
+## Automatic verification
 
-- Canvas가 정확히 `576×288`인지 확인한다.
-- `ACC`, X/Y/Z 문자열이 전혀 그려지지 않는지 확인한다.
-- `NEWS // 02`, `MISSION ACTIVE`, `지하철역으로`, `이동`이 그려지고
-  본문 글자가 17픽셀 이상인지 확인한다.
-- 우측 통합 카드의 코너가 `404,142`와 `568,280` 경계에 그려지는지
-  확인한다.
-- 지도와 중앙 안내에 중간 밝기 아래선과 흰색 중심선이 모두 존재하는지
-  확인한다.
-- 전체 팔레트가 기존 네 색으로 제한되는지 확인한다.
-- 전체 테스트, 타입 검사, 프로덕션 빌드와 Sites 패키징 테스트를 통과한다.
+- Check that the Canvas is exactly `576×288`.
+- Check that the `ACC` and X/Y/Z strings are not drawn at all.
+- `NEWS // 02`, `MISSION ACTIVE`, `To the subway station`, `Move` are drawn
+  Make sure the text in the text is 17 pixels or longer.
+- Is the corner of the right integrated card drawn on the border between `404,142` and `568,280`?
+  Confirm.
+- Are there both a medium-bright bottom line and a white center line on the map and central guidance?
+  Confirm.
+- Make sure the entire palette is limited to the four existing colors.
+- Passes full testing, type checking, production build, and Sites packaging testing.
 
-## 실기기 판정
+## Judgment of practical equipment
 
-Tailscale URL의 빌드 식별자는 `tactical-hud-002`로 변경한다. G2에서
-다음 항목을 확인한다.
+Change the build identifier of the Tailscale URL to `tactical-hud-002`. In G2
+Check the following items.
 
-- 기존 버전과 같은 크기와 선명도를 유지하는가?
-- 뉴스·미션 문구가 한눈에 읽히는가?
-- ACC 제거 후 우측 영역의 시각적 여유와 위계가 좋아졌는가?
-- 열린 코너와 이중 경로가 흐릿하게 뭉개지지 않는가?
-- 네 타일 경계에서 나침반, 지도 경로와 중앙 지시가 끊겨 보이지 않는가?
+- Does it maintain the same size and clarity as the existing version?
+- Are the news and mission statements easy to read at a glance?
+- Did the visual space and hierarchy of the right area improve after ACC removal?
+-Aren't open corners and dual paths blurry?
+- Don't the compass, map path, and central directions look disconnected at the boundaries of the four tiles?

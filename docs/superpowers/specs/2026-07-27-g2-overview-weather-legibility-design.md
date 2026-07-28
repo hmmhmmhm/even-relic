@@ -1,42 +1,42 @@
-# G2 오버뷰 날씨 보조 정보 가독성 설계
+# G2 Overview weather auxiliary information readability design
 
-날짜: 2026-07-27
+Date: 2026-07-27
 
-대상 경로: `/hud-canvas-fast`
+Target path: `/hud-canvas-fast`
 
-기준 브랜치: `feature/g2-ors-routing`
+Base branch: `feature/g2-ors-routing`
 
-상태: APPROVED
+Status: APPROVED
 
-## 목표
+## Target
 
-첫 번째 `OVERVIEW` 대시보드 우측 하단의 다음 두 줄을 실제 G2에서 더
-쉽게 읽을 수 있도록 확대한다.
+In the actual G2, add the following two lines at the bottom right of the first `OVERVIEW` dashboard.
+Enlarge to make it easier to read.
 
-- `체감 31°  습도 67%`
-- `강수 20%  바람 8km/h`
+- `Feeling 31° Humidity 67%`
+- `Precipitation 20%, wind 8km/h`
 
-## 선택한 설계
+## Selected design
 
-두 줄의 글자 크기를 기존 11px에서 14px로 변경한다. 텍스트 위치, 문구,
-굵기, 색상과 날씨 값 반올림 방식은 유지한다.
+Change the font size of the two lines from 11px to 14px. text position, phrase,
+The rounding method for thickness, color, and weather values ​​is maintained.
 
-13px는 변화가 작고 15px는 현재 정보 프레임에서 다소 빽빽해질 수 있으므로,
-가독성 향상과 기존 여백을 함께 유지하는 14px를 선택한다.
+13px is a small change and 15px can get a bit crowded in the current information frame, so
+Choose 14px, which improves readability while maintaining existing margins.
 
-## 구현과 검증
+## Implementation and verification
 
-`src/fast-canvas-hud.ts`의 두 날씨 보조 문구에만 14px를 적용한다.
-`src/fast-canvas-hud.test.ts`에는 두 문구가 모두 14px로 그려지는 회귀
-검사를 추가한다.
+Apply 14px only to the two weather supplements in `src/fast-canvas-hud.ts`.
+`src/fast-canvas-hud.test.ts` has a regression where both text is drawn at 14px
+Add inspection.
 
-변경 후 해당 HUD 테스트, 타입 검사와 빌드를 직렬로 실행한다. 현재 4176
-개발 서버는 하나만 유지하며 핫 리로드된 같은 `detail-decks-019` URL에서
-실제 G2 확인을 기다린다.
+After making changes, run the corresponding HUD test, type check, and build in series. Currently 4176
+Maintain only one development server, hot reloaded from the same `detail-decks-019` URL.
+Wait for actual G2 confirmation.
 
-## 범위 제외
+## Exclude range
 
-- 시각, 날짜와 주 날씨 문구 크기 변경
-- 요소 위치나 프레임 크기 변경
-- 색상, 명도와 글꼴 굵기 변경
-- 다른 대시보드 또는 전체 화면 상세 덱 변경
+- Change size of time, date and week weather text
+- Change element position or frame size
+- Change color, brightness and font thickness
+- Change to a different dashboard or full screen detail deck

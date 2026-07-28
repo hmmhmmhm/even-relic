@@ -1,5 +1,9 @@
 # G2 Live Data and Optional Routing Design
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 Date: 2026-07-27
 Status: Approved
 Target route: `/hud-canvas-fast`
@@ -176,7 +180,7 @@ licensing review.
 The first feed is the SBS latest-news RSS feed, used only for this personal,
 non-commercial prototype.
 
-The browser calls a same-origin RELIC endpoint using a stable feed ID:
+The browser calls a same-origin Sandevistan endpoint using a stable feed ID:
 
 ```text
 GET /api/news?feed=sbs-latest
@@ -241,8 +245,8 @@ If `ORS_API_KEY` is absent, `/api/route` returns a machine-readable
 
 ```text
 NAV // READY
-경로 키 필요
-OpenRouteService 연결 후 사용
+Path key required
+Use after connecting to OpenRouteService
 ```
 
 This is an expected configuration state, not a global application error.
@@ -292,7 +296,7 @@ valid map, and a missing ORS key cannot disable any keyless feature.
 The packaged app declares:
 
 - `location`, explaining current-location weather and maps;
-- `network`, allowlisting the Open-Meteo origin and the deployed RELIC Worker
+- `network`, allowlisting the Open-Meteo origin and the deployed Sandevistan Worker
   origin.
 
 Third-party RSS, OSM, and ORS origins are reached by the Worker, not directly by
@@ -374,7 +378,7 @@ npm run test:sites
    transport evidence rather than separately instrumented physical
    observations. This pre-OSM build truthfully renders
    `LOC // ... · MAP DEMO` and the phone credit
-   `날씨: Open-Meteo · 지도: 데모 스키매틱`.
+   `Weather: Open-Meteo · Maps: Demo Schematic`.
 
 3. **Remaining keyless live-data gate**
    Confirm real or clearly labeled fallback location, current weather, six RSS

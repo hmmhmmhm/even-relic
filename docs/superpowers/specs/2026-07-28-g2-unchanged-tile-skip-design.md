@@ -1,82 +1,82 @@
-# G2 변경 없는 타일 전송 생략 설계
+# G2 design to skip tile transmission without change
 
-날짜: 2026-07-28
+Date: 2026-07-28
 
-상태: 사용자 직접 구현 승인
+Status: Approved for custom implementation
 
-## 목표
+## Target
 
-SDK `0.0.11`의 검증된 PNG 네 타일 직렬 전송을 유지하면서, 안경에 마지막으로
-성공 전송한 타일과 새 인코딩 결과가 완전히 같으면
-`updateImageRawData` 호출을 생략한다.
+Finally on glasses, while maintaining the proven PNG four-tile serial transfer in SDK `0.0.11`
+Success If the transmitted tile and the new encoding result are exactly the same
+Omit the `updateImageRawData` call.
 
-## 선택한 방식
+## Selected method
 
-타일 ID별로 마지막 성공 `Uint8Array`를 보관하고 새 인코딩 바이트와 길이 및
-각 바이트를 정확 비교한다.
+Keep the last successful `Uint8Array` by tile ID and store the new encoding bytes and length and
+Each byte is compared accurately.
 
-- dirty flag는 모든 갱신 호출자가 정확히 변경 영역을 알아야 하므로 제외
-- 해시는 메모리를 조금 줄이지만 충돌 처리와 별도 계산이 필요하므로 제외
-- 정확 비교는 타일이 최대 네 장뿐이고 PNG 크기도 작아 가장 단순하고
-  충돌이 없음
+- The dirty flag is excluded because all update callers must know exactly the changed area.
+- Hashes reduce memory slightly, but are excluded because they require collision handling and separate calculations.
+- Accurate comparison is the simplest, with only a maximum of four tiles and a small PNG size.
+  no conflict
 
-Canvas 인코딩은 현재 20–55ms 수준이므로 그대로 수행한다. 수백 ms에서 수
-초가 걸리는 SDK 이미지 호출만 줄이는 데 집중한다.
+Canvas encoding is currently at the 20–55ms level, so perform it as is. can be from hundreds of ms
+Focus on reducing only SDK image calls, which take seconds.
 
-## 전송 규칙
+## Transport Rules
 
-1. 최초 표시에서는 캐시가 비어 있으므로 대상 타일을 모두 전송한다.
-2. 인코딩 후 타일별로 마지막 성공 바이트와 정확히 비교한다.
-3. 같으면 SDK를 호출하지 않고 `[TILE] <name> skipped · unchanged`를 남긴다.
-4. 다르면 기존 순서대로 하나씩 직렬 전송한다.
-5. SDK가 성공을 반환한 직후 해당 타일 캐시만 새 바이트로 교체한다.
-6. 실패·예외·타임아웃 타일은 캐시를 변경하지 않는다.
-7. 먼저 성공한 타일 뒤에서 다른 타일이 실패해도 성공 타일 캐시는 유지한다.
-   다음 입력에서는 실제 안경에 반영되지 않은 타일만 다시 보낸다.
-8. 한 refresh가 모두 생략되더라도 이미 동일한 화면이므로 정상 완료와
-   display commit으로 처리한다.
+1. In the first display, the cache is empty, so all target tiles are transmitted.
+2. After encoding, each tile is accurately compared with the last success byte.
+3. If they are the same, do not call the SDK and leave `[TILE] <name> skipped · unchanged`.
+4. If different, transmit serially one by one in the existing order.
+5. Immediately after the SDK returns success, only the corresponding tile cache is replaced with new bytes.
+6. Failure, exception, and timeout tiles do not change the cache.
+7. The success tile cache is maintained even if other tiles fail after the first successful tile.
+   In the next input, only the tiles that are not reflected in the actual glasses are sent back.
+8. Even if one refresh is omitted, it is already the same screen, so it is normal completion and
+   Handle with display commit.
 
-## 숨김과 복원
+## Hide and restore
 
-검정 타일은 현재 HUD와 바이트가 다르므로 네 장 모두 전송된다. 성공 후
-캐시는 검정 타일이 되고, 복원 HUD 역시 검정 타일과 다르므로 다시 네 장을
-전송한다. 숨겨진 동안 외부 갱신을 버리는 기존 정책은 유지한다.
+Since the black tiles have different bytes than the current HUD, all four are transmitted. After success
+The cache becomes a black tile, and the restoration HUD is also different from the black tile, so four more cards are needed.
+Send. The existing policy of discarding external updates while hidden is maintained.
 
-## 생명주기와 메모리
+## Life cycle and memory
 
-캐시는 `transmitCanvas` 인스턴스 내부에만 둔다. 앱 효과가 정리되거나 새
-페이지 인스턴스를 만들면 캐시도 폐기되므로 새 컨테이너를 잘못 생략하지
-않는다. 최대 네 개 PNG만 보관한다.
+The cache is placed only inside the `transmitCanvas` instance. App effects are cleaned up or new
+Creating a page instance also discards the cache, so you don't accidentally omit a new container.
+No. Only store a maximum of four PNGs.
 
-## 유지하는 안정성 계약
+## Maintaining stability contract
 
 - SDK `0.0.11`
-- 288×144 PNG 네 타일
-- 전체 순서 `3 → 5 → 2 → 4`
-- 갱신 한 건 내부의 직렬 전송
-- busy 요청 즉시 폐기
-- 실패 요청 재시도와 대기 큐 금지
-- 타일당 12초 제한 시간
+- 288×144 PNG four tiles
+- Overall sequence `3 → 5 → 2 → 4`
+- Serial transmission inside one update
+- Immediately discard busy requests
+- Prevent retry of failed requests and wait queues
+- 12 second time limit per tile
 
-## 진단 로그
+## Diagnostic log
 
-각 refresh 완료 시 실제 SDK 호출 수와 생략 수를 남긴다.
+When each refresh is completed, the actual number of SDK calls and number of omissions are left.
 
 ```text
 [REFRESH] image refresh complete · sent 1 · skipped 1
 ```
 
-실기에서는 반복된 시계·배터리·위치 갱신과 동일 화면 redraw에서
-`skipped · unchanged`가 나타나고, 화면이 바뀐 타일만 기존 success 로그를
-남기는지 확인한다.
+In practice, repeated clock, battery, and location updates and same screen redraws
+`skipped · unchanged` appears, and only the tiles whose screen has changed show the existing success log.
+Make sure you leave it behind.
 
-## 자동 테스트
+## Automatic testing
 
-- 최초 표시는 모든 타일 전송
-- 동일 타일은 SDK 호출 생략
-- 일부만 변경되면 변경 타일만 전송
-- 실패 타일은 다음 독립 이벤트에서 다시 전송
-- 부분 성공 캐시는 유지되어 성공 타일은 중복 전송하지 않음
-- 검정 숨김과 HUD 복원은 각각 네 타일 전송
-- 모든 SDK 호출은 최대 동시 실행 수 1
-- 기존 busy-drop, 타임아웃, 페이지 rollback, 상세 화면 입력 회귀 없음
+- First display sends all tiles
+- SDK call omitted for identical tiles
+- If only part of the change is made, only the changed tile is sent
+- Failed tiles are sent again in the next independent event
+- Partial success cache is maintained so success tiles are not sent redundantly.
+- Black hiding and HUD restoration each transmit four tiles
+- All SDK calls have a maximum concurrent execution count of 1
+- No regression in existing busy-drop, timeout, page rollback, or detailed screen input

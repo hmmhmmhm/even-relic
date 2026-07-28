@@ -1,70 +1,70 @@
-# G2 SDK 0.0.12 LZ4 전송 실험 설계
+# G2 SDK 0.0.12 LZ4 transmission experiment design
 
-날짜: 2026-07-28
+Date: 2026-07-28
 
-상태: 사용자 직접 구현 승인
+Status: Approved for custom implementation
 
-## 목표
+## Target
 
-현재 물리 G2에서 검증된 SDK `0.0.11` HUD를 보존한 상태로 SDK만
-`0.0.12`로 올려, 공식 LZ4 이미지 전송 경로가 네 타일 Canvas HUD의
-전송 시간과 안정성을 개선하는지 확인한다.
+SDK `0.0.11` verified on the current physical G2, and only the SDK is maintained while preserving the HUD.
+Upgraded to `0.0.12`, the official LZ4 image transmission path is now in the four-tile Canvas HUD.
+See if it improves transfer time and stability.
 
-## 기준선
+## Baseline
 
-- 원격 보존 브랜치: `origin/feature/g2-ors-routing`
-- 기준선 커밋: `90a9421`
-- 기준 SDK: `0.0.11`
-- 기준 빌드: `weather-icon-029`
-- 전송 형식: 288×144 PNG 네 타일
-- 전체 전송 순서: 우상단, 우하단, 좌상단, 좌하단
-- 동시 전송 금지, 갱신 요청 적재 금지, busy 요청 즉시 폐기
+- remote preservation branch: `origin/feature/g2-ors-routing`
+- Baseline commit: `90a9421`
+- Base SDK: `0.0.11`
+- Base build: `weather-icon-029`
+- Transmission format: 288×144 PNG four tiles
+- Overall transmission order: top right, bottom right, top left, bottom left
+- Prohibit simultaneous transmission, prohibit loading of update requests, discard busy requests immediately
 
-## 접근법
+## Approach
 
-### 채택: SDK만 단독 교체
+### Adoption: Replace only SDK
 
-`package.json`, lockfile, `app.json`의 SDK 버전과 실험 URL 표식만
-`0.0.12`로 변경한다. Canvas 인코딩, 타일 크기, 전송 순서, 타임아웃,
-busy-drop 정책은 변경하지 않는다. 따라서 실기에서 관찰한 차이를 SDK
-전송 경로에 귀속할 수 있다.
+Only the SDK version and experiment URL marker for `package.json`, lockfile, `app.json`
+Change to `0.0.12`. Canvas encoding, tile size, transmission order, timeout,
+The busy-drop policy does not change. Therefore, the differences observed in practice can be compared to the SDK
+It can be attributed to the transmission path.
 
-### 보류: 변경 타일 생략
+### Pending: Skip change tile
 
-효과가 유력하지만 SDK 교체와 동시에 적용하면 속도 개선 원인을 분리할 수
-없다. `0.0.12` 실기 결과를 확보한 다음 별도 실험으로 진행한다.
+The effect is strong, but if applied at the same time as SDK replacement, the cause of the speed improvement cannot be isolated.
+does not exist. After securing the practical results of `0.0.12`, proceed with a separate experiment.
 
-### 보류: Canvas·공식 텍스트 혼합
+### Pending: Canvas·Official Text Mix
 
-텍스트 화면의 체감 속도는 가장 크게 개선될 수 있지만 렌더링 구조가
-달라진다. 이번 SDK 호환성 게이트에는 포함하지 않는다.
+The perceived speed of text screens can be improved the most, but the rendering structure
+It changes. It is not included in this SDK compatibility gate.
 
-## 호환성과 실패 처리
+## Compatibility and failure handling
 
-- SDK 의존성은 범위 표기 없이 정확히 `0.0.12`로 고정한다.
-- `app.json.min_sdk_version`도 같은 버전으로 맞춘다.
-- 이미지 갱신 호출은 한 번의 승인된 refresh 안에서만 직렬 `await`한다.
-- refresh 이벤트를 큐에 쌓거나 실패한 요청을 재시도하지 않는다.
-- `sendFailed`, 타임아웃 또는 WebView 정지가 발생하면 그 이벤트는 실패로
-  끝내고 다음 사용자 이벤트에 맡긴다.
-- 실험 변경은 물리 G2 승인 전 원격에 푸시하지 않는다.
+- SDK dependencies are set exactly to `0.0.12` without range notation.
+- Set `app.json.min_sdk_version` to the same version.
+- Image update calls are serially `await` only within a single authorized refresh.
+- Do not queue refresh events or retry failed requests.
+- If `sendFailed`, a timeout, or WebView freeze occurs, the event fails.
+  Finish it and leave it to the next user event.
+- Experiment changes are not pushed remotely before physical G2 approval.
 
-## 실기 성공 조건
+## Practical success conditions
 
-1. 앱 최초 표시가 네 타일·양안에서 정상 완료된다.
-2. 대시보드 페이지 이동, 상세 화면 진입·복귀, 숨김·복원이 정상 동작한다.
-3. 동일 동작의 타일별 전송 시간이 `0.0.11` 기준보다 짧아지거나 최소한
-   악화되지 않는다.
-4. `SENDFAILED`, 입력 정지, WebView 정지, 밀린 갱신의 연속 실행이 없다.
-5. 진단 로그에서 전송은 계속 직렬이며 busy 입력은 즉시 dropped로 남는다.
+1. The initial display of the app is completed normally in four tiles and both eyes.
+2. Moving the dashboard page, entering/returning to the details screen, hiding/restoring works normally.
+3. The transmission time for each tile for the same operation is shorter than the `0.0.11` standard or at least
+   It doesn't get worse.
+4. There is no continuous execution of `SENDFAILED`, input stop, WebView stop, or delayed updates.
+5. In the diagnostic log, the transmission continues to be serial and the busy input remains immediately dropped.
 
-## 자동 검증
+## Automatic verification
 
-- SDK·앱 최소 버전·QR 실험 표식 고정 테스트
-- 호출자 입력을 바꾸지 않아도 `ImageRawDataUpdate` JSON에
-  `compressMode: 2`가 자동 추가되는지 확인하는 LZ4 계약 테스트
-- 전체 Vitest 직렬 실행
-- Sites Node 테스트 직렬 실행
-- TypeScript 타입검사
-- Vite 프로덕션 빌드
-- Tailscale 실험 URL HTTP 200 확인
+- SDK·App minimum version·QR experiment marker fixation test
+- `ImageRawDataUpdate` in JSON without changing caller input
+  Testing the LZ4 contract to ensure that `compressMode: 2` is automatically added.
+- Full Vitest serial run
+- Serial execution of Sites Node tests
+- TypeScript type inspection
+- Vite production build
+- Check Tailscale experiment URL HTTP 200

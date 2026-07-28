@@ -1,45 +1,45 @@
-# G2 대표 날씨 아이콘 설계
+# G2 representative weather icon design
 
-날짜: 2026-07-28
+Date: 2026-07-28
 
-상태: 사용자 직접 구현 승인
+Status: Approved for custom implementation
 
-## 목표
+## Target
 
-Weather 대시보드와 전체 화면 상세에서 현재 날씨를 글보다 먼저 인식할 수
-있도록 큰 1비트 대표 아이콘을 표시한다.
+You can recognize the current weather before the text in the Weather dashboard and full screen details.
+Display a large 1-bit representative icon so that
 
-## 시각 규칙
+## Visual rules
 
-- 외부 이미지와 폰트 아이콘을 사용하지 않고 Canvas 경로로 직접 그림
-- G2의 검정·흰색·회색 팔레트와 각진 전술 HUD 스타일 유지
-- 번짐, 그림자, 글로우, 안티앨리어싱 의존 효과 사용 금지
-- 대시보드 아이콘 약 72px, 전체 화면 상세 아이콘 약 104px
-- 아이콘이 기온, 상태, 체감, 습도, 강수, 바람 텍스트와 겹치지 않음
+- Drawing directly with Canvas path without using external images and font icons
+- Retains G2's black, white, gray palette and angular tactical HUD style
+- Do not use blur, shadow, glow, or anti-aliasing-dependent effects.
+- Dashboard icon approximately 72px, full screen detailed icon approximately 104px
+- Icons do not overlap with temperature, condition, feeling, humidity, precipitation, and wind text.
 
-## 날씨 코드 매핑
+## Weather Code Mapping
 
-- `0`: 태양
-- `1–2`: 태양과 구름
-- `3`: 구름
-- `45–48`: 안개
-- `51–67`, `80–82`: 비
-- `71–77`, `85–86`: 눈
-- 그 외 `95–99`: 뇌우
+- `0`: sun
+- `1–2`: sun and clouds
+- `3`: clouds
+- `45–48`: Fog
+- `51–67`, `80–82`: rain
+- `71–77`, `85–86`: snow
+- Other `95–99`: Thunderstorms
 
-도형은 팔각형 태양, 계단형 구름, 평행 빗줄기, 십자 눈송이, 번개
-폴리곤처럼 낮은 해상도에서도 윤곽이 구별되는 기하 형태를 사용한다.
+The shapes are octagonal sun, stepped clouds, parallel raindrops, cross snowflakes, and lightning.
+Use geometric shapes with distinct outlines even at low resolution, such as polygons.
 
-## 상태 처리
+## Status handling
 
-fresh와 stale 데이터에는 날씨 코드에 맞는 아이콘을 표시한다. loading과
-unavailable에는 잘못된 날씨를 암시하지 않도록 아이콘을 표시하지 않고 기존
-상태 문구만 유지한다.
+For fresh and stale data, an icon corresponding to the weather code is displayed. loading and
+unavailable does not display an icon to avoid implying incorrect weather, and
+Keep only the status text.
 
-## 테스트
+## Test
 
-- 모든 Open-Meteo 코드 그룹의 아이콘 종류 매핑
-- 아이콘별 Canvas 경로 생성
-- Weather 대시보드와 상세에서 올바른 크기·위치로 아이콘 호출
-- loading과 unavailable에서 아이콘 미호출
-- 기존 페이지 순서, 글자 내용, 입력 방향과 갱신 규칙 회귀 없음
+- Icon type mapping for all Open-Meteo code groups
+- Creation of Canvas path for each icon
+- Call icons to correct size and location in Weather dashboard and details
+- Icon not called during loading and unavailable
+- No regression in existing page order, text content, input direction and update rules

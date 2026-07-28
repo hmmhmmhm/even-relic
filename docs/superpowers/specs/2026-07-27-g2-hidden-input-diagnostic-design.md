@@ -7,7 +7,7 @@ Status: APPROVED
 ## Goal
 
 Identify why ring and glasses controls stop responding after the fast Canvas HUD
-reports `HUD 표시 숨김 완료`, without adding another glasses image transfer or
+reports `HUD display completed`, without adding another glasses image transfer or
 changing the approved black-frame hide interaction.
 
 ## Evidence and boundary
@@ -38,7 +38,7 @@ The callback receives a compact, immutable snapshot containing:
 The app will use this callback only while the HUD is hidden. It will update the
 phone WebView status with a compact message such as:
 
-`숨김 입력 #3 · SYS 3 · TEXT - · SRC 2`
+`Hidden input #3 · SYS 3 · TEXT - · SRC 2`
 
 The callback must not draw the Canvas, encode a tile, request a live refresh, or
 call any Even Hub bridge method. The glasses remain fully black during the
@@ -49,7 +49,7 @@ diagnostic.
 - If the phone status changes after a hidden-state double tap, the SDK event
   channel is alive. The captured fields identify the normalization or
   hidden-state routing defect to fix.
-- If the phone status remains `HUD 표시 숨김 완료`, the event does not reach the
+- If the phone status remains `HUD display complete`, the event does not reach the
   WebView. The follow-up fix will bound/coalesce pre-hide image work and input
   work so the native event channel is not saturated before entering hidden
   mode.

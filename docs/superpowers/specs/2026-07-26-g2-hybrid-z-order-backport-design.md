@@ -1,120 +1,120 @@
-# G2 하이브리드 z-order 백포트 실험 설계
+# G2 hybrid z-order backport experimental design
 
-## 배경과 실기기 증거
+## Background and practical evidence
 
-`/hud-hybrid`는 SDK `0.0.10`에서 텍스트 없는 Canvas 배경 네 장을 먼저
-전송하고, 전체 화면 Text 컨테이너 ID 1을 마지막에 갱신한다. 실제 G2에서는
-Canvas 레이아웃만 보이고 Text는 평상시에 보이지 않았다. 시스템 닫기
-패널을 열면 Text가 나타나며, 패널을 취소하는 즉시 다시 사라졌다.
+`/hud-hybrid` first creates four canvas backgrounds without text in SDK `0.0.10`.
+Transmit, and update the full screen Text container ID 1 at the end. In actual G2
+Only the Canvas layout was visible and the text was not visible as usual. Close system
+Text appears when you open the panel, and disappears again as soon as you cancel the panel.
 
-이 결과는 Text 전송이나 글리프 렌더링이 실패한 것이 아니라 Text가 이미지
-컨테이너보다 뒤에 합성됨을 보여준다. 마지막에 `textContainerUpgrade()`를
-호출하는 순서는 컨테이너의 화면 레이어 순서를 바꾸지 않는다.
+This result does not mean that the Text transfer or glyph rendering failed, but rather that the Text is
+It shows that it is synthesized after the container. At the end, `textContainerUpgrade()`
+The calling order does not change the container's screen layer order.
 
-공식 SDK `0.0.12`는 List, Text와 Image에 `zOrderIndex`를 추가했다. 같은
-페이지에서 한 컨테이너라도 이 값을 쓰면 모든 컨테이너가 서로 다른 값을
-가져야 하며, 값이 클수록 앞에 표시된다. 그러나 `0.0.12`의 이미지 LZ4
-전송은 현재 Even 앱과 G2에서 `SENDFAILED`가 확인됐다.
+Official SDK `0.0.12` added `zOrderIndex` to List, Text and Image. same
+If even one container on the page uses this value, all containers will have a different value.
+It must have, and the larger the value, the sooner it is displayed. However, image LZ4 in `0.0.12`
+Sending is currently confirmed as ‘SENDFAILED’ on the Even app and G2.
 
-SDK `0.0.10`의 TypeScript 타입에는 `zOrderIndex`가 없지만 모델 생성자와
-`toJson()`은 알 수 없는 필드를 제거하지 않는다. 로컬 직렬화 확인에서
-Text, Image와 시작 페이지 JSON에 주입한 `zOrderIndex`가 모두 보존됐다.
+The TypeScript type in SDK `0.0.10` does not have `zOrderIndex`, but it does have a model constructor and
+`toJson()` does not remove unknown fields. In local serialization check
+Text, Image and `zOrderIndex` injected into the start page JSON have all been preserved.
 
-## 목표
+## Target
 
-성공한 SDK `0.0.10` 이미지 전송 규약을 유지하면서 컨테이너 JSON에
-`zOrderIndex`만 명시해 네이티브 Text가 Canvas 이미지 위에 보이는지
-판정한다.
+Successful SDK `0.0.10` to container JSON while maintaining image transfer protocol
+Specify only `zOrderIndex` to ensure that native text is visible on the Canvas image.
+Judge.
 
-기존 `/hud-canvas`와 실패 원인을 보존하는 `/hud-hybrid`는 변경하지
-않는다. 새 A/B 경로는 `/hud-hybrid-z`다.
+Do not change `/hud-hybrid`, which preserves the existing `/hud-canvas` and the failure cause.
+No. The new A/B path is `/hud-hybrid-z`.
 
-## 레이어 계약
+## Layer contract
 
-새 경로의 시작 페이지와 재구성 페이지는 다섯 컨테이너 모두에 고유한
-레이어 번호를 지정한다.
+The new route's start page and reconfiguration page are unique to all five containers.
+Specify the layer number.
 
-| 컨테이너 | ID | 레이어 |
+| container | ID | layer |
 |---|---:|---:|
-| 좌상단 Canvas 이미지 | 2 | 1 |
-| 우상단 Canvas 이미지 | 3 | 2 |
-| 좌하단 Canvas 이미지 | 4 | 3 |
-| 우하단 Canvas 이미지 | 5 | 4 |
-| 전체 화면 이벤트 Text | 1 | 5 |
+| Top left Canvas image | 2 | 1 |
+| Top right Canvas image | 3 | 2 |
+| Bottom left Canvas image | 4 | 3 |
+| Bottom right Canvas image | 5 | 4 |
+| Full screen event Text | 1 | 5 |
 
-Text는 가장 큰 값 5를 사용해 네 이미지보다 앞에 둔다. 번호는 페이지 안에서
-모두 고유하며, 이미지 타일끼리는 겹치지 않으므로 1–4의 상대 순서는 화면
-모양에 영향을 주지 않는다.
+Text is placed before the four images using the largest value of 5. The number is on the page
+They are all unique, and image tiles do not overlap, so the relative order of 1–4 is
+Does not affect shape.
 
-`zOrderIndex`는 SDK 버전을 올리지 않고 `0.0.10` 모델 인스턴스에 명시적으로
-주입한다. 시작 페이지의 `toJson()` 결과에 다섯 값이 모두 남아 있지 않으면
-실기기 전송 전에 자동 테스트가 실패해야 한다.
+`zOrderIndex` is explicitly set to the `0.0.10` model instance without increasing the SDK version.
+Inject. If all five values ​​are not left in the result of `toJson()` on the start page,
+The automatic test must fail before transfer to the actual device.
 
-## 경로와 데이터 흐름
+## Path and data flow
 
-`/hud-hybrid-z`는 기존 하이브리드 배경과 네 페이지 문구를 그대로 재사용한다.
+`/hud-hybrid-z` reuses the existing hybrid background and four-page text.
 
-1. 레이어가 명시된 다섯 컨테이너로 시작 페이지를 생성한다.
-2. 기존 `0.0.10` `ImageRawDataUpdate`로 이미지 ID 2–5를 직렬 전송한다.
-3. 네 이미지가 모두 성공한 뒤 Text ID 1에 `OVERVIEW` 문구를 갱신한다.
-4. 아래·위 스크롤은 기존 Promise 큐에서 Text만 한 번 갱신한다.
-5. 더블 클릭은 기존과 같이 페이지를 종료한다.
+1. Create a start page with five containers with specified layers.
+2. Serially transmit image IDs 2–5 using the existing `0.0.10` `ImageRawDataUpdate`.
+3. After all four images are successful, update the `OVERVIEW` phrase in Text ID 1.
+4. Down and up scrolling only updates the text once in the existing Promise queue.
+5. Double-clicking exits the page as before.
 
-브라우저 Canvas 미리보기에는 계속 정적 배경만 보인다. 레이어 판정은 실제
-Even 앱과 G2에서만 가능하다.
+The browser Canvas preview continues to show only a static background. Layer judgment is real
+Available only with Even app and G2.
 
-## 코드 격리
+## Code isolation
 
-레이어 없는 기존 페이지 생성 계약은 그대로 둔다. 새 페이지 생성기는
-`createLayeredGlassesPage()`처럼 별도 진입점으로 노출하고, 공통 내부
-생성 로직만 재사용한다.
+The contract for creating existing pages without layers is left as is. The new page generator is
+Expose it as a separate entry point like `createLayeredGlassesPage()`, and use it as a common internal
+Only the creation logic is reused.
 
-하이브리드 전송의 이미지 직렬화, Text 전환 큐와 이벤트 처리는 공유하되
-새 경로만 레이어 페이지 생성기를 선택한다. `/hud-hybrid`가 실수로
-`zOrderIndex`를 받지 않는지 회귀 테스트로 고정한다.
+Hybrid transmission's image serialization, text conversion queue, and event processing are shared, but
+Select New Path Only Layer Page Generator. `/hud-hybrid` accidentally
+Fix it with a regression test to see if `zOrderIndex` is not received.
 
-## 오류 처리
+## Error handling
 
-- 시작 페이지가 `invalid`면 같은 레이어 번호를 사용해 한 번 재구성한다.
-- 재구성이 실패하면 레이어 페이지 재구성 실패를 진행 상태에 표시한다.
-- 이미지가 `SENDFAILED`면 어느 타일에서 실패했는지 기존 오류를 유지한다.
-- Text 갱신이 `false`면 기존 네이티브 Text 오류를 유지한다.
-- 호스트가 `zOrderIndex`를 이해하지 못하면 `/hud-hybrid-z`만 실패하며,
-  `/hud-canvas`와 `/hud-hybrid`는 비교·복구 경로로 남는다.
+- If the start page is `invalid`, it is reconstructed once using the same layer number.
+- If reconstruction fails, layer page reconstruction failure is displayed in the progress status.
+- If the image is `SENDFAILED`, the existing error will be maintained to determine which tile failed.
+- If Text update is `false`, existing native Text errors are maintained.
+- Only `/hud-hybrid-z` will fail if the host does not understand `zOrderIndex`,
+  `/hud-canvas` and `/hud-hybrid` remain as comparison and recovery paths.
 
-자동 재시도나 SDK 교체는 추가하지 않는다. 이번 실험의 변수는 컨테이너
-레이어 번호 하나뿐이어야 한다.
+It does not add automatic retries or SDK replacement. The variable in this experiment is the container
+There must be only one layer number.
 
-## 자동 테스트
+## Automatic testing
 
-- 레이어 페이지의 직렬화 JSON에 `[1, 2, 3, 4, 5]`가 중복 없이 존재한다.
-- Text ID 1의 레이어가 5이고 모든 Image 레이어보다 크다.
-- 기존 `createGlassesPage()` JSON에는 `zOrderIndex`가 없다.
-- `/hud-hybrid-z`만 명시적 레이어 모드를 선택한다.
-- 최초 이미지 전송은 ID 2–5에서 각각 한 번이고 추가 전송은 없다.
-- 초기 및 스크롤 Text 갱신은 각각 한 번이다.
-- SDK, 앱 매니페스트와 QR 메타데이터는 계속 `0.0.10`이다.
-- `ImageRawDataUpdate.toJson()`에는 `compressMode`가 없다.
+- `[1, 2, 3, 4, 5]` exists without duplication in the serialized JSON of the layer page.
+- The layer of Text ID 1 is 5 and is larger than all Image layers.
+- There is no `zOrderIndex` in the existing `createGlassesPage()` JSON.
+- Only `/hud-hybrid-z` selects the explicit layer mode.
+- The first image transmission is once for each ID 2–5 and there are no additional transmissions.
+- Initial and scroll text updates are each performed once.
+- SDK, app manifest and QR metadata continue to be `0.0.10`.
+- There is no `compressMode` in `ImageRawDataUpdate.toJson()`.
 
-## 실기기 판정
+## Judgment of practical equipment
 
-빌드 식별자는 `hybrid-zorder-006`이다.
+The build identifier is `hybrid-zorder-006`.
 
 ```text
 http://100.96.68.73:4173/hud-hybrid-z?sdk=0.0.10&build=hybrid-zorder-006
 ```
 
-다음 항목을 실제 G2에서 판정한다.
+The following items are judged in actual G2.
 
-- [ ] 닫기 패널 없이도 네이티브 Text가 Canvas 레이아웃 위에 보인다.
-- [ ] Canvas 프레임과 지도선이 Text 뒤에서 그대로 보인다.
-- [ ] 닫기 패널을 열고 취소해도 Text 표시 상태가 달라지지 않는다.
-- [ ] `2호선 정상 운행`, `우회전 →`, `[ ]`, `[x]`가 읽힌다.
-- [ ] 아래·위 스크롤에서 이미지 재전송 없이 문구가 한 번에 바뀐다.
-- [ ] 이미지 네 장 모두 `SENDFAILED` 없이 전송된다.
-- [ ] 양안에 같은 레이아웃과 Text가 보인다.
+- [ ] Native text is visible on the Canvas layout even without a close panel.
+- [ ] Canvas frame and map lines are visible behind the text.
+- [ ] Even if you open and cancel the close panel, the text display status does not change.
+- [ ] `Line 2 operating normally`, `turn right →`, `[ ]`, `[x]` are read.
+- [ ] When scrolling down or up, the text changes at once without resending the image.
+- [ ] All four images are sent without `SENDFAILED`.
+- [ ] The same layout and text are visible on both sides.
 
-Text가 정상 표시되면 명시적 레이어 계약을 하이브리드 HUD의 기본 방식으로
-승격할 수 있다. 페이지가 `invalid`이거나 이미지가 다시 `SENDFAILED`면
-백포트가 현재 호스트에서 지원되지 않는 것으로 기록하고 기존 Canvas HUD를
-기본 후보로 유지한다.
+When text is displayed normally, explicit layer contract is used as the default method for hybrid HUD.
+You can get promoted. If the page is `invalid` or the image is `SENDFAILED` again
+The backport logs the existing Canvas HUD as not supported on the current host.
+Remain as default candidate.

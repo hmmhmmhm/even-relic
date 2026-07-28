@@ -1,93 +1,93 @@
-# G2 하이브리드 네이티브 Text HUD 설계
+# G2 Hybrid Native Text HUD Design
 
-## 목표
+## Target
 
-기존 4타일 Canvas HUD의 페이지 전환이 느리고 네 조각으로 보이는 문제를
-검증 가능한 별도 경로에서 줄인다. 배경 그래픽은 최초 한 번만 이미지로
-전송하고, 이후 페이지 전환은 전체 화면 네이티브 Text 컨테이너 한 개만
-갱신한다.
+Fixed an issue where page transitions in the existing 4-tile Canvas HUD were slow and appeared in four pieces.
+Reduce it to a separate, verifiable path. The background graphic is an image only once.
+Transfer, and subsequent page transitions are performed using only one full-screen native text container.
+Update.
 
-기존 `/hud-canvas`와 SDK `0.0.10`의 검증된 4타일 경로는 변경하지 않는다.
-새 실험 경로는 `/hud-hybrid`다.
+The verified 4-tile path of the existing `/hud-canvas` and SDK `0.0.10` will not be changed.
+The new experimental path is `/hud-hybrid`.
 
-## 페이지 구성
+## Page composition
 
-시작 페이지에는 기존과 같은 다섯 컨테이너를 만든다.
+On the start page, create the same five containers as before.
 
-- ID 1 `eventLayer`: 576×288 Text, 투명 배경, 이벤트 캡처, 동적 페이지 문구
-- ID 2–5: 288×144 이미지 네 장, 텍스트 없는 공통 전술 배경
+- ID 1 `eventLayer`: 576×288 Text, transparent background, event capture, dynamic page text
+- ID 2–5: Four 288×144 images, common tactical background without text
 
-Text 컨테이너는 시작 시 공백 한 글자로 만든다. 이미지 네 장을 모두 전송한
-뒤 ID 1에 첫 `OVERVIEW` 문구를 `textContainerUpgrade()`로 올린다. 이
-순서는 SDK `0.0.10`에서 명시적인 z-order 없이도 마지막 텍스트 갱신이
-이미지 위에 보이는지를 확인하기 위한 실기기 A/B다.
+The Text container is created with a single space character at startup. All four images were sent.
+Upload the first `OVERVIEW` phrase to ID 1 with `textContainerUpgrade()`. this
+The order is the last text update in SDK `0.0.10` without explicit z-order.
+It is an actual device A/B to check whether it is visible on the image.
 
-## 공통 Canvas 배경
+## Common Canvas background
 
-`drawHybridHudBackground()`는 576×288 Canvas에 다음 정적 요소만 그린다.
+`drawHybridHudBackground()` draws only the following static elements on a 576×288 Canvas.
 
-- 검정 바탕과 흰색·회색 전술 프레임
-- 64픽셀 헤더 구분선
-- 좌측 지역 지도 도로와 경로
-- 우측 정보 영역의 공통 구분선과 코너 장식
+- Black background and white/gray tactical frame
+- 64 pixel header separator line
+- Left area map roads and routes
+- Common divider and corner decoration in right information area
 
-Canvas에는 글자를 한 글자도 그리지 않는다. 뉴스, 시간, 날씨, 내비게이션,
-할 일, 페이지 번호처럼 바뀌는 정보는 모두 네이티브 Text 콘텐츠다.
+Not a single letter is drawn on Canvas. News, time, weather, navigation,
+All information that changes, such as to-dos and page numbers, is native text content.
 
-## 네이티브 페이지 문구
+## Native page text
 
-`formatHybridHudText(page, now)`는 공백과 줄바꿈을 포함한 하나의 문자열을
-만든다. 페이지 순서는 기존과 같다.
+`formatHybridHudText(page, now)` returns a single string including spaces and line breaks.
+make it The page order is the same as before.
 
-1. `OVERVIEW`: 현재 시각, 홍대 날씨, 지역 뉴스와 간단한 상태
-2. `NAVIGATION`: 목적지, 거리, 우회전과 다음 교차로
-3. `NEWS`: 큰 지역 헤드라인과 날씨 브리핑
-4. `TODO`: 할 일 체크 상태와 G2/R1 연결 상태
+1. `OVERVIEW`: Current time, Hongdae weather, local news and brief status
+2. `NAVIGATION`: Destination, distance, right turn and next intersection
+3. `NEWS`: Big local headlines and weather briefings
+4. `TODO`: To-do check status and G2/R1 connection status
 
-각 콘텐츠에는 `01 / 04`부터 `04 / 04`까지 페이지 번호를 포함한다. 한글,
-화살표와 체크 기호는 G2 내장 글꼴에서 실제 표시되는지 확인한다. Canvas와
-같은 글자별 크기·폰트·픽셀 좌표는 요구하지 않는다.
+Each content includes page numbers from `01/04` to `04/04`. korean,
+Verify that the arrows and check marks actually appear in the G2 built-in font. Canvas and
+The size, font, and pixel coordinates for each letter are not required.
 
-## 전송과 입력
+## Transmission and Input
 
-초기 진입은 기존과 동일하게 이미지 ID 2, 3, 4, 5를 직렬 전송한다. 이후
-스크롤은 이미지 인코딩이나 `updateImageRawData()`를 호출하지 않는다.
+Initial entry serially transmits image IDs 2, 3, 4, and 5 as before. since
+Scrolling does not encode images or call `updateImageRawData()`.
 
-- `SCROLL_BOTTOM_EVENT`: 다음 페이지 문구 한 번 갱신
-- `SCROLL_TOP_EVENT`: 이전 페이지 문구 한 번 갱신
-- `DOUBLE_CLICK_EVENT`: 기존 종료 동작
+- `SCROLL_BOTTOM_EVENT`: Update next page text once
+- `SCROLL_TOP_EVENT`: Update previous page text once
+- `DOUBLE_CLICK_EVENT`: Existing shutdown behavior
 
-빠른 연속 입력은 하나의 Promise 큐에서 순서대로 처리한다.
-`textContainerUpgrade()`가 `false`를 반환하면 오류를 진행 상태로 표시하고
-다음 입력을 계속 받을 수 있게 큐 오류를 흡수한다.
+Fast consecutive inputs are processed in order in a single Promise queue.
+If `textContainerUpgrade()` returns `false`, mark an error as progress and
+Absorbs queue errors so that the next input can continue to be received.
 
-## 판정 기준
+## Judgment criteria
 
-자동 테스트는 다음을 고정한다.
+Automated testing fixes:
 
-- 공통 배경 Canvas가 576×288이며 `fillText()`를 호출하지 않는다.
-- 네 페이지 문구가 페이지 번호와 고유 콘텐츠를 포함한다.
-- 초기 진입에서만 이미지 ID 2–5가 한 번씩 전송된다.
-- 초기 Text 갱신은 이미지 네 장 뒤에 한 번 호출된다.
-- 아래·위 스크롤은 이미지 추가 전송 없이 Text만 각각 한 번 갱신한다.
-- 연속 스크롤에서도 Text 갱신 최대 동시 실행 수는 1이다.
-- `/hud-hybrid`만 하이브리드 렌더러를 선택하고 기존 `/hud-canvas`는
-  변경하지 않는다.
+- The common background Canvas is 576×288 and does not call `fillText()`.
+- Four page copy includes page number and unique content.
+- Image IDs 2–5 are transmitted once only on initial entry.
+- The initial text update is called once after four images.
+- Down and up scrolling only updates the text once each without additional image transfer.
+- Even in continuous scrolling, the maximum number of simultaneous executions of text updates is 1.
+- Only `/hud-hybrid` selects the hybrid renderer, while the existing `/hud-canvas` selects the hybrid renderer.
+  don't change
 
-실제 G2에서는 다음을 확인한다.
+In actual G2, check the following.
 
-- Text가 이미지 위에 표시되고 배경을 가리지 않는다.
-- 한글, `→`, `[ ]`, `[x]`가 읽힌다.
-- 아래·위 스크롤 때 전체 문구가 한 번에 바뀐다.
-- 전환 속도가 기존 네 이미지 갱신보다 확실히 빠르다.
-- 양안이 같은 시점에 같은 문구로 전환된다.
+- Text is displayed on top of the image and does not cover the background.
+- Hangul, `→`, `[ ]`, and `[x]` are read.
+- When scrolling down or up, the entire text changes at once.
+- The conversion speed is definitely faster than the existing four image updates.
+- Both eyes switch to the same phrase at the same time.
 
-겹침 순서나 글꼴 표시가 실패하면 `/hud-hybrid`를 진단 경로로만 남기고
-기존 `/hud-canvas`를 기본 후보로 유지한다.
+If the overlap order or font display fails, leave `/hud-hybrid` as the diagnostic path only.
+Keep the existing `/hud-canvas` as the default candidate.
 
-## 실기기 URL
+## Actual device URL
 
-빌드 식별자는 `hybrid-text-005`다.
+The build identifier is `hybrid-text-005`.
 
 ```text
 http://100.96.68.73:4173/hud-hybrid?sdk=0.0.10&build=hybrid-text-005

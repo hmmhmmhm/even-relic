@@ -8,7 +8,7 @@ Target build: `map-labels-large-016`
 
 Add readable nearby names to the proven `live-map-014` tactical map without
 turning the G2 display into a dense consumer-map view. The map must continue to
-render through RELIC's own Canvas code, keep the current fast page transport,
+render through Sandevistan's own Canvas code, keep the current fast page transport,
 and remain usable when label data are absent.
 
 The physical `live-map-014` checkpoint established that the live road geometry
@@ -67,12 +67,12 @@ The normalized response adds:
   "labels": [
     {
       "kind": "transit",
-      "name": "홍대입구역",
+      "name": "Hongik University Station",
       "point": [37.5572, 126.9245]
     },
     {
       "kind": "road",
-      "name": "양화로",
+      "name": "Yanghwa-ro",
       "point": [37.5569, 126.9211]
     }
   ]

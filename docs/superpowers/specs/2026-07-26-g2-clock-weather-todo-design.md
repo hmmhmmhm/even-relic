@@ -1,75 +1,75 @@
-# G2 시계·날씨·TODO HUD 설계
+# G2 clock/weather/TODO HUD design
 
-## 목표
+## Target
 
-현재 전술 Canvas HUD의 크기와 전송 안정성을 유지하면서 다음 정보를
-추가한다.
+The following information is maintained while maintaining the size and transmission stability of the current Tactical Canvas HUD:
+Add.
 
-- 시계를 `HH:MM:SS` 형식으로 표시한다.
-- 시계 아래에 `HONGDAE  23°C 맑음` 날씨 목업을 표시한다.
-- `MISSION ACTIVE`를 `TODO // ACTIVE`로 바꾸고 미완료·완료 체크박스를
-  직접 그린다.
+- Displays the clock in `HH:MM:SS` format.
+- A mock-up of the ‘HONGDAE 23°C clear’ weather is displayed below the clock.
+- Change `MISSION ACTIVE` to `TODO // ACTIVE` and check the incomplete/complete checkbox.
+  Draw it yourself.
 
-## 시계 동작
+## Clock operation
 
-`drawDenseCanvasHud(canvas, now?)`는 선택적인 `Date`를 받는다. 호출자가
-시간을 주지 않으면 브라우저의 `new Date()`를 사용한다. 시·분·초는 각각
-두 자리로 맞춰 `14:37:42`처럼 그린다.
+`drawDenseCanvasHud(canvas, now?)` accepts an optional `Date`. the caller
+If the time is not given, the browser's `new Date()` is used. Hour, minute, and second respectively
+Set it to two digits and draw it like `14:37:42`.
 
-G2 화면은 Canvas를 네 이미지로 나눠 한 번 전송하는 정적 화면이다. 이번
-변경은 전송 시점의 실제 초를 표시하지만, 매초 네 이미지를 다시 전송하지
-않는다. BLE 전송량과 이미 검증된 단발 전송 계약을 보호하기 위한 선택이다.
+The G2 screen is a static screen that divides the Canvas into four images and transmits them once. this time
+The change displays the actual seconds at the time of transmission, but does not retransmit four images every second.
+No. This is a choice to protect BLE transmission volume and already verified single-shot transmission contracts.
 
-기존 132픽셀 시간 프레임 안에서 8자리 시각이 잘리지 않도록 시간 글꼴은
-26픽셀에서 22픽셀로 조정한다. 시계 아래 한 줄에는 9픽셀 고정폭 글꼴로
-지역, 온도와 상태를 함께 표시한다. 기존 `// 01` 장식은 제거해 날씨와
-겹치지 않게 한다.
+The time font has been changed to avoid truncating the 8-digit time within the existing 132-pixel time frame.
+Adjust from 26 pixels to 22 pixels. One line below the clock is in 9-pixel monospace font.
+Displays region, temperature and status together. Remove the existing `// 01` decoration to change the weather and
+Make sure they do not overlap.
 
-## 날씨
+## Weather
 
-날씨는 현재 지도·미션·마이크 값과 같은 정적 목업이다.
+The weather is currently a static mockup, like the map, mission, and microphone values.
 
 ```text
-HONGDAE  23°C 맑음
+HONGDAE 23°C Clear
 ```
 
-외부 API, 위치 권한, 네트워크 실패 처리는 이번 범위에 포함하지 않는다.
-실시간 날씨 연결은 정적 UI와 전송 안정성을 검증한 뒤 별도 기능으로 다룬다.
+External API, location permissions, and network failure handling are not included in this scope.
+Real-time weather connection is handled as a separate feature after verifying the static UI and transmission stability.
 
-## TODO 카드
+## TODO Card
 
-우측 `404,142,164×138` 프레임과 큰 본문 크기는 유지한다.
+The right `404,142,164×138` frame and large text size are maintained.
 
 - `NEWS // 02`
 - `TODO // ACTIVE`
-- 빈 12픽셀 체크박스 + `지하철역으로`
-- 들여쓴 24픽셀 `이동`
-- 체크된 10픽셀 체크박스 + `경로 확인`
-- 완료 시각 `02:14`
+- Empty 12 pixel checkbox + ‘To subway station’
+- 24 pixels indented `move`
+- Checked 10 pixel checkbox + `Confirm path`
+- Completion time `02:14`
 
-체크박스는 유니코드 기호 대신 Canvas 사각형과 선으로 그린다. 미완료 상자는
-흰 외곽과 검정 내부만 갖고, 완료 상자는 같은 외곽 안에 두 선분의 체크를
-그린다. 기존 세로 상태선과 진행 눈금은 제거해 체크박스와 시각적으로
-경쟁하지 않게 한다.
+Check boxes are drawn with Canvas squares and lines instead of Unicode symbols. The unfinished box is
+It has only a white outline and a black interior, and the completion box has two lines within the same outline checked.
+Draw. The existing vertical status line and progress scale were removed to visually replace the checkbox and
+Don't compete.
 
-## 자동 검증
+## Automatic verification
 
-- 고정 시각 `2026-07-26 14:37:42`를 주면 `14:37:42`가 22픽셀로
-  그려지는지 확인한다.
-- `HONGDAE  23°C 맑음`이 렌더링되는지 확인한다.
-- `MISSION ACTIVE`와 `ROUTE UPDATED`가 사라지고 `TODO // ACTIVE`,
-  `경로 확인`이 렌더링되는지 확인한다.
-- 빈 체크박스와 완료 체크박스의 외곽·내부 좌표를 확인한다.
-- 완료 체크 경로가 흰색 선으로 그려지는지 확인한다.
-- 기존 4색 팔레트, `576×288` 크기와 지도·경로 렌더링 계약을 유지한다.
+- If you give a fixed time of `2026-07-26 14:37:42`, `14:37:42` will be set to 22 pixels.
+  Check if it is drawn.
+- Check if `HONGDAE 23°C Clear` is rendered.
+- `MISSION ACTIVE` and `ROUTE UPDATED` disappear and `TODO // ACTIVE`,
+  Verify that `path resolution` is rendered.
+- Check the outer and inner coordinates of the empty checkbox and the completed checkbox.
+- Verify that the completion check path is drawn as a white line.
+- The existing 4-color palette, `576×288` size, and map/route rendering contract are maintained.
 
-## 실기기 확인
+## Check actual device
 
-빌드 식별자는 `hud-info-003`이다.
+The build identifier is `hud-info-003`.
 
 ```text
 http://100.96.68.73:4173/hud-canvas?sdk=0.0.10&build=hud-info-003
 ```
 
-G2에서 초 단위 시각과 날씨 한 줄이 겹치지 않는지, 체크박스와 두 줄 미션이
-즉시 구분되는지 확인한다.
+In G2, checkbox and two-line mission are checked to ensure that the second-by-second time and weather line do not overlap.
+Make sure they are distinguished immediately.

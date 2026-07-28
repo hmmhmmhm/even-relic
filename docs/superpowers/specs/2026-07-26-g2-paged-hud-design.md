@@ -1,94 +1,94 @@
-# G2 페이지형 HUD 설계
+# G2 page type HUD design
 
-## 목표
+## Target
 
-현재 576×288 전술 HUD의 큰 글자, 선명도, 4타일 전송 경로를 유지하면서
-정보를 네 페이지로 분산한다. 기본 화면은 비내비게이션 상태이며 중앙의
-경로 안내와 하단 교차로 카드는 뉴스로 바꾼다. 사용자는 G2 또는 R1의
-스크롤로 페이지를 앞뒤로 순환한다.
+While maintaining the large text, clarity, and 4-tile transmission path of the current 576×288 tactical HUD.
+Information is distributed over four pages. The default screen is non-navigational and is centered
+The route guidance and bottom intersection card are changed to news. Users have a G2 or R1
+Scroll to cycle back and forth through the page.
 
-## 페이지 순서
+## Page order
 
-페이지는 다음 순서로 원형 순환한다.
+The pages cycle circularly in the following order.
 
-1. `OVERVIEW` (`01 / 04`): 지도, 뉴스 헤드라인·요약, 마이크, 간단한 할 일
-2. `NAVIGATION` (`02 / 04`): 지도, 120m 우회전 안내, 다음 교차로, 마이크,
-   간단한 할 일
-3. `NEWS` (`03 / 04`): 큰 뉴스 헤드라인과 지역·날씨 브리핑
-4. `TODO` (`04 / 04`): 큰 체크리스트와 오디오·연결 상태
+1. `OVERVIEW` (`01 / 04`): Map, news headlines/summaries, microphone, simple tasks
+2. `NAVIGATION` (`02 / 04`): Map, 120m right turn guidance, next intersection, microphone,
+   simple to do
+3. `NEWS` (`03 / 04`): Big news headlines and regional/weather briefings
+4. `TODO` (`04 / 04`): Large checklist and audio/connection status
 
-앱을 처음 열거나 새로고침하면 항상 `OVERVIEW`를 그린다.
-`OVERVIEW` 중앙 상단에는 `NEWS // LOCAL 01`, `2호선 정상 운행`,
-`홍대입구역 혼잡도`, `보통`을 표시한다. 중앙 하단에는
-`BRIEF // 02`, `오늘 23°C · 맑음`, `강수 10%`를 표시한다.
-`NAV // ROUTE 01`, `다음 교차로`, `우회전`은 `OVERVIEW`에 표시하지 않는다.
+When you first open or refresh the app, it always draws an `OVERVIEW`.
+At the top center of `OVERVIEW`, `NEWS // LOCAL 01`, `Line 2 operating normally`,
+‘Hongik University Station Congestion Level’ is displayed as ‘average’. At the bottom center
+Displays `BRIEF // 02`, `today 23°C · clear`, `precipitation 10%`.
+`NAV // ROUTE 01`, `next intersection`, and `right turn` are not displayed in `OVERVIEW`.
 
-`NEWS` 페이지는 헤드라인을 큰 카드들로 재배치하고, `TODO` 페이지는
-`지하철역으로 이동`, `우산 챙기기`, `경로 확인`을 큰 체크박스와 함께
-표시한다. 데이터는 기존 프로토타입과 동일한 정적 목업이다. 외부 뉴스,
-날씨, 지도 API 연결은 범위에 포함하지 않는다.
+The `NEWS` page rearranges the headlines into larger cards, and the `TODO` page
+‘Go to the subway station’, ‘Bring an umbrella’, and ‘Confirm route’ with large checkboxes.
+Display. The data is a static mockup identical to the existing prototype. external news,
+Weather and map API connections are not included in the scope.
 
-## 입력과 상태
+## Input and status
 
-- `SCROLL_BOTTOM_EVENT`: 다음 페이지
-- `SCROLL_TOP_EVENT`: 이전 페이지
-- `DOUBLE_CLICK_EVENT`: 기존과 같이 앱 종료
+- `SCROLL_BOTTOM_EVENT`: Next page
+- `SCROLL_TOP_EVENT`: Previous page
+- `DOUBLE_CLICK_EVENT`: Close the app as before
 
-R1 터치패드도 G2와 같은 스크롤 이벤트를 사용하므로 별도 반지 분기를 두지
-않는다. 마지막 페이지에서 다음으로 이동하면 첫 페이지로, 첫 페이지에서
-이전으로 이동하면 마지막 페이지로 간다.
+The R1 touchpad also uses the same scroll event as the G2, so there is no separate ring branch.
+No. When you move from the last page to the first page, from the first page
+Moving back takes you to the last page.
 
-## 전송 안정성
+## Transmission stability
 
-초기 진입에서만 빈 이벤트 캡처 레이어와 이미지 컨테이너 네 개를 생성한다.
-스크롤 전환 때는 페이지 컨테이너를 재구성하지 않는다. 같은 Canvas에 다음
-페이지를 다시 그린 뒤 기존 컨테이너 ID 2–5의 이미지 데이터만 갱신한다.
-이는 직전 실기기에서 관찰된 일시적인 단안 표시가 페이지 재구성과 함께
-재발할 가능성을 줄인다.
+On initial entry only, it creates an empty event capture layer and four image containers.
+The page container is not reorganized during scroll transitions. Next on the same Canvas
+After redrawing the page, only the image data for existing container IDs 2–5 is updated.
+This means that the temporary monocular display observed in the previous actual device is accompanied by page reconstruction.
+Reduces the likelihood of recurrence.
 
-각 전환은 아래 순서로 하나의 큐에서 처리한다.
+Each transition is processed in one queue in the following order.
 
-1. 페이지 인덱스를 원형으로 변경한다.
-2. 동일한 576×288 Canvas를 다시 그린다.
-3. 네 PNG 타일을 인코딩한다.
-4. ID 2, 3, 4, 5 순서로 한 장씩 전송한다.
+1. Change the page index to circular.
+2. Redraw the same 576×288 Canvas.
+3. Encode your PNG tiles.
+4. Send one page at a time in the following order: ID 2, 3, 4, and 5.
 
-진행 중 추가 스크롤은 버리지 않고 큐 뒤에 놓는다. 따라서 BLE 이미지
-업데이트가 서로 겹치지 않으며 입력 순서가 보존된다. 전환 실패는 진행
-메시지에 표시하고 다음 입력을 받을 수 있도록 큐의 오류를 흡수한다.
+Additional scrolls in progress are not discarded but placed behind the queue. Therefore, the BLE image
+Updates do not overlap each other and input order is preserved. Conversion failure progresses
+It absorbs errors in the queue so that it can mark the message and receive the next input.
 
-## 시각 규칙
+## Visual rules
 
-- Canvas 크기와 타일 경계는 576×288, 288×144 네 장으로 고정한다.
-- 검정, 흰색, 중간 회색, 어두운 회색의 기존 4색 팔레트를 유지한다.
-- 시계는 페이지를 다시 그리는 시점의 `HH:MM:SS`를 표시한다.
-- 공통 헤더 우측에 현재 페이지 번호를 `01 / 04` 형식으로 표시한다.
-- 전술 프레임, 각진 경로, 고정폭 글꼴과 큰 핵심 숫자·문장을 유지한다.
-- 중앙 현실 시야를 완전히 비우는 초기 콘셉트보다 사용자가 승인한
-  고밀도 대시보드 구성을 우선한다.
+- Canvas size and tile border are fixed to four sheets of 576×288, 288×144.
+- Maintain the existing four-color palette of black, white, medium gray, and dark gray.
+- The clock displays `HH:MM:SS` at the time of page redraw.
+- The current page number is displayed in `01 / 04` format on the right side of the common header.
+- Maintain tactical frames, angled paths, monospaced fonts, and large key numbers and sentences.
+- User-approved alternative to the initial concept of completely clearing the central reality field of view.
+  Prioritize high-density dashboard configuration.
 
-## 자동 검증
+## Automatic verification
 
-- 기본 호출이 `OVERVIEW` 뉴스 콘텐츠와 `01 / 04`를 그리며 내비게이션
-  문구를 그리지 않는지 확인한다.
-- `NAVIGATION`, `NEWS`, `TODO`가 각 페이지 고유 문구와 올바른 페이지
-  번호를 그리는지 확인한다.
-- 모든 페이지가 576×288과 기존 4색 팔레트를 지키는지 확인한다.
-- 아래 스크롤 뒤 같은 네 이미지 컨테이너가 순서대로 한 번 더 갱신되고
-  페이지 재구성이 일어나지 않는지 확인한다.
-- 아래·위 스크롤이 각각 `next`, `previous`로 전달되는지 확인한다.
-- 연속 입력에서도 이미지 전송의 최대 동시 실행 수가 1인지 확인한다.
-- 기존 더블 클릭 종료와 초기 페이지 생성 실패 시 1회 재구성 동작을
-  유지하는지 확인한다.
+- The default call is `OVERVIEW` news content and navigation by drawing `01 / 04`
+  Make sure you are not drawing text.
+- `NAVIGATION`, `NEWS`, and `TODO` are unique phrases and correct pages for each page.
+  Make sure you draw the numbers.
+- Check that all pages adhere to 576×288 and the existing 4-color palette.
+- After scrolling below, the same four image containers are updated once more in order.
+  Verify that page reorganization does not occur.
+- Check whether down and up scrolling is transmitted to `next` and `previous` respectively.
+- Check that the maximum number of simultaneous executions of image transmission is 1 even in continuous input.
+- One-time reconfiguration operation when existing double click ends and initial page creation fails.
+  Make sure it is maintained.
 
-## 실기기 확인
+## Check actual device
 
-빌드 식별자는 `paged-hud-004`로 한다.
+The build identifier is `paged-hud-004`.
 
 ```text
 http://100.96.68.73:4173/hud-canvas?sdk=0.0.10&build=paged-hud-004
 ```
 
-G2에서 새로고침 후 양안 표시, 기본 뉴스 화면, 아래·위 스크롤 순환,
-R1 스크롤 순환, 네 타일 갱신 중 부분 화면이 정상적으로 완성되는지를
-차례로 확인한다.
+After refreshing on G2, binocular display, basic news screen, down/up scroll cycle,
+R1 scroll cycle, check whether partial screen is completed normally during four tile update
+Check them one by one.

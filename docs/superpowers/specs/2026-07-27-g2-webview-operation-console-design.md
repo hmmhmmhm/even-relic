@@ -1,12 +1,16 @@
 # G2 WebView Operation Console Design
 
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
 Date: 2026-07-27  
 Branch: `feature/g2-ors-routing`  
 Status: APPROVED
 
 ## Goal
 
-Add a phone-WebView-only diagnostic console that shows which RELIC operation is
+Add a phone-WebView-only diagnostic console that shows which Sandevistan operation is
 running, when it starts and finishes, and how long it takes, so a later WebView
 freeze can be traced to its last successful boundary instead of inferred from
 glasses behavior.

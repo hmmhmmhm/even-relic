@@ -1,52 +1,52 @@
-# G2 세션 재구성 진단 설계
+# G2 session reconfiguration diagnostic design
 
-## 배경
+## Background
 
-공식 이미지 예제에서 성공했던 `200×100` 구성까지 다시 적용했지만
-`createStartUpPageContainer()`가 계속 `invalid`를 반환했다. 따라서 PNG 형식,
-이미지 크기, 컨테이너 수만으로는 현재 증상을 설명할 수 없다.
+We reapplied the `200×100` configuration that was successful in the official image example, but
+`createStartUpPageContainer()` kept returning `invalid`. Therefore PNG format,
+Image size and number of containers alone cannot explain the current symptom.
 
-Even Hub SDK 문서에 따르면 시작 페이지 생성은 안경 UI 세션에서 한 번만
-호출할 수 있다. 이후 페이지 변경은 `rebuildPageContainer()`를 사용해야 한다.
-다만 사용자가 앱을 완전히 종료한 뒤에도 같은 오류를 확인했으므로, 잔존
-세션을 원인으로 단정하지 않고 생성과 재구성 결과를 함께 수집한다.
+According to the Even Hub SDK documentation, creation of the start page only occurs once in the Glasses UI session.
+You can call Subsequent page changes must use `rebuildPageContainer()`.
+However, since the user saw the same error even after completely closing the app, the remaining
+Rather than determining the session as the cause, the creation and reconstruction results are collected together.
 
-## 목표
+## Target
 
-- 페이지 생성 실패가 기존 세션 때문인지 페이지 정의 자체 때문인지 구분한다.
-- 웹뷰에 앱 버전과 진단 빌드명을 항상 표시한다.
-- 페이지가 준비된 경우에만 기준 이미지를 전송한다.
-- 기존 크기 비교용 URL 프로필은 유지한다.
+- Distinguish whether page creation failure is due to an existing session or the page definition itself.
+- Always display the app version and diagnostic build name in the web view.
+- Send the reference image only when the page is ready.
+- The existing URL profile for size comparison is maintained.
 
-센서, 전체 화면 HUD, STT 등 실제 RELIC 기능은 이번 진단 범위에 포함하지
-않는다.
+Actual Sandevistan functions such as sensors, full screen HUD, STT, etc. are not included in the scope of this diagnosis.
+No.
 
-## 선택한 접근
+## Selected access
 
-조건부 재구성을 사용한다.
+Use conditional reconstruction.
 
-1. 브리지가 준비되면 선택한 프로필로 시작 페이지 생성을 한 번 시도한다.
-2. 생성 결과가 `success`이면 이미지 전송 단계로 이동한다.
-3. 생성 결과가 `invalid`이면 동일한 페이지 정의로 재구성을 한 번 시도한다.
-4. 재구성이 성공하면 이미지 전송 단계로 이동한다.
-5. 재구성이 실패하면 오류를 표시하고 이미지 전송을 시작하지 않는다.
-6. `oversize` 또는 `outOfMemory`에는 재구성을 시도하지 않는다.
+1. Once the bridge is ready, try creating a start page with the selected profile.
+2. If the creation result is `success`, move to the image transmission step.
+3. If the creation result is `invalid`, reorganization is attempted once with the same page definition.
+4. If reconstruction is successful, move to the image transmission step.
+5. If reconstruction fails, it displays an error and does not start image transfer.
+6. Do not attempt reconstruction on `oversize` or `outOfMemory`.
 
-`invalid`에서만 재구성하는 이유는 세션 중복과 잘못된 페이지 정의가 모두
-같은 결과를 낼 수 있기 때문이다. 재구성 결과까지 확인하면 두 경우를
-구분할 수 있다.
+The reason for rebuilding only on `invalid` is both session duplication and incorrect page definitions.
+Because it can produce the same results. If you check the reconstruction results, you will find two cases:
+can be distinguished.
 
-항상 재구성하는 방식은 최초 실행을 보장하지 못한다. 강제 종료 후 다시
-생성하는 방식은 웹뷰와 앱 자체를 종료할 수 있으므로 사용하지 않는다.
+The always-reconfiguring method does not guarantee first execution. After force quitting again
+Do not use the creation method because it can terminate the web view and the app itself.
 
-## 웹뷰 표시
+## Show webview
 
-제목 아래에 다음 버전 문자열을 고정 표시한다.
+Fixed display of the next version string below the title.
 
 `v0.1.0 · session-rebuild-1`
 
-상태 영역에는 마지막 단계만 덮어쓰지 않고 다음 경계를 식별할 수 있는
-문구를 순서대로 표시한다.
+The status area contains information that identifies the next boundary rather than just overwriting the last step.
+Display phrases in order.
 
 - `BRIDGE WAIT`
 - `BRIDGE READY`
@@ -56,43 +56,43 @@ Even Hub SDK 문서에 따르면 시작 페이지 생성은 안경 UI 세션에�
 - `PAGE REBUILD RESULT: true|false`
 - `PAGE READY <width>x<height> - SEND IN 3S`
 
-오류가 발생하면 마지막 성공 경계와 실패 원인을 웹뷰에서 읽을 수 있어야
-한다.
+When an error occurs, the last success boundary and failure cause should be readable from the webview.
+Do it.
 
-## 데이터 흐름
+## Data flow
 
-웹뷰 URL에서 진단 프로필을 선택하고, 프로필의 이미지 컨테이너 정의를
-페이지 초기화 함수에 전달한다. 초기화 함수는 생성 또는 재구성에 성공한
-브리지만 반환한다. 호출자는 반환된 브리지로 이미지를 불러온 뒤 3초를
-기다리고 직렬로 한 번 전송한다.
+Select a diagnostic profile from the webview URL and define the image container for the profile.
+Pass it to the page initialization function. The initialization function succeeds in creating or reconstructing
+Returns only the bridge. The caller waits 3 seconds after loading the image to the returned bridge.
+Wait and transmit once serially.
 
-현재 기준 프로필은 공식 예제와 같은 텍스트 컨테이너 2개와 `200×100`
-이미지 컨테이너 1개를 사용한다.
+The current baseline profile consists of two text containers and `200×100` like the official example.
+Uses one image container.
 
-## 오류 처리
+## Error handling
 
-| 생성 결과 | 재구성 | 이미지 전송 |
+| Generated Results | Reconstruction | image transfer |
 |---|---|---|
-| `success` | 호출하지 않음 | 진행 |
-| `invalid` | 한 번 호출 | 재구성 성공 시에만 진행 |
-| `oversize` | 호출하지 않음 | 중단 |
-| `outOfMemory` | 호출하지 않음 | 중단 |
+| `success` | do not call | progress |
+| `invalid` | call once | Proceed only when reconfiguration is successful |
+| `oversize` | do not call | interruption |
+| `outOfMemory` | do not call | interruption |
 
-브리지 호출 자체가 예외를 던지면 해당 경계에서 즉시 중단하고 예외 메시지를
-웹뷰에 표시한다.
+If the bridge call itself throws an exception, it immediately aborts at that boundary and sends the exception message.
+Displayed in webview.
 
-## 테스트
+## Test
 
-- 생성 성공 시 재구성을 호출하지 않는다.
-- 생성 결과가 `invalid`이고 재구성이 성공하면 초기화가 완료된다.
-- 생성 결과가 `invalid`이고 재구성이 실패하면 명확한 오류를 반환한다.
-- `oversize`와 `outOfMemory`에는 재구성을 호출하지 않는다.
-- 각 경계의 상태 문구가 올바른 순서로 기록된다.
-- 웹뷰에 앱 버전과 진단 빌드명이 함께 표시된다.
+- When creation is successful, reconfiguration is not called.
+- If the creation result is `invalid` and reconfiguration is successful, initialization is completed.
+- If the creation result is `invalid` and reconstruction fails, a clear error is returned.
+- Do not call reconstruction for `oversize` and `outOfMemory`.
+- The status text for each boundary is recorded in the correct order.
+- The app version and diagnostic build name are displayed together in the web view.
 
-## 성공 기준
+## Success Criteria
 
-- 자동 테스트와 TypeScript 빌드가 통과한다.
-- 새 URL이 Tailscale 주소에서 HTTP `200`을 반환한다.
-- 실제 G2 실행에서 생성 결과와 재구성 결과를 웹뷰에서 구분할 수 있다.
-- 페이지 생성 또는 재구성이 성공한 경우에만 3초 뒤 이미지 전송이 시작된다.
+- Automatic tests and TypeScript builds pass.
+- The new URL returns HTTP `200` at the Tailscale address.
+- In actual G2 execution, the creation results and reconstruction results can be distinguished in the web view.
+- Image transmission begins 3 seconds later only if page creation or reconstruction is successful.

@@ -1,67 +1,71 @@
-# G2 전체화면 래스터 실험 설계
+# G2 full screen raster experiment design
 
-## 목표
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
 
-선택된 RELIC HUD 시안을 G2의 576×288 표시 영역 전체에 정적 이미지로
-표시한다. 이번 실험은 정보 밀도와 실제 가독성 확인만을 목적으로 하며,
-센서·지도·STT 등의 동적 기능은 연결하지 않는다.
+## Target
 
-## 확인된 전제
+Selected Sandevistan HUD cyan as static image across G2's 576×288 display area
+Display. The purpose of this experiment is only to check information density and actual readability.
+Dynamic functions such as sensors, maps, and STT are not connected.
 
-- G2 표시 영역은 576×288이다.
-- 이미지 컨테이너 한 개의 허용 크기는 20~288×20~144이다.
-- 한 페이지에는 이미지 컨테이너를 최대 4개 둘 수 있다.
-- 공식 16-bit RGB PNG는 실기기에서 `imageException`을 반환했다.
-- 같은 이미지를 8-bit RGB PNG로 바꾸면 원본 크기와 200×100 크기 모두
-  `success`를 반환했다.
-- 선택된 RELIC HUD 원본은 1774×887, 8-bit RGB PNG이며 화면과 동일한
-  2:1 비율이다.
+## Confirmed premise
 
-## 화면 구성
+- The G2 display area is 576×288.
+- The allowable size of one image container is 20~288×20~144.
+- Up to four image containers can be placed on one page.
+- The official 16-bit RGB PNG returned an `imageException` on the actual device.
+- If you change the same image to 8-bit RGB PNG, both the original size and 200×100 size are displayed.
+  Returned `success`.
+- The selected Sandevistan HUD original is 1774×887, 8-bit RGB PNG and is identical to the screen.
+  It is a 2:1 ratio.
 
-HUD 원본을 먼저 576×288로 축소한 다음 다음 네 영역으로 자른다.
+## Screen composition
 
-| 컨테이너 | 위치 | 크기 | 원본 영역 |
+The original HUD is first reduced to 576×288 and then cut into the following four areas.
+
+| container | Location | size | Source area |
 |---|---:|---:|---:|
 | `relicTL` | 0, 0 | 288×144 | 0, 0 |
 | `relicTR` | 288, 0 | 288×144 | 288, 0 |
 | `relicBL` | 0, 144 | 288×144 | 0, 144 |
 | `relicBR` | 288, 144 | 288×144 | 288, 144 |
 
-네 파일은 모두 8-bit RGB PNG로 미리 생성한다. 화면 전체를 덮는 빈 텍스트
-컨테이너 한 개를 이미지 뒤에 두어 탭 이벤트만 받는다. 페이지의 총 컨테이너
-수는 5개다.
+All four files are created in advance as 8-bit RGB PNG. Blank text covering the entire screen
+Place one container behind the image to receive only tap events. Total containers on the page
+The number is 5.
 
-## 전송 흐름
+## Transmission flow
 
-1. 빈 이벤트 레이어와 이미지 컨테이너 네 개로 페이지를 생성한다.
-2. 휴대폰 화면에 `READY - TAP TO SEND`를 표시한다.
-3. 사용자가 안경 터치바 또는 R1을 한 번 탭한다.
-4. `relicTL → relicTR → relicBL → relicBR` 순서로 한 장씩 전송한다.
-5. 동시에 두 장을 보내지 않는다.
-6. 휴대폰 화면에 각 타일의 정규화된 결과와 진행률을 표시한다.
-7. 네 장이 모두 성공하면 `FULLSCREEN RESULT: success`를 표시한다.
+1. Create a page with an empty event layer and four image containers.
+2. Display ‘READY - TAP TO SEND’ on the mobile phone screen.
+3. The user taps the Glasses Touch Bar or R1 once.
+4. Transmit one page at a time in the following order: `relicTL → relicTR → relicBL → relicBR`.
+5. Do not send two pages at the same time.
+6. Display the normalized result and progress of each tile on the phone screen.
+7. If all four shots are successful, `FULLSCREEN RESULT: success` is displayed.
 
-안경의 이미지 슬롯 네 개를 모두 사용하므로 진행 상태용 안경 텍스트는
-추가하지 않는다. 실패 정보는 휴대폰 화면에서 확인한다.
+Since it uses up all four image slots on the glasses, the glasses text for progress will be
+do not add Check the failure information on the mobile phone screen.
 
-## 오류 처리
+## Error handling
 
-- 페이지 생성이 `invalid`이면 같은 컨테이너 구성으로 한 번 재구성한다.
-- 한 타일이 `success`가 아니면 다음 타일을 보내지 않고 타일 이름과 결과를
-  휴대폰 화면에 남긴다.
-- 단일 탭 이벤트의 생략된 0 값은 기존에 검증한 방식으로 복원한다.
-- 더블 탭은 이미지 전송을 시작하지 않고 앱을 종료한다.
+- If page creation is `invalid`, reconfigure once with the same container configuration.
+- If one tile is not `success`, the next tile is not sent and the tile name and result are sent.
+  Leave it on your phone screen.
+- The omitted 0 value of a single tap event is restored using the previously verified method.
+- Double tap closes the app without starting image transfer.
 
-## 검증
+## Verification
 
-자동 테스트는 다음을 확인한다.
+Automated testing checks:
 
-- 네 타일의 위치와 크기가 576×288을 빈틈없이 정확히 덮는다.
-- 생성된 PNG 네 장이 각각 288×144, 8-bit RGB이다.
-- 이미지 전송은 TL, TR, BL, BR 순서이며 항상 직렬이다.
-- 단일 탭 한 번으로 전송이 한 번만 시작된다.
-- 첫 실패 뒤에는 후속 타일을 보내지 않는다.
+- The positions and sizes of the four tiles accurately cover 576×288 without any gaps.
+- The four generated PNGs are each 288×144, 8-bit RGB.
+- Image transmission is in the order of TL, TR, BL, BR and is always serial.
+- Transfer starts only once with a single tap.
+- No follow-up tiles are sent after the first failure.
 
-빌드 후 새로운 포트와 QR로 실행해 이전 WebView 캐시와 분리한다. 실기기에서
-네 타일의 경계, 누락, 왜곡, 밝기, 텍스트 가독성을 육안으로 평가한다.
+After building, run it with a new port and QR to separate it from the previous WebView cache. In practical equipment
+The boundaries, omissions, distortions, brightness, and text readability of the four tiles are visually evaluated.

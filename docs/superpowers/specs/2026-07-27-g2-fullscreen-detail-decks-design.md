@@ -1,46 +1,50 @@
-# G2 전체 화면 상세 덱 설계
+# G2 full screen detailed deck design
 
-날짜: 2026-07-27
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
 
-대상 경로: `/hud-canvas-fast`
+Date: 2026-07-27
 
-기준 브랜치: `feature/g2-ors-routing`
+Target path: `/hud-canvas-fast`
 
-상태: APPROVED
+Base branch: `feature/g2-ors-routing`
 
-## 목표
+Status: APPROVED
 
-네 개의 대시보드 탭을 단순 요약 화면에서 실제로 탐색하고 조작할 수 있는
-상세 기능으로 확장한다. `OVERVIEW`의 전체 화면 지도와 같은 방식으로
-`NEWS`, `TODO`, `NAVIGATION`도 한 번 탭하여 576×288 전체 화면으로
-연다.
+## Target
 
-기존에 실제 G2에서 확인한 다음 계약은 바꾸지 않는다.
+Four dashboard tabs can be physically navigated and manipulated from a simple summary screen.
+Expand with detailed functions. In the same way as the full screen map in `OVERVIEW`
+Tap once on `NEWS`, `TODO`, and `NAVIGATION` to full screen in 576×288
+Open.
+
+Contracts that have already been confirmed by G2 will not be changed.
 
 - SDK `0.0.11`
-- 네 개의 288×144 이미지 컨테이너
-- 전체 전송 순서 `3 → 5 → 2 → 4`
-- 대시보드 전환 순서 `OVERVIEW → NEWS → TODO → NAVIGATION`
-- 모든 이미지 갱신의 직렬 실행
-- 대시보드에서 두 번 탭하는 검정 화면 표시 토글
+- Four 288×144 image containers
+- Total transmission order `3 → 5 → 2 → 4`
+- Dashboard conversion order `OVERVIEW → NEWS → TODO → NAVIGATION`
+- Serial execution of all image updates
+- Toggle showing black screen on double tap in dashboard
 
-## 선택한 접근
+## Selected access
 
-페이지별 전용 전체 화면 덱을 사용한다.
+Use a dedicated full-screen deck for each page.
 
-- 지도는 기존 줌 덱을 유지한다.
-- 뉴스는 실제 RSS 기사 한 건씩 읽는 덱으로 만든다.
-- TODO는 선택 가능한 전체 화면 체크리스트로 만든다.
-- 내비게이션은 경로 동작 한 단계씩 확인하는 덱으로 만든다.
+- The map maintains the existing zoom deck.
+- News is created by reading actual RSS articles one at a time.
+- TODO creates a selectable full-screen checklist.
+- Navigation is made with a deck that checks the route operation step by step.
 
-기존 오른쪽 칸만 확대하는 방식은 구현이 단순하지만 실제 내용 소비와
-조작이 어렵다. 기사 원문 웹페이지를 안경에 직접 표시하는 방식은 지연,
-가독성, 외부 HTML 안전성, 저작권 범위가 불명확하므로 사용하지 않는다.
-뉴스 상세 화면은 현재 allowlist RSS가 제공하는 제목과 요약문만 사용한다.
+The existing method of enlarging only the right column is simple to implement, but it is difficult to consume actual content and
+It is difficult to operate. The method of displaying the original article webpage directly on the glasses is delayed,
+Do not use because readability, external HTML safety, and copyright scope are unclear.
+The news details screen currently uses only the titles and summaries provided by allowlist RSS.
 
-## 공통 화면 상태
+## Common screen states
 
-현재 지도 전용 상태를 다음 공통 상태로 확장한다.
+Extends the current map-only state to the next common state.
 
 ```ts
 type FastHudViewMode =
@@ -60,62 +64,62 @@ type FastHudViewState = {
 };
 ```
 
-선택 상태는 앱 세션 동안 유지한다. 대시보드 페이지를 이동하거나 상세
-화면을 닫아도 지도 줌과 각 상세 덱의 마지막 선택 위치는 남는다. 앱을
-다시 시작하면 지도는 650m, 각 덱은 첫 항목 또는 현재 경로 동작으로
-초기화한다.
+The selection state is maintained throughout the app session. Go to the dashboard page or
+Even if you close the screen, the map zoom and the last selected location of each detailed deck remain. app
+When restarting, the map is 650m away, and each deck moves to either the first item or the current path action.
+Initialize.
 
-입력 전이 함수는 현재 상태, 대시보드 페이지, 항목 수, 현재 경로 동작을
-받고 다음 상태와 다음 결과 중 하나를 반환한다.
+The input transition function returns the current state, dashboard page, number of items, and current path behavior.
+Receives and returns the next status and one of the following results:
 
-- `unhandled`: 기존 대시보드 전환 또는 검정 화면 토글에 넘김
-- `consume`: 화면이나 전송을 바꾸지 않고 입력만 소모
-- `redraw`: 현재 Canvas를 다시 그리고 네 타일을 전송
-- `toggle-todo`: 선택한 TODO를 바꾸는 세션 작업 요청
+- `unhandled`: Overrides existing dashboard toggle or black screen toggle.
+- `consume`: Consumes only input without changing the screen or transmission.
+- `redraw`: Redraw the current Canvas and transfer four tiles
+- `toggle-todo`: Session task request to change the selected TODO
 
-## 제스처 계약
+## Gesture contract
 
-### 대시보드
+### Dashboard
 
-- 한 번 탭: 현재 탭에 대응하는 전체 화면 상세 덱 진입
-- 아래로 스크롤: 다음 대시보드 탭
-- 위로 스크롤: 이전 대시보드 탭
-- 빠르게 두 번 탭: 기존 검정 화면 표시 토글
+- Tap once: Enter the full-screen detailed deck corresponding to the current tab.
+- Scroll down: Next dashboard tab
+- Scroll up: Previous dashboard tab
+- Quickly double tap: Toggle display of traditional black screen
 
-### 모든 상세 덱
+### All detailed decks
 
-- 빠르게 두 번 탭: 진입했던 대시보드 탭으로 복귀
-- 상세 덱의 스크롤 경계: 입력을 소모하고 대시보드 탭으로 넘어가지 않음
-- 상세 화면이 열린 동안 검정 화면 토글은 실행하지 않음
+- Quickly double tap: Return to the dashboard tab you entered
+- Scrolling border on detail deck: consumes input and does not advance to dashboard tab
+- Black screen toggle does not work while the details screen is open.
 
-### 지도
+### Map
 
-- 아래로 스크롤: 한 단계 확대
-- 위로 스크롤: 한 단계 축소
-- 한 번 탭: 입력만 소모
+- Scroll down: zoom in one level
+- Scroll up: zoom out one step
+- Single tap: consumes only input
 
-### 뉴스
+### News
 
-- 아래로 스크롤: 다음 기사
-- 위로 스크롤: 이전 기사
-- 한 번 탭: 입력만 소모
+- Scroll down: Next article
+- Scroll up: Previous article
+- Single tap: consumes only input
 
 ### TODO
 
-- 아래로 스크롤: 다음 항목 선택
-- 위로 스크롤: 이전 항목 선택
-- 한 번 탭: 선택 항목의 완료 상태 전환
+- Scroll down: select next item
+- Scroll up: select previous item
+- Single tap: toggle completion status of selected item
 
-### 내비게이션
+### Navigation
 
-- 진입할 때 현재 활성 동작을 선택
-- 아래로 스크롤: 다음 경로 동작
-- 위로 스크롤: 이전 경로 동작
-- 한 번 탭: 현재 활성 동작으로 즉시 복귀
+- Select currently active action when entering
+- Scroll down: Next path action
+- Scroll up: previous path action
+- Single tap: Instantly return to currently active action
 
-## 뉴스 데이터
+## News data
 
-`NewsItem`에 선택형 `summary`를 추가한다.
+Add optional `summary` to `NewsItem`.
 
 ```ts
 type NewsItem = {
@@ -127,26 +131,26 @@ type NewsItem = {
 };
 ```
 
-RSS `<description>`의 HTML을 `DOMParser`로 텍스트화하고 공백을 정규화한다.
-제어 문자를 제거하고 최대 360개 코드 포인트까지만 저장한다. 기사 원문
-URL은 기존처럼 검증된 HTTP 또는 HTTPS 주소만 보존하지만 G2에서 직접
-열지는 않는다. 캐시 검증과 복제에도 `summary`를 포함한다.
+RSS `<description>`'s HTML is converted to text with `DOMParser` and spaces are normalized.
+Control characters are removed and only up to 360 code points are stored. Original article
+URLs preserve only verified HTTP or HTTPS addresses as before, but directly from G2.
+It doesn't open. Cache verification and replication also include `summary`.
 
-전체 화면 뉴스는 다음 정보를 표시한다.
+Full screen news displays the following information:
 
-- `NEWS // LIVE`, `STALE`, `LOADING`, `UNAVAILABLE` 상태
-- 현재 위치 `1 / 6`
-- 최대 두 줄의 큰 제목
-- 최대 다섯 줄의 요약문
-- 발행 월일과 시각
-- `SCROLL // ARTICLES`, `DOUBLE TAP // BACK` 안내
+- `NEWS // LIVE`, `STALE`, `LOADING`, `UNAVAILABLE` status
+- Current location `1 / 6`
+- Large title of up to two lines
+- Summary of up to five lines
+- Date and time of publication
+- `SCROLL // ARTICLES`, `DOUBLE TAP // BACK` information
 
-새 RSS 결과가 도착하면 기존 선택 인덱스를 유효 범위로 제한한다. 결과가
-비어 있으면 상태 안내만 표시하며 스크롤을 소모한다.
+When new RSS results arrive, the existing selection index is limited to the valid range. the result
+If empty, only status information is displayed and scrolling is consumed.
 
-## TODO 데이터와 영속성
+## TODO data and persistence
 
-다음 모델을 `LiveDashboardState`에 추가한다.
+Add the following model to `LiveDashboardState`.
 
 ```ts
 type TodoItem = {
@@ -156,141 +160,141 @@ type TodoItem = {
 };
 
 type LiveDashboardState = {
-  // 기존 location, weather, news, map, route
+  // Existing location, weather, news, map, route
   readonly todos: DataState<readonly TodoItem[]>;
 };
 ```
 
-초기 항목은 현재 승인된 세 개를 유지한다.
+The initial items remain at the three currently approved.
 
-1. 지하철역으로 이동
-2. 우산 챙기기
-3. 경로 확인
+1. Go to the subway station
+2. Bring an umbrella
+3. Check the route
 
-Even 로컬 저장소의 `relic:todos:v1`에 최대 여섯 항목을 저장한다. 각 제목은
-공백을 정규화한 1~40개 코드 포인트여야 한다. 캐시가 없거나 손상되면 초기
-항목을 사용한다. 이번 범위에는 항목 추가, 삭제, 이름 편집용 폰 UI를
-포함하지 않는다.
+Even stores up to six items in `relic:todos:v1` in local storage. Each title is
+Must be 1 to 40 code points with spaces normalized. If the cache is missing or corrupted, the initial
+Use the item. This scope includes a phone UI for adding, deleting, and name editing items.
+Does not include
 
-한 번 탭하면 메모리 상태를 먼저 변경하고 전송 요청을 직렬 큐에 넣은 뒤
-저장을 시도한다. 저장이 끝나거나 실패한 다음 입력 작업을 끝내므로 네 타일
-전송과 저장소 작업은 겹치지 않는다. 저장 실패는 현재 세션의 변경을
-되돌리지 않지만 앱을 다시 시작하면 마지막으로 저장된 상태가 복원될 수
-있다.
+A single tap first changes the memory state, puts the transfer request into the serial queue, and then
+Try saving. Four tiles since the save ends or fails and then ends the input operation.
+Transfer and storage operations do not overlap. A save failure will result in changes to the current session.
+It doesn't revert, but restarting the app may restore the last saved state.
+there is.
 
-전체 화면 TODO는 전체 항목, 현재 선택 표시, 체크박스, 완료 개수와 다음
-안내를 표시한다.
+Full screen TODO displays all items, current selection, checkboxes, completed count and next
+Display guidance.
 
 ```text
 SCROLL // SELECT · TAP // TOGGLE · DOUBLE TAP // BACK
 ```
 
-## 내비게이션 상세
+## Navigation details
 
-활성 경로가 있으면 다음을 표시한다.
+If there is an active route, it displays:
 
-- 목적지와 전체 남은 거리
-- 선택한 동작 번호와 전체 동작 수
-- 선택한 ORS 지시문
-- 해당 동작의 거리
-- 현재 활성 동작 표시
-- 스크롤 및 현재 동작 복귀 안내
+- Destination and total remaining distance
+- Selected action number and total number of actions
+- Selected ORS directive
+- Distance of the movement
+- Show currently active actions
+- Guide to scrolling and returning to current action
 
-사용자가 경로 동작을 직접 탐색하기 전에는 활성 동작이 바뀔 때 선택도
-따라간다. 한 번이라도 스크롤하면 선택을 유지하고, 한 번 탭하면 다시 현재
-동작을 따라간다.
+Before the user directly navigates to a path action, selectivity also changes when the active action changes.
+Follow. Scroll even once to retain the selection, and tap once to return to the current selection.
+Follow the movements.
 
-경로 상태가 `disabled`, `loading`, `stale`, `fresh`이지만 값이 없는 경우에는
-각 상태와 폰에서 필요한 동작을 큰 글자로 표시한다. 안경에서 목적지 검색,
-경로 시작 또는 종료는 이번 범위에 포함하지 않는다.
+If the path state is `disabled`, `loading`, `stale`, or `fresh` but there is no value,
+Each state and the required actions on the phone are displayed in large letters. Search for destinations in glasses,
+Path start or end is not included in this scope.
 
-## 렌더링
+## Rendering
 
-세 상세 렌더러는 공통 Canvas 색상과 텍스트 도구를 재사용하되 파일을
-책임별로 분리한다. 모든 구현 파일은 450줄 이하를 유지한다.
+The three detailed renderers reuse common Canvas colors and text tools, but
+Separate by responsibility. All implementation files are kept to 450 lines or less.
 
-- 검정 배경
-- 핵심 정보 `#ffffff`
-- 보조 정보 `#d0d0d0`
-- 구조선과 비활성 정보 `#808080`
-- 그림자와 글로 효과 없음
-- 헤더와 푸터는 검정 불투명 띠
-- 본문은 열린 코너 프레임과 충분한 여백 사용
+- Black background
+- Key information `#ffffff`
+- Supporting information `#d0d0d0`
+- Rescue vessel and deactivation information `#808080`
+- No shadow and glow effects
+- Header and footer are black opaque bands
+- The text uses open corner frames and ample white space.
 
-긴 한국어 문자열은 Canvas 측정값에 의존하지 않는 코드 포인트 기반
-줄바꿈으로 자르고 마지막 줄에 말줄임표를 붙인다. 이 방식은 테스트 Canvas와
-실제 WebView에서 같은 줄 구성을 만든다.
+Long Korean strings are code point based, not dependent on Canvas measures
+Cut it with a line break and add an ellipsis to the last line. This method uses a test canvas and
+Create the same line configuration in the actual WebView.
 
-## 라이브 갱신과 전송
+## Live updates and transfers
 
-대시보드는 기존 `left`, `right`, `right-top`, `all` 전송 규칙을 유지한다.
-상세 덱에서는 보이는 콘텐츠가 실제로 바뀐 경우에만 네 타일을 갱신한다.
+The dashboard maintains the existing `left`, `right`, `right-top`, and `all` forwarding rules.
+In the detailed deck, the four tiles are updated only when the visible content actually changes.
 
-- 지도: 위치, 지도 또는 지도에 표시된 경로 변화
-- 뉴스: 뉴스 상태, 기사 목록, 제목, 요약 또는 발행 시각 변화
-- TODO: 항목이나 완료 상태 변화
-- 내비게이션: 경로 상태, 현재 동작 또는 거리 변화
+- Map: change location, map or route shown on map
+- News: Changes in news status, article list, title, summary or publication time
+- TODO: Change of item or completion status
+- Navigation: route status, current motion or distance changes
 
-상세 화면에 보이지 않는 시계, 배터리, 날씨 또는 다른 페이지의 데이터
-변화는 상태만 보존하고 이미지를 보내지 않는다. 상세 화면 진입, 항목 이동,
-TODO 변경, 복귀는 기존 직렬 큐에서 전체 `3 → 5 → 2 → 4` 순서로 보낸다.
+Clock, battery, weather or data from other pages not visible on the details screen
+Changes only preserve the state and do not send images. Enter the details screen, move items,
+TODO changes and returns are sent in the entire order of `3 → 5 → 2 → 4` in the existing serial queue.
 
-TODO 변경은 입력 처리 중 저장소와 이미지 전송을 겹치지 않는다. 세션 상태
-변경이 전송 요청을 큐에 넣고, 현재 입력 작업이 끝난 뒤 최신 네 타일을
-전송한다.
+TODO changes do not overlap storage and image transfer during input processing. session state
+The change queues the transfer request and retrieves the most recent four tiles after the current input operation has finished.
+Send.
 
-## 실패와 경계 처리
+## Failure and boundary handling
 
-- RSS 요약이 없으면 제목과 `요약 없음`을 표시한다.
-- 뉴스가 갱신 중이거나 실패하면 기존 `loading`, `stale`, `unavailable`
-  상태를 그대로 사용한다.
-- TODO 캐시가 손상되면 초기 세 항목으로 복구한다.
-- TODO 저장 실패가 이미지 전송이나 이후 입력을 막지 않는다.
-- 경로가 없거나 ORS가 비활성화되어도 내비게이션 상세 화면은 열린다.
-- 항목이 사라지거나 경로 동작 수가 줄면 선택 위치를 유효 범위로 제한한다.
-- 모든 경계 스크롤은 전송 없이 소모한다.
-- 이미지 전송 실패는 기존 오류 표시를 사용하고 다음 큐 작업을 허용한다.
+- If there is no RSS summary, the title and ‘No summary’ are displayed.
+- If the news is being updated or fails, the existing `loading`, `stale`, `unavailable`
+  Use the status as is.
+- If the TODO cache is damaged, it is restored to the initial three items.
+- Failure to save TODO does not prevent image transfer or subsequent input.
+- The navigation details screen opens even if there is no route or ORS is disabled.
+- When an item disappears or the number of path operations decreases, the selection position is limited to the effective range.
+- All border scrolls are consumed without transfer.
+- Image transmission failure uses the existing error indication and allows the next queue operation.
 
-## 범위 제외
+## Exclude range
 
-- G2에서 기사 원문 웹페이지 열기
-- RSS가 제공하지 않는 기사 본문 크롤링
-- TODO 항목 추가, 삭제 또는 제목 편집
-- 안경에서 목적지 검색, 경로 시작 또는 종료
-- 음성 입력과 알림 푸시
-- SDK `0.0.12` 또는 LZ4 전송
+- Open the original article webpage in G2
+- Crawl article text not provided by RSS
+- Add, delete or edit TODO items
+- Search for destinations, start or end route from glasses
+- Voice input and notification push
+- SDK `0.0.12` or LZ4 transfer
 
-## 검증
+## Verification
 
-모든 테스트는 직렬 실행한다.
+All tests are run serially.
 
-1. 순수 상태 전이 테스트로 모든 진입, 복귀, 선택 이동, 경계 소모, TODO
-   효과, 내비게이션 재정렬을 확인한다.
-2. RSS 테스트로 요약 정제, 길이 제한, 캐시 검증과 오래된 데이터 유지를
-   확인한다.
-3. TODO 테스트로 초기값, 정상 캐시, 손상 캐시, 토글과 저장 실패를
-   확인한다.
-4. 렌더러 테스트로 네 상세 화면의 576×288 출력, 줄바꿈, 상태 문구,
-   선택 표시와 제스처 안내를 확인한다.
-5. App 테스트로 상세 모드별 라이브 갱신 필터, 전체 전송, TODO 토글,
-   최신 상태 복귀를 확인한다.
-6. 전송 테스트로 모든 상세 입력이 같은 직렬 큐를 사용하고 경계에서는
-   이미지 전송을 하지 않는지 확인한다.
-7. 전체 Vitest, 타입 검사, 프로덕션 빌드, Sites, 서버 API와
-   `git diff --check`를 통과한다.
+1. Pure state transition testing for all entry, return, selection moves, boundary exhaustion, TODO
+   Check the effect and navigation rearrangement.
+2. RSS tests for summary cleansing, length limits, cache validation, and retention of old data.
+   Confirm.
+3. TODO test to check default value, healthy cache, corrupted cache, toggle and save failure.
+   Confirm.
+4. Renderer test shows 576×288 output of four detailed screens, line breaks, status text,
+   Check the check mark and gesture instructions.
+5. App test, live update filter by detailed mode, transfer all, TODO toggle,
+   Make sure to return to the latest status.
+6. As a transfer test, all detailed inputs use the same serial queue and at the boundary
+   Make sure images are not being transmitted.
+7. Full Vitest, type checking, production build, Sites, server API and
+   Passes `git diff --check`.
 
-## 실제 G2 체크포인트
+## Actual G2 checkpoint
 
-기존 전체 화면 지도 게이트와 상세 덱을 하나의 새 빌드에서 직렬로
-검증한다.
+Existing full-screen map gates and detailed decks in series in one new build
+Verify.
 
-- 대시보드 네 페이지의 한 번 탭 진입
-- 뉴스 제목, 요약, 발행 시각과 이전·다음 기사
-- TODO 선택, 체크 전환과 재진입 후 유지
-- 활성 또는 비활성 내비게이션 상세 상태
-- 모든 상세 화면의 두 번 탭 복귀
-- 대시보드의 검정 화면 표시 토글
-- 양안 네 타일과 정상 페이지 순서
-- `SENDFAILED` 미발생
+- One-tap access to all four pages of the dashboard
+- News title, summary, publication time and previous/next article
+- TODO selection, check transition and maintenance after re-entry
+- Active or inactive navigation detail status
+- Double tap return to all detail screens
+- Toggle display of black screen in dashboard
+- Four tiles on both sides and normal page order
+- `SENDFAILED` does not occur
 
-실제 안경 확인 전에는 기본 브랜치 통합과 푸시를 완료로 표시하지 않는다.
+The default branch integration and push are not marked as complete until the actual glasses are confirmed.

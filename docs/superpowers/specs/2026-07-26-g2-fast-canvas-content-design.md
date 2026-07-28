@@ -1,107 +1,107 @@
-# G2 Fast Canvas 콘텐츠 개편 설계
+# G2 Fast Canvas content reorganization design
 
-## 목표
+## Target
 
-실기기에서 구조와 전환 속도가 승인된 `/hud-canvas-fast`의 레이아웃과
-2타일 전송 계약을 유지하면서, 네 페이지의 순서와 샘플 콘텐츠를 실제
-용도에 가깝게 정리한다.
+Layout of `/hud-canvas-fast` approved for structure and transition speed on actual device and
+While maintaining the two-tile transfer agreement, the sequence of four pages and sample content are actually
+Organize it close to its purpose.
 
-## 승인된 페이지 순서
+## Approved page order
 
-스크롤 순서는 아래와 같이 순환한다.
+The scroll order rotates as follows.
 
 1. `OVERVIEW`
 2. `NEWS`
 3. `TODO`
 4. `NAVIGATION`
 
-왼쪽 `288×288` 지도는 모든 페이지에서 그대로 유지한다. 앱 시작 시 이미지
-ID `2, 3, 4, 5`를 전송하고, 스크롤 시에는 오른쪽 이미지 ID `3, 5`만
-직렬 전송하는 기존 계약도 변경하지 않는다.
+The `288×288` map on the left remains the same on all pages. Image when app starts
+Send ID `2, 3, 4, 5`, and when scrolling, only right image ID `3, 5` is sent.
+There will be no changes to existing contracts for serial transmission.
 
-## 검토한 배터리 표시 방식
+## Reviewed battery display methods
 
-### 1. 정적 샘플 값
+### 1. Static sample values
 
-항상 `G2 82%`처럼 고정 값을 그리는 방식이다. 구현은 가장 단순하지만 실제
-상태처럼 오해할 수 있어 사용하지 않는다.
+This method always draws a fixed value such as `G2 82%`. The implementation is the simplest, but practical
+Do not use it as it can be misunderstood as a status.
 
-### 2. SDK 단일 기기 스냅숏
+### 2. SDK single device snapshot
 
-`getDeviceInfo()`가 반환한 한 기기의 모델, 배터리 잔량, 충전 상태를
-초기 Canvas 전송 전에 그린다. G2면 `G2 82%`, R1이면 `R1 64%`, 충전
-중이면 끝에 `+`를 붙인다. 정보를 얻지 못하면 `BATTERY --`를 표시한다.
+Model, battery level, and charging status of a device returned by `getDeviceInfo()`
+Draw before initial Canvas transfer. If G2, `G2 82%`, if R1, `R1 64%`, charge
+If it is in progress, add `+` at the end. If no information is obtained, `BATTERY --` is displayed.
 
-현재 SDK `0.0.10`에는 여러 기기를 동시에 열거하는 공개 API가 없으므로
-G2와 R1의 값을 동시에 보장할 수 없다. 이 제약을 정확히 드러내면서 실제
-값을 사용하는 이 방식을 채택한다.
+Currently in SDK `0.0.10` there is no public API to enumerate multiple devices simultaneously.
+The values ​​of G2 and R1 cannot be guaranteed at the same time. By accurately revealing this limitation,
+We adopt this method of using values.
 
-### 3. 상태 이벤트마다 즉시 재전송
+### 3. Immediate retransmission per status event
 
-`onDeviceStatusChanged()`가 올 때마다 오른쪽 타일을 다시 보내는 방식이다.
-최신 값은 유지되지만 배터리 표시를 위해 예고 없이 BLE 이미지 전송이
-발생한다. 승인된 빠른 스크롤 동작을 불필요하게 흔들 수 있어 제외한다.
+This method resends the right tile every time `onDeviceStatusChanged()` is called.
+The latest values ​​are maintained, but BLE image transmission may occur without notice for battery indication.
+It happens. This is excluded as it may unnecessarily disrupt the approved fast scrolling behavior.
 
-## 페이지 콘텐츠
+## Page content
 
 ### 1. OVERVIEW
 
-교통 뉴스 중심이던 기존 내용을 요약 상태판으로 바꾼다.
+The existing content, which was centered on traffic news, is changed to a summary status board.
 
-- SDK가 반환한 G2 또는 R1 배터리
-- 충전 여부
-- 오늘의 TODO 개수와 완료 개수
-- 현재 날씨 요약
+- G2 or R1 battery returned by SDK
+- Whether to charge
+- Today’s TODO count and completed count
+- Current weather summary
 
 ### 2. NEWS
 
-지도나 지하철 상태처럼 보이던 샘플을 제거하고, 일반 기사 제목임이 분명한
-짧은 샘플 제목 여섯 개를 표시한다. 오른쪽 위 본문에 네 개, 오른쪽 아래
-보조 영역에 두 개를 배치해 타일 경계와 겹치지 않게 한다.
+Samples that looked like maps or subway conditions were removed, and what was clearly a general article title was removed.
+Shows six short sample titles. Four in the upper right main text, lower right
+Place two in the auxiliary area so that they do not overlap the tile border.
 
 ### 3. TODO
 
-기존 체크박스 세 개는 유지한다. 하단의 `G2 + R1 CONNECTED` 연결 상태는
-제거하고 `오늘 완료 1 / 3` 진행률로 바꾼다.
+The three existing checkboxes are maintained. The ‘G2 + R1 CONNECTED’ connection status at the bottom is
+Remove it and change it to `Completed today 1 / 3` progress.
 
 ### 4. NAVIGATION
 
-현재의 `120m`, 우회전, 다음 교차로 콘텐츠를 그대로 유지한다.
+The current ‘120m’, right turn, next intersection content is maintained as is.
 
-## 시계
+## Clock
 
-시계는 초를 제거한 `HH:MM` 형식으로 표시한다. Canvas는 앱 시작과 스크롤
-때만 새로 그리므로 표시 시각도 그 순간 갱신된다. 매초 타일을 재전송하는
-실시간 초 시계는 BLE 부하와 배터리 소모를 늘릴 수 있어 구현하지 않는다.
+The clock is displayed in `HH:MM` format with seconds removed. Canvas supports app launch and scrolling
+Since it is only redrawn, the display time is also updated at that moment. retransmitting tiles every second
+A real-time second clock is not implemented because it can increase BLE load and battery consumption.
 
-## 데이터 흐름
+## Data flow
 
-1. Even 앱 브리지에 연결한다.
-2. `getDeviceInfo()`를 한 번 호출한다.
-3. 성공하면 단일 기기의 배터리 스냅숏을 OVERVIEW에 반영한다.
-4. 실패하거나 값이 없으면 `BATTERY --`로 계속 진행한다.
-5. 네 타일을 최초 전송한다.
-6. 이후 스크롤은 승인된 순서로 페이지를 바꾸고 오른쪽 두 타일만 보낸다.
+1. Connect to the Even app bridge.
+2. Call `getDeviceInfo()` once.
+3. If successful, the battery snapshot of a single device is reflected in OVERVIEW.
+4. If it fails or there is no value, continue with `BATTERY --`.
+5. First transmit four tiles.
+6. Subsequent scrolling changes pages in the approved order and sends only the two tiles on the right.
 
-배터리 조회 실패는 HUD 이미지 전송 실패로 취급하지 않는다.
+Battery inquiry failure is not treated as HUD image transmission failure.
 
-## 테스트
+## Test
 
-- 페이지 순서가 `overview`, `news`, `todo`, `navigation`인지 확인한다.
-- 시계가 `HH:MM`이며 초를 포함하지 않는지 확인한다.
-- OVERVIEW에 실제 배터리, 충전 표시, 알 수 없음 대체 문구가 그려지는지
-  확인한다.
-- NEWS에 일반 기사 제목 여섯 개가 그려지는지 확인한다.
-- TODO에서 연결 상태가 사라지고 진행률이 표시되는지 확인한다.
-- 배터리 조회가 이미지 인코딩보다 먼저 실행되는지 확인한다.
-- 배터리 조회 실패에도 최초 네 타일 전송이 계속되는지 확인한다.
-- 기존 `/hud-canvas`와 초기 `2, 3, 4, 5`, 스크롤 `3, 5` 계약의 회귀
-  테스트를 유지한다.
+- Check whether the page order is `overview`, `news`, `todo`, and `navigation`.
+- Check that the clock is `HH:MM` and does not include seconds.
+- OVERVIEW shows actual battery, charging indicator, and unknown alternative text drawn
+  Confirm.
+- Check whether six general article titles are drawn in NEWS.
+- Check that the connection status disappears in TODO and the progress is displayed.
+- Verify that battery inquiry is performed before image encoding.
+- Check whether transmission of the first four tiles continues even if the battery inquiry fails.
+- Reversion of the existing `/hud-canvas` and the initial `2, 3, 4, 5`, scroll `3, 5` contracts.
+  Keep testing.
 
-## 범위 밖
+## Out of range
 
-- 실제 뉴스 API 연결
-- 실제 날씨 API 연결
-- G2와 R1 배터리의 동시 열거
-- 기기 상태 이벤트마다 자동 이미지 재전송
-- 매초 갱신되는 실시간 시계
+- Real news API connection
+- Real weather API connection
+- Simultaneous enumeration of G2 and R1 batteries
+- Automatic image retransmission for each device status event
+- Real-time clock updated every second

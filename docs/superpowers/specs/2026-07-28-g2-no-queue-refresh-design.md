@@ -1,111 +1,125 @@
-# G2 무대기열 갱신 설계
+# G2 No-Queue Refresh Design
 
-## 배경
+## Background
 
-물리 안경 테스트에서 같은 시각에 분 갱신 콜백이 반복 실행되며
-13,000개 이상의 전송 작업과 129,000개 이상의 진단 로그가 만들어졌다.
-동시에 지도 요청이 6~7.5초 걸리는 동안 위치 이벤트가 계속 Promise 체인에
-추가되어 대기 개수가 50개를 넘었다. 타일 전송 자체는 느리지만 완료되었고,
-웹뷰 정지는 갱신 요청과 위치 작업을 미래에 실행하기 위해 누적한 구조에서
-발생했다.
+During a physical-glasses test, minute-refresh callbacks fired repeatedly at
+the same timestamp, producing more than 13,000 transport operations and
+129,000 diagnostic log entries. At the same time, location events continued to
+join a Promise chain while map requests took 6–7.5 seconds, pushing the pending
+count above 50. Tile transport was slow but did complete. The WebView freeze
+came from retaining refresh requests and location work for future execution.
 
-## 핵심 원칙
+## Core principles
 
-모든 이벤트와 갱신 경로에 다음 규칙을 적용한다.
+Apply these rules to every event and refresh path:
 
-- 대기열 0: 실행 중인 작업 뒤에 새 작업을 보관하지 않는다.
-- 병합 0: 여러 갱신 대상을 `all` 같은 후속 작업으로 합치지 않는다.
-- 재시도 0: 실패한 작업을 내부에서 다시 실행하지 않는다.
-- 바쁨 즉시 실패: 다른 작업이 실행 중이면 새 요청은 즉시 폐기한다.
-- 다음 이벤트 우선: 현재 작업이 성공하거나 실패한 뒤 새로 들어온 이벤트만
-  새 갱신을 시작할 수 있다.
-- 숨김 즉시 폐기: HUD가 검정 화면일 때 들어온 화면 갱신은 작업을 만들지
-  않고 즉시 폐기한다.
+- Queue 0: never retain new work behind an operation that is already running.
+- Merge 0: never combine multiple refresh targets into a later operation such
+  as `all`.
+- Retry 0: never re-run a failed operation internally.
+- Fail fast when busy: immediately drop a new request if another operation is
+  running.
+- Prefer the next event: only an event that arrives after the current operation
+  succeeds or fails may start a refresh.
+- Drop while hidden: a screen refresh received while the HUD is black creates
+  no work and is discarded immediately.
 
-한 번 시작한 이미지 전송 안에서 G2의 네 타일을 차례로 보내는 동작은
-프로토콜 단위의 전송 절차이므로 유지한다. 이는 이벤트나 갱신 요청을
-보관하는 큐가 아니다.
+The four G2 tiles within one accepted image refresh still transmit serially.
+That sequence is a protocol-level transport procedure, not a queue for events
+or refresh requests.
 
-## 화면 갱신 조정
+## Screen refresh coordination
 
-`fast-canvas-transport`의 Promise 작업 체인과 보류 중인 갱신 대상을 제거한다.
-대신 하나의 `busy` 상태만 둔다.
+Remove the Promise task chain and pending refresh target from
+`fast-canvas-transport`. Keep one `busy` state instead.
 
-1. 입력, 라이브 데이터, 배터리, 분 갱신 또는 복원 요청이 들어온다.
-2. HUD가 숨겨져 있거나 `busy`이면 요청을 즉시 `hidden` 또는 `busy`로
-   종료한다.
-3. 유휴 상태이면 `busy`를 설정하고 해당 요청 하나만 실행한다.
-4. 성공 여부와 무관하게 `busy`를 해제한다.
-5. 실패한 요청은 보존하거나 재예약하지 않는다.
+1. An input, live-data, battery, minute-refresh, or restore request arrives.
+2. If the HUD is hidden or the transport is `busy`, finish the request
+   immediately with `hidden` or `busy`.
+3. If idle, set `busy` and execute that one request.
+4. Clear `busy` whether the request succeeds or fails.
+5. Do not retain or reschedule a failed request.
 
-탭이나 스크롤도 전송 중이면 보관하지 않는다. 사용자의 다음 입력이
-새 이벤트로 들어왔을 때만 다시 처리한다. 따라서 늦은 과거 입력이 뒤늦게
-화면 상태를 바꾸지 않는다.
+Taps and scrolls are not retained during transport either. They are considered
+again only when the user produces a new input event. Old input therefore cannot
+change the screen later.
 
-## 분 단위 시계 갱신
+## Minute clock refresh
 
-재귀적인 `setTimeout` 스케줄러를 제거한다. 단일 `setInterval` 감시자가 현재
-벽시계의 분 키를 확인하며, 같은 분에는 콜백을 최대 한 번만 통과시킨다.
-SDK가 밀린 타이머 콜백을 한꺼번에 전달해도 동일한 분 키는 즉시 무시하고
-새 타이머를 생성하지 않는다.
+Replace the recursive `setTimeout` scheduler with one `setInterval` watcher. It
+checks the current wall-clock minute key and allows at most one callback for
+that minute. If the SDK delivers overdue timer callbacks in a burst, duplicate
+minute keys are ignored without creating another timer.
 
-화면 전송이 성공할 때마다 `lastSuccessfulDisplayMinute`를 기록한다.
-분 감시자가 실행됐을 때 같은 분에 날씨, 위치, 배터리, 입력 등 다른 원인으로
-이미 화면 전송이 성공했다면 별도의 시계 갱신을 요청하지 않는다.
+Record `lastSuccessfulDisplayMinute` after every successful screen transport.
+When the minute watcher runs, do not request a separate clock refresh if
+weather, location, battery, input, or another cause already produced a
+successful screen transport during that minute.
 
-분 갱신을 한 번 요청했는데 바쁨, 숨김 또는 전송 오류로 실패하면 그 분에는
-다시 시도하지 않는다. 이후 발생하는 위치, 입력, 배터리 등의 독립 이벤트가
-최신 시각을 함께 그리도록 둔다.
+If the minute refresh is dropped because the transport is busy or hidden, or
+if its transport fails, do not retry during the same minute. A later independent
+location, input, or battery event will render the current time as part of its
+normal frame.
 
-## 위치 및 라이브 데이터
+## Location and live data
 
-`locationQueue` Promise 체인을 제거한다. 위치 처리 중 새 위치가 들어오면
-최신값조차 보관하지 않고 즉시 `busy`로 폐기한다. 현재 위치 처리가 끝난
-뒤 도착한 첫 번째 새 위치만 처리한다.
+Remove the `locationQueue` Promise chain. If a new location arrives while
+another location is being processed, do not retain even the newest value;
+discard it immediately as `busy`. Process only the first new location that
+arrives after the current operation finishes.
 
-지도, 날씨, 뉴스 공급자도 이미 같은 공급자의 요청이 실행 중이면 새 요청을
-후속 실행으로 연결하지 않는다. 기존 요청의 결과만 반영하고, 실패하면
-실패 상태로 끝낸다. 다음 외부 이벤트가 발생했을 때만 새 요청을 허용한다.
+Map, weather, and news providers follow the same rule. If a request from that
+provider is already running, a new request is not chained for later execution.
+Apply the result of the existing request and end in a failed state if it fails.
+Only a later external event may start a new request.
 
-위치 처리에서 지도 갱신을 기다리는 동안에도 다른 위치를 쌓지 않는다.
-저장소 기록 역시 실패 결과를 기록할 뿐 자동 재시도하지 않는다.
+Do not accumulate locations while location processing waits for a map refresh.
+Storage operations record their failure but never retry automatically.
 
-## 숨김과 복원
+## Hide and restore
 
-HUD 숨김 중 라이브 상태는 현재 진행 중인 독립 작업의 결과로 메모리에서
-바뀔 수 있지만, 안경 전송 요청은 만들지 않는다. 복원 입력이 유휴 상태에서
-도착하면 그 시점의 최신 상태를 한 번 전체 렌더링한다. 복원 전송이 실패하면
-숨김 상태를 유지하고 자동 재시도하지 않는다.
+While the HUD is hidden, independent work already in progress may update live
+state in memory, but it must not create a glasses transport request. When a
+restore input arrives while idle, render the latest state once as a complete
+frame. If restore transport fails, remain hidden and do not retry
+automatically.
 
-## 진단 로그
+## Diagnostic log
 
-다음 결과를 명시적으로 기록한다.
+Record these outcomes explicitly:
 
-- `accepted`, `busy`, `hidden`, `failed`
-- 시작한 작업의 종류와 실행 시간
-- 분 갱신의 `already rendered this minute` 건너뜀
-- 위치 이벤트의 `busy drop`
+- `accepted`, `busy`, `hidden`, and `failed`
+- The operation type and elapsed time
+- `already rendered this minute` when a minute refresh is skipped
+- `busy drop` for a discarded location event
 
-대기 개수와 병합 대상 로그는 구조 자체가 없어지므로 제거한다. 진단창은
-최근 300줄 제한을 유지한다.
+Pending-count and merge-target entries disappear because those structures no
+longer exist. Keep the diagnostic console capped at its latest 300 lines.
 
-## COPY 대체 경로
+## COPY fallback
 
-보안 컨텍스트에서 Clipboard API가 동작하면 이를 우선 사용한다. API가 없거나
-실패하면 임시 `textarea`를 문서에 삽입해 전체 로그를 선택하고
-`document.execCommand("copy")`를 시도한 뒤 제거한다. 성공 여부를 버튼 문구로
-짧게 표시한다. 두 방법이 모두 실패하면 `COPY FAILED`를 표시하고 로그에
-오류 종류만 기록한다.
+Use the Clipboard API first when it is available in a secure context. If it is
+unavailable or fails, insert a temporary `textarea`, select the complete log,
+call `document.execCommand("copy")`, and then remove the element. Briefly show
+success or failure on the button.
 
-## 테스트 기준
+If both methods fail, display `COPY FAILED` and record only the error category
+in the diagnostic log.
 
-- 같은 분에 타이머 콜백을 수천 번 호출해도 분 갱신은 한 번만 발생한다.
-- 같은 분에 다른 화면 전송이 성공했다면 분 갱신은 발생하지 않는다.
-- 분 갱신 실패 후 같은 분에 자동 재시도하지 않는다.
-- 전송 중 들어온 입력과 외부 갱신은 후속 실행되지 않는다.
-- 숨김 중 갱신은 전송 작업을 만들지 않는다.
-- 위치 처리 중 들어온 위치는 저장하거나 나중에 처리하지 않는다.
-- 지도 실패 후 내부 재시도가 없고 다음 새 위치 이벤트만 새 요청을 만든다.
-- Clipboard API가 없는 HTTP 웹뷰에서도 대체 복사가 성공한다.
-- 기존 네 타일 순차 전송, 양안 표시, 숨김/복원 동작은 유지된다.
-- 전체 테스트는 파일 병렬화 없이 단일 워커로 실행한다.
+## Test criteria
+
+- Thousands of timer callbacks for one minute produce at most one minute
+  refresh.
+- A minute refresh does not run when another screen transport already succeeded
+  during that minute.
+- A failed minute refresh is not retried automatically during the same minute.
+- Input and external refreshes received during transport never run later.
+- Refreshes received while hidden create no transport operation.
+- A location received during location processing is neither stored nor handled
+  later.
+- A failed map request has no internal retry; only the next new location event
+  may start another request.
+- COPY fallback succeeds in an HTTP WebView without the Clipboard API.
+- Existing four-tile serial transport, binocular display, hide, and restore
+  behavior remain intact.
+- The complete test suite runs on one worker without file parallelization.

@@ -40,7 +40,7 @@ manual-click status with no three-second wait on this path.
 ## Interpreting the hardware result
 
 - If click-triggered transmission succeeds, startup-time automatic sending is
-  the cause. RELIC should gate its initial raster behind user input or a later
+  the cause. Sandevistan should gate its initial raster behind user input or a later
   lifecycle event.
 - If it returns `SENDFAILED`, startup timing is ruled out. The next isolated
   experiment will preload and decode a PNG in the WebView before a manual click.

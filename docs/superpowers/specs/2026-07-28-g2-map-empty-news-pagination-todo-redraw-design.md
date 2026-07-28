@@ -87,7 +87,7 @@ For `scroll-previous`:
 
 The view context supplies page counts for all current news items. Counts are
 computed with the same Canvas font and measured-width pagination used by the
-renderer. Missing or empty summaries have one page containing `요약 없음`.
+renderer. Missing or empty summaries have one page containing `no summary`.
 
 When RSS data changes, `syncFastHudView()` clamps `newsIndex` and `newsPage` to
 the new library and selected article. Leaving and re-entering news retains the

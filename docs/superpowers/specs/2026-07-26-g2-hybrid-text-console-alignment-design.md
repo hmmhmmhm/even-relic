@@ -1,96 +1,100 @@
-# G2 하이브리드 Text 콘솔 정렬 설계
+# G2 Hybrid Text Console Alignment Design
 
-## 목표
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
 
-`/hud-hybrid-z`에서 확인한 빠른 페이지 전환과 네이티브 Text의 선명도를
-유지하면서, Text와 Canvas 프레임이 서로 다른 좌표 체계를 사용하는 문제를
-해결한다.
+## Target
 
-## 확인된 원인
+Fast page switching and clarity of native text confirmed in `/hud-hybrid-z`
+While maintaining the problem of Text and Canvas frames using different coordinate systems,
+Solve it.
 
-SDK `0.0.10`의 Text 컨테이너는 시작할 때 `xPosition`, `yPosition`,
-`width`, `height`, `paddingLength`를 지정할 수 있다. 페이지가 열린 뒤에는
-`textContainerUpgrade`로 내용만 바꿀 수 있다. 글꼴, 글자 크기, 줄 높이,
-문단 정렬, 개별 문구 좌표는 지정할 수 없다.
+## Confirmed cause
 
-현재 구현은 전체 화면 Text 한 개가 `(8, 8)`부터 일반 문서처럼 흐르는데,
-Canvas는 여러 독립 패널의 절대 좌표를 전제로 한다. 공백과 줄바꿈만으로
-두 좌표 체계를 정확히 맞출 수 없는 것이 정렬 실패의 원인이다.
+The Text container in SDK `0.0.10` displays `xPosition`, `yPosition`,
+You can specify `width`, `height`, and `paddingLength`. After the page is opened
+Only the content can be changed with `textContainerUpgrade`. Font, font size, line height,
+Paragraph alignment and individual phrase coordinates cannot be specified.
 
-## 검토한 접근
+In the current implementation, one full-screen text flows like a regular document starting from `(8, 8)`.
+Canvas assumes absolute coordinates of multiple independent panels. Just spaces and line breaks
+The inability to accurately align the two coordinate systems is the cause of alignment failure.
 
-### 1. 왼쪽 지도와 오른쪽 단일 Text 콘솔
+## Approaches reviewed
 
-왼쪽 `180px`에는 고정 Canvas 지도를 유지하고, 오른쪽 `372px`을 하나의
-네이티브 Text 콘솔로 사용한다. 오른쪽에는 줄 높이에 의존하는 내부
-칸막이를 그리지 않는다. 한 번의 Text 업데이트와 기존 지도를 모두
-유지할 수 있어 이 방식을 채택한다.
+### 1. Map on the left and single text console on the right
 
-### 2. 전체 화면 단일 Text 콘솔
+Keep a fixed Canvas map at `180px` on the left, and a single `372px` on the right.
+Use as a native text console. On the right, the interior depends on the line height.
+Do not draw partitions. One text update and all existing maps
+This method is adopted because it can be maintained.
 
-화면 전체를 큰 프레임 하나로 단순화하면 정렬은 가장 쉽다. 그러나 사용자가
-선호한 큼직한 지도가 사라지고 HUD의 시각적 특징도 약해져 채택하지 않는다.
+### 2. Full-screen single Text console
 
-### 3. 여러 Text 컨테이너
+Sorting is easiest if you simplify the entire screen into one large frame. However, if the user
+The preferred large map has disappeared and the visual characteristics of the HUD have become weaker, so it is not adopted.
 
-각 패널에 Text 컨테이너를 따로 두면 기존 패널 좌표를 유지할 수 있다.
-하지만 스크롤마다 여러 번 갱신해야 하므로, 이미 확인한 즉시 전환을
-잃거나 문구가 순차적으로 바뀔 수 있어 채택하지 않는다.
+### 3. Multiple Text containers
 
-## 레이아웃
+By placing a separate Text container for each panel, you can maintain the existing panel coordinates.
+However, since it needs to be updated multiple times per scroll, the transition is performed as soon as it is already confirmed.
+It is not adopted because it may be lost or the phrases may change sequentially.
 
-- 전체 Canvas는 기존과 같은 `576×288`이다.
-- 왼쪽 지도 프레임은 `(8, 8)`, `180×272`다.
-- 오른쪽 Text 콘솔 프레임은 `(196, 8)`, `372×272`다.
-- 레이어 1–4는 기존 네 이미지 타일이다.
-- 레이어 5 Text 컨테이너는 오른쪽 프레임과 같은 좌표와 크기를 사용한다.
-- Text 안쪽 여백은 `8px`이다.
-- Canvas에는 글자를 그리지 않는다.
-- 오른쪽 프레임은 외곽선, 모서리 표식, 짧은 눈금만 사용한다. 특정 Text
-  줄의 높이에 맞춘 가로 칸막이는 사용하지 않는다.
-- 기존 `/hud-canvas`와 `/hud-hybrid`의 레이아웃과 전송 동작은 바꾸지
-  않는다.
+## Layout
 
-## Text 구성
+- The entire Canvas is the same as before, `576×288`.
+- The map frame on the left is `(8, 8)`, `180×272`.
+- The text console frame on the right is `(196, 8)`, `372×272`.
+- Layers 1–4 are the existing four image tiles.
+- The Layer 5 Text container uses the same coordinates and size as the right frame.
+- The text inner margin is `8px`.
+- Do not draw text on Canvas.
+- The right frame uses only outlines, corner marks, and short marks. Specific Text
+  Do not use horizontal dividers that match the height of the row.
+- The layout and transmission behavior of the existing `/hud-canvas` and `/hud-hybrid` are not changed.
+  No.
 
-모든 페이지는 두 줄의 공통 상태, 한 줄의 공백, 다섯 줄의 페이지 정보로
-구성한다. 따라서 페이지마다 총 여덟 줄이며, 스크롤할 때 문자열 하나만
-교체한다.
+## Text composition
 
-1. 초 단위 시각, 날씨, 페이지 번호
-2. `RELIC // LIVE`, 위치
-3. 빈 줄
-4. 페이지 제목
-5–8. 뉴스, 내비게이션, TODO 또는 연결 상태
+Every page has two lines of common status, one line of space, and five lines of page information.
+Compose. So a total of eight lines per page, with only one string when scrolling.
+Replace it.
 
-각 줄은 오른쪽 콘솔 너비 안에서 자동 줄바꿈이 생기지 않도록 짧게 유지한다.
-기본 페이지 순서와 내용은 `overview`, `navigation`, `news`, `todo`를
-그대로 사용한다.
+1. Time in seconds, weather, page number
+2. `RELIC // LIVE`, location
+3. Blank line
+4. Page title
+5–8. News, navigation, TODO or connection status
 
-## 데이터 흐름
+Keep each line short to avoid word wrapping within the width of the right console.
+The basic page order and contents are `overview`, `navigation`, `news`, and `todo`.
+Use it as is.
 
-앱을 열면 새 Canvas 배경을 한 번 그려 네 타일로 전송한다. 같은 시작
-페이지에 오른쪽 Text 컨테이너를 레이어 5로 만든다. 스크롤 이벤트가 오면
-기존 원형 페이지 계산을 사용하고, 새 페이지의 여덟 줄 문자열을
-`textContainerUpgrade` 한 번으로 전송한다. 이미지 타일은 다시 보내지
-않는다.
+## Data flow
 
-## 오류 처리
+When you open the app, you draw a new Canvas background once and transfer it to the four tiles. same start
+Make the right Text container on the page as layer 5. When the scroll event comes
+Use the existing circular page calculations, and set the eight-line string for the new page to
+Send `textContainerUpgrade` once. Send image tiles again
+No.
 
-Canvas 2D 컨텍스트가 없거나 이미지 전송, Text 업데이트가 실패하면 기존
-상태 보고 경로를 그대로 사용한다. 이번 변경은 재시도나 별도 복구 흐름을
-추가하지 않는다. 실기기에서 Text가 다시 사라지면 레이어 회귀로, Text가
-프레임 밖으로 넘어가면 줄 길이 회귀로 분리해 진단한다.
+## Error handling
 
-## 검증
+If there is no Canvas 2D context or image transfer or text update fails, the existing
+Use the status reporting path as is. This change requires a retry or separate recovery flow.
+do not add If the text disappears again on the actual device, due to layer regression, the text
+If it goes outside the frame, it is diagnosed separately using line length regression.
 
-- 새 Canvas가 `576×288`이고 Canvas 글자가 없는지 확인한다.
-- 지도와 Text 콘솔의 외곽 좌표가 설계값과 일치하는지 확인한다.
-- 레이어 5 Text 컨테이너가 오른쪽 콘솔 좌표, 크기, 여백을 사용하는지
-  확인한다.
-- 네 페이지가 각각 여덟 줄이고 공통 시각, 날씨, 페이지 번호를 포함하는지
-  확인한다.
-- 스크롤 한 번당 Text 업데이트가 한 번이며 이미지 갱신이 없는 기존
-  회귀 테스트를 유지한다.
-- 전체 단위 테스트, 타입 검사, 프로덕션 빌드, Sites 산출물 검사를 실행한다.
-- Tailscale 테스트 주소에서 실제 G2의 정렬과 양안 표시를 최종 확인한다.
+## Verification
+
+- Check that the new Canvas is `576×288` and that there are no Canvas characters.
+- Check whether the outer coordinates of the map and text console match the design values.
+- Layer 5 Text container uses right console coordinates, size, and margins
+  Confirm.
+- Each of the four pages has eight lines and includes a common time, weather, and page number.
+  Confirm.
+- Existing text update once per scroll and no image update
+  Maintain regression testing.
+- Run full unit tests, type checking, production builds, and Sites output inspection.
+- Final check the actual G2 alignment and binocular display at the Tailscale test address.

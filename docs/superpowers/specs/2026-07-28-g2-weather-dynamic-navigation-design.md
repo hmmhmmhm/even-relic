@@ -1,122 +1,122 @@
-# G2 날씨 상세·동적 내비게이션 페이지 설계
+# G2 Weather detailed/dynamic navigation page design
 
-날짜: 2026-07-28
+Date: 2026-07-28
 
-상태: 사용자 승인
+Status: User approved
 
-## 목표
+## Target
 
-G2의 기본 페이지 구성에서 키 없이 동작하는 날씨를 독립 페이지로 제공한다.
-ORS 키가 없는 사용자는 비활성 기능이나 키 설정 안내를 보지 않으며, 현재
-날씨 정보만 큰 글자와 높은 대비로 빠르게 읽을 수 있어야 한다.
+In G2's basic page configuration, weather that operates without a key is provided as an independent page.
+Users without ORS keys will not see instructions for disabling functions or key settings, and will currently
+Only weather information should be quickly readable with large letters and high contrast.
 
-## 페이지 구성
+## Page composition
 
-Fast Canvas HUD에만 적용되는 동적 페이지 목록을 사용한다.
+Uses a dynamic page list that only applies to Fast Canvas HUD.
 
-- ORS 비활성: `Overview → News → TODO → Weather`
-- ORS 활성: `Overview → News → TODO → Weather → Navigation`
+- ORS disabled: `Overview → News → TODO → Weather`
+- ORS active: `Overview → News → TODO → Weather → Navigation`
 
-날씨는 항상 네 번째다. 내비게이션은 `route.status !== "disabled"`일 때만
-마지막 페이지로 나타난다. 페이지 번호의 분모도 현재 목록 길이에 맞춰
-`04 / 04` 또는 `05 / 05`로 표시한다.
+Weather always comes fourth. Navigation only works when `route.status !== "disabled"`
+It appears as the last page. The denominator of the page number also matches the current list length.
+Displayed as `04 / 04` or `05 / 05`.
 
-일반 Canvas 및 기존 Hybrid 실험 경로의 고정 페이지 타입과 순서는 바꾸지
-않는다. Fast Canvas 전용 페이지 타입과 목록 계산 함수를 둬 변경 범위를
-격리한다.
+The fixed page type and order of the general Canvas and existing Hybrid experiment paths are not changed.
+No. Fast Canvas has a dedicated page type and list calculation function to limit the scope of change.
+Isolate.
 
-## 날씨 대시보드 페이지
+## Weather Dashboard Page
 
-왼쪽 지도와 공통 시계 헤더는 기존 Fast Canvas 구조를 유지한다. 네 번째
-페이지의 오른쪽 영역은 날씨 정보에만 사용한다.
+The left map and common clock header maintain the existing Fast Canvas structure. fourth
+The area on the right side of the page is used only for weather information.
 
-- 상태 라벨: `WEATHER // NOW` 또는 오래된 캐시일 때 `WEATHER // LAST`
-- 가장 큰 정보: 현재 기온과 날씨 상태
-- 보조 정보: 체감온도, 습도, 강수확률, 바람
-- 데이터 없음: 키나 설정 안내 없이 `WEATHER DATA UNAVAILABLE`
-- 데이터 로딩 중: `WEATHER LOADING`
+- Status label: `WEATHER // NOW` or `WEATHER // LAST` for old cache.
+- Biggest information: current temperature and weather conditions
+- Secondary information: perceived temperature, humidity, probability of precipitation, wind
+- No data: `WEATHER DATA UNAVAILABLE` without keys or setup instructions
+- Loading data: `WEATHER LOADING`
 
-배터리, 뉴스, TODO, 내비게이션 문구는 날씨 페이지에 섞지 않는다.
+Battery, news, TODO, and navigation text are not mixed into the weather page.
 
-## 날씨 상세 페이지
+## Weather details page
 
-날씨 대시보드 페이지를 한 번 탭하면 576×288 전체 화면 날씨 상세로
-진입한다. 상세 화면은 현재 확보 중인 Open-Meteo 관측값에 집중한다.
+One tap on the weather dashboard page for 576×288 full screen weather details.
+Enter. The detailed screen focuses on the currently available Open-Meteo observations.
 
-- 상단: `WEATHER // LIVE`, `WEATHER // LAST`, `WEATHER // LOADING`,
+- Top: `WEATHER // LIVE`, `WEATHER // LAST`, `WEATHER // LOADING`,
   `WEATHER // UNAVAILABLE`
-- 중앙: 현재 기온을 가장 크게, 옆에 날씨 상태
-- 하단 정보 블록: 체감온도, 습도, 강수확률, 바람
-- 오래된 캐시일 때만 갱신 시각 대신 짧은 `LAST DATA` 표시
-- 스크롤과 단일 탭은 소비만 하고 다른 페이지로 이동하지 않음
-- 빠른 두 번 탭은 기존 대시보드 날씨 페이지로 복귀
+- Center: The current temperature is the largest, next to it is the weather condition.
+- Bottom information block: perceived temperature, humidity, probability of precipitation, wind
+- Only when the cache is old, a short `LAST DATA` is displayed instead of the update time.
+- Scroll and single tab only consume and do not move to another page
+- A quick double tap returns to the original dashboard weather page
 
-이 단계에서는 시간대별·일별 예보를 새로 요청하지 않는다. 기존
-Open-Meteo 현재 날씨 데이터만 사용해 네트워크·캐시 모델 변경과 안경 내
-정보 과밀을 피한다.
+At this stage, no new hourly or daily forecasts are requested. existing
+Open-Meteo uses only current weather data to change network and cache models and to use glasses
+Avoid information overload.
 
-## ORS 비활성 처리
+## ORS Disabled Handling
 
-`route.status === "disabled"`이면 내비게이션 페이지를 순환 목록에서
-제외한다. 따라서 대시보드와 상세 화면 모두 아래 문구를 표시하지 않는다.
+If `route.status === "disabled"`, the navigation page is removed from the circular list.
+Exclude. Therefore, the text below is not displayed on both the dashboard and detail screen.
 
-- `경로 키 필요`
-- `ORS 연결 후 사용`
-- `키 설정 필요`
+- `path key required`
+- `Use after connecting ORS`
+- `Key setting required`
 - `NAV // DISABLED`
 
-런타임 중 페이지 목록이 바뀌어 현재 페이지가 더 이상 존재하지 않으면
-날씨 페이지로 정규화한다. ORS가 활성화되면 내비게이션은 날씨 다음에
-자동으로 추가되지만 사용자의 현재 페이지를 강제로 바꾸지는 않는다.
+If the page list changes during runtime and the current page no longer exists,
+Normalize to the weather page. When ORS is activated, navigation follows weather.
+It is added automatically, but does not force the user's current page to change.
 
-## 입력 및 상태
+## Input and status
 
-날씨 상세 모드를 `FastHudViewMode`에 추가한다. 대시보드 날씨 페이지 탭은
-이 모드로 진입하며 선택 인덱스 같은 추가 상태는 만들지 않는다.
+Add weather detail mode to `FastHudViewMode`. The dashboard weather page tab is
+This mode is entered and no additional state such as selection index is created.
 
-일반 페이지 방향과 지도 줌 방향의 최근 분리 규칙은 유지한다. 날씨 상세가
-모든 스크롤을 `consume`하므로 스크롤이 대시보드 페이지 전환으로
-전파되지 않는다.
+The latest separation rules for normal page orientation and map zoom orientation are maintained. weather details
+`consume` all scrolling, so scrolling becomes a dashboard page transition
+It doesn't spread.
 
-## 실시간 갱신
+## Real-time update
 
-날씨 상세가 열려 있을 때 날씨 상태, 현재 관측값 또는 `fetchedAt`이
-달라지면 네 타일 전체를 한 번 갱신한다. 값이 같으면 갱신하지 않는다.
-기존 “busy 요청 폐기, 큐 없음, 실패 시 다음 독립 이벤트에 맡김” 규칙을
-그대로 따른다.
+When a weather detail is open, the weather state, current observation, or `fetchedAt` is
+If something changes, all four tiles are updated once. If the values ​​are the same, they are not updated.
+Existing “discard busy request, no queue, on failure leave to next independent event” rule.
+Just follow it.
 
-대시보드 날씨 페이지에서는 기존 오른쪽 영역 갱신 경로를 사용한다.
+The dashboard weather page uses the existing right area update path.
 
-## 선택지 검토
+## Review options
 
-1. 동적 4/5페이지: 키가 없을 때 비활성 기능을 완전히 숨기고 날씨를 항상
-   네 번째에 둔다. 사용자 승인안이다.
-2. 고정 5페이지: 내비게이션 페이지를 남기되 빈 화면으로 표시한다. 순서는
-   단순하지만 의미 없는 페이지가 남아 제외했다.
-3. 시간대별 예보까지 추가: 정보는 늘지만 API 응답, 검증, 캐시와 상세
-   페이지 이동이 함께 복잡해져 현재 범위에서 제외했다.
+1. Dynamic Page 4 of 5: Completely hide inactive functions when no key is present and keep the weather always on.
+   Put it in fourth place. This is a user-approved plan.
+2. Fixed page 5: Leave the navigation page but display it as a blank screen. The order is
+   Simple but meaningless pages remained and were excluded.
+3. Add time-based forecast: Although information increases, API response, verification, cache, and details are added.
+   Page movement became complicated, so it was excluded from the current scope.
 
-## 테스트
+## Test
 
-자동 테스트는 다음을 검증한다.
+Automated testing verifies:
 
-- ORS 비활성 시 4페이지와 `Weather` 네 번째 순서
-- ORS 활성 시 `Navigation`이 다섯 번째로 추가됨
-- 동적 페이지 번호와 양방향 순환
-- 비활성 ORS 안내 문구가 Fast Canvas 결과에 존재하지 않음
-- 날씨 대시보드가 날씨 정보만 표시
-- 날씨 상세의 fresh, stale, loading, unavailable 상태
-- 날씨 상세 탭·스크롤 소비와 두 번 탭 복귀
-- 날씨 값 변경 시 상세 전체 갱신, 동일 값일 때 무갱신
-- 지도 줌과 일반 페이지 방향 규칙에 회귀가 없음
+- When ORS is disabled, page 4 and `Weather` are the fourth order.
+- When ORS is activated, `Navigation` is added as the fifth
+- Dynamic page numbers and two-way circulation
+- Inactive ORS notice does not exist in Fast Canvas results
+- Weather dashboard displays only weather information
+- fresh, stale, loading, unavailable status of weather details
+- Weather details tab/scroll consumption and double tap return
+- Full details updated when weather value changes, no update when the value is the same
+- No regression in map zoom and general page orientation rules.
 
-자동 검증은 모든 테스트를 직렬로 실행한다. 실제 G2에서는 양안 네 타일,
-글자 크기, 페이지 순서, 상세 진입·복귀, 장시간 입력 반응을 확인한다.
+Automated verification runs all tests serially. In fact, in G2, four tiles on both sides,
+Check font size, page order, entering and returning to details, and long-term input response.
 
-## 완료 조건
+## Completion conditions
 
-- 키 없는 기본 환경에서 네 번째가 날씨이고 내비게이션 안내가 전혀 없음
-- 키가 있는 환경에서만 내비게이션이 다섯 번째로 나타남
-- 날씨 상세에서 다섯 가지 현재 날씨 정보가 선명하게 읽힘
-- 기존 지도, 뉴스, TODO와 숨김·복원 동작이 유지됨
-- 자동 직렬 검증과 실제 G2 체크포인트를 통과한 뒤에만 원격 푸시
+- In the default keyless environment, the fourth thing is the weather and there is no navigation guidance at all.
+- Navigation appears fifth only in keyed environments
+- Five current weather information are clearly readable in weather details
+- Existing maps, news, TODO, and hide/restore operations are maintained.
+- Automatic serial verification and remote push only after passing actual G2 checkpoints

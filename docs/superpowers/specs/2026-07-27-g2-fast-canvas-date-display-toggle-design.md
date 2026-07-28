@@ -1,150 +1,150 @@
-# G2 Fast Canvas 날짜와 표시 토글 설계
+# G2 Fast Canvas date and display toggle design
 
-## 목표
+## Target
 
-`/hud-canvas-fast`의 승인된 분할 레이아웃, 콘텐츠 순서, 2타일 스크롤
-전송을 유지하면서 다음 두 기능을 추가한다.
+Approved split layout, content order, 2-tile scrolling in `/hud-canvas-fast`
+While maintaining transmission, we add the following two functions:
 
-1. 시계 헤더에 년·월·일·요일을 표시한다.
-2. G2 또는 R1 더블 탭으로 앱을 종료하지 않고 표시 픽셀만 숨기고 복원한다.
-3. WebView 미리보기만 주변 글자와 같은 초록색으로 표시하고 발광 효과를
-   제거한다.
+1. Display the year, month, day, and day of the week in the clock header.
+2. Double tap G2 or R1 to hide and restore only the display pixel without exiting the app.
+3. Only the WebView preview is displayed in green like the surrounding text and a luminous effect is applied.
+   Remove.
 
-## 날짜와 시각
+## Date and time
 
-시간은 기존 `HH:MM` 형식을 유지한다. 그 아래에
-`YYYY.MM.DD 요일` 형식의 날짜를 표시한다.
+The time maintains the existing `HH:MM` format. underneath it
+Displays the date in the format `YYYY.MM.DD day of the week`.
 
 ```text
 14:37
-2026.07.27 월요일
+2026.07.27 Monday
 ```
 
-날짜와 시각은 앱 시작과 페이지 스크롤로 Canvas를 새로 그릴 때 갱신된다.
-매분 또는 매초 이미지를 자동 재전송하지 않는다. 기존 날씨와 페이지 번호는
-같은 헤더 안에서 날짜와 겹치지 않도록 오른쪽에 유지한다.
+The date and time are updated when the Canvas is redrawn by starting the app or scrolling the page.
+Does not automatically retransmit images every minute or second. The existing weather and page number are
+Keep it on the right so that it does not overlap with the date within the same header.
 
-## SDK 제약
+## SDK Constraints
 
-SDK `0.0.10`에는 앱을 실행 상태로 둔 채 디스플레이만 일시 중단하는 공개
-API가 없다. `shutDownPageContainer()`는 다음 두 종료 동작만 제공한다.
+SDK `0.0.10` includes a release that only suspends the display while leaving the app running.
+There is no API. `shutDownPageContainer()` provides only two shutdown operations:
 
-- `exitMode 0`: 즉시 종료
-- `exitMode 1`: 종료 여부를 묻는 전면 패널 표시
+- `exitMode 0`: Immediate exit
+- `exitMode 1`: Front panel display asking whether to exit
 
-따라서 종료 API를 호출한 뒤 같은 앱의 더블 탭 이벤트로 복원하는 방식은
-사용할 수 없다.
+Therefore, the method of restoring with a double tap event of the same app after calling the exit API is
+cannot be used
 
-## 검토한 표시 숨김 방식
+## Reviewed display-hiding methods
 
-### 1. 종료 API
+### 1. Shutdown API
 
-현재 구현처럼 더블 탭에서 `shutDownPageContainer(1)`을 호출한다. 앱 종료
-확인 패널이 나타나며 같은 더블 탭으로 HUD를 복원할 수 없어 요구사항과
-맞지 않는다.
+As with the current implementation, call `shutDownPageContainer(1)` on double tap. Close app
+A confirmation panel will appear and you will not be able to restore the HUD with the same double tap, so
+It doesn't fit.
 
-### 2. 빈 이벤트 페이지로 재구성
+### 2. Reorganized with blank event page
 
-`rebuildPageContainer()`로 이미지 컨테이너를 제거하고 이벤트 레이어만
-남긴 뒤, 복원 때 이미지 컨테이너를 다시 만들고 네 타일을 재전송한다.
-표시는 숨길 수 있지만 컨테이너 재구성이 추가되고 복원 실패와 깜빡임 위험이
-커서 사용하지 않는다.
+Remove the image container with `rebuildPageContainer()` and only the event layer
+After leaving, the image container is recreated during restoration and the four tiles are retransmitted.
+You can hide the display, but it adds container reconfiguration and risks restore failure and flickering.
+Do not use it because it is large.
 
-### 3. 검정 이미지 타일 전송
+### 3. Transfer of black image tiles
 
-기존 이미지 컨테이너와 투명한 이벤트 캡처 Text 레이어를 유지한다. 첫
-더블 탭에는 검정 Canvas를 네 타일로 인코딩해 ID `2, 3, 4, 5`에 직렬
-전송한다. 두 번째 더블 탭에는 현재 HUD Canvas를 네 타일로 다시 인코딩해
-같은 ID에 직렬 전송한다.
+Maintain the existing image container and transparent event capture Text layer. first
+In the double tap, the black canvas is encoded into four tiles and serially assigned to IDs `2, 3, 4, 5`.
+Send. The second double tap re-encodes the current HUD Canvas into four tiles.
+Serially transmit to the same ID.
 
-컨테이너를 재구성하지 않고 이벤트 수신을 계속할 수 있으며, 표시 픽셀을
-모두 꺼진 상태로 만들 수 있으므로 이 방식을 채택한다. 이는 디스플레이
-픽셀 숨김이며 기기나 앱의 공식 저전력 모드는 아니다.
+You can continue receiving events without reconfiguring the container, and display pixels.
+This method is adopted because everything can be turned off. This is the display
+This is a pixel hiding and is not an official low power mode for the device or app.
 
-## 입력과 상태
+## Input and status
 
-더블 탭의 `eventSource`가 오른쪽 안경다리, 왼쪽 안경다리 또는 R1인지와
-관계없이 같은 토글을 실행한다.
+Whether the `eventSource` of the double tap is the right temple, the left temple, or R1, and
+Executes the same toggle regardless.
 
-### 표시 중
+### Showing
 
-- 아래·위 스크롤은 기존처럼 다음·이전 페이지로 이동한다.
-- 더블 탭은 표시 토글 큐에 숨김 작업을 추가한다.
-- 네 검정 타일의 전송이 끝난 뒤 상태를 `hidden`으로 바꾼다.
+- Scrolling down and up moves to the next and previous pages as before.
+- Double tap adds a hidden task to the visible toggle queue.
+- After the transmission of the four black tiles is completed, change the status to `hidden`.
 
-### 숨김 중
+### Hiding
 
-- 아래·위 스크롤은 무시한다.
-- 더블 탭은 표시 토글 큐에 복원 작업을 추가한다.
-- 현재 페이지의 네 HUD 타일 전송이 끝난 뒤 상태를 `visible`로 바꾼다.
+- Down and up scrolling is ignored.
+- Double tap adds a restore operation to the display toggle queue.
+- After sending the four HUD tiles of the current page, change the status to ‘visible’.
 
-복원 대상은 숨기기 직전에 보던 페이지다. 숨김 중에는 페이지 인덱스를
-바꾸지 않는다.
+The target for restoration is the page you were viewing just before hiding. While hiding, the page index
+don't change
 
-## 직렬화와 오류 처리
+## Serialization and error handling
 
-스크롤과 표시 토글은 하나의 직렬 작업 큐를 공유한다. 이미지 전송 중 다른
-입력이 와도 두 전송이 겹치지 않는다.
+Scroll and display toggles share a single serial task queue. Transferring images to other
+Even if input comes, the two transmissions do not overlap.
 
-- 숨김 전송이 실패하면 상태는 `visible`로 유지한다.
-- 복원 전송이 실패하면 상태는 `hidden`으로 유지한다.
-- 실패 메시지는 기존 진행 상태 출력에 표시한다.
-- 실패 뒤 다음 더블 탭으로 같은 작업을 다시 시도할 수 있다.
-- fast Canvas 이외 경로의 더블 탭 종료 동작은 변경하지 않는다.
+- If hidden transmission fails, the state remains `visible`.
+- If restoration transmission fails, the state remains `hidden`.
+- Failure messages are displayed in the existing progress status output.
+- After failure, you can try the same task again with the next double tap.
+- The double tap exit behavior of paths other than fast Canvas does not change.
 
-## 전송 계약
+## Transfer Agreement
 
-- 최초 표시: ID `2, 3, 4, 5`
-- 표시 중 페이지 스크롤: ID `3, 5`
-- 숨김: 검정 이미지 ID `2, 3, 4, 5`
-- 복원: 현재 HUD 이미지 ID `2, 3, 4, 5`
-- 숨김 중 스크롤: 이미지 전송 없음
+- First display: ID `2, 3, 4, 5`
+- Scroll page while displaying: ID `3, 5`
+- Hidden: Black image ID `2, 3, 4, 5`
+- Restore: Current HUD image ID `2, 3, 4, 5`
+- Scroll while hidden: no image transfer
 
-## WebView 미리보기
+## WebView Preview
 
-안경 전송용 Canvas의 팔레트 `#ffffff`, `#d0d0d0`, `#808080`,
-`#000000`은 변경하지 않는다. Canvas 픽셀 자체를 초록색으로 바꾸면 PNG
-인코딩 결과도 바뀌므로 미리보기 색상은 CSS에서만 처리한다.
+Canvas palette for sending glasses `#ffffff`, `#d0d0d0`, `#808080`,
+`#000000` does not change. If you change the Canvas pixel itself to green, the PNG
+Since the encoding result also changes, preview colors are handled only by CSS.
 
-검토한 방식은 다음과 같다.
+The methods reviewed are as follows.
 
-1. Canvas 픽셀을 초록색으로 다시 그리는 방식은 안경 전송 데이터까지
-   변경하므로 사용하지 않는다.
-2. CSS `filter` 조합은 흰색을 원하는 초록색에 근사할 수 있지만 명도별
-   색상과 브라우저 차이가 생길 수 있어 사용하지 않는다.
-3. WebView Canvas 위에 `#91ff73` 레이어를 놓고 `multiply`로 혼합한다.
-   흰색은 주변 기본 글자와 같은 `#91ff73`, 회색은 같은 색상의 낮은 명도,
-   검정은 검정으로 보인다. DOM/CSS 합성만 바뀌므로 전송 PNG에는 영향을
-   주지 않는다.
+1. The method of redrawing the Canvas pixels to green even includes the glasses transmission data.
+   Do not use it because it will change.
+2. CSS `filter` combinations can approximate the green color you want with white, but it may vary depending on the brightness.
+   Do not use it as colors and browser differences may occur.
+3. Place the `#91ff73` layer on the WebView Canvas and mix it with `multiply`.
+   White is `#91ff73`, the same as the surrounding basic text, gray is a low brightness of the same color,
+   Black looks black. Only DOM/CSS composition changes, so transfer PNGs are not affected.
+   do not give
 
-세 번째 방식을 채택한다. `.hud-frame`의 `box-shadow`와 페이지 배경의
-방사형 그라디언트를 제거해 미리보기 주변의 발광 효과도 없앤다. 테두리와
-초록색 텍스트는 유지한다.
+Adopt the third method. `box-shadow` in `.hud-frame` and page background
+This removes the radial gradient, which also eliminates the glowing effect around the preview. border and
+Keep the green text.
 
-## 테스트
+## Test
 
-- 날짜가 `YYYY.MM.DD 요일` 형식으로 그려지는지 확인한다.
-- 날짜, 날씨, 페이지 번호가 헤더 경계를 벗어나지 않는지 확인한다.
-- fast Canvas 더블 탭이 종료 API를 호출하지 않는지 확인한다.
-- 첫 더블 탭이 네 검정 타일을 순서대로 전송하는지 확인한다.
-- 숨김 중 스크롤이 페이지 콜백이나 이미지 전송을 실행하지 않는지 확인한다.
-- 두 번째 더블 탭이 현재 HUD 네 타일을 순서대로 복원하는지 확인한다.
-- 연속 입력에서도 이미지 전송이 한 번에 하나씩 실행되는지 확인한다.
-- 숨김·복원 실패 시 상태가 잘못 전환되지 않고 재시도할 수 있는지 확인한다.
-- 기존 `/hud-canvas`의 더블 탭 종료 동작과 fast Canvas의 스크롤 ID `3, 5`
-  계약이 유지되는지 확인한다.
-- WebView 미리보기 합성색이 `#91ff73`이고 그림자와 방사형 그라디언트가
-  없는지 확인한다.
-- Canvas 내부 팔레트와 안경 전송용 이미지 인코딩 결과가 기존 명도값을
-  유지하는지 확인한다.
+- Check whether the date is drawn in the format ‘YYYY.MM.DD day of the week’.
+- Check that the date, weather, and page number do not exceed the header boundary.
+- Check that fast Canvas double tap does not call the exit API.
+- Make sure the first double tap transfers the four black tiles in order.
+- Check that scrolling while hiding does not execute page callbacks or image transfers.
+- Verify that the second double tap restores the current HUD four tiles in order.
+- Check that image transmission is performed one at a time even with continuous input.
+- If hiding/restoration fails, check whether the state is not switched incorrectly and can be retried.
+- Double tap exit action of existing `/hud-canvas` and scroll ID `3, 5` of fast Canvas
+  Verify that the contract is maintained.
+- The WebView preview composite color is `#91ff73` and the shadow and radial gradient are
+  Check if there are any.
+- The image encoding result for Canvas internal palette and glasses transmission is based on the existing brightness value.
+  Make sure it is maintained.
 
-## 하드웨어 확인
+## Check hardware
 
-실제 G2와 R1에서 다음을 확인한다.
+Check the following in the actual G2 and R1.
 
-- 안경 더블 탭으로 HUD가 검정 화면으로 바뀐다.
-- R1 더블 탭으로도 같은 동작을 실행할 수 있다.
-- 검정 상태에서 다른 앱과 시스템 화면은 정상적으로 사용할 수 있다.
-- 다시 더블 탭하면 숨기기 전 페이지가 복원된다.
-- 숨김 중 스크롤이 화면을 다시 켜지 않는다.
-- 복원 후 페이지 스크롤 속도가 기존 기준선과 같다.
+- Double-tapping the glasses changes the HUD to a black screen.
+- The same action can be performed by double tapping R1.
+- In a black state, other apps and system screens can be used normally.
+- If you double-tap again, the page before hiding will be restored.
+- Scrolling while hiding does not turn the screen back on.
+- After restoration, the page scroll speed is the same as the existing baseline.

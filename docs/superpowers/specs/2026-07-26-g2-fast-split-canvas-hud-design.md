@@ -1,107 +1,111 @@
-# G2 빠른 분할 Canvas HUD 설계
+# G2 Quick Split Canvas HUD Design
 
-## 목표
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
 
-기존 다중 섹션 `/hud-canvas`를 그대로 보존하면서, 별도
-`/hud-canvas-fast`에서 Canvas의 폰트 크기, 굵기, 명도, 정확한 배치 제어를
-되찾고 스크롤 이미지 전송량을 네 장에서 두 장으로 줄인다.
+## Target
 
-## 보존 기준
+While preserving the existing multi-section `/hud-canvas`, separate
+Control the font size, thickness, brightness, and precise placement of the Canvas in `/hud-canvas-fast`.
+Recover and reduce the amount of scroll image transmission from four to two.
 
-- `/hud-canvas`의 렌더링과 네 타일 전송은 수정하지 않는다.
-- `/hud-hybrid`와 `/hud-hybrid-z`도 비교 실험으로 유지한다.
-- 새 렌더러와 전송 선택은 `/hud-canvas-fast`에서만 사용한다.
-- Git 기준선 `325eab1`과 이후 Canvas HUD 이력으로 기존 화면을 언제든
-  다시 확인할 수 있다.
+## Preservation criteria
 
-## 확인된 성능 원인
+- The rendering and four tile transfer of `/hud-canvas` are not modified.
+- `/hud-hybrid` and `/hud-hybrid-z` are also maintained for comparison experiments.
+- New renderer and transport selection are only used in `/hud-canvas-fast`.
+- You can always view the existing screen with the Git baseline `325eab1` and subsequent Canvas HUD history.
+  You can check again.
 
-현재 `transmitCanvas()`의 `refreshImages()`는 시작 전송과 스크롤 전송에서
-모두 같은 네 타일을 PNG로 인코딩하고 `2, 3, 4, 5` 순서로 직렬 전송한다.
-페이지 전환 시 Canvas 전체를 다시 그리기 때문에 왼쪽 지도까지 매번
-재전송된다.
+## Identified performance causes
 
-SDK `0.0.10`에서는 기존 네 이미지 컨테이너를 유지한 채 특정 컨테이너의
-이미지만 갱신할 수 있다. 따라서 페이지 사이에서 변하지 않는 왼쪽 절반은
-처음 한 번만 보내고, 동적 오른쪽 절반의 컨테이너 `3, 5`만 스크롤 때
-갱신할 수 있다.
+Currently `refreshImages()` in `transmitCanvas()` works on start send and scroll send.
+All four identical tiles are encoded as PNG and transmitted serially in the order ‘2, 3, 4, 5’.
+Since the entire Canvas is redrawn when changing pages, even the map on the left is redrawn every time.
+It is retransmitted.
 
-## 검토한 접근
+In SDK `0.0.10`, the existing four image containers are maintained while the specific container is
+Only images can be updated. So the left half that doesn't change between pages is
+Send only once for the first time, and when scrolling only the container `3, 5` in the dynamic right half
+It can be renewed.
 
-### 1. 왼쪽 고정 지도와 오른쪽 두 타일 갱신
+## Approaches reviewed
 
-Canvas 전체 디자인 제어를 유지하면서 스크롤 이미지 전송량을 절반으로
-줄인다. 왼쪽 지도는 모든 페이지에서 완전히 같아야 하지만, 사용자가
-선호한 큰 지도를 유지할 수 있어 이 방식을 채택한다.
+### 1. Update the fixed map on the left and the two tiles on the right
 
-### 2. 네 타일 전체 Canvas 갱신
+Canvas reduces scroll image transfer by half while maintaining full design control
+Reduce. The map on the left should be exactly the same on all pages, but if the user
+We adopt this method because we can maintain the preferred large map.
 
-페이지마다 화면 전체를 자유롭게 바꿀 수 있으나 이미 느리다고 확인된
-기존 전송과 같다. 기존 `/hud-canvas`가 이 비교 기준을 계속 담당한다.
+### 2. Update Canvas for all four tiles
 
-### 3. Canvas와 네이티브 Text 혼합
+You can freely change the entire screen for each page, but it has already been confirmed to be slow.
+Same as existing transmission. The existing `/hud-canvas` continues to serve as the basis for this comparison.
 
-전환은 가장 빠르지만 SDK에 폰트 크기, 굵기, 글자 명도 속성이 없어 이번
-실험의 핵심인 게임 HUD 표현을 충족하지 못한다. 기존 하이브리드 경로가
-이 비교 기준을 담당한다.
+### 3. Mixing Canvas and native text
 
-## 화면 구성
+The conversion is the fastest, but the SDK does not have font size, thickness, and font brightness properties, so this time
+It does not meet the game HUD expression, which is the core of the experiment. The existing hybrid route
+This serves as the standard for comparison.
 
-전체 화면은 기존과 같은 `576×288`이다.
+## Screen composition
 
-- 왼쪽 `0–287px`: 페이지와 무관한 고정 지도 영역
-- 오른쪽 `288–575px`: 페이지에 따라 바뀌는 정보 영역
-- 왼쪽에는 `272×272` 지도 프레임, 도로망, 굵은 현재 경로, 목적지 표식을
-  배치한다.
-- 오른쪽에는 공통 상태 헤더, 큰 핵심 정보, 짧은 보조 정보의 세 구역을
-  배치한다.
-- 시간은 초 단위로 표시하고 날씨와 페이지 번호를 같은 헤더에 둔다.
-- 핵심 정보는 `20–28px`, 보조 정보는 `10–16px` 범위로 그린다.
-- 밝은 정보는 `#ffffff`, 보조 정보는 `#d0d0d0`, 구조선은 `#808080`,
-  배경은 `#000000`을 사용한다.
-- 굵은 경로, 화살표, 체크박스, 모서리 표식으로 게임 HUD의 깊이와
-  방향성을 만든다.
+The entire screen is 576×288, the same as before.
 
-## 페이지
+- Left `0–287px`: Fixed map area unrelated to the page.
+- Right `288–575px`: Information area that changes depending on the page
+- On the left is a `272×272` map frame, road network, current route in bold, and destination marker.
+  Place it.
+- On the right, there are three sections: common status header, large core information, and short auxiliary information.
+  Place it.
+- The time is displayed in seconds and the weather and page number are placed in the same header.
+- Core information is drawn in the `20–28px` range, and auxiliary information is drawn in the `10–16px` range.
+- Bright information is `#ffffff`, auxiliary information is `#d0d0d0`, structural lines are `#808080`,
+  For the background, use `#000000`.
+- Bold paths, arrows, checkboxes, and corner markers add depth and depth to your game HUD.
+  Create direction.
 
-페이지 순서는 기존과 같은 `overview`, `navigation`, `news`, `todo`다.
+## Page
 
-- `overview`: 교통 상태, 혼잡도, 날씨와 현재 TODO
-- `navigation`: `120m`, 큰 우회전 화살표, 다음 교차로 안내
-- `news`: 큰 교통 제목, 홍대입구역 상태, 날씨 브리핑
-- `todo`: 두 개의 미완료 항목, 완료 항목, G2와 R1 연결 상태
+The page order is the same as before: `overview`, `navigation`, `news`, and `todo`.
 
-왼쪽 지도 픽셀은 네 페이지에서 동일하다. 모든 페이지 차이는 오른쪽
-절반에서만 발생한다.
+- `overview`: Traffic conditions, congestion, weather and current TODO
+- `navigation`: `120m`, big right turn arrow, guidance to next intersection
+- `news`: Big traffic headlines, Hongik University Station status, weather briefing
+- `todo`: two incomplete items, completed items, G2 and R1 connection status
 
-## 전송 흐름
+The left map pixel is the same on all four pages. All page differences are on the right
+It only happens in half of the cases.
 
-앱 시작 시 기존처럼 네 이미지 컨테이너를 만들고 네 타일을 모두 보낸다.
-스크롤 이벤트가 오면 기존 원형 페이지 계산과 직렬 큐를 사용해 다음
-페이지를 Canvas에 그린다. 그 뒤 오른쪽 위 `relicTR`과 오른쪽 아래
-`relicBR`만 인코딩해 컨테이너 `3, 5` 순서로 전송한다.
+## Transmission flow
 
-빠른 경로의 최적화는 탐색 시 갱신 타일 목록만 다르게 지정한다.
-`/hud-canvas`는 기본값인 네 타일을 계속 사용한다.
+When starting the app, it creates four image containers as before and sends all four tiles.
+When a scroll event comes, it uses the existing circular page calculation and serial queue to get the next
+Draw the page on Canvas. Then, top right `relicTR` and bottom right
+Only `relicBR` is encoded and transmitted to containers `3, 5` in order.
 
-## 오류 처리
+Optimization of the fast path only specifies a different list of update tiles during navigation.
+`/hud-canvas` continues to use the default of four tiles.
 
-시작 시 네 타일 중 하나라도 실패하면 기존 오류를 그대로 보고한다.
-스크롤 시 오른쪽 두 타일 중 하나가 실패하면 해당 컨테이너 이름과 실패
-결과를 표시하고 큐의 다음 탐색 요청이 실행될 수 있도록 기존 오류 경로를
-유지한다. 자동 재시도나 왼쪽 타일 대체 전송은 이번 범위에 포함하지 않는다.
+## Error handling
 
-## 검증
+If any of the four tiles fail at startup, the existing error is reported as is.
+If one of the two tiles on the right fails when scrolling, the corresponding container name and failure
+Displays results and clears existing error paths so that the next navigation request in the queue can be executed.
+maintain Automatic retry or left tile replacement transmission are not included in this scope.
 
-- 기존 `/hud-canvas` 렌더링 테스트가 한 픽셀 계약도 바뀌지 않고 통과해야
-  한다.
-- 새 렌더러는 `576×288`과 고명도 네 단계 팔레트를 사용해야 한다.
-- 네 페이지의 왼쪽 `288×288` 렌더링 명령이 같아야 한다.
-- 새 페이지는 `20px` 이상의 핵심 글자와 초 단위 시각, 날씨, 페이지
-  번호를 포함해야 한다.
-- 시작 시 이미지 ID가 `2, 3, 4, 5`, 아래·위 스크롤 때는 각각 `3, 5`만
-  전송되어야 한다.
-- 연속 스크롤에서도 이미지 전송은 한 번에 하나씩 직렬화되어야 한다.
-- 전체 단위 테스트, 타입 검사, 프로덕션 빌드, Sites 검사를 실행한다.
-- 실제 G2에서 기존 네 타일 전환보다 빨라졌는지, 오른쪽 위·아래가 한 번의
-  전환처럼 보이는지 확인한다.
+## Verification
+
+- The existing `/hud-canvas` rendering test must pass without changing a single pixel contract.
+  Do it.
+- The new renderer must use `576×288` and a high brightness four-level palette.
+- The `288×288` rendering command on the left side of all four pages must be the same.
+- The new page contains key characters of `20px` or more, time in seconds, weather, and page size.
+  Must include number.
+- When starting, the image ID is only `2, 3, 4, 5`, and when scrolling down and up, it is only `3 and 5` respectively.
+  must be transmitted.
+- Even with continuous scrolling, image transfers must be serialized one at a time.
+- Run full unit tests, type checks, production builds, and sites checks.
+- Is it actually faster than the existing four tile transition on the G2?
+  Make sure it looks like a transition.

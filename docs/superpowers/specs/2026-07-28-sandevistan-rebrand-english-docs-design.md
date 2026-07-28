@@ -67,7 +67,7 @@ rebrand.
 
 ## Historical Identifier Policy
 
-Narrative references that incorrectly use RELIC as the project name are
+Narrative references that incorrectly use Sandevistan as the project name are
 rewritten as Sandevistan.
 
 Exact historical evidence is not falsified. A quoted payload, file name,
