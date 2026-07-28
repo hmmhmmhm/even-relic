@@ -396,9 +396,9 @@ export async function transmitCanvas(
     } else if (eventType === OsEventTypeList.DOUBLE_CLICK_EVENT) {
       handleInput("double-tap", performDisplayToggle);
     } else if (eventType === OsEventTypeList.SCROLL_BOTTOM_EVENT) {
-      handleInput("scroll-next", () => performNavigation("next"));
+      handleInput("scroll-next", () => performNavigation("previous"));
     } else if (eventType === OsEventTypeList.SCROLL_TOP_EVENT) {
-      handleInput("scroll-previous", () => performNavigation("previous"));
+      handleInput("scroll-previous", () => performNavigation("next"));
     }
   });
   const dispose = () => {
