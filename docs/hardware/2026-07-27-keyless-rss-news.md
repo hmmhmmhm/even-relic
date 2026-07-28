@@ -15,7 +15,7 @@ The checkpoint asked the user to verify six current SBS RSS headlines,
 readability, fast page switching, bilateral display, and double-tap
 hide/restore. The user confirmed the checklist as a whole:
 
-> 네 다 잘 동작합니다.
+> Yes, everything works fine.
 
 Recorded results:
 

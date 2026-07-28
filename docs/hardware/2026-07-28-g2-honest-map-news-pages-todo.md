@@ -1,6 +1,6 @@
-# G2 지도 빈 상태·뉴스 본문 페이지·TODO 재토글 체크포인트
+# G2 map empty state, news body page, TODO re-toggle checkpoint
 
-날짜: 2026-07-28
+Date: 2026-07-28
 
 SDK: `0.0.11`
 
@@ -8,74 +8,74 @@ Build: `page-direction-027`
 
 Result: `SUPERSEDED`
 
-브랜치: `feature/g2-ors-routing`
+branch: `feature/g2-ors-routing`
 
-구현 커밋: `e4a0257`
+Implementation commit: `e4a0257`
 
 URL:
 `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=page-direction-027`
 
-이 체크포인트는 날씨 상세와 동적 내비게이션 페이지를 함께 검증하는
-`weather-pages-028` 체크포인트로 대체되었다.
+This checkpoint verifies weather details and dynamic navigation pages together.
+Replaced by checkpoint `weather-pages-028`.
 
-## 구현 범위
+## Implementation scope
 
-- GPS 좌표가 없으면 지도 영역에 샘플 지도를 그리지 않고 `NO GPS DATA` 표시
-- 실제 GPS 좌표는 있으나 지도 데이터가 없으면 지도 영역에 `NO DATA` 표시
-- 임시 지도의 울퉁불퉁한 샘플 격자선 제거
-- 유효한 방향 정보가 없으면 현재 위치를 속이 빈 원으로 표시
-- 유효한 방향 정보가 있을 때만 현재 위치 화살표 표시
-- 뉴스 상세 본문을 21px와 실제 Canvas 폭으로 나누어 한 화면에 네 줄씩 표시
-- 뉴스 다음 스크롤은 남은 본문 페이지를 먼저 보여준 뒤 다음 기사로 이동
-- 뉴스 이전 스크롤은 이전 본문 페이지를 먼저 보여주고, 기사 경계에서는 이전
-  기사의 마지막 본문 페이지로 이동
-- 뉴스 상세 헤더에 기사 번호와 현재 본문 페이지 표시
-- 체크된 TODO를 다시 탭하면 체크가 해제되고 즉시 화면을 다시 그림
-- 변경이 거절된 TODO 입력은 화면 전송 없이 끝냄
-- 일반 4페이지 스크롤 방향을 기존 사용 방향으로 복구
-- 지도 상세가 소비한 스크롤만 줌 반전으로 처리하고 일반 페이지 전환과 분리
+- If there are no GPS coordinates, a sample map is not drawn in the map area and ‘NO GPS DATA’ is displayed.
+- If there are actual GPS coordinates but no map data, ‘NO DATA’ is displayed in the map area.
+- Removed jagged sample grid lines on temporary maps.
+- If there is no valid direction information, the current location is displayed as a hollow circle.
+- Show current location arrow only when there is valid direction information
+- Divide the detailed news text into 21px and the actual Canvas width and display four lines on one screen.
+- News next scroll shows the remaining text pages first and then moves to the next article
+- Scrolling before news shows the previous body page first, and at the border of the article, the previous page is displayed first.
+  Go to the last body page of the article
+- Display article number and current body page in news detail header
+- If you tap a checked TODO again, it will be unchecked and the screen will be redrawn immediately.
+- TODO input whose change is rejected is completed without sending the screen
+- Restore the normal 4-page scroll direction to the previously used direction.
+- Only scrolling consumed by map details is processed as zoom inversion and separated from general page transitions.
 
-이 체크포인트에는 직전 `news-library-025`의 100개 뉴스 라이브러리, 1시간
-리필, 읽는 동안 리필 억제, 12초 타일 전송 제한, 요청 비누적 및 페이지
-롤백도 포함된다.
+This checkpoint includes 100 news libraries from the previous `news-library-025`, 1 hour
+Refill, suppress refill while reading, limit tile transfer to 12 seconds, request non-accumulation and page
+Rollback is also included.
 
-## 자동 검증
+## Automatic verification
 
-아래 명령은 동시에 실행하지 않고 순서대로 실행했다.
+The commands below were executed in order rather than simultaneously.
 
-- `npm test`: 35개 파일, 341개 테스트 통과
-- `node --test --test-concurrency=1 tests/*.test.mjs`: 28개 테스트 통과
-- `npm run typecheck`: 통과
-- `npm run build`: 65개 모듈 변환, 프로덕션 빌드 통과
+- `npm test`: 35 files, 341 tests passed
+- `node --test --test-concurrency=1 tests/*.test.mjs`: Passed 28 tests
+- `npm run typecheck`: Passed
+- `npm run build`: Converted 65 modules, passed production build.
 - Tailscale HUD URL: HTTP 200
 
-자동 테스트는 지도 데이터 우선순위, 샘플 격자 제거, 원·화살표 마커 분기,
-뉴스 본문 양방향 페이지 이동과 경계 처리, TODO 체크·해제 후 재그리기를
-검증한다. 일반 페이지 전환과 지도 상세 줌이 서로 다른 방향 규칙을 사용하며,
-상세에서 소비한 입력은 일반 페이지 전환으로 빠지지 않는 것도 검증한다.
-실제 안경 표시와 SDK 입력·전송은 아래 물리 체크포인트로 확인한다.
+Automatic tests include map data prioritization, sample grid removal, circle and arrow marker branching,
+News text, two-way page movement, border processing, TODO check/uncheck and redrawing
+Verify. Normal page transitions and detailed map zoom use different orientation rules.
+It is also verified that input consumed in details is not lost through general page conversion.
+Actual glasses display and SDK input/transmission are checked using the physical checkpoints below.
 
-## 실제 G2 확인 항목
+## Actual G2 Check Items
 
-- [ ] 양안에서 576×288 네 타일이 모두 정상 출력된다.
-- [ ] 일반 4페이지 스크롤 방향이 지도 줌 반전 전의 사용 방향과 같다.
-- [ ] 지도 상세 줌 방향만 반전되어 일반 페이지 방향에 영향을 주지 않는다.
-- [ ] GPS를 사용할 수 없을 때 지도 영역에 `NO GPS DATA`만 명확히 보인다.
-- [ ] GPS는 있으나 지도 데이터가 없을 때 지도 영역에 `NO DATA`만 보인다.
-- [ ] 지도 데이터가 있을 때 샘플 격자 없이 실제 도로와 라벨만 보인다.
-- [ ] 방향 정보가 없을 때 현재 위치가 속이 빈 원으로 보인다.
-- [ ] 방향 정보가 생기면 현재 위치가 화살표로 바뀐다.
-- [ ] 뉴스 본문이 제목보다 조금 작은 크기로 좌우 폭을 충분히 사용한다.
-- [ ] 긴 뉴스에서 스크롤하면 다음 기사 대신 남은 본문이 먼저 이어진다.
-- [ ] 긴 뉴스의 첫 본문에서 반대 방향으로 스크롤하면 이전 기사 마지막
-  본문으로 이동한다.
-- [ ] 뉴스 기사·본문 페이지 카운터가 현재 내용과 일치한다.
-- [ ] 체크된 TODO를 다시 탭하면 체크가 해제되고 화면에 즉시 반영된다.
-- [ ] 지도 줌, 뉴스 이동, TODO 입력, 대시보드 복귀가 전송 실패 후에도
-  다음 독립 입력에서 계속 동작한다.
-- [ ] 장시간 켜 두어도 갱신 요청이나 위치 이벤트가 누적되지 않는다.
+- [ ] All four 576×288 tiles are displayed normally in both eyes.
+- [ ] The general 4-page scroll direction is the same as the direction used before the map zoom was reversed.
+- [ ] Only the map detail zoom direction is reversed and does not affect the general page direction.
+- [ ] When GPS is not available, only ‘NO GPS DATA’ is clearly visible in the map area.
+- [ ] When there is GPS but no map data, only ‘NO DATA’ is displayed in the map area.
+- [ ] When there is map data, only actual roads and labels are shown without a sample grid.
+- [ ] When there is no direction information, the current location appears as a hollow circle.
+- [ ] When direction information is available, the current location changes to an arrow.
+- [ ] The news text is slightly smaller than the title and uses ample left and right width.
+- [ ] When scrolling through long news, the remaining text continues first instead of the next article.
+- [ ] If you scroll in the opposite direction from the first body of a long news, you will see the last article of the previous article.
+  Go to main text.
+- [ ] The news article/body page counter matches the current content.
+- [ ] If you tap the checked TODO again, it will be unchecked and immediately reflected on the screen.
+- [ ] Map zoom, news movement, TODO input, and dashboard return even after transmission failure
+  Continues operation on the next independent input.
+- [ ] Even if it is turned on for a long time, update requests or location events do not accumulate.
 
-## 게이트
+## Gate
 
-위 실제 G2 항목을 확인하기 전에는 원격 푸시와 완료 알림을 진행하지 않는다.
-직접 관찰 결과를 받은 뒤 이 문서의 `Result`와 체크 항목을 갱신한다.
+Remote push and completion notification will not be processed until the actual G2 items above are confirmed.
+After receiving direct observation results, update `Result` and check items in this document.

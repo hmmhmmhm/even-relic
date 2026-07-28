@@ -13,7 +13,7 @@ Result: ITERATE
 The user confirmed that the labels were present and visible, then requested
 approximately 1.5 times larger text for comfortable reading:
 
-> 라벨 잘보이고, 1.5배쯤 텍스트 크기를 키워봐야 잘보일듯합니다.
+> The label is visible, and you may need to increase the text size by about 1.5 times to see it well.
 
 This establishes successful OSM label collection, projection, collision
 layout, and physical display. It does not approve the original 9px/8px font
@@ -39,7 +39,7 @@ The revised build uses 14px transit/place labels and 12px road/landmark
 labels. The user confirmed that the revised physical label size was
 satisfactory:
 
-> 이제 라벨사이즈는 흡족하네요
+> I am now satisfied with the label size.
 
 This is direct physical evidence that the enlarged labels remained visible
 and reached the desired readability. Bilateral output, page speed, and

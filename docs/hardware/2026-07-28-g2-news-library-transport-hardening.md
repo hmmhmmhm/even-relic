@@ -1,6 +1,6 @@
-# G2 뉴스 라이브러리·전송 안정화 체크포인트
+# G2 News Library/Transmission Stability Checkpoint
 
-날짜: 2026-07-28
+Date: 2026-07-28
 
 SDK: `0.0.11`
 
@@ -8,63 +8,63 @@ Build: `news-library-025`
 
 Result: `SUPERSEDED`
 
-브랜치: `feature/g2-ors-routing`
+branch: `feature/g2-ors-routing`
 
-구현 커밋: `43113a3`
+Implementation commit: `43113a3`
 
 URL:
 `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=news-library-025`
 
-이 체크포인트는 지도 빈 상태, 뉴스 본문 페이지 이동, TODO 재토글을 함께
-검증하는 `honest-detail-026` 체크포인트로 대체되었다.
+This checkpoint includes blanking the map, moving to the news body page, and re-toggling TODO.
+Replaced by the verifying `honest-detail-026` checkpoint.
 
-## 구현 범위
+## Implementation scope
 
-- 지도 상세에서 아래 방향 스크롤은 축소, 위 방향 스크롤은 확대로 반전
-- 지도 줌 단계와 대시보드·상세 간 줌 기억은 유지
-- 뉴스 상세 제목 25px 유지, 본문 21px 확대
-- 뉴스 본문을 실제 Canvas 측정 폭으로 줄바꿈하고 528px 가용 폭 사용
-- SBS 최신 RSS를 새 기사 우선으로 병합·중복 제거해 최대 100개 저장
-- 뉴스 캐시 갱신 간격을 1시간으로 변경
-- 뉴스 상세를 읽는 중에는 리필하지 않고, 상세에서 나온 직후 만기 여부 확인
-- 진행 중·실패·숨김 상태의 뉴스 및 화면 갱신 요청을 보관하거나 재생하지 않음
-- 개별 G2 타일 전송이 12초 이상 응답하지 않으면 실패로 종료하고 입력 잠금 해제
-- 늦게 도착한 SDK 전송 결과는 화면 커밋이나 다음 타일 전송을 발생시키지 않음
-- 대시보드 페이지 전송 실패 시 로컬 페이지를 이전 상태로 복구
+- In map details, downward scrolling is reversed to zoom out, and upward scrolling is reversed to zoom-in.
+- Map zoom level and zoom memory between dashboard and details are maintained
+- Maintain news detailed title at 25px, enlarge body text at 21px
+- Wrap the news body to the actual Canvas measurement width and use the 528px available width.
+- Save up to 100 SBS latest RSS by merging and removing duplicates with new articles prioritized
+- Change news cache update interval to 1 hour
+- Do not refill while reading the news details, but check expiration immediately after leaving the details.
+- Do not store or replay news and screen update requests in progress, failure, or hidden status.
+- If an individual G2 tile transmission is unresponsive for more than 12 seconds, it will fail and unlock the input.
+- Late-arriving SDK transfer results do not cause screen commit or next tile transfer.
+- When dashboard page transmission fails, restore the local page to its previous state.
 
-## 자동 검증
+## Automatic verification
 
-아래 명령은 동시에 실행하지 않고 순서대로 실행했다.
+The commands below were executed in order rather than simultaneously.
 
-- `npm test`: 34개 파일, 336개 테스트 통과
-- `node --test --test-concurrency=1 tests/*.test.mjs`: 28개 테스트 통과
-- `npm run typecheck`: 통과
-- `npm run build`: 64개 모듈 변환, 프로덕션 빌드 통과
-- `git diff --check`: 통과
-- 로컬 HUD URL: HTTP 200
+- `npm test`: 34 files, 336 tests passed
+- `node --test --test-concurrency=1 tests/*.test.mjs`: Passed 28 tests
+- `npm run typecheck`: Passed
+- `npm run build`: Converted 64 modules, passed production build.
+- `git diff --check`: passed
+- Local HUD URL: HTTP 200
 - Tailscale HUD URL: HTTP 200
-- 체크 시점 SBS RSS 응답: 102개 항목
+- SBS RSS response at time of check: 102 items
 
-자동 테스트는 줌 방향, 폭 기준 뉴스 줄바꿈, 100개 병합과 상한, 기존 캐시
-승계, 1시간 갱신, 읽기 중 억제, busy 요청 폐기, 12초 전송 제한, 늦은 응답
-무시, 페이지 롤백을 검증한다. 실제 안경 표시와 SDK 지연 특성은 아래
-물리 체크포인트로 확인한다.
+Automatic tests include zoom direction, news wrapping by width, 100 merge and upper limit, and existing cache.
+Succession, 1 hour update, suppress on read, discard busy request, 12 second transfer limit, late response
+Ignore, verify page rollback. Actual glasses display and SDK latency characteristics are below:
+Check with physical checkpoints.
 
-## 실제 G2 확인 항목
+## Actual G2 Check Items
 
-- [ ] 양안에서 576×288 네 타일이 모두 정상 출력된다.
-- [ ] `OVERVIEW` 한 번 탭으로 전체 화면 지도에 진입한다.
-- [ ] 지도에서 아래 방향 스크롤이 축소되고 위 방향 스크롤이 확대된다.
-- [ ] 지도 줌 단계가 대시보드 복귀와 재진입 후에도 유지된다.
-- [ ] `NEWS` 상세 본문이 제목보다 조금 작은 크기로 선명하게 보인다.
-- [ ] 뉴스 본문이 왼쪽에만 몰리지 않고 화면 오른쪽 폭까지 사용한다.
-- [ ] 여러 뉴스 항목을 연속으로 이동해도 선택 기사와 카운터가 일치한다.
-- [ ] 뉴스 상세를 읽는 동안 항목이 갑자기 바뀌지 않는다.
-- [ ] 대시보드 스크롤, 상세 진입·복귀, HUD 숨김·복원이 계속 반응한다.
-- [ ] 장시간 켜 두어도 갱신 요청이나 위치 이벤트가 누적되지 않는다.
-- [ ] 전송 실패 후 다음 독립 입력이 수락되고 페이지를 건너뛰지 않는다.
+- [ ] All four 576×288 tiles are displayed normally in both eyes.
+- [ ] `OVERVIEW` Enter the full screen map with a single tap.
+- [ ] On the map, downward scrolling is reduced and upward scrolling is enlarged.
+- [ ] The map zoom level is maintained even after returning to and re-entering the dashboard.
+- [ ] `NEWS` The detailed text is clearly visible at a slightly smaller size than the title.
+- [ ] The text of the news is not concentrated on the left, but takes up the entire width of the right side of the screen.
+- [ ] Even if you move through multiple news items in succession, the selected article and counter match.
+- [ ] Items do not change suddenly while reading news details.
+- [ ] Dashboard scrolling, entering/returning details, and hiding/restoring HUD continue to respond.
+- [ ] Even if it is turned on for a long time, update requests or location events do not accumulate.
+- [ ] After a transmission failure, the next independent input is accepted and the page is not skipped.
 
-## 게이트
+## Gate
 
-위 실제 G2 항목을 확인하기 전에는 원격 푸시와 완료 알림을 진행하지 않는다.
-직접 관찰 결과를 받은 뒤 이 문서의 `Result`와 체크 항목을 갱신한다.
+Remote push and completion notification will not be processed until the actual G2 items above are confirmed.
+After receiving direct observation results, update `Result` and check items in this document.

@@ -1,35 +1,41 @@
-# G2 이미지 전송 최초 성공 기록
+# First successful record of G2 image transmission
 
-## 요약
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
 
-2026-07-26에 RELIC이 실제 Even G2로 이미지를 처음 전송했다. 현재 확인된
-작동 조건은 `@evenrealities/even_hub_sdk` `0.0.10`이다.
+## Summary
 
-다음 두 경로가 같은 기기와 Even 앱 세션에서 연속으로 성공했다.
+On 2026-07-26, Sandevistan transmitted images to a physical Even G2 for the
+first time. The confirmed SDK for this checkpoint was
+`@evenrealities/even_hub_sdk` `0.0.10`.
 
-1. `/diagnostic-v10`: 사용자가 한 번 클릭한 뒤 `200×100` 1-bit BMP 전송
-2. `/`: `288×144` PNG 네 장을 전송해 `576×288` 전체 HUD 구성
+The following two routes succeeded consecutively on the same device and Even app session.
 
-진단 BMP에서는 작은 도트 패턴이 보였다. 전체 HUD에서는 네 타일이 모두
-표시됐으며 사용자는 화면이 매우 잘 보이고 진단 BMP보다 크게 느껴진다고
-확인했다.
+1. `/diagnostic-v10`: one user click sends a `200×100` 1-bit BMP.
+2. `/`: four `288×144` PNGs compose the complete `576×288` HUD.
 
-## 최초 실패와 성공 비교
+The diagnostic BMP showed a small dot pattern. With all four tiles visible, the
+user reported that the full HUD was clear and appeared larger than the
+diagnostic BMP.
+Confirmed.
 
-| 순서 | SDK | 경로 | 이미지와 시점 | 실제 G2 결과 |
+## Comparison of initial failure and success
+
+| order | SDK | path | Image and viewpoint | Real G2 Results |
 |---:|---|---|---|---|
-| 1 | `0.0.12` | `/` | 시작 직후 `288×144` Canvas PNG 네 장 | 첫 `relicTL`에서 `SENDFAILED` |
-| 2 | `0.0.12` | `/diagnostic-v10` | 클릭 뒤 `200×100` 1-bit BMP | `SENDFAILED` |
-| 3 | `0.0.10` | `/diagnostic-v10` | 같은 클릭과 같은 BMP | `success`, 작은 도트 패턴 표시 |
-| 4 | `0.0.10` | `/` | 같은 4타일 전체 HUD | 네 타일 모두 표시, 화면이 매우 선명함 |
+| 1 | `0.0.12` | `/` | Immediately after starting, four `288×144` Canvas PNG | `SENDFAILED` in first `relicTL` |
+| 2 | `0.0.12` | `/diagnostic-v10` | After clicking `200×100` 1-bit BMP | `SENDFAILED` |
+| 3 | `0.0.10` | `/diagnostic-v10` | Same Click, Same BMP | `success`, display small dot pattern |
+| 4 | `0.0.10` | `/` | Same 4-tile full HUD | All four tiles displayed, the screen is crystal clear |
 
-두 번째 실험으로 자동 전송 시점과 큰 PNG만의 문제를 배제했다. 세 번째
-실험에서는 이미지, 컨테이너, 클릭 시점과 기기를 그대로 두고 SDK 버전만
-바꿨다.
+In the second experiment, we ruled out automatic transfer timing and issues specific to large PNGs. third
+In the experiment, the image, container, click time, and device were left as is, and only the SDK version was used.
+I changed it.
 
-## 성공을 만든 변경
+## Changes that created success
 
-SDK를 정확히 `0.0.10`으로 고정하고 관련 메타데이터를 함께 맞췄다.
+I fixed the SDK to exactly `0.0.10` and matched the relevant metadata together.
 
 ```json
 {
@@ -45,7 +51,7 @@ SDK를 정확히 `0.0.10`으로 고정하고 관련 메타데이터를 함께 �
 }
 ```
 
-`0.0.12`는 `ImageRawDataUpdate.toJson()` 결과에 다음 필드를 추가한다.
+`0.0.12` adds the following fields to the result of `ImageRawDataUpdate.toJson()`.
 
 ```json
 {
@@ -53,7 +59,7 @@ SDK를 정확히 `0.0.10`으로 고정하고 관련 메타데이터를 함께 �
 }
 ```
 
-`0.0.10`은 같은 이미지 요청을 다음처럼 직렬화한다.
+`0.0.10` serializes the same image request as follows:
 
 ```json
 {
@@ -63,13 +69,13 @@ SDK를 정확히 `0.0.10`으로 고정하고 관련 메타데이터를 함께 �
 }
 ```
 
-저장소의 `src/sdk-version.test.ts`가 SDK, 앱 매니페스트, QR 메타데이터의
-`0.0.10` 일치와 `compressMode` 부재를 검사한다. 이 계약 테스트를 제거하지
-않고서는 SDK 버전을 올리지 않는다.
+`src/sdk-version.test.ts` in the repository contains the SDK, app manifest, and QR metadata.
+Checks for a match of `0.0.10` and absence of `compressMode`. do not remove this contract test
+Do not upgrade the SDK version without this.
 
-## 재현 절차
+## Reproduction Procedure
 
-### 1. 의존성과 검증 상태 준비
+### 1. Prepare dependencies and verification status
 
 ```bash
 npm ci
@@ -80,20 +86,20 @@ npm run build
 npm run test:sites
 ```
 
-`npm ls` 결과는 `@evenrealities/even_hub_sdk@0.0.10`이어야 한다.
+The `npm ls` result should be `@evenrealities/even_hub_sdk@0.0.10`.
 
-### 2. Tailscale 서버 실행
+### 2. Run Tailscale server
 
-Mac과 아이폰에서 Tailscale을 켠 뒤 실행한다.
+Turn on and run Tailscale on your Mac and iPhone.
 
 ```bash
 npm run dev -- --host 0.0.0.0 --port 4173 --strictPort
 ```
 
-최초 성공 당시 Mac의 Tailscale IPv4는 `100.96.68.73`이었다. 주소가
-바뀌었으면 `tailscale ip -4` 결과로 아래 URL을 바꾼다.
+At the time of initial success, Mac's Tailscale IPv4 was `100.96.68.73`. address is
+If it has changed, change the URL below with the result of `tailscale ip -4`.
 
-### 3. 작은 수동 전송 확인
+### 3. Small manual transfer confirmation
 
 ```bash
 npx evenhub qr \
@@ -101,11 +107,11 @@ npx evenhub qr \
   --external
 ```
 
-Even 앱의 `Even Hub` 개발자 영역에서 QR을 스캔한다.
-`TEXT READY - CLICK TO SEND`가 보이면 G2 터치바나 R1을 한 번 누른다.
-성공 상태는 `1-bit BMP 전송 완료`다.
+Scan the QR in the Even Hub developer area of ​​the Even app.
+When you see ‘TEXT READY - CLICK TO SEND’, press R1 on the G2 touch bar once.
+The success status is ‘1-bit BMP transmission completed’.
 
-### 4. 전체 HUD 확인
+### 4. Check the entire HUD
 
 ```bash
 npx evenhub qr \
@@ -113,351 +119,351 @@ npx evenhub qr \
   --external
 ```
 
-전체 HUD는 클릭 없이 자동 전송된다. `relicTL`, `relicTR`, `relicBL`,
-`relicBR` 순서로 네 장이 모두 성공해야 한다.
+The entire HUD is automatically transmitted without clicking. `relicTL`, `relicTR`, `relicBL`,
+All four cards must succeed in `relicBR` order.
 
-## 최대 표시 영역 비교
+## Compare maximum display area
 
-같은 날 `/calibration-max`에서 `576×288` Canvas의 외곽 띠, 보조 테두리,
-중앙 십자와 32픽셀 눈금을 네 타일로 전송했다.
+On the same day, in `/calibration-max`, the outer band, auxiliary border,
+The central cross and 32-pixel scale were transferred to four tiles.
 
-실제 테스트에는 다음 URL을 사용했다.
+The following URL was used for actual testing.
 
 ```text
 http://100.96.68.73:4174/calibration-max?sdk=0.0.10&build=max-boundary-001
 ```
 
-교정 패턴을 표시한 상태에서 G2 시스템 대시보드로 전환해 비교한 결과,
-사용자는 두 화면의 보이는 외곽 크기가 같다고 확인했다.
+As a result of comparing by switching to the G2 system dashboard with the calibration pattern displayed,
+The user confirmed that the visible outline size of the two screens was the same.
 
-이 결과는 현재 착용 위치와 화면 높이 설정에서 Even Hub 플러그인의
-`576×288` 최대 좌표 영역이 시스템 대시보드보다 작게 보이지 않는다는
-하드웨어 근거다. 대시보드의 정확한 내부 렌더링 해상도나 물리 패널과의 픽셀
-대응 관계까지 증명하지는 않는다.
+These results are based on the Even Hub plugin's current wearing position and screen height settings.
+`576×288` The maximum coordinate area does not appear smaller than the system dashboard.
+It's hardware based. The dashboard's exact internal rendering resolution or pixels relative to the physical panel.
+It does not even prove the correspondence relationship.
 
-기존 RELIC 시안이 더 작게 느껴진 주된 원인은 화면 한도보다 검정 여백,
-낮은 발광 픽셀 밀도, 밝기 또는 네이티브 입체 레이어 차이로 좁혀졌다.
+The main reason why the existing Sandevistan draft felt smaller was the black margin than the screen limit,
+Differences were narrowed down to low luminous pixel density, brightness, or native stereoscopic layer differences.
 
-## 고밀도 Canvas HUD 실기기 결과
+## High-density Canvas HUD actual device results
 
-교정 결과를 반영해 `/hud-canvas`에서 원본 이미지 없이 `576×288`
-Canvas 프리미티브와 글자로 HUD를 다시 그렸다. 같은 SDK `0.0.10`의 네
-타일 경로로 전송했으며 실제 G2에서 정상 표시됐다.
+Reflecting the correction results, `576×288` without the original image in `/hud-canvas`
+Redrawn HUD with Canvas primitives and text. Yes in the same SDK `0.0.10`
+It was transmitted via the tile path and was displayed normally on the actual G2.
 
-사용자가 확인한 결과는 다음과 같다.
+The results confirmed by the user are as follows.
 
-- 시간과 본문 글자가 크고 선명하게 읽혔다.
-- 지도 크기와 경로 가시성이 만족스러웠다.
-- 전체 외곽은 시스템 대시보드와 같은 크기로 느껴졌다.
-- 동일한 닫힌 사각 테두리와 큰 채운 화살표 때문에 게임 HUD보다 계기판
-  대시보드에 가까워 보였다.
-- 작은 ACC와 뉴스 칸을 합치고 뉴스 글자를 키우는 것이 다음 우선순위로
-  정해졌다.
+- The time and text were large and clearly readable.
+- Map size and route visibility were satisfactory.
+- The entire exterior felt the same size as the system dashboard.
+- Dashboard than the game HUD due to the same closed square border and larger filled arrows
+  It looked closer to a dashboard.
+- Combining the small ACC and News sections and increasing the News text is the next priority.
+  It has been decided.
 
-이 결과로 최대 표시 면적, Canvas 직접 렌더링, 네 타일 전송과 큰 글자
-가독성까지 실제 기기에서 확인됐다.
+This results in maximum display area, direct rendering to Canvas, four tile transfers and large text.
+Readability was also confirmed on an actual device.
 
-## 전술 HUD 후보 `tactical-hud-002`
+## Tactical HUD candidate `tactical-hud-002`
 
-위 피드백을 반영한 다음 후보는 전송 규약과 화면 크기를 그대로 유지한다.
+The next candidate that reflects the above feedback maintains the transmission protocol and screen size as is.
 
 ```text
 http://100.96.68.73:4173/hud-canvas?sdk=0.0.10&build=tactical-hud-002
 ```
 
-변경 사항은 다음과 같다.
+The changes are as follows:
 
-- ACC와 X/Y/Z 값을 제거했다.
-- 우측 하단을 `164×138` 뉴스·미션 카드로 통합했다.
-- `지하철역으로`를 17픽셀, `이동`을 24픽셀로 키웠다.
-- 닫힌 사각 패널을 열린 코너 브래킷으로 바꿨다.
-- 지도 경로와 중앙 회전 지시를 이중선으로 통일했다.
+- ACC and X/Y/Z values ​​were removed.
+- The bottom right corner has been integrated into a `164×138` news/mission card.
+- ‘To the subway station’ was enlarged to 17 pixels, and ‘Move’ was enlarged to 24 pixels.
+- The closed square panel was replaced with an open corner bracket.
+- The map route and center rotation instructions have been unified into a double line.
 
-실제 G2에서 다음 항목을 판정한다.
+In reality, G2 determines the following items.
 
-- [ ] 뉴스 본문이 기존 10픽셀 문구보다 확실히 크게 읽힌다.
-- [ ] 열린 코너 프레임이 G2에서 끊기지 않고 영역을 구분한다.
-- [ ] 지도와 중앙 지시의 이중 경로가 한 덩어리로 뭉개지지 않는다.
-- [ ] 네 타일 경계에서 핵심 정보가 손실되지 않는다.
-- [ ] 기존 Canvas 버전의 전체 크기와 선명도를 유지한다.
+- [ ] The news text is clearly read larger than the existing 10-pixel text.
+- [ ] The open corner frame divides the area without interruption in G2.
+- [ ] The dual routes of the map and central directions are not lumped together.
+- [ ] Key information is not lost at the four tile boundaries.
+- [ ] Maintains the overall size and clarity of the existing Canvas version.
 
-## 정보 확장 후보 `hud-info-003`
+## Information extension candidate `hud-info-003`
 
-전술 HUD 후보에 초 단위 시각, 날씨 한 줄과 TODO 체크 상태를 추가했다.
+Added second-by-second time, weather line, and TODO check status to tactical HUD candidates.
 
 ```text
 http://100.96.68.73:4173/hud-canvas?sdk=0.0.10&build=hud-info-003
 ```
 
-시계는 페이지가 Canvas를 그리는 시점의 실제 로컬 시각을 `HH:MM:SS`로
-표시한다. 네 타일을 한 번만 보내는 전송 계약은 유지하므로 안경에 표시된
-초가 매초 갱신되지는 않는다. `HONGDAE 23°C 맑음`은 나머지 HUD 데이터와
-같은 정적 목업이다.
+The clock displays the actual local time as `HH:MM:SS` when the page draws the Canvas.
+Display. It maintains a transmission contract that only sends the four tiles once, so the
+The seconds are not updated every second. `HONGDAE 23°C CLEAR` is in line with the rest of the HUD data.
+It's the same static mockup.
 
-TODO 카드는 글꼴의 체크 문자에 의존하지 않는다. 미완료 상자, 완료 상자와
-체크 선을 Canvas 도형으로 직접 그려 G2의 단색 래스터에서도 상태가
-구분되도록 했다.
+TODO cards do not rely on check characters in fonts. Incomplete box, completed box and
+Check lines can be drawn directly as a Canvas shape and the state will be maintained even in the G2's monochromatic raster.
+made to be differentiated.
 
-실제 G2에서 다음 항목을 판정한다.
+In reality, G2 determines the following items.
 
-- [ ] `HH:MM:SS`가 시간 프레임 안에서 잘리지 않는다.
-- [ ] 지역·온도·날씨 한 줄이 읽힌다.
-- [ ] 미완료 상자와 완료 체크가 서로 구분된다.
-- [ ] TODO 본문 크기가 이전 미션 카드만큼 크게 유지된다.
-- [ ] 기존 전술 프레임과 이중 경로가 그대로 선명하다.
+- [ ] `HH:MM:SS` is not truncated within the time frame.
+- [ ] Region, temperature, weather can be read in one line.
+- [ ] Incomplete boxes and complete checks are distinguished from each other.
+- [ ] TODO body size remains as large as the previous mission card.
+- [ ] The existing tactical frame and dual path are clear as is.
 
-## 페이지형 HUD 후보 `paged-hud-004`
+## Paged HUD candidate `paged-hud-004`
 
-고밀도 대시보드의 정보량을 한 화면에 유지하면서도, G2와 R1 스크롤로
-세부 정보를 큰 페이지에 분산해서 볼 수 있도록 네 페이지를 추가했다.
+While maintaining the amount of information in the high-density dashboard on one screen, G2 and R1 scrolling
+Four pages were added so that detailed information can be viewed distributed across a large page.
 
 ```text
 http://100.96.68.73:4173/hud-canvas?sdk=0.0.10&build=paged-hud-004
 ```
 
-페이지 순서는 `OVERVIEW → NAVIGATION → NEWS → TODO`이며 마지막에서
-아래로 스크롤하면 다시 `OVERVIEW`로 돌아간다. 위 스크롤은 역순이다.
-기본 `OVERVIEW`는 비내비게이션 상태로, 중앙 경로·교차로 카드 대신 큰
-지역 뉴스와 날씨 브리핑을 표시한다.
+The page order is `OVERVIEW → NAVIGATION → NEWS → TODO` and at the end
+Scroll down to return to `OVERVIEW`. The scrolling above is in reverse order.
+The default `OVERVIEW` is a non-navigation state, with a large route/intersection card instead of a central route/intersection card.
+Displays local news and weather briefings.
 
-스크롤 때 페이지 컨테이너를 재구성하지 않는다. 같은 576×288 Canvas를
-다시 그린 뒤 최초 성공 경로와 같은 컨테이너 ID 2, 3, 4, 5를 차례로
-갱신한다. 빠른 연속 스크롤도 하나의 큐에서 처리해 BLE 이미지 업데이트가
-겹치지 않는다.
+Do not reconfigure the page container when scrolling. Same 576×288 Canvas
+After redrawing, container IDs 2, 3, 4, and 5, which are the same as the initial success path, are drawn in order.
+Update. Even fast continuous scrolling is processed in one queue for BLE image updates.
+There is no overlap.
 
-뉴스, 날씨, 지도와 할 일은 여전히 정적 목업이다. 실제 G2와 R1에서 다음
-항목을 판정한다.
+News, weather, maps and to-dos are still static mockups. Next on the actual G2 and R1
+Judge the item.
 
-- [ ] 새로고침 직후 양안에 `01 / 04` 기본 뉴스 화면이 보인다.
-- [ ] 기본 화면에 `우회전`과 `다음 교차로`가 보이지 않는다.
-- [ ] G2 아래·위 스크롤이 각각 다음·이전 페이지로 이동한다.
-- [ ] R1 아래·위 스크롤도 같은 방향으로 이동한다.
-- [ ] `04 / 04`에서 아래 스크롤하면 `01 / 04`로 순환한다.
-- [ ] 페이지 전환 뒤 한쪽 눈만 남는 현상이 재발하지 않는다.
-- [ ] 전송 중 부분 타일이 보이더라도 완료 뒤 네 타일이 한 화면으로
-  수렴한다.
+- [ ] Immediately after refreshing, the `01 / 04` basic news screen is visible in both eyes.
+- [ ] ‘Right turn’ and ‘Next intersection’ do not appear on the basic screen.
+- [ ] G2 Down and up scrolling moves to the next and previous pages, respectively.
+- [ ] R1 Down and up scrolling also moves in the same direction.
+- [ ] If you scroll down from `04 / 04`, it will cycle to `01 / 04`.
+- [ ] The phenomenon of being left with only one eye after switching pages does not recur.
+- [ ] Even if partial tiles are visible during transmission, four tiles are displayed on one screen after completion.
+  Converge.
 
-## 하이브리드 네이티브 Text 후보 `hybrid-text-005`
+## Hybrid Native Text candidate `hybrid-text-005`
 
-전체 Canvas 페이지를 스크롤마다 네 이미지로 다시 보내는 대신, 텍스트
-없는 공통 배경은 최초 한 번만 보내고 페이지 문구만 네이티브 Text로
-갱신하는 A/B 경로를 추가했다.
+Instead of re-sending the entire Canvas page with four images per scroll, text
+The common background that does not exist is sent only once the first time, and only the page text is used as native text.
+An updated A/B route was added.
 
 ```text
 http://100.96.68.73:4173/hud-hybrid?sdk=0.0.10&build=hybrid-text-005
 ```
 
-시작 페이지는 기존과 동일한 이미지 컨테이너 ID 2–5와 전체 화면 이벤트
-Text ID 1을 사용한다. 이미지 네 장이 모두 전송된 뒤 첫 `OVERVIEW`
-문구를 올린다. 이후 아래·위 스크롤은 이미지 데이터나 페이지 컨테이너를
-건드리지 않고 같은 Text ID 1에 콘텐츠를 한 번만 갱신한다. 빠른 연속
-입력은 직렬 큐로 처리한다.
+The start page has the same image container IDs 2–5 and full screen event as before.
+Use Text ID 1. After all four images are sent, the first `OVERVIEW`
+Post the text. Afterwards, scrolling down and up moves image data or page containers.
+Update the content only once with the same Text ID 1 without touching it. quick succession
+Input is processed through serial queues.
 
-이 경로는 SDK `0.0.10`에서 명시적인 z-order 없이 네이티브 Text와 이미지
-배경이 겹칠 수 있는지 확인하는 진단이기도 하다. 자동 테스트는 이미지가
-초기 네 번 이후 증가하지 않는 것과 Text 갱신의 최대 동시 실행 수가
-1임을 검증했다.
+This path supports native text and images without explicit z-order in SDK `0.0.10`.
+It is also a diagnostic test to check whether backgrounds can overlap. The automatic test is that the image
+It does not increase after the initial four times and the maximum number of concurrent executions of Text updates is
+It was verified that it was 1.
 
-- [ ] 정적 프레임·지도 배경 위에 네이티브 Text가 표시된다.
-- [ ] Text 컨테이너의 투명 영역에서 Canvas 배경이 그대로 보인다.
-- [ ] `2호선 정상 운행`, `우회전 →` 한글과 화살표가 읽힌다.
-- [ ] `[ ]`, `[x]` 체크 상태가 서로 구분된다.
-- [ ] 아래·위 스크롤 때 전체 문구가 한 번에 바뀐다.
-- [ ] 전환이 `paged-hud-004`의 네 이미지 갱신보다 확실히 빠르다.
-- [ ] 양안에서 같은 문구가 같은 시점에 보인다.
+- [ ] Native text is displayed over the static frame/map background.
+- [ ] The Canvas background is visible in the transparent area of ​​the Text container.
+- [ ] ‘Line 2 operates normally’, ‘Turn right →’ Korean and arrows are read.
+- [ ] `[ ]` and `[x]` check states are distinguished from each other.
+- [ ] When scrolling down or up, the entire text changes at once.
+- [ ] conversion is definitely faster than updating the four images in `paged-hud-004`.
+- [ ] The same phrase is visible at the same time in both eyes.
 
-겹침 순서나 글꼴 표시가 실패하면 이 경로는 진단용으로 유지하고
-`/hud-canvas`를 기본 후보로 계속 사용한다.
+If the stacking order or font display fails, keep this path for diagnostic purposes.
+Continue to use `/hud-canvas` as the default candidate.
 
-## 명시적 레이어 후보 `hybrid-zorder-006`
+## Explicit layer candidate `hybrid-zorder-006`
 
-`hybrid-text-005` 실기기 테스트에서는 Canvas 레이아웃만 평상시에 보였다.
-네이티브 Text는 시스템 닫기 패널이 열려 있는 동안 나타났고, 패널을
-취소하는 즉시 다시 사라졌다. Text 전송 실패가 아니라 네 이미지보다 뒤에
-합성되는 레이어 순서 문제로 판정했다.
+In the `hybrid-text-005` actual device test, only the Canvas layout was visible as usual.
+Native Text appears while the System Close panel is open, and closes the panel.
+As soon as I canceled it, it disappeared again. It's not a text transmission failure, it's behind your image
+It was determined to be a problem with the order of layers being composited.
 
-SDK `0.0.10` 이미지 전송을 유지하고 다섯 컨테이너 JSON에 이미지 1–4,
-Text 5의 고유한 `zOrderIndex`를 주입하는 별도 경로를 추가했다.
+SDK `0.0.10` maintains image transfer and sends images 1–4 to five container JSONs,
+Added a separate route to inject Text 5's unique `zOrderIndex`.
 
 ```text
 http://100.96.68.73:4174/hud-hybrid-z?sdk=0.0.10&build=hybrid-zorder-006
 ```
 
-2026-07-26 실기기 확인 결과, Text가 닫기 패널 없이 Canvas 레이아웃 앞에
-정상 표시됐다. 스크롤할 때도 이미지 재전송을 기다리지 않고 문구가 즉시
-바뀌었다. 따라서 명시적 `zOrderIndex` 백포트와 단일 Text 업데이트 방식은
-각각 레이어 순서와 전환 속도 문제를 해결한 것으로 판정한다.
+2026-07-26 As a result of checking the actual device, Text is in front of the Canvas layout without a close panel.
+It was displayed normally. Even when scrolling, the text appears instantly without waiting for the image to be resent.
+changed. Therefore, an explicit `zOrderIndex` backport and a single Text update method are
+It is determined that the layer order and transition speed issues have been resolved, respectively.
 
-남은 문제는 한 개의 전체 화면 Text가 `(8, 8)`부터 일반 문서처럼 흐르는
-반면, Canvas 배경은 여러 패널 좌표를 전제로 그려졌다는 점이다. 그 결과
-문구는 보이지만 각 패널의 프레임과 올바르게 정렬되지 않는다. 공백이나
-줄바꿈으로 좌표를 흉내 내기보다, 단일 Text 영역에 맞춘 Canvas 재배치 또는
-여러 Text 컨테이너의 위치 지정 중 하나를 선택해 해결해야 한다.
+The remaining problem is that one full screen Text flows like a normal document starting from `(8, 8)`.
+On the other hand, the Canvas background is drawn assuming multiple panel coordinates. in result
+The text is visible, but it is not aligned correctly with the frame of each panel. Blank or
+Rather than mimicking coordinates with line breaks, reorganize the Canvas to fit a single Text area, or
+You have to choose between positioning multiple Text containers.
 
-- [x] 닫기 패널 없이 Text가 Canvas 위에 보인다.
-- [ ] 닫기 패널을 취소해도 Text가 계속 보인다.
-- [x] 스크롤은 이미지 재전송 없이 Text만 한 번 갱신한다.
-- [x] 네 이미지 레이아웃과 Text가 함께 표시된다.
-- [ ] Text가 Canvas의 각 패널 위치와 정확히 정렬된다.
-- [ ] 양안에 같은 Text와 레이아웃이 보인다.
+- [x] Text is displayed on the Canvas without a close panel.
+- [ ] Even if you cancel the close panel, the text remains visible.
+- [x] Scroll only updates the text once without retransmitting the image.
+- [x] Four image layouts and text are displayed together.
+- [ ] Text is aligned exactly with the position of each panel on the Canvas.
+- [ ] The same text and layout are visible on both sides.
 
-## 단일 Text 콘솔 정렬 후보 `hybrid-console-007`
+## Single Text Console Sort Candidate `hybrid-console-007`
 
-`hybrid-zorder-006`에서 확인한 단일 Text 업데이트를 유지하면서 Canvas
-프레임을 네이티브 Text 흐름에 맞게 다시 구성했다. 왼쪽 `(8, 8, 180,
-272)`는 고정 지도이고, 오른쪽 `(196, 8, 372, 272)`는 한 개의 Text
-콘솔이다.
+Canvas while maintaining a single Text update as seen by `hybrid-zorder-006`
+The frame was reorganized to fit the native text flow. Left `(8, 8, 180,
+272)` is a fixed map, and `(196, 8, 372, 272)` on the right is one text.
+It's a console.
 
-Text 컨테이너도 오른쪽 콘솔과 같은 좌표와 크기를 사용하며 안쪽 여백은
-`8px`이다. 네이티브 줄 높이에 맞춘 가로 칸막이는 모두 제거했다. 각
-페이지는 공통 상태 두 줄, 빈 줄 하나, 페이지 정보 다섯 줄로 고정했다.
-스크롤 때는 여전히 이미지 재전송 없이 Text 문자열 하나만 갱신한다.
+The Text container also uses the same coordinates and size as the right console, with padding
+It is `8px`. All horizontal dividers that matched the native row height were removed. each
+The page was fixed with two lines for common status, one blank line, and five lines for page information.
+When scrolling, only one text string is updated without retransmitting the image.
 
 ```text
 http://100.96.68.73:4174/hud-hybrid-z?sdk=0.0.10&build=hybrid-console-007
 ```
 
-- [ ] 왼쪽 지도는 독립된 프레임 안에 크게 보인다.
-- [ ] 오른쪽 Text 전체가 콘솔 프레임 안에 보인다.
-- [ ] Text가 지도 위나 프레임 선 위에 겹치지 않는다.
-- [ ] 네 페이지가 스크롤 한 번에 즉시 전환된다.
-- [ ] 초 단위 시각, 날씨, 페이지 번호가 줄바꿈 없이 보인다.
-- [ ] 양안에 같은 지도와 Text가 보인다.
+- [ ] The map on the left appears large in an independent frame.
+- [ ] The entire text on the right is visible within the console frame.
+- [ ] Text does not overlap on the map or frame lines.
+- [ ] Four pages are switched immediately with one scroll.
+- [ ] The time, weather, and page number in seconds are displayed without line breaks.
+- [ ] The same map and text are visible on both sides.
 
-## 빠른 분할 Canvas 후보 `fast-canvas-008`
+## Fast Split Canvas Candidate `fast-canvas-008`
 
-네이티브 Text의 고정 글꼴과 명도를 피하면서 기존 네 타일 전송보다
-빠른 Canvas 전환을 시험하는 별도 `/hud-canvas-fast` 경로를 추가했다.
-기존 다중 섹션 `/hud-canvas`와 `paged-hud-004`는 변경하지 않았다.
+Better than the existing four-tile transfer while avoiding the fixed font and brightness of native text.
+Added a separate `/hud-canvas-fast` path to test fast Canvas switching.
+The existing multi-sections `/hud-canvas` and `paged-hud-004` were not changed.
 
-새 화면의 왼쪽 `288×288`은 모든 페이지에서 같은 대형 지도다. 오른쪽
-`288×288`에는 초 단위 시각, 날씨, 페이지 번호와 각 페이지 정보를
-`20–28px` 핵심 글자로 그린다. 팔레트는 `#ffffff`, `#d0d0d0`,
-`#808080`, `#000000`의 네 단계다.
+The left side of the new screen, `288×288`, is a large map that is the same on all pages. right
+`288×288` contains the time in seconds, weather, page number, and each page information.
+Draw with key characters `20–28px`. The palette is `#ffffff`, `#d0d0d0`,
+There are four steps: `#808080` and `#000000`.
 
-첫 화면은 기존과 같이 이미지 ID `2, 3, 4, 5`를 보낸다. 스크롤할 때는
-Canvas 전체를 다시 그리되 오른쪽 위 `relicTR`과 오른쪽 아래 `relicBR`,
-즉 ID `3, 5`만 인코딩하고 직렬 전송한다.
-
-```text
-기존: http://100.96.68.73:4174/hud-canvas?sdk=0.0.10&build=paged-hud-004
-신규: http://100.96.68.73:4174/hud-canvas-fast?sdk=0.0.10&build=fast-canvas-008
-```
-
-2026-07-26 실제 G2의 첫 확인에서 사용자는 신규 구조가 매우 좋다고
-평가했다. 따라서 왼쪽 고정 대형 지도와 오른쪽 페이지별 정보 영역의
-분할은 승인된 디자인 기준으로 보존한다. 이 평가는 화면 구조에 대한
-확인이다. 이어진 스크롤 테스트에서 전환 속도도 매우 빠르다고 확인했다.
-최종 확인에서는 콘텐츠만 정하면 될 정도로 훌륭하다고 평가했다. 따라서
-오른쪽 두 타일의 순차 갱신도 사용을 방해하는 이음새 없이 자연스럽다고
-판정하고, `fast-canvas-008`을 기술·디자인 기준선으로 채택한다.
-
-- [x] 왼쪽 지도와 오른쪽 정보를 나눈 신규 구조가 만족스럽다.
-- [x] 새 화면의 핵심 글자가 기존 Canvas보다 크고 밝게 읽힌다.
-- [x] 왼쪽 지도가 페이지 전환 중 깜빡이거나 바뀌지 않는다.
-- [x] 오른쪽 위·아래가 한 화면처럼 자연스럽게 바뀐다.
-- [x] 전환 시간이 기존 네 타일 Canvas보다 짧고 체감상 매우 빠르다.
-- [ ] 스크롤을 연속 입력해도 페이지 순서가 유지된다.
-- [ ] 양안에 같은 지도와 정보가 보인다.
-- [x] 현재 구조와 전송 방식을 기술·디자인 기준선으로 채택한다.
-
-연속 스크롤과 양안 일치 항목은 기준선 채택을 막지 않는 별도 회귀 검사로
-유지한다.
-
-## 콘텐츠 후보 `fast-content-009`
-
-승인된 분할과 전송 계약을 유지하면서 페이지 순서와 샘플 콘텐츠를 다음과
-같이 변경했다.
-
-1. `OVERVIEW`: SDK가 반환한 단일 G1/G2/R1 배터리, 날씨, TODO 진행률
-2. `NEWS`: 지도·교통 샘플 대신 일반 기사 제목 여섯 개
-3. `TODO`: 체크박스 세 개와 오늘 완료 진행률
-4. `NAVIGATION`: 기존 120m 우회전과 다음 교차로 안내
-
-시계는 초를 제거한 `HH:MM` 형식이다. SDK `0.0.10`의
-`getDeviceInfo()`는 단일 기기의 배터리와 충전 상태를 제공하지만 여러
-기기를 동시에 열거하지는 않는다. 배터리 조회는 최초 이미지 인코딩 전에
-한 번 실행한다. 조회에 실패하면 `BATTERY --`를 그리고 네 타일 전송을
-계속한다. 기기 상태 이벤트나 매초 타이머로 이미지를 자동 재전송하지 않는다.
+The first screen sends image IDs `2, 3, 4, 5` as before. When scrolling
+Redraw the entire Canvas, but add `relicTR` in the upper right and `relicBR` in the lower right,
+That is, only IDs `3, 5` are encoded and transmitted serially.
 
 ```text
-기준선: http://100.96.68.73:4174/hud-canvas-fast?sdk=0.0.10&build=fast-canvas-008
-콘텐츠: http://100.96.68.73:4175/hud-canvas-fast?sdk=0.0.10&build=fast-content-009
+Existing: http://100.96.68.73:4174/hud-canvas?sdk=0.0.10&build=paged-hud-004
+New: http://100.96.68.73:4174/hud-canvas-fast?sdk=0.0.10&build=fast-canvas-008
 ```
 
-- [ ] OVERVIEW에 실제 단일 기기 배터리 또는 `BATTERY --`가 보인다.
-- [ ] 시계가 초 없이 `HH:MM`으로 보인다.
-- [ ] 아래 스크롤 순서가 OVERVIEW, NEWS, TODO, NAVIGATION이다.
-- [ ] NEWS의 일반 기사 제목 여섯 개가 구분되어 읽힌다.
-- [ ] TODO 하단에 연결 상태 대신 `완료 1 / 3`이 보인다.
-- [ ] NAVIGATION이 네 번째이며 기존 우회전 안내가 유지된다.
-- [ ] 스크롤 때 왼쪽 지도는 고정되고 오른쪽 두 타일만 빠르게 바뀐다.
+2026-07-26 In the first confirmation of the actual G2, users said that the new structure was very good.
+evaluated. Therefore, the fixed large map on the left and the page-specific information area on the right
+Divisions are preserved according to approved design standards. This evaluation is about the screen structure.
+It's confirmation. In the subsequent scroll test, it was confirmed that the switching speed was also very fast.
+In the final confirmation, it was evaluated as excellent enough that only the content needed to be decided. thus
+The sequential updating of the two tiles on the right is said to be natural, with no seams that interfere with use.
+The decision is made and `fast-canvas-008` is adopted as the technology and design baseline.
 
-## 표시 토글 후보 `fast-sleep-010`
+- [x] I am satisfied with the new structure that divides the left map and right information.
+- [x] Key letters on the new screen are larger and brighter to read than on the existing Canvas.
+- [x] The map on the left does not blink or change during page switching.
+- [x] The top and bottom right sides change naturally as if they were one screen.
+- [x] The conversion time is shorter than the existing four-tile Canvas and feels very fast.
+- The page order is maintained even if you continuously input [ ] scroll.
+- [ ] The same map and information are visible in both eyes.
+- [x] Adopt the current structure and transmission method as the technology and design baseline.
 
-시계 아래에 `YYYY.MM.DD 요일`을 추가했다. 시간은 `HH:MM`이며 매분
-자동 재전송하지 않는다.
+Continuous scrolling and binocular matching are separate regression tests that do not prevent baseline adoption.
+maintain
 
-SDK `0.0.10`에는 앱을 유지한 채 디스플레이만 재우는 공개 API가 없다.
-따라서 fast Canvas에서만 더블 탭 종료 호출을 다음 표시 토글로 교체했다.
+## Content candidate `fast-content-009`
 
-- 표시 중 더블 탭: 검정 이미지 ID `2, 3, 4, 5` 직렬 전송
-- 숨김 중 스크롤: 페이지 변경과 이미지 전송 없음
-- 숨김 중 더블 탭: 현재 HUD 이미지 ID `2, 3, 4, 5` 직렬 복원
-- 숨김·복원 실패: 기존 표시 상태 유지 후 다음 더블 탭으로 재시도
+Following page order and sample content while maintaining approved split and transfer agreements:
+changed together.
 
-이미지 컨테이너와 이벤트 캡처 Text 레이어는 계속 살아 있으므로 G2와
-R1의 더블 탭을 다시 받을 수 있다. 이는 공식 저전력 모드가 아니라 검정
-픽셀로 HUD 표시만 숨기는 방식이다. `/hud-canvas` 등 다른 경로의 더블 탭
-종료 동작은 그대로 유지한다.
+1. `OVERVIEW`: Single G1/G2/R1 battery returned by SDK, weather, TODO progress
+2. `NEWS`: Six general article titles instead of map and transportation samples
+3. `TODO`: Three checkboxes and today’s completion progress
+4. `NAVIGATION`: Information on the existing 120m right turn and the next intersection
 
-WebView의 미리보기만 `#91ff73` multiply 레이어로 초록색을 입혔다. 배경
-방사형 글로우와 프레임 그림자는 제거했다. 안경 전송 Canvas의
-`#ffffff`, `#d0d0d0`, `#808080`, `#000000` 팔레트는 그대로다.
+The clock is in the format `HH:MM` with seconds removed. SDK `0.0.10`
+`getDeviceInfo()` provides the battery and charging status of a single device, but can
+Devices are not listed simultaneously. Battery lookup before first image encoding
+Run once. If the lookup fails, type `BATTERY --` and transfer your tiles.
+Continue. Does not automatically retransmit images due to device status events or timers every second.
 
 ```text
-콘텐츠: http://100.96.68.73:4175/hud-canvas-fast?sdk=0.0.10&build=fast-content-009
-표시 토글: http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.10&build=fast-sleep-010
+Baseline: http://100.96.68.73:4174/hud-canvas-fast?sdk=0.0.10&build=fast-canvas-008
+Content: http://100.96.68.73:4175/hud-canvas-fast?sdk=0.0.10&build=fast-content-009
 ```
 
-- [ ] `YYYY.MM.DD 요일`이 날씨 및 페이지 번호와 겹치지 않고 보인다.
-- [ ] WebView 미리보기는 초록색이며 발광 효과가 없다.
-- [ ] G2 더블 탭으로 HUD 픽셀이 모두 꺼진다.
-- [ ] R1 더블 탭으로도 HUD 픽셀이 모두 꺼진다.
-- [ ] 숨김 중 스크롤해도 HUD가 나타나거나 페이지가 바뀌지 않는다.
-- [ ] 다시 더블 탭하면 숨기기 전 페이지가 복원된다.
-- [ ] 복원 후 페이지 전환 속도가 기존과 같다.
-- [ ] 다른 HUD 경로의 더블 탭 종료 동작은 유지된다.
+- [ ] OVERVIEW shows the actual single device battery or `BATTERY --`.
+- [ ] The clock appears as `HH:MM` without seconds.
+- The scroll order below [ ] is OVERVIEW, NEWS, TODO, NAVIGATION.
+- [ ] NEWS's six general article titles are read separately.
+- [ ] At the bottom of TODO, ‘Complete 1 / 3’ is displayed instead of the connection status.
+- [ ] NAVIGATION is the fourth, and the existing right turn guidance is maintained.
+- [ ] When scrolling, the map on the left is fixed and only the two tiles on the right change quickly.
 
-## 현재 결론
+## Display toggle candidate `fast-sleep-010`
 
-현재 Even 앱과 G2 펌웨어 조합에서 SDK `0.0.10`의 이미지 경로는 작동하고
-`0.0.12`의 이미지 경로는 `SENDFAILED`를 반환한다. A/B 결과는
-`0.0.12`에서 추가된 이미지 전송 방식이 현재 호스트 환경과 호환되지 않는다는
-강한 근거다.
+Added ‘YYYY.MM.DD day of the week’ below the clock. The time is `HH:MM`, every minute
+Do not automatically retransmit.
 
-이 기록만으로 Even 앱과 G2 펌웨어 중 어느 쪽이 새 전송 방식을 지원하지
-않는지는 구분할 수 없다. 최초 성공 시점의 정확한 Even 앱 버전과 G2 펌웨어
-버전은 수집하지 못했다.
+SDK `0.0.10` does not have a public API to put the display to sleep while maintaining the app.
+Therefore, we replaced the double-tap exit call with the Show Next toggle only in fast Canvas.
 
-## 안전한 다음 단계
+- Double tap during display: Serial transmission of black image ID `2, 3, 4, 5`
+- Scroll while hidden: no page changes and no image transfers
+- Double tap while hiding: Serial restoration of current HUD image ID `2, 3, 4, 5`
+- Hiding/restoration failure: Maintain the existing display status and retry with the next double tap.
 
-- 현재 작동 기준선은 SDK `0.0.10`으로 유지한다.
-- HUD를 더 크게 느끼게 하려면 화면 좌표를 늘리는 대신 중앙 콘텐츠와 발광
-  픽셀 밀도를 높인다.
-- Even 앱과 G2 펌웨어 버전을 기록한 뒤 업데이트한다.
-- 별도 진단 브랜치에서만 SDK `0.0.12`를 다시 시험한다.
-- `0.0.12`에서 수동 BMP와 전체 HUD가 모두 성공하기 전에는 기본 브랜치의
-  SDK를 올리지 않는다.
+The image container and event capture text layer remain alive, so the G2 and
+You can receive the double tap of R1 again. This is not an official low power mode but a black
+This method only hides the HUD display using pixels. Double tap on other paths such as `/hud-canvas`
+The termination action remains the same.
 
-## 관련 커밋
+Only the preview of the WebView was colored green with the `#91ff73` multiply layer. background
+Radial glow and frame shadows have been removed. Glasses Transfer Canvas
+The `#ffffff`, `#d0d0d0`, `#808080`, and `#000000` palettes remain the same.
 
-- `f094089`: SDK `0.0.10` A/B 계약과 직렬화 테스트
-- `ca81e0a`: 수동 BMP 하드웨어 성공 기록
-- `a1a1dcf`: 4타일 전체 HUD 성공 기록
-- `69bac2c`: 고밀도 Canvas HUD 실기기 성공 기록
+```text
+Content: http://100.96.68.73:4175/hud-canvas-fast?sdk=0.0.10&build=fast-content-009
+Toggle display: http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.10&build=fast-sleep-010
+```
 
-## 참고 자료
+- [ ] `YYYY.MM.DD day of the week` is displayed without overlapping with the weather and page number.
+- [ ] WebView preview is green and has no luminous effect.
+- [ ] G2 Double tap to turn off all HUD pixels.
+- [ ] Even double tapping R1 turns off all HUD pixels.
+- [ ] Even if you scroll while hidden, the HUD does not appear or the page does not change.
+- If you double-tap [ ] again, the page before hiding will be restored.
+- [ ] After restoration, page conversion speed is the same as before.
+- [ ] The double tap exit behavior of other HUD paths is maintained.
 
-- [Even Realities 공식 이미지 템플릿](https://github.com/even-realities/evenhub-templates/tree/main/image)
-- [SDK `0.0.12` npm 패키지](https://www.npmjs.com/package/@evenrealities/even_hub_sdk/v/0.0.12)
+## Current Conclusion
+
+In the current Even app and G2 firmware combination, the image path of SDK `0.0.10` works and
+An image path of `0.0.12` returns `SENDFAILED`. A/B results are
+The image transmission method added in `0.0.12` is not compatible with the current host environment.
+It's a strong basis.
+
+This record alone confirms that neither the Even app nor the G2 firmware supports the new transfer method.
+It is impossible to tell whether it is or not. Exact Even app version and G2 firmware at the time of initial success
+Version could not be collected.
+
+## Safe next steps
+
+- The current operating baseline is maintained as SDK `0.0.10`.
+- To make the HUD feel larger, increase the screen coordinates instead of increasing the central content and lighting.
+  Increase pixel density.
+- Record the Even app and G2 firmware versions and update them.
+- Retest SDK `0.0.12` only in the separate diagnostic branch.
+- In `0.0.12`, before both manual BMP and full HUD succeeded, the default branch's
+  Do not upload SDK.
+
+## Related commits
+
+- `f094089`: SDK `0.0.10` A/B contract and serialization test
+- `ca81e0a`: Manual BMP hardware success log
+- `a1a1dcf`: HUD success record for all 4 tiles
+- `69bac2c`: Successful record of high-density Canvas HUD practical device
+
+## References
+
+- [Even Realities official image template](https://github.com/even-realities/evenhub-templates/tree/main/image)
+- [SDK `0.0.12` npm package](https://www.npmjs.com/package/@evenrealities/even_hub_sdk/v/0.0.12)

@@ -51,7 +51,7 @@ behavior.
 
 The user confirmed the requested physical checklist as a whole:
 
-> 네 아주 좋고 아주 잘 동작됩니다.
+> Yes, it's very good and works very well.
 
 The exact minute, battery values, movement distance, and map cell transition
 were not transcribed, so this record does not infer those values.

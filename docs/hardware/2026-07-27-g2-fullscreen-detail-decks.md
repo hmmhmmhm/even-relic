@@ -1,6 +1,10 @@
-# G2 전체 화면 상세 덱 체크포인트
+# G2 full screen detailed deck checkpoint
 
-날짜: 2026-07-27
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
+Date: 2026-07-27
 
 SDK: `0.0.11`
 
@@ -8,54 +12,54 @@ Build: `detail-decks-019`
 
 Result: `PENDING`
 
-브랜치: `feature/g2-ors-routing`
+branch: `feature/g2-ors-routing`
 
 URL:
 `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=detail-decks-019`
 
-## 구현 범위
+## Implementation scope
 
-- `OVERVIEW` 한 번 탭: 기존 전체 화면 지도와 세션 동안 유지되는 다섯 단계
-  줌
-- `NEWS` 한 번 탭: 실제 SBS RSS 기사 한 건의 제목, 정제한 요약, 발행
-  시각 표시
-- `TODO` 한 번 탭: 최대 여섯 항목의 전체 체크리스트, 선택 강조, 완료 상태
-  전환
-- TODO 변경 사항을 `relic:todos:v1`에 저장하고 다음 앱 세션에서 복원
-- `NAVIGATION` 한 번 탭: ORS 경로 동작 한 단계, 동작 거리, 전체 남은 거리,
-  현재 동작 여부 표시
-- 상세 화면 스크롤 경계 입력 소비와 빠른 두 번 탭 대시보드 복귀
-- 보이는 상세 데이터가 바뀔 때만 네 타일 `3 → 5 → 2 → 4` 전송
-- 상세 화면에서 날씨, 배터리, 분 단위 시각 등 보이지 않는 변화의 전송 억제
+- Single tap on `OVERVIEW`: existing full screen map and five levels that remain throughout the session
+  zoom
+- One tap on ‘NEWS’: Title, refined summary, and publication of one actual SBS RSS article
+  visual indication
+- `TODO` single tap: complete checklist of up to six items, highlight selections, complete status
+  conversion
+- Save TODO changes to `relic:todos:v1` and restore them in the next app session
+- Tap once on `NAVIGATION`: ORS path movement one step, movement distance, total remaining distance,
+  Indication of current operation
+- Detailed screen scroll border input consumption and quick double tap return to dashboard
+- Four tiles ‘3 → 5 → 2 → 4’ are transmitted only when the visible detailed data changes.
+- Suppress transmission of invisible changes such as weather, battery, and minute-by-minute time in the detailed screen
 
-## 자동 검증
+## Automatic verification
 
-- `npm test`: 31개 파일, 308개 테스트 통과
-- `npm run typecheck`: 통과
-- `npm run build`: 60개 모듈 변환
-- `npm run test:sites`: 4개 테스트 통과
-- API 라우터, 지도, 뉴스, 경로: 24개 테스트 통과
-- 클라이언트 `ORS_API_KEY` 참조: 0개
-- 모든 구현 파일: 450줄 이하
-- `git diff --check`: 통과
+- `npm test`: 31 files, 308 tests passed
+- `npm run typecheck`: Passed
+- `npm run build`: Convert 60 modules
+- `npm run test:sites`: 4 tests passed
+- API Router, Maps, News, Routes: Passed 24 tests
+- Client `ORS_API_KEY` references: 0
+- All implementation files: 450 lines or less
+- `git diff --check`: passed
 
-## 실제 G2 확인 항목
+## Actual G2 Check Items
 
-- [ ] 양안에서 576×288 네 타일이 모두 보인다.
-- [ ] `OVERVIEW`에서 지도 진입, 확대, 축소, 줌 유지, 복귀가 동작한다.
-- [ ] `NEWS`에서 기사 제목과 요약을 읽고 이전·다음 기사로 이동할 수 있다.
-- [ ] `TODO`에서 항목 선택과 완료 전환이 동작한다.
-- [ ] 앱을 다시 열어 TODO 완료 상태가 복원된다.
-- [ ] `NAVIGATION`에서 경로 없음 또는 키 없음 상태와 경로 동작 덱이
-  올바르게 보인다.
-- [ ] 각 상세 화면의 목록 또는 줌 경계에서 대시보드 페이지로 넘어가지
-  않는다.
-- [ ] 상세 화면에서 빠르게 두 번 탭하면 진입한 대시보드 페이지로 복귀한다.
-- [ ] 대시보드에서 빠르게 두 번 탭하면 검정 화면으로 바뀌고 다시 복원된다.
-- [ ] 전체 시험 동안 `SENDFAILED`가 발생하지 않는다.
+- [ ] All four 576×288 tiles are visible from both eyes.
+- [ ] In `OVERVIEW`, entering the map, zooming in, zooming out, maintaining zoom, and returning work.
+- [ ] In `NEWS`, you can read the article title and summary and move to the previous or next article.
+- [ ] Item selection and completion transition work in `TODO`.
+- [ ] Re-open the app and the TODO completion status is restored.
+- [ ] In `NAVIGATION`, the no path or no key state and the path action deck are
+  Looks correct.
+- [ ] Does not jump to the dashboard page from the list or zoom border of each detail screen
+  No.
+- [ ] If you quickly tap twice on the details screen, you will return to the dashboard page you entered.
+- [ ] If you quickly tap twice on the dashboard, the screen will change to a black screen and then be restored.
+- [ ] `SENDFAILED` does not occur during the entire test.
 
-## 게이트
+## Gate
 
-안경 충전 후 위 항목을 실제로 확인하기 전에는 기본 브랜치 통합, 원격
-푸시, 완료 알림을 진행하지 않는다. 이 문서의 `Result`도 실제 관찰 전에는
-`PENDING`으로 유지한다.
+After charging the glasses and before actually checking the above items, the basic branch integration, remote
+Push and completion notifications are not processed. `Result` in this document is also before actual observation.
+Keep it as `PENDING`.

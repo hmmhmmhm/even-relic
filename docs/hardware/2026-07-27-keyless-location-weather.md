@@ -16,7 +16,7 @@ output, location source or fallback display, visible live weather replacement
 in the right panel, normal page scrolling, and double-tap hide/restore. The
 user confirmed the checklist as a whole:
 
-> 네 다 잘 동작합니다.
+> Yes, everything works fine.
 
 Recorded results:
 
@@ -41,7 +41,7 @@ The G2 header deliberately identifies the location source while keeping the map
 as `MAP DEMO`, and the phone WebView credit reads:
 
 ```text
-날씨: Open-Meteo · 지도: 데모 스키매틱
+Weather: Open-Meteo · Maps: Demo Schematic
 ```
 
 The schematic is not presented as live OpenStreetMap data. OSM fetching,

@@ -33,7 +33,7 @@ document.
 - `GET /api/routing-status` reports only `{ enabled }`.
 - Missing key:
   - phone UI shows no destination input;
-  - navigation page shows `NAV // READY`, `경로 키 필요`;
+  - navigation page shows `NAV // READY`, `Route key required`;
   - `/api/geocode` and `/api/route` return `ROUTING_DISABLED`;
   - keyless providers continue normally.
 - Configured key:
@@ -100,7 +100,7 @@ Vite server. Runtime HTTP observations:
 
 - `/hud-canvas-fast?...build=ors-local-review`: `200`, HTML app shell;
 - `/api/routing-status`: `200`, `{ "enabled": false }`;
-- `/api/geocode?q=서울역`: `503`, `ROUTING_DISABLED`;
+- `/api/geocode?q=Seoul Station`: `503`, `ROUTING_DISABLED`;
 - `/api/route`: `503`, `ROUTING_DISABLED`.
 
 The temporary server was stopped after this serial check. The in-app browser

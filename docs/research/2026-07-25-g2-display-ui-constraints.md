@@ -1,96 +1,96 @@
-# G2 화면 자유도와 기본 컴포넌트
+# G2 screen freedom and basic components
 
-조사 기준일은 2026-07-25이며 공개 SDK 최신 버전은 `@evenrealities/even_hub_sdk` 0.0.12다.
+The survey base date is 2026-07-25, and the latest public SDK version is `@evenrealities/even_hub_sdk` 0.0.12.
 
-## 결론
+## Conclusion
 
-휴대폰의 Even Hub WebView와 안경 화면은 별도다. 휴대폰 화면은 일반 HTML, CSS와 TypeScript로 만들 수 있지만 그 DOM이 안경에 미러링되지는 않는다. G2에는 SDK 브리지를 통해 Text, List, Image 컨테이너를 전송한다.
+The Even Hub WebView on the phone and the glasses screen are separate. A phone screen can be created with plain HTML, CSS, and TypeScript, but its DOM is not mirrored on the glasses. Text, List, and Image containers are transmitted to G2 through the SDK bridge.
 
-## 표시 제약
+## Display constraints
 
-| 항목 | 제약 |
+| Item | pharmaceutical |
 | --- | --- |
-| 캔버스 | 576 x 288, 좌측 상단 원점 |
-| 색상 | 4-bit, 16단계 녹색 |
-| 배경 | 검은 픽셀은 꺼진 상태로 현실이 비침 |
-| 배치 | 절대 좌표, CSS와 DOM 사용 불가 |
-| 전체 컨테이너 | 페이지당 최대 12개 |
-| Text/List | 합계 최대 8개 |
-| Image | 최대 4개 |
-| 입력 | Text 또는 List 하나가 `isEventCapture: 1`이어야 함 |
-| 레이어 | SDK 0.0.12부터 고유한 `zOrderIndex` 지원 |
+| canvas | 576 x 288, upper left origin |
+| color | 4-bit, 16 levels green |
+| background | Black pixels are turned off and reality is reflected |
+| Placement | Absolute coordinates, no CSS or DOM |
+| full container | Up to 12 per page |
+| Text/List | Total up to 8 |
+| Image | Up to 4 |
+| input | One Text or List must have `isEventCapture: 1` |
+| layer | Native `zOrderIndex` support since SDK 0.0.12 |
 
-## 기본 요소
+## Basic elements
 
 ### Text
 
-- 자동 줄바꿈과 명시적 줄바꿈을 지원한다.
-- 앱이 선택할 수 있는 폰트, 크기, 굵기, 기울임과 정렬 속성은 없다.
-- `textContainerUpgrade`는 페이지 재구성 없이 갱신되어 시간, STT와 센서 숫자에 적합하다.
-- 시작과 페이지 재구성은 컨테이너당 최대 1,000자, 인플레이스 갱신은 최대 2,000자다.
+- Supports automatic line breaks and explicit line breaks.
+- There are no font, size, thickness, italics, or alignment properties that the app can select.
+- `textContainerUpgrade` updates without page reconfiguration, suitable for time, STT and sensor number.
+- Up to 1,000 characters per container for startup and page reorganization, and up to 2,000 characters for in-place updates.
 
 ### List
 
-- 펌웨어가 스크롤과 선택 표시를 처리한다.
-- 항목은 1개에서 20개이며 항목 문자열은 최대 64자다.
-- 항목별 스타일, 높이와 구분선을 설정할 수 없다.
-- 내용 변경은 페이지 재구성이 필요해 잠깐 깜빡일 수 있다.
+- Firmware handles scrolling and selection display.
+- The number of items is 1 to 20, and the item string can be up to 64 characters.
+- You cannot set styles, heights, and dividers for each item.
+- Changes to content require page reconfiguration, which may cause it to blink briefly.
 
 ### Image
 
-- 4-bit 그레이스케일 비트맵을 표시한다.
-- 한 이미지 컨테이너는 너비 20~288, 높이 20~144다.
-- 생성 후 `updateImageRawData`를 별도로 호출해야 한다.
-- BLE 전송은 대략 0.5~2초가 걸릴 수 있어 다중 FPS 애니메이션에 적합하지 않다.
-- 미니맵은 이동 거리나 방향 임계치를 넘었을 때만 갱신하는 방식이 적합하다.
+- Displays a 4-bit grayscale bitmap.
+- An image container has a width of 20 to 288 and a height of 20 to 144.
+- After creation, `updateImageRawData` must be called separately.
+- BLE transmission can take approximately 0.5 to 2 seconds, so it is not suitable for multi-FPS animation.
+- It is appropriate to update the minimap only when the travel distance or direction threshold is exceeded.
 
-## 제공되지 않는 네이티브 위젯
+## Native widget not provided
 
-지도, 차트, 게이지, 나침반, 3D 장면, 카드, 탭, 그리드, 버튼과 뉴스 티커는 제공되지 않는다. 텍스트 기호, 테두리와 비트맵을 조합해 표현해야 한다.
+Maps, charts, gauges, compasses, 3D scenes, cards, tabs, grids, buttons and news tickers are not provided. It must be expressed using a combination of text symbols, borders, and bitmaps.
 
-## 한국어 글리프
+## Korean glyphs
 
-공식 텍스트 측정 패키지 `@evenrealities/pretext` 0.1.4의 내장 폰트 테이블을 집계하면 완성형 한글 11,172자 중 2,780자의 폭 정보가 있다. 다음 HUD 용어는 모두 포함된다.
+When counting the built-in font table of the official text measurement package `@evenrealities/pretext` 0.1.4, there is width information for 2,780 characters out of 11,172 complete Korean characters. All of the following HUD terms are included:
 
-`시간`, `미니맵`, `지도`, `장소명`, `볼륨`, `음성 인식`, `방향 각도`, `가속도`, `퀘스트`, `뉴스`, `현재 위치`, `서울특별시`, `대한민국`
+`Time`, `Minimap`, `Map`, `Place Name`, `Volume`, `Voice Recognition`, `Direction Angle`, `Acceleration`, `Quest`, `News`, `Current Location`, `Seoul Metropolitan City`, `South Korea`
 
-전체 한글을 지원하지 않으므로 실제 뉴스와 고유명사는 안경에서 검증해야 한다. 누락 글리프는 해당 문자열만 비트맵으로 만드는 대체 경로를 고려한다.
+Since it does not support the entire Korean language, actual news and proper nouns must be verified in Glasses. Missing glyphs are considered an alternative path that creates a bitmap of only that string.
 
-## RELIC에 적용
+## Apply to Sandevistan
 
-| 정보 | 권장 요소 |
+| Information | Recommended Elements |
 | --- | --- |
-| 시간, 장소명 | Text |
-| 미니맵 | Image |
-| dB와 레벨 바 | Text와 지원되는 블록 문자 |
+| Time, place name | Text |
+| Minimap | Image |
+| dB and level bar | Text and supported block characters |
 | STT | Text |
-| 방향과 가속도 | Text 숫자 |
-| 현재 퀘스트 | Text |
-| 전체 TODO와 뉴스 | 별도 페이지의 List |
+| Direction and acceleration | Text number |
+| Current Quest | Text |
+| All TODO and News | List on separate page |
 
-최종 동적 HUD는 위 하이브리드 구성이 유력하다. 다만 첫 실기기 정보 밀도
-검증에서는 네이티브 Text를 사용하지 않고 화면 전체를 래스터로 보낸다.
+The final dynamic HUD is likely to have the above hybrid configuration. However, the first actual device information density
+In verification, the entire screen is sent as a raster rather than using native text.
 
-### 첫 실기기 래스터 테스트
+### First practical raster test
 
 ```text
-선택한 1792 x 896 시안
-  → WebView Canvas에서 576 x 288로 축소
-  → 288 x 144 PNG 네 장으로 분할
-  → 네 Image 컨테이너에 순차 전송
+Selected 1792 x 896 cyan
+  → Reduce to 576 x 288 in WebView Canvas
+  → Split into four 288 x 144 PNG sheets
+  → Sequential transfer to four Image containers
 ```
 
-- 보이는 정보는 모두 이미지 안에 있다.
-- 공백 Text 컨테이너 하나는 `isEventCapture: 1`을 만족하기 위한 입력
-  레이어일 뿐 화면에는 표시되지 않는다.
-- 네 Image 컨테이너가 SDK 이미지 예산을 모두 사용한다.
-- 이미지 전송은 반드시 직렬화하며 전체 화면 완성에 수 초가 걸릴 수 있다.
-- 목적은 애니메이션 성능이 아니라 실제 광학계에서 글자 크기, 대비,
-  주변부 배치와 중앙 시야 여백을 확인하는 것이다.
-- 실기기 결과를 본 뒤 자주 변하는 시간, STT와 센서 숫자만 네이티브
-  Text로 되돌릴지 결정한다.
+- All visible information is in the image.
+- One blank Text container is the input to satisfy `isEventCapture: 1`
+  It is just a layer and is not displayed on the screen.
+- Your Image container uses all of the SDK image budget.
+- Image transmission must be serialized and may take several seconds to complete the entire screen.
+- The goal is not animation performance, but font size, contrast,
+  This is to check the peripheral placement and central visual field margin.
+- Time that changes frequently after seeing actual device results, only STT and sensor numbers are native
+  Decide whether to return to text.
 
-## 출처
+## Source
 
 - [Even Hub G2 Glasses UI](https://github.com/even-realities/everything-evenhub/blob/main/plugins/everything-evenhub/skills/glasses-ui/SKILL.md)
 - [Even Hub G2 Design Guidelines](https://github.com/even-realities/everything-evenhub/blob/main/plugins/everything-evenhub/skills/design-guidelines/SKILL.md)

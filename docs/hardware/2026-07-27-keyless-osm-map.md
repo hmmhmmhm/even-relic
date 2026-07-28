@@ -15,7 +15,7 @@ The physical checkpoint opened the map build URL above after the
 same-origin Overpass endpoint had returned live road geometry. The user
 confirmed that the map was clearly visible:
 
-> 네 잘보입니다.
+> Yes, it looks good.
 
 The user also observed that nearby names were absent. That is the expected
 scope of `live-map-014`; its approved implementation plan explicitly excluded

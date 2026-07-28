@@ -1,6 +1,10 @@
-# SDK 0.0.12 G2 LZ4 이미지 전송 실험
+# SDK 0.0.12 G2 LZ4 image transmission experiment
 
-날짜: 2026-07-28
+> **Legacy evidence:** Historical RELIC names, paths, storage keys, and
+> transport identifiers in this record are preserved exactly as they appeared at
+> the time. Current main-branch identifiers use Sandevistan.
+
+Date: 2026-07-28
 
 SDK: `0.0.12`
 
@@ -8,57 +12,57 @@ Build: `sdk-lz4-030`
 
 Result: `FAIL`
 
-브랜치: `feature/g2-ors-routing`
+branch: `feature/g2-ors-routing`
 
-원격 기준선 커밋: `90a9421`
+Remote baseline commit: `90a9421`
 
-로컬 SDK 교체 커밋: `588c9fc`
+Local SDK replacement commit: `588c9fc`
 
-로컬 SDK 복구 커밋: `21c20c9`
+Local SDK recovery commit: `21c20c9`
 
 URL:
 `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.12&build=sdk-lz4-030`
 
-## 목적
+## Purpose
 
-물리 G2에서 승인된 SDK `0.0.11` 빌드를 원격에 보존하고, SDK만
-`0.0.12`로 변경해 LZ4 이미지 전송의 속도와 안정성을 비교한다.
+Store the SDK `0.0.11` build approved on the physical G2 remotely, and only use the SDK
+Change it to `0.0.12` and compare the speed and stability of LZ4 image transmission.
 
-## 유지한 전송 조건
+## Maintained transmission conditions
 
-- 576×288 Canvas를 288×144 PNG 네 장으로 인코딩
-- 전체 전송 순서 `3 → 5 → 2 → 4`
-- 오른쪽 페이지 전환 순서 `3 → 5`
-- 한 refresh 내부의 타일만 직렬 전송
-- 동시 이미지 호출 금지
-- busy 갱신 요청 즉시 폐기
-- 실패한 갱신 재시도와 밀린 이벤트 처리 금지
-- 타일당 제한 시간 12초 유지
+- Encode 576×288 Canvas into four 288×144 PNGs
+- Total transmission order `3 → 5 → 2 → 4`
+- Right page conversion order `3 → 5`
+- Only tiles within one refresh are transmitted serially
+- Prohibit simultaneous image calls
+- Immediately discard busy refresh requests
+- Prohibit failed update retries and overdue event processing
+- Maintain 12 second time limit per tile
 
-## 확인된 SDK 차이
+## Identified SDK differences
 
-앱의 `ImageRawDataUpdate` 호출 인자는 바꾸지 않았다. SDK `0.0.12`의
-`toJson()` 결과에는 `compressMode: 2`가 자동 추가되며, 단위 테스트로 이
-계약을 고정했다. Canvas 렌더러와 전송 스케줄러 소스는 변경하지 않았다.
+The app's `ImageRawDataUpdate` call argument was not changed. SDK `0.0.12`
+`compressMode: 2` is automatically added to the `toJson()` result, and this can be done as a unit test.
+The contract was fixed. The Canvas renderer and transmission scheduler sources were not changed.
 
-## 자동 검증
+## Automatic verification
 
-- SDK 버전·앱 최소 버전·QR 표식 테스트: 2/2 통과
-- `npm test`: 37개 파일, 371개 테스트 통과
-- `npm run test:sites`: 4개 테스트 통과
-- `npm run typecheck`: 통과
-- `npm run build`: 67개 모듈 변환, 프로덕션 빌드 통과
-- 설치 확인: `@evenrealities/even_hub_sdk@0.0.12`
-- payload 확인: `compressMode: 2`
-- Tailscale 실험 URL: HTTP 200
+- SDK version, app minimum version, QR mark test: 2/2 passed
+- `npm test`: 37 files, 371 tests passed
+- `npm run test:sites`: 4 tests passed
+- `npm run typecheck`: Passed
+- `npm run build`: Converted 67 modules, passed production build.
+- Check installation: `@evenrealities/even_hub_sdk@0.0.12`
+- Check payload: `compressMode: 2`
+- Tailscale experiment URL: HTTP 200
 
-위 명령은 동시에 실행하지 않고 한 프로세스에서 순서대로 실행했다.
+The above commands were not executed simultaneously but were executed sequentially in one process.
 
-## 실제 G2 결과
+## Actual G2 results
 
-최초 실행에서 Canvas 네 타일 인코딩은 55ms에 정상 완료됐지만 첫 번째
-`relicTR` 전송이 7ms 만에 `sendFailed`를 반환했다. 나머지 세 타일은
-전송하지 않았고 양안 모두 아무 화면도 표시되지 않았다.
+On the first run, Canvas four-tile encoding was completed normally in 55ms, but the first
+The `relicTR` transmission returned `sendFailed` in 7ms. The remaining three tiles are
+There was no transmission and no screen was displayed on both eyes.
 
 ```text
 [15:35:46.275] [ENCODE] start · 4 tiles
@@ -68,29 +72,29 @@ URL:
 [15:35:46.338] [ERROR] app startup failed · Error
 ```
 
-전송 스케줄러와 Canvas 소스는 `0.0.11` 기준선에서 바뀌지 않았다. 실행
-payload의 유일한 차이는 SDK `0.0.12`가 자동 추가한 `compressMode: 2`다.
-BLE 전송이 진행될 시간보다 이른 즉시 실패이고 과거 `0.0.12` 물리 실패와
-동일하므로, 현재 Even 앱 이미지 브리지가 LZ4 모드를 수용하지 못한 것으로
-판정한다.
+The transmission scheduler and Canvas source have not changed from the `0.0.11` baseline. execution
+The only difference in payload is `compressMode: 2`, which was automatically added by SDK `0.0.12`.
+It is an immediate failure earlier than the BLE transmission time and is similar to the past `0.0.12` physical failure.
+Since they are the same, it appears that the current Even app image bridge does not accommodate LZ4 mode.
+Judge.
 
-## 실제 G2 직렬 확인 순서
+## Actual G2 serial confirmation sequence
 
-- [x] 최초 실행의 첫 타일 실패 시간이 진단 로그에 남는다.
-- [ ] 최초 실행에서 네 타일과 양안 표시가 완료된다. (`sendFailed`)
-- [ ] 일반 페이지 다음·이전 이동이 한 번에 한 페이지만 이동한다.
-- [ ] 오른쪽 두 타일 갱신 시간이 진단 로그에 남는다.
-- [ ] Overview, News, TODO, Weather 상세 진입과 복귀가 동작한다.
-- [ ] 지도 줌, 뉴스 본문 페이지, TODO 체크·해제가 동작한다.
-- [ ] HUD 숨김과 복원이 동작한다.
-- [ ] 전송 중 추가 입력은 `dropped · busy`로 끝나며 나중에 재실행되지 않는다.
-- [ ] `SENDFAILED`가 발생하지 않는다.
-- [ ] 가만히 둔 상태에서 WebView가 정지하지 않는다.
+- [x] The first tile failure time of the first run is left in the diagnostic log.
+- [ ] In the first run, four tiles and binocular display are completed. (`sendFailed`)
+- [ ] General page next/previous movement moves only one page at a time.
+- [ ] The update times for the two tiles on the right remain in the diagnostic log.
+- [ ] Overview, News, TODO, Weather details entry and return are activated.
+- [ ] Map zoom, news body page, and TODO check/uncheck work.
+- [ ] HUD hiding and restoration works.
+- [ ] Additional input during transmission ends with `dropped · busy` and is not re-executed later.
+- [ ] `SENDFAILED` does not occur.
+- [ ] WebView does not stop when left still.
 
-## 판정
+## Judgment
 
-최초 표시 게이트에서 실패했으므로 후속 동작 시험을 중단했다. SDK
-`0.0.12` 실험 커밋은 원격에 푸시하지 않는다. 앱은 SDK `0.0.11`과 새
-캐시 표식으로 복구하며 다음 URL에서 다시 확인한다.
+Subsequent behavioral tests were discontinued due to failure at the initial display gate. SDK
+The `0.0.12` experimental commit is not pushed remotely. The app runs with SDK `0.0.11` and the new
+Recover with cache marker and check again at the following URL.
 
 `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=sdk-lz4-fallback-031`

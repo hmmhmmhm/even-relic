@@ -1,6 +1,6 @@
-# 동일 G2 타일 전송 생략 실험
+# G2 Unchanged-Tile Transport Skip Experiment
 
-날짜: 2026-07-28
+Date: 2026-07-28
 
 SDK: `0.0.11`
 
@@ -8,73 +8,82 @@ Build: `dirty-tiles-032`
 
 Result: `PASS (NO REGRESSION)`
 
-브랜치: `feature/g2-ors-routing`
+Branch: `feature/g2-ors-routing`
 
-원격 기준선 커밋: `90a9421`
+Remote baseline commit: `90a9421`
 
-로컬 구현 커밋: `514e486`
+Local implementation commit: `514e486`
 
 URL:
 `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=dirty-tiles-032`
 
-## 목적
+## Purpose
 
-물리 G2에서 검증된 SDK와 PNG 직렬 전송 경로는 그대로 유지하면서,
-직전에 실제 전송에 성공한 타일과 새 타일의 PNG 바이트가 완전히 같을 때
-느린 `updateImageRawData` 호출만 생략한다.
+Keep the SDK and serial PNG transport path already validated on physical G2
+hardware, but skip the slow `updateImageRawData` call when a new tile's PNG
+bytes exactly match the most recent payload successfully sent to that tile.
 
-## 전송 규칙
+## Transport rules
 
-- 576×288 Canvas를 288×144 PNG 네 장으로 인코딩한다.
-- 최초 전체 전송 순서는 `3 → 5 → 2 → 4`를 유지한다.
-- 일반 페이지 전환 대상은 오른쪽 `3 → 5`를 유지한다.
-- 매 갱신은 인코딩한 뒤 타일 바이트를 길이와 모든 바이트로 비교한다.
-- 이전에 성공한 바이트와 동일한 타일은 SDK 호출 없이 `skipped`로 끝낸다.
-- 성공한 SDK 호출 뒤에만 해당 타일의 캐시를 교체한다.
-- 실패·예외·제한 시간 초과 타일은 캐시를 교체하지 않는다.
-- 앞 타일 성공 뒤 뒷 타일이 실패하면 앞 타일의 성공 상태는 보존한다.
-- 전송 요청 큐, 병합, 자동 재시도는 만들지 않는다.
-- 전송 중 새 요청은 기존과 같이 `dropped · busy`로 즉시 폐기한다.
-- 숨김 검정 화면과 HUD 복원은 픽셀이 달라 네 타일을 각각 전송한다.
+- Encode the 576×288 Canvas as four 288×144 PNG images.
+- Preserve the initial full-frame order `3 → 5 → 2 → 4`.
+- Preserve right-side page updates in the order `3 → 5`.
+- After encoding a refresh, compare each tile by byte length and every byte.
+- Finish an unchanged tile as `skipped` without making an SDK call.
+- Replace a tile's cache only after a successful SDK call.
+- Do not replace the cache after failure, exception, or timeout.
+- If an earlier tile succeeds and a later tile fails, retain the earlier tile's
+  successful state.
+- Do not add a transport-request queue, merging, or automatic retries.
+- Drop a new request during transport immediately as `dropped · busy`.
+- Hidden black frames and HUD restore frames have different pixels and therefore
+  send all four tiles.
 
-## 자동 검증
+## Automated verification
 
-- 신규 RED 확인: 동일·부분 변경·부분 실패 테스트 3개가 구현 전에 실패
-- 전송 집중 테스트: 56개 테스트 통과
-- `npm test`: 37개 파일, 374개 테스트 통과
-- `npm run test:sites`: 4개 테스트 통과
-- `npm run typecheck`: 통과
-- `npm run build`: 67개 모듈 변환, 프로덕션 빌드 통과
+- RED confirmed: three tests for identical data, a partial change, and a partial
+  failure all failed before implementation.
+- Focused transport suite: 56 tests passed.
+- `npm test`: 37 files and 374 tests passed.
+- `npm run test:sites`: 4 tests passed.
+- `npm run typecheck`: passed.
+- `npm run build`: 67 modules transformed; production build passed.
 
-모든 테스트와 빌드는 동시에 실행하지 않고 한 프로세스에서 순서대로
-실행한다.
+Every test and build command ran serially in one process rather than
+concurrently.
 
-## 물리 G2 확인 순서
+## Physical G2 checklist
 
-- [x] 최초 실행에서 네 타일이 `3 → 5 → 2 → 4` 순서로 전송된다.
-- [ ] 같은 화면 갱신에서 대상 타일은 `skipped · unchanged`로 기록된다.
-  이번 조작에는 동일 타일 재렌더링이 없어 물리 로그에서 미관찰했다.
-- [ ] 동일 화면 갱신에는 새 `[TILE] ... start`가 발생하지 않는다.
-  같은 이유로 물리 로그에서 미관찰했다.
-- [ ] 한 타일만 바뀐 갱신은 `sent 1 · skipped 1`로 기록된다.
-  부분 변경을 만드는 물리 이벤트가 없어 자동 테스트로만 확인했다.
-- [x] 페이지 이동, 상세 진입과 복귀가 즉시 한 번씩 동작한다.
-- [ ] 일부 전송 실패 뒤 다음 독립 이벤트는 실패한 타일만 다시 시도한다.
-  실제 실패를 유도하지 않고 자동 테스트로만 확인했다.
-- [x] 전송 중 갱신은 `dropped · busy`로 끝나고 나중에 재실행되지 않는다.
-- [x] HUD 숨김과 복원을 포함한 기존 조작이 정상 동작한다.
-- [x] `SENDFAILED`와 WebView 정지가 발생하지 않는다.
+- [x] Initial transport sends four tiles in the order `3 → 5 → 2 → 4`.
+- [ ] A target tile in an unchanged refresh logs `skipped · unchanged`.
+  This interaction did not re-render an identical tile, so it was not observed
+  in the hardware log.
+- [ ] An unchanged refresh produces no new `[TILE] ... start`.
+  This was not observed in the hardware log for the same reason.
+- [ ] A refresh that changes one tile logs `sent 1 · skipped 1`.
+  No physical interaction produced this partial change, so it was confirmed
+  only by automated tests.
+- [x] Page movement, detail entry, and detail exit each happen once and promptly.
+- [ ] After a partial transport failure, the next independent event retries
+  only the failed tile. The automated test covers this case; the physical test
+  did not induce a failure.
+- [x] A refresh received during transport ends as `dropped · busy` and does not
+  run later.
+- [x] Existing controls, including HUD hide and restore, work normally.
+- [x] Neither `SENDFAILED` nor a WebView freeze occurred.
 
-## 실제 G2 결과
+## Physical G2 result
 
-사용자가 스크롤이 빨라졌고 모든 조작이 정상 동작한다고 확인했다. 제공된
-로그에서 최초 네 타일 전송은 481ms, 오른쪽 두 타일 페이지 전환은
-751~999ms였고, `SENDFAILED`, 큐 적체, WebView 정지는 발생하지 않았다.
-분 갱신도 이미 같은 분이 다른 렌더링으로 반영된 경우
-`minute refresh skipped · already rendered`로 끝났다.
+The user confirmed that scrolling felt faster and every control worked
+normally. In the supplied log, the initial four-tile transport took 481ms and
+right-side two-tile page transitions took 751–999ms. There was no `SENDFAILED`,
+queue buildup, or WebView freeze. A minute refresh also ended as
+`minute refresh skipped · already rendered` when another render had already
+shown the current minute.
 
-이번 로그의 모든 실제 렌더링 결과는 `sent 2 또는 4 · skipped 0`이었다.
-페이지와 상세 콘텐츠가 매번 달랐기 때문에 정상적인 결과다. 따라서 체감
-속도 향상을 동일 타일 생략의 물리 효과로 단정하지 않는다. 생략 경로 자체는
-동일 전체, 한 타일 변경, 부분 실패 후 재요청 자동 테스트로 고정했고,
-물리 G2에서는 기존 동작에 회귀가 없음을 승인 기준으로 삼았다.
+Every physical render in this log reported `sent 2 or 4 · skipped 0`, which is
+expected because each page and detail view had different content. The observed
+speed improvement therefore cannot be attributed specifically to unchanged-tile
+skipping. Automated tests lock down identical-frame skipping, one-tile changes,
+and a new request after partial failure. The physical G2 acceptance criterion
+was no regression in existing behavior.

@@ -1,72 +1,72 @@
-# G2 HUD 프로젝트 완료 기준표
+# G2 HUD Project Completion Rubric
 
-날짜: 2026-07-27
+Date: 2026-07-27
 
-대상 브랜치: `feature/g2-ors-routing`
+Target branch: `feature/g2-ors-routing`
 
-이 문서는 대화에서 확정한 제품 요구 사항과 현재 검증 수준을 연결한다.
-과거 실험 문서의 미완료 체크박스보다 이 문서와 각 항목에 연결된 최신
-체크포인트를 우선한다.
+This document links the product requirements finalized in the conversation with the current level of verification.
+The most up-to-date link to each item in this document rather than the incomplete checkbox in past experiment documents.
+Prioritize checkpoints.
 
-상태의 의미는 다음과 같다.
+The meaning of the status is as follows.
 
-- `PASS`: 자동 검증과 필요한 실제 G2 확인이 끝남
-- `SOFTWARE PASS`: 구현과 자동 검증은 끝났지만 해당 빌드의 실제 G2 확인이 남음
-- `OPTIONAL`: 선택 기능이며 외부 자격 증명이 있어야 실제 검증 가능
+- `PASS`: Automatic verification and required actual G2 confirmation completed.
+- `SOFTWARE PASS`: Implementation and automatic verification have been completed, but the actual G2 confirmation of the build remains.
+- `OPTIONAL`: This is an optional feature and requires external credentials for actual verification.
 
-## 제품 요구 사항
+## Product Requirements
 
-| 요구 사항 | 상태 | 근거 |
+| Requirements | status | Evidence |
 | --- | --- | --- |
-| SDK `0.0.11`의 1-bit BMP 네 타일 직렬 전송 | PASS | 최초 전송 및 SDK 체크포인트 |
-| 양안 576×288 최대 표시 영역 | PASS | 최대 영역과 라이브 갱신 체크포인트 |
-| `OVERVIEW → NEWS → TODO → NAVIGATION`의 빠른 전환 | PASS | 라이브 갱신 체크포인트 |
-| 분 단위 시각, 연월일, 요일 | PASS | 라이브 갱신 체크포인트 |
-| 연결된 단일 G2 또는 R1의 배터리 상태 | PASS | 라이브 갱신 체크포인트 |
-| 키 없는 현재 위치와 Open-Meteo 날씨 | PASS | 라이브 데이터 체크포인트 |
-| SBS RSS 뉴스 제목 최대 여섯 개 | PASS | 라이브 데이터 체크포인트 |
-| OSM 도로와 1.5배 지명 라벨, 이동 시 갱신 | PASS | OSM 라벨 및 라이브 갱신 체크포인트 |
-| 두 번 탭하여 검정 화면으로 전환하고 복원 | PASS | 라이브 갱신 체크포인트 |
-| 한 번 탭하여 전체 화면 지도 진입 | SOFTWARE PASS | 전체 화면 지도 체크포인트 |
-| 스크롤 줌, 줌 유지, 두 번 탭하여 대시보드 복귀 | SOFTWARE PASS | 전체 화면 지도 체크포인트 |
-| RSS 제목, 요약, 발행 시각을 한 건씩 읽는 뉴스 상세 덱 | SOFTWARE PASS | 전체 화면 상세 덱 체크포인트 |
-| 선택, 완료 전환, 로컬 저장을 지원하는 TODO 상세 덱 | SOFTWARE PASS | 전체 화면 상세 덱 체크포인트 |
-| 경로 동작 탐색과 현재 동작 복귀를 지원하는 내비게이션 상세 덱 | SOFTWARE PASS | 전체 화면 상세 덱 체크포인트 |
-| 상세 화면 경계 입력 소비와 네 타일 직렬 전송 | SOFTWARE PASS | 전체 화면 상세 덱 체크포인트 |
-| ORS가 없어도 일반 기능이 모두 동작 | SOFTWARE PASS | 선택형 ORS 체크포인트의 무키 런타임 검사 |
-| ORS 목적지 검색, 경로 표시, 재탐색과 종료 | OPTIONAL | 구현 및 모의 API 검증 완료, 실제 키와 G2 확인 대기 |
+| 1-bit BMP four-tile serial transmission in SDK `0.0.11` | PASS | Initial transfer and SDK checkpoint |
+| Binocular 576×288 maximum display area | PASS | Maximum Area and Live Update Checkpoints |
+| Quick transition of `OVERVIEW → NEWS → TODO → NAVIGATION` | PASS | Live Update Checkpoints |
+| Time in minutes, year, month, day, day of the week | PASS | Live Update Checkpoints |
+| Battery status of a single connected G2 or R1 | PASS | Live Update Checkpoints |
+| Keyless current location and Open-Meteo weather | PASS | Live Data Checkpoint |
+| SBS RSS News Up to six titles | PASS | Live Data Checkpoint |
+| OSM roads and 1.5x place name labels, updated when moving | PASS | OSM Label and Live Refresh Checkpoints |
+| Double tap to black screen and restore | PASS | Live Update Checkpoints |
+| Tap once to enter full screen map | SOFTWARE PASS | Full screen map checkpoint |
+| Scroll zoom, hold zoom, double tap to return to dashboard | SOFTWARE PASS | Full screen map checkpoint |
+| News detailed deck that reads the RSS title, summary, and publication time one by one | SOFTWARE PASS | Full screen detailed deck checkpoint |
+| TODO detailed deck with support for selection, completion transitions, and local saving | SOFTWARE PASS | Full screen detailed deck checkpoint |
+| Navigation detail deck supporting route motion navigation and current motion return | SOFTWARE PASS | Full screen detailed deck checkpoint |
+| Detailed screen boundary input consumption and four-tile serial transmission | SOFTWARE PASS | Full screen detailed deck checkpoint |
+| All general functions operate even without ORS | SOFTWARE PASS | Keyless runtime inspection of optional ORS checkpoints |
+| ORS destination search, route display, re-search and exit | OPTIONAL | Implementation and mock API verification completed, waiting for real key and G2 confirmation |
 
-## 자동 검증 기준선
+## Automatic verification baseline
 
-현재 ORS 통합 브랜치는 다음 검증을 직렬로 통과했다.
+The current ORS integration branch has passed the following verifications serially:
 
-- `npm test`: 31개 파일, 308개 테스트
+- `npm test`: 31 files, 308 tests
 - `npm run typecheck`
-- `npm run build`: 60개 모듈 변환
-- `npm run test:sites`: 4개 테스트
-- API 라우터, 지도, 뉴스, 경로 테스트: 24개 테스트
-- 클라이언트 소스의 `ORS_API_KEY` 접근 없음
+- `npm run build`: Convert 60 modules
+- `npm run test:sites`: 4 tests
+- API router, maps, news, route tests: 24 tests
+- No access to `ORS_API_KEY` in client source.
 - `git diff --check`
 
-## 남은 실제 기기 게이트
+## Remaining real device gates
 
-1. `detail-decks-019`에서 지도, 뉴스, TODO, 내비게이션 상세 화면 진입과
-   양안 네 타일, 스크롤, 탭, 두 번 탭 복귀를 확인한다.
-2. TODO 변경 후 앱을 다시 열어 저장 상태가 복원되는지 확인한다.
-3. 검정 화면 전환과 복원, 일반 페이지 전환, `SENDFAILED` 부재를 확인한다.
-4. 키가 없는 상태에서 기존 기능 유지와 `경로 키 필요` 상태를 확인한다.
-5. ORS 키를 제공받으면 별도의 선택 검증으로 실제 목적지 검색과 경로 안내를
-   확인한다. 키 값은 서버 환경 변수 밖에 기록하지 않는다.
+1. Enter the map, news, TODO, and navigation detail screens at `detail-decks-019`.
+   Both eyes check four tiles, scroll, tap, double tap and return.
+2. After changing TODO, open the app again and check whether the saved state is restored.
+3. Check for black screen conversion and restoration, general page conversion, and absence of `SENDFAILED`.
+4. In a state where there is no key, check the maintenance of existing functions and the ‘path key required’ status.
+5. Once you receive the ORS key, you can search for the actual destination and receive route guidance through separate selection verification.
+   Confirm. Key values ​​are recorded only in server environment variables.
 
-전체 화면 상세 덱과 무키 ORS의 실제 G2 확인이 끝나기 전에는 구현
-브랜치를 기본 브랜치에 푸시하거나 완료로 표시하지 않는다.
+Full screen detailed deck and Mookie ORS will not be implemented until the actual G2 is confirmed.
+Do not push the branch to the default branch or mark it as complete.
 
-## 연결된 체크포인트
+## Connected checkpoint
 
-- [최초 G2 이미지 전송 성공](2026-07-26-first-g2-image-success.md)
-- [SDK 0.0.11 전송 성공](2026-07-27-sdk-0011-transport-success.md)
-- [실시간 시계, 배터리, 이동 지도](2026-07-27-g2-live-refresh.md)
-- [OSM 지명 가독성](2026-07-27-balanced-osm-labels.md)
-- [전체 화면 지도](2026-07-27-g2-fullscreen-map.md)
-- [전체 화면 상세 덱](2026-07-27-g2-fullscreen-detail-decks.md)
-- [선택형 ORS 길찾기](2026-07-27-optional-ors-routing.md)
+- [First G2 image transmission successful](2026-07-26-first-g2-image-success.md)
+- [SDK 0.0.11 transport successful](2026-07-27-sdk-0011-transport-success.md)
+- [Real-time clock, battery, moving map](2026-07-27-g2-live-refresh.md)
+- [OSM place name readability](2026-07-27-balanced-osm-labels.md)
+- [Fullscreen Map](2026-07-27-g2-fullscreen-map.md)
+- [Fullscreen Detail Decks](2026-07-27-g2-fullscreen-detail-decks.md)
+- [Optional ORS routing](2026-07-27-optional-ors-routing.md)
