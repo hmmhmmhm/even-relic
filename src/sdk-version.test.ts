@@ -4,17 +4,17 @@ import appManifest from "../app.json";
 import packageManifest from "../package.json";
 
 describe("Even Hub SDK compatibility", () => {
-  it("pins the pre-LZ4 0.0.11 SDK for the fast HUD gate", () => {
+  it("pins the LZ4 0.0.12 SDK for the isolated image transport gate", () => {
     const installed = packageManifest.dependencies["@evenrealities/even_hub_sdk"];
 
-    expect(installed).toBe("0.0.11");
+    expect(installed).toBe("0.0.12");
     expect(appManifest.min_sdk_version).toBe(installed);
     expect(packageManifest.scripts.qr).toBe(
-      'evenhub qr --url "http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=detail-decks-019"',
+      'evenhub qr --url "http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.12&build=sdk-lz4-030"',
     );
   });
 
-  it("serializes image bytes without the 0.0.12 LZ4 transport flag", () => {
+  it("marks encoded-image payloads for LZ4 bridge compression", () => {
     const payload = new ImageRawDataUpdate({
       containerID: 3,
       containerName: "frame",
@@ -22,6 +22,7 @@ describe("Even Hub SDK compatibility", () => {
     }).toJson();
 
     expect(payload).toEqual({
+      compressMode: 2,
       containerID: 3,
       containerName: "frame",
       imageData: [1, 2, 3],

@@ -61,7 +61,8 @@ busy-drop 정책은 변경하지 않는다. 따라서 실기에서 관찰한 차
 ## 자동 검증
 
 - SDK·앱 최소 버전·QR 실험 표식 고정 테스트
-- `ImageRawDataUpdate` 공개 payload 호환성 테스트
+- 호출자 입력을 바꾸지 않아도 `ImageRawDataUpdate` JSON에
+  `compressMode: 2`가 자동 추가되는지 확인하는 LZ4 계약 테스트
 - 전체 Vitest 직렬 실행
 - Sites Node 테스트 직렬 실행
 - TypeScript 타입검사

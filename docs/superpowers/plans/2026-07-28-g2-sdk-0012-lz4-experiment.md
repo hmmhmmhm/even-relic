@@ -28,9 +28,8 @@
   `npm install --save-exact @evenrealities/even_hub_sdk@0.0.12`.
 - [ ] Change `app.json.min_sdk_version` to `0.0.12` and the QR URL to
   `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.12&build=sdk-lz4-030`.
-- [ ] Rename the payload compatibility test so it asserts the unchanged public
-  `ImageRawDataUpdate` input contract without claiming the host compression
-  representation.
+- [ ] Assert that the unchanged public `ImageRawDataUpdate` input gains the
+  SDK-provided `compressMode: 2` JSON field used by the LZ4 bridge path.
 - [ ] Run the focused test again and confirm both tests pass.
 - [ ] Commit with `chore: test Even Hub SDK 0.0.12 image transport`.
 
