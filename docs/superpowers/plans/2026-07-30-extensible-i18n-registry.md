@@ -25,10 +25,10 @@
 Create tests that import the wished-for registry API and assert:
 
 ```ts
-expect(SUPPORTED_LOCALES).toEqual(["en", "ko"]);
+expect(SUPPORTED_LOCALES).toEqual(["ko", "en"]);
 expect(LOCALE_OPTIONS).toEqual([
+  { value: "ko", label: "\uD55C\uAD6D\uC5B4" },
   { value: "en", label: "English" },
-  { value: "ko", label: "한국어" },
 ]);
 expect(resolveLocale("system", "ko-KR")).toBe("ko");
 expect(resolveLocale("system", "en_US")).toBe("en");
@@ -151,9 +151,11 @@ Add tests that assert:
 
 ```ts
 expect(PHONE_STRINGS.en).toBe(LOCALE_REGISTRY.en.phone);
-expect(translateHud("ko", "weatherLoading")).toBe("날씨 불러오는 중");
+expect(translateHud("ko", "weatherLoading"))
+  .toBe("\uB0A0\uC528 \uBD88\uB7EC\uC624\uB294 \uC911");
 expect(weatherCodeLabel(2, "en")).toBe("Mostly clear");
-expect(defaultTodos("ko")[0].title).toBe("지하철역으로 이동");
+expect(defaultTodos("ko")[0].title)
+  .toBe("\uC9C0\uD558\uCCA0\uC5ED\uC73C\uB85C \uC774\uB3D9");
 ```
 
 Render `LanguageScreen` and assert its radio choices equal `System` plus every
@@ -269,7 +271,7 @@ Export one frozen array containing the current six definitions:
 export const BUILT_IN_RSS_FEEDS = Object.freeze([
   {
     id: "sbs-latest",
-    name: "SBS 최신뉴스",
+    name: "SBS \uCD5C\uC2E0\uB274\uC2A4",
     url: "https://news.sbs.co.kr/news/newsflashRssFeed.do?plink=RSSREADER",
     locale: "ko",
   },

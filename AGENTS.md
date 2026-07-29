@@ -121,17 +121,24 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   page to the shipped app.
 - Fix Overview as the first HUD page. Let the phone enable, disable, and reorder
   News, TODO, and Weather; expose Navigation only after a user ORS key validates.
-- Ship Korean and English phone UI strings with a System language option. The
-  resolved phone locale also controls fixed copy on the shipped
-  `/hud-canvas-fast` G2 Canvas, built-in sample TODO titles, weather labels,
-  OSM `name:ko`/`name:en` label selection, and the three active built-in RSS
-  sources. Never translate user-authored TODO text, RSS article content,
-  destination names, or route instructions.
-- Preserve six built-in RSS aliases in the same-origin Worker: SBS Latest,
-  Newsis Breaking, and Weekly Kyunghyang for Korean; BBC World, The Guardian
-  World, and Le Monde International for English. Built-ins are non-deletable
-  but may be disabled or renamed, and user-added HTTPS RSS sources are shared
-  across locales.
+- Derive supported phone and HUD languages from `src/i18n/locale-registry.ts`.
+  The resolved locale controls fixed phone and shipped `/hud-canvas-fast` copy,
+  built-in sample TODO titles, weather labels, generic OSM `name:<language>`
+  selection, and the active built-in RSS bundle. Never translate user-authored
+  TODO text, RSS article content, destination names, or route instructions.
+- Add a language only through one complete `src/i18n/locales/<code>.ts` pack,
+  one registry entry, and three entries in `server/news-feeds.js`. Do not add
+  locale unions, language-picker choices, weather branches, route dictionaries,
+  TODO title tables, or RSS URLs anywhere else.
+- Keep `server/news-feeds.js` as the single browser/server built-in RSS catalog.
+  Every supported locale has exactly three non-deletable built-ins that may be
+  disabled or renamed. User-added HTTPS RSS sources remain shared across
+  locales and retain the six-source limit.
+- Preserve bounded OSM `name:<language>` fields generically in the map Worker.
+  A new locale must not require a map-server code change or a new hardcoded
+  language-tag branch.
+- Locale additions must not change the proven SDK `0.0.11` tile order,
+  bilateral output, busy-drop behavior, or display-toggle transport contract.
 - Finish Home with the Sandevistan project name, a Pixelarticons GitHub link to
   the repository, the Even app-manifest version, and the development status.
 - Let the Even native bar own the `SANDEVISTAN` project title and arrow. Start

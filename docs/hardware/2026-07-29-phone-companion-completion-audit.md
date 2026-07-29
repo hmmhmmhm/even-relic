@@ -7,6 +7,9 @@ Target branch: `main`
 Audited implementation commit:
 `05d4b9ecc70939963bfbb73b7d68fd4dd383d1dc`
 
+I18n extensibility follow-up implementation commit:
+`2e809c8a059fa05263ead683bcf3dac3fa6656d4`
+
 Overall status:
 `SOFTWARE PASS — PHYSICAL G2 BASELINE PRESERVED — VISUAL QA PASS — RELEASE DEFERRED`
 
@@ -32,6 +35,9 @@ the owner.
 | Weather detail and immediate fail-fast refresh | PASS |
 | Device-local ORS key validation, masking, and deletion | PASS |
 | English/Korean/System phone language selection | PASS |
+| Registry-derived language packs and generated language choices | PASS |
+| Shared browser/server built-in RSS feed catalog | PASS |
+| Generic bounded OSM `name:<language>` preservation | PASS |
 | Localized destination search, travel modes, route actions, and errors | PASS |
 | Developer-only WebView trace panel | PASS |
 | Project, GitHub, version, and development-state footer | PASS |
@@ -75,6 +81,18 @@ the owner.
   layout and phone TODO screens.
 - Added explicit checked and empty Pixelarticons states to every full-row HUD
   enablement target.
+- Replaced handwritten locale unions and binary language branches with one
+  typed locale registry.
+- Moved phone, fast-HUD, route, weather, default TODO, and weekday copy into
+  structurally complete locale packs.
+- Preserved the existing `System`, `Korean`, `English` choice order while
+  generating the language screen from registry metadata.
+- Replaced duplicate client/server RSS definitions with one runtime catalog and
+  enforced exactly three built-in feeds for every supported locale.
+- Generalized bounded OSM localized names beyond Korean and English while
+  retaining the OSM default name as fallback.
+- Added `docs/i18n/adding-a-language.md`; a locale now requires one pack, one
+  registry entry, and three feed definitions.
 
 ## Fresh automated evidence
 
@@ -82,18 +100,18 @@ The following commands passed serially against the audited implementation:
 
 | Check | Result |
 | --- | --- |
-| `npm test` | 52 files, 463 tests passed |
+| `npm test` | 53 files, 469 tests passed |
 | `npm run typecheck` | `tsc --noEmit` passed |
-| `npm run build` | 116 modules transformed; production build passed |
+| `npm run build` | 120 modules transformed; production build passed |
 | `npm run test:repo` | 5 tests passed; repository copy check passed |
 | `npm run test:sites` | 4 tests passed |
-| `node --test --test-concurrency=1 tests/*.test.mjs` | 52 tests passed |
+| `node --test --test-concurrency=1 tests/*.test.mjs` | 54 tests passed |
 | `git diff --check` | Passed |
 | `git grep -n "ORS_API_KEY" -- src app.json package.json` | No tracked match |
-| `npm run pack` | `sandevistan.ehpk`, 1,718,669 bytes |
+| `npm run pack` | `sandevistan.ehpk`, 1,718,954 bytes |
 
 The packed artifact SHA-256 is:
-`fddaa6a61bdd0636dfc5b1ab6107641881d0e5d33f664f476bf9689edafcfb60`.
+`5f74df37686e767a08c510f2d1cb4af575641cd84aaf64f8fe34df4619fa98c6`.
 
 The existing physical G2 audit remains authoritative for four-tile serial
 transport, binocular output, no-queue refresh behavior, map, weather, RSS news,
