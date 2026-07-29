@@ -140,4 +140,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   without rendering a second arrow.
 - On every internal detail screen, retain the clickable breadcrumb and place
   one large localized white Back to Dashboard card immediately below it.
-  Never render that card on Home.
+  Never render that card on Home. Reset document scroll to the top before each
+  Home/detail screen change paints so this control cannot inherit an off-screen
+  position from the previous screen.
+- In HUD layout, pair every page label with a visible Pixelarticons checkbox
+  state and keep the entire label-and-checkbox area as the enable/disable
+  target. Keep the separate 44-pixel arrow controls for ordering.

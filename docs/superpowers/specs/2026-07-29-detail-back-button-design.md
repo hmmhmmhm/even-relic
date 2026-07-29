@@ -15,9 +15,11 @@ without adding another app bar or changing the native Even navigation.
   behavior.
 - Add one large, full-width white card button immediately below the
   breadcrumb on detail screens only.
+- Reset the document scroll position before a Home/detail screen change paints,
+  so opening a card from lower on Home still reveals the button immediately.
 - Use the existing Pixelarticons icon set for a left-facing arrow. Do not draw
   or approximate a new icon.
-- Label the button `Back to Dashboard` in English and `대시보드로 돌아가기`
+- Label the button `Back to Dashboard` in English and its localized equivalent
   in Korean.
 - Match the established Even-inspired phone design: white surface, black icon
   and text, restrained gray border, approximately 10 px corner radius, and a
@@ -44,6 +46,8 @@ RSS source, refreshing weather, or validating an ORS key.
 - Keyboard focus uses the existing three-pixel black focus ring.
 - Both breadcrumb and button are verified to return Home while preserving the
   same Canvas element.
+- Every phone screen transition starts at the top instead of inheriting the
+  previous screen's document scroll offset.
 
 ## Verification
 

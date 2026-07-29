@@ -10,7 +10,10 @@ import { DEFAULT_PHONE_PREFERENCES } from "../phone-preferences";
 import { DEFAULT_RSS_SOURCE } from "../rss-sources";
 import { PhoneCompanion } from "./PhoneCompanion";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 class TestStorage implements EvenStorage {
   readonly values = new Map<string, string>();
@@ -117,6 +120,17 @@ describe("PhoneCompanion", () => {
       name: "Dashboard",
     })).toBeTruthy();
     expect(screen.getByTestId("persistent-canvas")).toBe(canvas);
+  });
+
+  it("resets document scroll when the active phone screen changes", () => {
+    renderCompanion();
+    document.documentElement.scrollTop = 383;
+    document.body.scrollTop = 383;
+
+    fireEvent.click(screen.getByRole("button", { name: /Devices/ }));
+
+    expect(document.documentElement.scrollTop).toBe(0);
+    expect(document.body.scrollTop).toBe(0);
   });
 
   it("opens every dashboard card directly with no intermediate menu", () => {

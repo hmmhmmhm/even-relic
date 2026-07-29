@@ -27,7 +27,8 @@
 Add assertions that:
 
 ```ts
-expect(weatherCodeLabel(2, "ko")).toBe("대체로 맑음");
+expect(weatherCodeLabel(2, "ko"))
+  .toBe("\uB300\uCCB4\uB85C \uB9D1\uC74C");
 expect(weatherCodeLabel(2, "en")).toBe("Mostly clear");
 ```
 
@@ -189,7 +190,7 @@ Use an OSM element with:
 ```js
 tags: {
   name: "Daeche-ro",
-  "name:ko": "대체로",
+  "name:ko": "\uB300\uCCB4\uB85C",
   "name:en": "Daeche-ro",
 }
 ```
@@ -197,7 +198,7 @@ tags: {
 Assert the Worker returns both localized names and:
 
 ```ts
-expect(mapLabelName(label, "ko")).toBe("대체로");
+expect(mapLabelName(label, "ko")).toBe("\uB300\uCCB4\uB85C");
 expect(mapLabelName(label, "en")).toBe("Daeche-ro");
 ```
 

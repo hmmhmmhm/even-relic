@@ -1,4 +1,5 @@
 import {
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -98,6 +99,13 @@ export function PhoneCompanion({
   );
   const t = (key: PhoneStringKey) => translatePhone(locale, key);
   const localizedStatus = transportStatusLabel(status, t);
+
+  useLayoutEffect(() => {
+    document.documentElement.scrollTop = 0;
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollTop = 0;
+    document.body.scrollLeft = 0;
+  }, [screen]);
 
   const cards = useMemo(() => {
     const weather = live.weather.value;

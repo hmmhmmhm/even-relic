@@ -2,7 +2,13 @@
 
 Date: 2026-07-29
 
-Status: implemented; automated verification complete; visual comparison pending
+Status: superseded by `2026-07-29-phone-navigation-hierarchy-design.md` and
+`2026-07-29-detail-back-button-design.md`
+
+> [!NOTE]
+> This document records the earlier compact-header iteration. The later
+> approved breadcrumb and detail return-card designs are the current source of
+> truth and have completed same-viewport visual verification.
 
 ## Goal
 

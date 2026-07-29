@@ -9,6 +9,41 @@ import { HudLayoutScreen } from "./HudLayoutScreen";
 afterEach(cleanup);
 
 describe("HudLayoutScreen", () => {
+  it("shows a pixel checkbox for every page enablement state", () => {
+    const onChange = vi.fn(async () => true);
+    const { rerender } = render(
+      <HudLayoutScreen
+        preferences={DEFAULT_PHONE_PREFERENCES}
+        navigationAvailable={false}
+        t={(key) => translatePhone("en", key)}
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByRole("button", {
+      name: /Overview.*Always on/,
+    }).querySelector('[data-phone-icon="checkboxOn"]')).toBeTruthy();
+    expect(screen.getByRole("button", {
+      name: /Weather.*Enabled/,
+    }).querySelector('[data-phone-icon="checkboxOn"]')).toBeTruthy();
+
+    rerender(
+      <HudLayoutScreen
+        preferences={{
+          ...DEFAULT_PHONE_PREFERENCES,
+          enabled: ["overview", "news", "todo"],
+        }}
+        navigationAvailable={false}
+        t={(key) => translatePhone("en", key)}
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByRole("button", {
+      name: /Weather.*Disabled/,
+    }).querySelector('[data-phone-icon="checkbox"]')).toBeTruthy();
+  });
+
   it("locks Overview, hides unavailable Navigation, and persists edits", async () => {
     const onChange = vi.fn(async () => true);
     render(

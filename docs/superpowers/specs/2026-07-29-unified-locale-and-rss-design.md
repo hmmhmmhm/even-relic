@@ -57,9 +57,9 @@ place label:
 
 ```ts
 {
-  name: "대체로",
+  name: "\uB300\uCCB4\uB85C",
   localizedNames: {
-    ko: "대체로",
+    ko: "\uB300\uCCB4\uB85C",
     en: "Daeche-ro"
   }
 }

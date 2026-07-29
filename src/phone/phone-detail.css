@@ -62,18 +62,23 @@
 }
 
 .phone-toggle-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
   min-height: 70px;
   min-width: 0;
-  align-items: flex-start;
-  justify-content: center;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 10px;
   padding: 12px 18px;
   color: var(--phone-text);
   text-align: left;
   border: 0;
   background: transparent;
+}
+
+.phone-toggle-row__copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
 .phone-toggle-row small {

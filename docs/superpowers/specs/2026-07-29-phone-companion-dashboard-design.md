@@ -2,7 +2,7 @@
 
 Date: 2026-07-29
 
-Status: implemented; automated verification complete; visual comparison pending
+Status: implemented; automated and same-viewport visual verification complete
 
 ## Goal
 
@@ -111,6 +111,8 @@ Missing values use clear unavailable labels and never block transport.
 
 - Overview is always enabled, locked, and first.
 - News, TODO, and Weather may be enabled, disabled, and reordered.
+- Show a visible Pixelarticons checkbox beside every page so enabled state is
+  understandable without relying on the smaller status label alone.
 - Navigation appears as an available item only after a user ORS key validates.
 - Navigation can then be enabled, disabled, and reordered after the required
   Overview item.
@@ -203,6 +205,7 @@ The Home screen must not show the trace or debugging controls.
 - Each detail screen has one explicit Back control.
 - Back returns to Home without remounting the Canvas or restarting the live
   session.
+- Reset document scroll to the top before each Home/detail transition paints.
 - Form controls, draggable rows, and destructive actions expose visible focus,
   busy, validation, success, empty, and error states.
 - Opening a detail screen does not send a glasses refresh by itself.

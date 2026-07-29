@@ -1,5 +1,12 @@
 # Phone Navigation Hierarchy Design
 
+Status: implemented; same-viewport visual verification complete
+
+> [!NOTE]
+> The later `2026-07-29-detail-back-button-design.md` retains this text-only
+> breadcrumb and adds a separate large return card below it. The breadcrumb
+> itself still renders no arrow.
+
 ## Context
 
 The Even app already supplies a native top bar with a back control, document
@@ -79,4 +86,3 @@ No new router, history stack, icon, asset, or dependency is introduced.
 4. A repository test proves the document title is exactly `SANDEVISTAN`.
 5. Serial unit tests, type checking, production build, repository checks, and
    Sites worker tests remain green.
-

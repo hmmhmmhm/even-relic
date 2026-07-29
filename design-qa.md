@@ -1,87 +1,115 @@
 # Sandevistan Phone Companion Design QA
 
-- source visual truth: user-provided Even app Home, Dashboard, and Menu screenshots
-- implementation route: `/hud-canvas-fast?sdk=0.0.11`
-- intended viewport: narrow phone WebView, up to 540 CSS px wide
-- implementation screenshot: unavailable in this session
-- state: native `SANDEVISTAN` title, Home beginning at the live HUD preview,
-  eight-card dashboard, and text-breadcrumb detail navigation
-- primary interactions tested: every card opens its detail directly, the
-  `Dashboard / Detail` breadcrumb returns Home, and the Canvas DOM node remains
-  mounted
-- browser console inspection: blocked because the in-app browser runtime exposed
-  no browser backend
+Date: 2026-07-29
 
-## Source-matched geometry
+Final result: `passed`
 
-The implementation uses the dimensions measured from the supplied Even Home:
+## Comparison target
 
-- `#eeeeee` page background and white cards;
-- two equal columns with an 8 px gap;
-- card aspect ratio `1.28 / 1`;
-- 8 px card radius with no shadow or glow;
-- responsive 24–36 px internal padding;
-- monochrome Pixelarticons at the upper left;
-- title and compact live status at the lower left;
-- a washed grayscale Canvas preview on a neutral gray panel.
+- Source visual truth: owner-provided Even app Home (`Image #1`) and Menu
+  (`Image #3`) screenshots from the current design conversation.
+- Local normalized sources:
+  `docs/design/audit-2026-07-29/reference-even-home-402x667.png` and
+  `docs/design/audit-2026-07-29/reference-even-menu-325x667.png`.
+- Implementation:
+  `http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=visual-audit-036`.
+- Home capture:
+  `docs/design/audit-2026-07-29/01-home-ko.png`.
+- Final detail capture:
+  `docs/design/audit-2026-07-29/07-hud-layout-checkboxes-final-ko.png`.
+- Full-view comparisons:
+  `docs/design/audit-2026-07-29/home-comparison.png` and
+  `docs/design/audit-2026-07-29/detail-comparison-final.png`.
 
-## Functional comparison evidence
+The audit image folder is intentionally local-only because it contains the
+owner-supplied Even app reference captures. It is excluded from Git rather than
+republishing those reference screens.
 
-React interaction tests open Devices, HUD layout, News, TODO, Weather,
-Navigation, Language, and Developer directly from their cards. The tests also
-verify that there is no `Manage` destination and that opening and closing a
-detail screen does not remount the G2 Canvas.
+## Normalization
 
-The details provide real editable states for HUD ordering, RSS sources, TODOs,
-device-local ORS key validation, and language. Diagnostics appear only under
-Developer. Storage and provider failures are represented as recoverable inline
-states, and deleting a local ORS key is not blocked by an unavailable live
-route session. Component tests now cover every editable HUD ordering action,
-the complete phone TODO lifecycle, successful and failed key persistence,
-active-route cache deletion, detailed weather values, and available/unavailable
-device states.
+- Browser CSS viewport: `402 × 667`.
+- Browser capture density: `1×`; implementation pixels: `402 × 667`.
+- Home source pixels: `1206 × 2000`; normalized to `402 × 667` at `3×`.
+- Menu source pixels: `975 × 2000`; normalized without distortion to
+  `325 × 667` and centered in a `402`-pixel comparison column.
+- Theme: approved light Even-inspired phone theme.
+- State: Korean System locale, Home and HUD layout detail. Live G2 data is
+  unavailable in the standalone browser, so the preview shows its honest
+  no-GPS/no-live-data state.
 
-Static visual-contract tests additionally lock the approved neutral tokens,
-two-column `1.28 / 1` card geometry, 8 px gap and radius, shadow-free cards,
-320 px two-column behavior, neutral HUD-preview filter, the absence of a
-redundant Home eyebrow, a full-width text breadcrumb, and 44 px minimum targets.
-These checks prevent token regressions but do not replace the required rendered
-screenshot comparison.
+## Required fidelity surfaces
 
-## Visual comparison blocker
+- **Typography:** The implementation uses a restrained system sans stack,
+  matching the reference's neutral phone typography. Detail labels are
+  intentionally larger than the dense source Menu for the owner's requested
+  phone readability.
+- **Spacing and rhythm:** The pale preview region, section break, two-column
+  Home cards, narrow gutters, white detail list, and hairline row separation
+  follow the source hierarchy. The large return card is an approved
+  Sandevistan-specific navigation affordance.
+- **Colors:** `#eeeeee` page, white cards, black primary copy/icons, gray
+  secondary copy, and restrained borders remain within the approved grayscale
+  target. No green tint, glow, or shadow bloom appears.
+- **Assets:** Visible phone icons use the local Pixelarticons package. The HUD
+  layout now uses real checked and unchecked package icons with corrected
+  semantic mapping; no text glyph or handcrafted SVG substitute is used.
+- **Copy:** Phone controls are localized. Dynamic data remains source content.
+  The visible localized Back to Dashboard label is also the button's accessible
+  name.
 
-The owner supplied current Home and HUD-layout screenshots on 2026-07-29. They
-showed the exact hierarchy defects addressed here: `SANDEVISTAN HUD Prototype`
-in the native bar, a redundant `SANDEVISTAN / DASHBOARD` Home eyebrow, and a
-second arrow beside the HUD-layout title. The implementation could not be
-captured after the change at the same viewport because the approved in-app
-browser runtime is unavailable in this session. There is therefore no approved
-post-change capture to pair with those screenshots. A same-state side-by-side
-comparison remains pending, while the Tailscale preview remains available for
-physical phone inspection.
+## Interaction and accessibility evidence
+
+- Home cards, the breadcrumb, and the large return card expose semantic button
+  roles and localized accessible names.
+- The Home Canvas remains mounted across screen changes.
+- Opening a detail from `window.scrollY = 383` resets the new screen to
+  `window.scrollY = 0` before paint.
+- The large return card successfully returns Home.
+- HUD enablement buttons expose `aria-pressed`; ordering controls retain
+  separate labels and 44-pixel targets.
+- Browser inspection reported no page errors. Missing Flutter-handler warnings
+  are expected in the standalone browser and do not occur inside the Even
+  WebView bridge.
+- Screenshot evidence cannot establish full screen-reader or contrast
+  compliance; semantic component tests cover roles and accessible names.
 
 ## Comparison history
 
-1. Matched the white/gray token set and removed dark HUD styling from phone UI.
-2. Replaced the intermediate management page with eight full-card destinations.
-3. Replaced generic symbols with local Pixelarticons.
-4. Corrected the cards to the measured `1.28 / 1` shape, 8 px gap/radius, and
-   wider reference-like internal padding.
-5. Removed the WebView Home project eyebrow so the live preview is the first
-   app-owned element.
-6. Changed the document title from `SANDEVISTAN HUD Prototype` to
-   `SANDEVISTAN`.
-7. Replaced the internal detail Back arrow with a localized, full-width
-   `Dashboard / Detail` breadcrumb that returns Home without remounting Canvas.
+### Iteration 1 — inherited document scroll
 
-## Remaining visual gate
+- Finding: `P2`. Opening a detail from lower on Home preserved the old document
+  scroll offset, moving the new return card above the visible viewport.
+- Earlier evidence:
+  `docs/design/audit-2026-07-29/03-hud-layout-detail-ko.png`.
+- Fix: reset document scroll in a layout effect whenever the active phone
+  screen changes.
+- Post-fix evidence:
+  `docs/design/audit-2026-07-29/04-language-detail-scroll-reset-ko.png` and
+  `docs/design/audit-2026-07-29/05-hud-layout-detail-scroll-reset-ko.png`.
 
-- Capture the Home screen at a fixed phone viewport.
-- Combine that screenshot with the supplied Even Home reference.
-- Check card proportions, HUD-preview density, icon placement, typography,
-  native/WebView hierarchy, breadcrumb spacing, footer spacing, and any clipped
-  Korean copy.
-- Repeat for one detail screen and record `final result: passed` after visible
-  mismatches are corrected.
+### Iteration 2 — weak HUD enablement affordance
 
-final result: blocked
+- Finding: `P2`. HUD enablement depended on a small status word, while the
+  reference provides a visible selection mark.
+- Fix: add Pixelarticons checkbox state inside the full-row toggle target.
+- Follow-up finding: the package's `checkbox` and `checkbox-on` filenames map
+  opposite to their visible checked/empty shapes, so the first capture showed
+  empty boxes for enabled pages.
+- Intermediate evidence:
+  `docs/design/audit-2026-07-29/06-hud-layout-checkboxes-ko.png`.
+- Fix: keep semantic app names and swap the underlying package-icon mapping,
+  correcting both HUD layout and phone TODO state icons.
+- Post-fix evidence:
+  `docs/design/audit-2026-07-29/07-hud-layout-checkboxes-final-ko.png` and
+  `docs/design/audit-2026-07-29/detail-comparison-final.png`.
+
+## Residual P3 differences
+
+- Sandevistan uses slightly rounder detail cards and larger row text than the
+  reference. These are intentional readability choices already approved for
+  the companion.
+- The Home content differs from Even's device utility cards because the eight
+  Sandevistan cards map directly to this product's actual features.
+
+No actionable `P0`, `P1`, or `P2` difference remains in the audited Home,
+detail-navigation, or HUD-layout states.

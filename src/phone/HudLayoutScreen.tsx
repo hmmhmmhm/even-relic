@@ -68,8 +68,20 @@ export function HudLayoutScreen({
                 aria-pressed={enabled}
                 onClick={() => toggle(page)}
               >
-                <span>{t(PAGE_KEYS[page])}</span>
-                <small>{locked ? t("locked") : enabled ? t("enabled") : t("disabled")}</small>
+                <PhoneIcon
+                  name={enabled ? "checkboxOn" : "checkbox"}
+                  size={22}
+                />
+                <span className="phone-toggle-row__copy">
+                  <span>{t(PAGE_KEYS[page])}</span>
+                  <small>
+                    {locked
+                      ? t("locked")
+                      : enabled
+                        ? t("enabled")
+                        : t("disabled")}
+                  </small>
+                </span>
               </button>
               <div className="phone-reorder-actions">
                 <button

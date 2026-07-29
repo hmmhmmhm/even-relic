@@ -48,8 +48,10 @@ renderCompanion({
   ...DEFAULT_PHONE_PREFERENCES,
   locale: "ko",
 });
-fireEvent.click(screen.getByRole("button", { name: /기기/ }));
-expect(screen.getByRole("button", { name: "대시보드로 돌아가기" }))
+fireEvent.click(screen.getByRole("button", { name: /^\uAE30\uAE30/ }));
+expect(screen.getByRole("button", {
+  name: "\uB300\uC2DC\uBCF4\uB4DC\uB85C \uB3CC\uC544\uAC00\uAE30",
+}))
   .toBeTruthy();
 ```
 
@@ -74,7 +76,8 @@ const en = {
 };
 
 const ko = {
-  backToDashboard: "대시보드로 돌아가기",
+  backToDashboard:
+    "\uB300\uC2DC\uBCF4\uB4DC\uB85C \uB3CC\uC544\uAC00\uAE30",
 };
 ```
 
