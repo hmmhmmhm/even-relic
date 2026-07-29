@@ -5,7 +5,7 @@ Date: 2026-07-29
 Target branch: `main`
 
 Audited implementation commit:
-`9e0c8ff7036d1fd1e076347337a6193058c1faeb`
+`a5d57a39aa4af3a483cb2413093ab4f57f0a33ae`
 
 Overall status:
 `SOFTWARE PASS — PHYSICAL G2 BASELINE PRESERVED — VISUAL CAPTURE PENDING`
@@ -55,6 +55,16 @@ the owner.
   and manual weather refresh.
 - Added live Developer counters for trimmed trace entries and refreshes dropped
   by the no-queue coordinator.
+- Corrected the TODO completion icon and added interaction-level coverage for
+  add, rename, toggle, confirmed deletion, last-item protection, and storage
+  rejection.
+- Cleared both the local ORS key and persisted active-route cache on confirmed
+  deletion, even when no live route session is available.
+- Distinguish RSS/key persistence failures from network validation failures.
+- Show the nearest available map label in Weather instead of an internal
+  location-source token.
+- Enforced 44-pixel minimum phone targets for compact TODO, ordering, routing,
+  and diagnostic controls.
 
 ## Fresh automated evidence
 
@@ -62,7 +72,7 @@ The following commands passed serially against the audited implementation:
 
 | Check | Result |
 | --- | --- |
-| `npm test` | 48 files, 422 tests passed |
+| `npm test` | 50 files, 436 tests passed |
 | `npm run typecheck` | `tsc --noEmit` passed |
 | `npm run build` | 109 modules transformed; production build passed |
 | `npm run test:repo` | 5 tests passed; repository copy check passed |

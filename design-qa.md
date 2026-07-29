@@ -35,13 +35,24 @@ The details provide real editable states for HUD ordering, RSS sources, TODOs,
 device-local ORS key validation, and language. Diagnostics appear only under
 Developer. Storage and provider failures are represented as recoverable inline
 states, and deleting a local ORS key is not blocked by an unavailable live
-route session.
+route session. Component tests now cover every editable HUD ordering action,
+the complete phone TODO lifecycle, successful and failed key persistence,
+active-route cache deletion, detailed weather values, and available/unavailable
+device states.
+
+Static visual-contract tests additionally lock the approved neutral tokens,
+two-column `1.28 / 1` card geometry, 8 px gap and radius, shadow-free cards,
+320 px two-column behavior, neutral HUD-preview filter, compact subheaders, and
+44 px minimum targets. These checks prevent token regressions but do not replace
+the required rendered screenshot comparison.
 
 ## Visual comparison blocker
 
 The supplied reference was available, but the implementation could not be
 captured at the same viewport because the approved in-app browser runtime
-again returned an empty browser list during the final 2026-07-29 audit. A
+again returned an empty browser list during the latest 2026-07-29 audit. The
+owner-supplied reference image is still locally available, but there is no
+approved implementation-capture surface to pair with it. A
 same-state side-by-side screenshot comparison therefore remains pending. The
 Tailscale preview is running for physical phone inspection.
 
