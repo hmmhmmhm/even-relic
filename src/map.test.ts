@@ -79,7 +79,7 @@ function setCache(
   fetchedAt: number,
 ) {
   storage.values.set(
-    "sandevistan:map-labels-i18n:v1",
+    "sandevistan:map-labels-i18n-v2:v1",
     JSON.stringify({ value, fetchedAt, cell: value.cell }),
   );
 }
@@ -101,6 +101,7 @@ describe("map response and projection helpers", () => {
         localizedNames: {
           ko: "홍대입구역",
           en: "Hongik University",
+          ja: "弘大入口駅",
         },
         point: [37.5572, 126.9245],
       }],
@@ -121,6 +122,7 @@ describe("map response and projection helpers", () => {
         localizedNames: {
           ko: "홍대입구역",
           en: "Hongik University",
+          ja: "弘大入口駅",
         },
         point: [37.5572, 126.9245],
       }],
@@ -130,6 +132,7 @@ describe("map response and projection helpers", () => {
       localizedNames: {
         ko: "홍대입구역",
         en: "Hongik University",
+        ja: "弘大入口駅",
       },
       point: {
         latitude: 37.5572,
@@ -183,6 +186,26 @@ describe("map response and projection helpers", () => {
         kind: "place",
         name: "Place",
         localizedNames: { en: "x".repeat(41) },
+        point: [37, 127],
+      }],
+      [{
+        kind: "place",
+        name: "Place",
+        localizedNames: { "bad tag": "Invalid" },
+        point: [37, 127],
+      }],
+      [{
+        kind: "place",
+        name: "Place",
+        localizedNames: Object.fromEntries(
+          ["aa", "ab", "ae", "af", "ak", "am", "an", "ar", "as"].map((
+            language,
+            index,
+          ) => [
+            language,
+            `Name ${index}`,
+          ]),
+        ),
         point: [37, 127],
       }],
       Array.from({ length: 25 }, (_, index) => ({
@@ -321,7 +344,7 @@ describe("resolveMap", () => {
       fetchedAt: NOW,
     });
     expect(storage.writes).toEqual([[
-      "sandevistan:map-labels-i18n:v1",
+      "sandevistan:map-labels-i18n-v2:v1",
       JSON.stringify({
         value: VALUE,
         fetchedAt: NOW,
@@ -353,6 +376,6 @@ describe("resolveMap", () => {
     await expect(resolveMap(storage, CENTER, fetchImpl, NOW))
       .resolves.toMatchObject({ status: "fresh", value: VALUE });
     expect(fetchImpl).toHaveBeenCalledOnce();
-    expect(storage.values.has("sandevistan:map-labels-i18n:v1")).toBe(true);
+    expect(storage.values.has("sandevistan:map-labels-i18n-v2:v1")).toBe(true);
   });
 });

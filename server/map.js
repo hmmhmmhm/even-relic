@@ -12,6 +12,7 @@ const MAX_ROADS = 180;
 const MAX_POINTS = 4_000;
 const MAX_LABELS = 24;
 const MAX_LABEL_CODE_POINTS = 40;
+const MAX_LOCALIZED_NAMES = 8;
 const TIMEOUT_MS = 8_000;
 const MAP_CELL_DEGREES = 0.0018;
 const MAJOR_HIGHWAYS = new Set([
@@ -88,17 +89,22 @@ function normalizedName(raw) {
 }
 
 function normalizedNames(tags) {
-  const name = normalizedName(tags?.["name:ko"] ?? tags?.name);
+  const name = normalizedName(tags?.name);
   if (!name) return null;
-  const ko = normalizedName(tags?.["name:ko"]);
-  const en = normalizedName(tags?.["name:en"]);
+  const localizedNames = Object.entries(tags ?? {})
+    .flatMap(([key, value]) => {
+      if (!key.startsWith("name:")) return [];
+      const language = key.slice(5);
+      if (!/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(language)) return [];
+      const localized = normalizedName(value);
+      return localized ? [[language, localized]] : [];
+    })
+    .sort(([left], [right]) => left.localeCompare(right))
+    .slice(0, MAX_LOCALIZED_NAMES);
   return {
     name,
-    ...((ko || en) && {
-      localizedNames: {
-        ...(ko && { ko }),
-        ...(en && { en }),
-      },
+    ...(localizedNames.length > 0 && {
+      localizedNames: Object.fromEntries(localizedNames),
     }),
   };
 }
@@ -219,7 +225,7 @@ function normalizeMapPayload(payload, cell) {
 
 function cacheRequest(cell) {
   return new Request(
-    `https://sandevistan-map-cache.invalid/roads-labels-v4?cell=${encodeURIComponent(cell)}`,
+    `https://sandevistan-map-cache.invalid/roads-labels-v5?cell=${encodeURIComponent(cell)}`,
   );
 }
 

@@ -16,7 +16,8 @@ const MAP_MAX_ROADS = 180;
 const MAP_MAX_POINTS = 4_000;
 const MAP_MAX_LABELS = 24;
 const MAP_MAX_LABEL_CODE_POINTS = 40;
-const MAP_CACHE_KEY = "map-labels-i18n";
+const MAP_MAX_LOCALIZED_NAMES = 8;
+const MAP_CACHE_KEY = "map-labels-i18n-v2";
 const MAP_CELL_DEGREES = 0.0018;
 const MAP_LABEL_KINDS = new Set<MapLabel["kind"]>([
   "place",
@@ -67,14 +68,18 @@ function isLocalizedNames(
   value: unknown,
 ): value is NonNullable<MapLabel["localizedNames"]> {
   if (!isRecord(value)) return false;
-  if (Object.keys(value).some((key) => key !== "ko" && key !== "en")) {
+  const entries = Object.entries(value);
+  if (
+    entries.length === 0
+    || entries.length > MAP_MAX_LOCALIZED_NAMES
+    || entries.some(([key, name]) => (
+      !/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i.test(key)
+      || !isMapLabelName(name)
+    ))
+  ) {
     return false;
   }
-  return (
-    (value.ko === undefined || isMapLabelName(value.ko))
-    && (value.en === undefined || isMapLabelName(value.en))
-    && (value.ko !== undefined || value.en !== undefined)
-  );
+  return true;
 }
 
 function isMapLabel(value: unknown): value is MapLabel {

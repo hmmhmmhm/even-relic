@@ -54,6 +54,7 @@ test("builds a bounded labelled Overpass query and normalizes geometry", async (
               name: "Hongik University",
               "name:ko": "홍대입구역",
               "name:en": "Hongik University Station",
+              "name:ja": "弘大入口駅",
             },
           },
           {
@@ -87,16 +88,17 @@ test("builds a bounded labelled Overpass query and normalizes geometry", async (
     labels: [
       {
         kind: "transit",
-        name: "홍대입구역",
+        name: "Hongik University",
         localizedNames: {
-          ko: "홍대입구역",
           en: "Hongik University Station",
+          ja: "弘大入口駅",
+          ko: "홍대입구역",
         },
         point: [37.5572, 126.9245],
       },
       {
         kind: "road",
-        name: "양화로",
+        name: "Yanghwa-ro",
         localizedNames: {
           ko: "양화로",
           en: "Yanghwa-ro",
@@ -219,7 +221,8 @@ test("sanitizes, prioritizes, deduplicates, and caps labels", async () => {
     "road",
     "landmark",
   ]);
-  assert.equal(labels[0].name, "홍대입구역");
+  assert.equal(labels[0].name, "Hongdae");
+  assert.equal(labels[0].localizedNames.ko, "홍대입구역");
   assert.equal(labels.find(({ name }) => name.startsWith("가")).name, "가".repeat(40));
   assert.equal(labels.find(({ kind }) => kind === "landmark").name, "시민 공원");
   const duplicates = labels.filter(
@@ -231,6 +234,39 @@ test("sanitizes, prioritizes, deduplicates, and caps labels", async () => {
     point: [37.506, 127.006],
   }]);
   assert.equal(labels.some(({ name }) => name === "INVALID"), false);
+});
+
+test("keeps only eight valid bounded OSM language names per label", async () => {
+  const languages = ["aa", "ab", "ae", "af", "ak", "am", "an", "ar", "as"];
+  const localizedTags = Object.fromEntries(
+    languages.map((language, index) => [
+      `name:${language}`,
+      index === 0 ? "  Name\u0000 zero  " : `Name ${index}`,
+    ]),
+  );
+  const response = await handleMapRequest(
+    new Request("https://example.test/api/map?lat=35.6812&lng=139.7671"),
+    {},
+    {
+      cache: null,
+      fetchImpl: async () => overpassResponse([{
+        type: "node",
+        lat: 35.6812,
+        lon: 139.7671,
+        tags: {
+          railway: "station",
+          name: "Tokyo Station",
+          ...localizedTags,
+          "name:bad tag": "Invalid",
+        },
+      }]),
+    },
+  );
+  const { labels } = await response.json();
+
+  assert.deepEqual(Object.keys(labels[0].localizedNames), languages.slice(0, 8));
+  assert.equal(labels[0].localizedNames.aa, "Name zero");
+  assert.equal(labels[0].localizedNames["bad tag"], undefined);
 });
 
 test("validates coordinates before contacting Overpass", async () => {
@@ -337,7 +373,7 @@ test("caches a normalized response by rounded location cell", async () => {
   assert.equal(second.status, 200);
   assert.equal(calls, 1);
   assert.equal(new Set(cacheKeys).size, 1);
-  assert.match(cacheKeys[0], /roads-labels-v4/);
+  assert.match(cacheKeys[0], /roads-labels-v5/);
 });
 
 test("maps upstream, size, and timeout failures to stable errors", async () => {
