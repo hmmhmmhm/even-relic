@@ -170,7 +170,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 
 Expected: `200`.
 
-- [ ] **Step 5: Commit and push**
+- [x] **Step 5: Commit and push**
 
 ```bash
 git add src/phone/PhoneCompanion.test.tsx \
