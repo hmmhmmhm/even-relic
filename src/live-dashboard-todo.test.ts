@@ -88,6 +88,27 @@ function createSession(
 }
 
 describe("live dashboard todos", () => {
+  it("replaces phone-managed tasks immediately without replaying storage writes", async () => {
+    const bridge = new TodoBridge();
+    const updates: LiveDashboardUpdate[] = [];
+    const session = createSession(bridge, updates);
+    await session.start();
+    const writesBefore = bridge.writes.length;
+    const next = [
+      { id: "phone-one", title: "폰에서 추가", completed: false },
+      { id: "phone-two", title: "동기화 확인", completed: true },
+    ] as const;
+
+    session.replaceTodos(next);
+
+    expect(session.getState().todos).toEqual({
+      status: "fresh",
+      value: next,
+    });
+    expect(updates.at(-1)?.target).toBe("right");
+    expect(bridge.writes).toHaveLength(writesBefore);
+  });
+
   it("restores saved tasks and persists a toggle after emitting it", async () => {
     const bridge = new TodoBridge();
     bridge.values.set("sandevistan:todos:v1", JSON.stringify(SAVED_TODOS));

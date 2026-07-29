@@ -28,6 +28,8 @@ type LocationMode = "general" | "navigation";
 type LiveRouteSessionOptions = {
   readonly bridge: LocationBridge;
   readonly routingStatus?: RoutingStatus;
+  readonly isRoutingEnabled: () => boolean;
+  readonly getRoutingKey: () => string | undefined;
   readonly fetchImpl: typeof fetch;
   readonly now: () => number;
   readonly getState: () => LiveDashboardState;
@@ -85,7 +87,7 @@ export function createLiveRouteSession(options: LiveRouteSessionOptions) {
           start: coordinate,
           destination,
           profile: previousRoute.profile,
-        }, options.fetchImpl);
+        }, options.fetchImpl, options.getRoutingKey());
         if (!ownsRoute(generation, destination)) return;
         const fetchedAt = options.now();
         options.setRoute({ status: "fresh", value: route, fetchedAt });
@@ -149,7 +151,7 @@ export function createLiveRouteSession(options: LiveRouteSessionOptions) {
   };
 
   const restore = async (): Promise<boolean> => {
-    if (!options.routingStatus?.enabled) return false;
+    if (!options.isRoutingEnabled()) return false;
     const cached = await readActiveRouteCache(
       options.bridge,
       options.now(),
@@ -169,7 +171,7 @@ export function createLiveRouteSession(options: LiveRouteSessionOptions) {
     profile: RouteProfile,
   ) => {
     if (
-      !options.routingStatus?.enabled
+      !options.isRoutingEnabled()
       || options.getState().route.status === "disabled"
     ) {
       throw new RoutingError(
@@ -211,7 +213,7 @@ export function createLiveRouteSession(options: LiveRouteSessionOptions) {
         start: coordinate,
         destination,
         profile,
-      }, options.fetchImpl);
+      }, options.fetchImpl, options.getRoutingKey());
       if (
         options.isDisposed()
         || generation !== routeGeneration
@@ -269,7 +271,7 @@ export function createLiveRouteSession(options: LiveRouteSessionOptions) {
     ) {
       return;
     }
-    options.setRoute(options.routingStatus?.enabled
+    options.setRoute(options.isRoutingEnabled()
       ? { status: "fresh" }
       : { status: "disabled" });
     options.emit("all");

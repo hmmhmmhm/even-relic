@@ -33,6 +33,20 @@ function serverKey(env) {
   return key.length > 0 ? key : undefined;
 }
 
+function requestKey(request, env) {
+  const supplied = request.headers
+    .get("x-sandevistan-ors-key")
+    ?.trim();
+  if (supplied !== undefined) {
+    return supplied.length >= 16
+      && supplied.length <= 4_096
+      && !/[\u0000-\u001f\u007f]/.test(supplied)
+      ? supplied
+      : undefined;
+  }
+  return serverKey(env);
+}
+
 export function routingStatus(env) {
   return { enabled: serverKey(env) !== undefined };
 }
@@ -113,7 +127,7 @@ export async function handleGeocodeRequest(
     clearTimeoutImpl = clearTimeout,
   } = {},
 ) {
-  const key = serverKey(env);
+  const key = requestKey(request, env);
   if (!key) {
     return routeError(
       "ROUTING_DISABLED",
@@ -165,6 +179,61 @@ export async function handleGeocodeRequest(
       "GEOCODE_UPSTREAM_ERROR",
       "Destination search failed",
       502,
+    );
+  } finally {
+    timeout.dispose();
+  }
+}
+
+export async function handleRoutingKeyTest(
+  request,
+  env,
+  {
+    fetchImpl = fetch,
+    setTimeoutImpl = setTimeout,
+    clearTimeoutImpl = clearTimeout,
+  } = {},
+) {
+  const key = requestKey(request, env);
+  if (!key) {
+    return routeError(
+      "INVALID_ROUTING_KEY",
+      "Routing key is invalid",
+      400,
+    );
+  }
+  const upstreamUrl = new URL(GEOCODE_URL);
+  upstreamUrl.searchParams.set("api_key", key);
+  upstreamUrl.searchParams.set("text", "Seoul");
+  upstreamUrl.searchParams.set("size", "1");
+  const timeout = createTimeout(
+    TIMEOUT_MS,
+    setTimeoutImpl,
+    clearTimeoutImpl,
+  );
+  try {
+    const upstream = await fetchImpl(upstreamUrl, {
+      redirect: "error",
+      headers: { accept: "application/json" },
+      signal: timeout.signal,
+    });
+    return upstream.ok
+      ? jsonResponse(
+        { valid: true },
+        { headers: { "cache-control": "no-store" } },
+      )
+      : routeError(
+        "INVALID_ROUTING_KEY",
+        "Routing key validation failed",
+        401,
+      );
+  } catch {
+    return routeError(
+      timeout.signal.aborted
+        ? "ROUTING_KEY_TIMEOUT"
+        : "ROUTING_KEY_UPSTREAM_ERROR",
+      "Routing key validation failed",
+      timeout.signal.aborted ? 504 : 502,
     );
   } finally {
     timeout.dispose();
@@ -260,7 +329,7 @@ export async function handleRouteRequest(
     clearTimeoutImpl = clearTimeout,
   } = {},
 ) {
-  const key = serverKey(env);
+  const key = requestKey(request, env);
   if (!key) {
     return routeError(
       "ROUTING_DISABLED",

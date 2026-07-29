@@ -44,4 +44,35 @@ describe("Fast Canvas page model", () => {
     expect(normalizeFastHudPage("navigation", "disabled")).toBe("weather");
     expect(normalizeFastHudPage("news", "disabled")).toBe("news");
   });
+
+  it("uses a saved order and skips disabled pages", () => {
+    const layout = {
+      order: ["overview", "weather", "news", "todo"],
+      enabled: ["overview", "weather", "todo"],
+    } as const;
+
+    expect(getFastHudPages("disabled", layout)).toEqual([
+      "overview",
+      "weather",
+      "todo",
+    ]);
+    expect(getAdjacentFastHudPage(
+      "overview",
+      "next",
+      "disabled",
+      layout,
+    )).toBe("weather");
+  });
+
+  it("does not expose Navigation while routing is disabled", () => {
+    const layout = {
+      order: ["overview", "navigation", "news", "todo", "weather"],
+      enabled: ["overview", "navigation", "news"],
+    } as const;
+
+    expect(getFastHudPages("disabled", layout)).toEqual([
+      "overview",
+      "news",
+    ]);
+  });
 });

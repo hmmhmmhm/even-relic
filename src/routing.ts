@@ -3,6 +3,7 @@ import type {
   RouteManeuver,
   RouteValue,
 } from "./live-state";
+import { orsHeaders } from "./ors-key";
 
 export type RoutingStatus = {
   readonly enabled: boolean;
@@ -132,6 +133,30 @@ export async function getRoutingStatus(
   return { enabled: payload.enabled };
 }
 
+export async function validateRoutingKey(
+  key: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<boolean> {
+  const payload = await fetchJson(
+    "/api/routing-key-test",
+    {
+      method: "POST",
+      headers: {
+        accept: "application/json",
+        ...orsHeaders(key),
+      },
+    },
+    fetchImpl,
+  );
+  if (!isRecord(payload) || typeof payload.valid !== "boolean") {
+    throw new RoutingError(
+      "INVALID_RESPONSE",
+      "길찾기 키 확인 응답이 올바르지 않습니다.",
+    );
+  }
+  return payload.valid;
+}
+
 function parseDestination(value: unknown): Destination {
   if (
     !isRecord(value)
@@ -159,6 +184,7 @@ function parseDestination(value: unknown): Destination {
 export async function searchDestinations(
   query: string,
   fetchImpl: typeof fetch = fetch,
+  orsKey?: string,
 ): Promise<readonly Destination[]> {
   const normalized = query.trim();
   if ([...normalized].length < 2 || [...normalized].length > 80) {
@@ -169,7 +195,12 @@ export async function searchDestinations(
   }
   const payload = await fetchJson(
     `/api/geocode?q=${encodeURIComponent(normalized)}`,
-    { headers: { accept: "application/json" } },
+    {
+      headers: {
+        accept: "application/json",
+        ...(orsKey ? orsHeaders(orsKey) : {}),
+      },
+    },
     fetchImpl,
   );
   if (!isRecord(payload) || !Array.isArray(payload.results)) {
@@ -214,6 +245,7 @@ function parseManeuver(
 export async function requestRoute(
   request: RouteRequest,
   fetchImpl: typeof fetch = fetch,
+  orsKey?: string,
 ): Promise<RouteValue> {
   if (
     !isFiniteCoordinate(request.start)
@@ -232,6 +264,7 @@ export async function requestRoute(
       headers: {
         accept: "application/json",
         "content-type": "application/json",
+        ...(orsKey ? orsHeaders(orsKey) : {}),
       },
       body: JSON.stringify({
         start: request.start,

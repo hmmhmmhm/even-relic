@@ -166,6 +166,44 @@ function liveFetch(routeImpl = async () => routeResponse()): typeof fetch {
 }
 
 describe("live dashboard optional routing", () => {
+  it("enables routing with a device-owned key and forwards it only as a header", async () => {
+    const deviceKey = "device-owned-key-123456";
+    const fetchImpl = vi.fn(async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      const url = String(input);
+      if (url === "/api/route") {
+        expect(new Headers(init?.headers).get("x-sandevistan-ors-key")).toBe(
+          deviceKey,
+        );
+        expect(init?.body).not.toContain(deviceKey);
+        return routeResponse();
+      }
+      if (url.startsWith("/api/news")) return newsResponse();
+      if (url.startsWith("/api/map")) return mapResponse();
+      return weatherResponse();
+    }) as typeof fetch;
+    const session = createLiveDashboardSession({
+      bridge: new TestBridge(),
+      fetchImpl,
+      routingStatus: { enabled: false },
+      now: () => NOW,
+      onUpdate: vi.fn(),
+    });
+    await session.start();
+
+    session.setRoutingKey(deviceKey);
+    expect(session.getState().route).toEqual({ status: "fresh" });
+    await session.startRoute(DESTINATION, "foot-walking");
+    expect(session.getState().route.status).toBe("fresh");
+
+    await session.endRoute();
+    session.setRoutingKey(undefined);
+    expect(session.getState().route).toEqual({ status: "disabled" });
+    session.dispose();
+  });
+
   it("keeps routing disabled without a key and leaves keyless data live", async () => {
     const session = createLiveDashboardSession({
       bridge: new TestBridge(),

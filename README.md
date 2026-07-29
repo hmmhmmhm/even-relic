@@ -13,7 +13,7 @@
   <img alt="Vite 6" src="https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white">
   <img alt="Even Hub SDK 0.0.11" src="https://img.shields.io/badge/Even_Hub_SDK-0.0.11-7CF36A">
   <img alt="Validated on physical G2 hardware" src="https://img.shields.io/badge/G2-physical_hardware_validated-2EA043">
-  <img alt="374 Vitest tests passing" src="https://img.shields.io/badge/Vitest-374_passing-6E9F18?logo=vitest&logoColor=white">
+  <img alt="406 Vitest tests passing" src="https://img.shields.io/badge/Vitest-406_passing-6E9F18?logo=vitest&logoColor=white">
   <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-blue.svg">
 </p>
 
@@ -31,6 +31,7 @@ with the Even Hub SDK pinned to `0.0.11`.
 ## Table of contents
 
 - [Why Sandevistan](#why-sandevistan)
+- [Phone companion](#phone-companion)
 - [HUD pages](#hud-pages)
 - [Interaction model](#interaction-model)
 - [Transport design](#transport-design)
@@ -55,8 +56,34 @@ around that fact:
 - Canvas-first rendering for visual consistency and fast page changes.
 - Serial, fail-fast image transport with no deferred refresh queue.
 - Keyless location, weather, news, and map data.
-- Optional server-side OpenRouteService routing with no key in the client.
-- A browser preview and trace console for diagnosing physical-hardware behavior.
+- Optional OpenRouteService routing with a device-local key or development fallback.
+- An Even-style phone companion for configuration and live status.
+- A dedicated developer screen for physical-hardware diagnostics.
+
+## Phone companion
+
+The same `/hud-canvas-fast` entry point provides a light, touch-friendly
+companion UI around the persistent G2 Canvas. Its home screen follows the Even
+app's compact two-column card rhythm and keeps the live HUD preview mounted
+while settings screens are open.
+
+Eight cards open their settings directly, without an intermediate management
+menu:
+
+| Card | Phone capability |
+| --- | --- |
+| Devices | G2/R1 availability, battery, and transport state |
+| HUD layout | Enable and reorder glasses pages while keeping Overview |
+| News | Enable, rename, add, or remove up to six HTTPS RSS/Atom sources |
+| TODO | Add, edit, complete, reopen, and delete up to six tasks |
+| Weather | Inspect current conditions and request one immediate refresh |
+| Navigation | Validate and store a user-owned ORS key on the device |
+| Language | Follow the system language or select English/Korean |
+| Developer | Inspect, copy, and clear the WebView trace |
+
+The footer identifies the project, app-manifest version, development status,
+and GitHub repository. The phone UI never remounts the Canvas during navigation,
+so opening settings does not restart the G2 transport.
 
 ## HUD pages
 
@@ -66,7 +93,7 @@ information panel on the right.
 | Page | Purpose |
 | --- | --- |
 | `OVERVIEW` | Local time, full date, current weather, and the connected device battery |
-| `NEWS` | Up to six current SBS RSS headlines |
+| `NEWS` | Current headlines from the enabled local RSS source list |
 | `TODO` | Three persistent checklist items and today's completion progress |
 | `WEATHER` | Current conditions, apparent temperature, humidity, precipitation, and wind |
 | `NAVIGATION` *(active route only)* | Route state, remaining distance, next maneuver, and destination |
@@ -135,7 +162,7 @@ Core features do not require an API key.
 | --- | --- | --- |
 | Current location | Even Hub SDK | Initial reading, then accepted at `15s / 15m` |
 | Weather | [Open-Meteo](https://open-meteo.com/) | 15-minute cache plus foreground recheck |
-| News | Allowlisted SBS RSS through same-origin API | Progressive library up to 100 stories; one-hour refill while idle |
+| News | Device-selected HTTPS RSS/Atom through a hardened same-origin proxy | Progressive library up to 100 stories; one-hour refill while idle |
 | Roads and place labels | [OpenStreetMap](https://www.openstreetmap.org/copyright) via Overpass | When the rounded location cell changes |
 | Clock | Local device time | Minute boundary, skipped if that minute was already rendered |
 | Battery | Even SDK device-state event | Only when the visible value changes |
@@ -147,17 +174,24 @@ presenting it as live. Missing map data renders `NO DATA`; missing GPS renders
 than a directional arrow.
 
 Weather, news, and map failures retain the last successful value as stale data.
-RSS and Overpass access use fixed same-origin server routes and never accept an
-arbitrary upstream URL.
+RSS and Overpass access use same-origin server routes. Custom feeds are limited
+to validated public HTTPS URLs, reject credentials, fragments, non-default
+ports, IP literals, local/private host suffixes, redirects, non-feed content,
+responses over 1 MB, and requests over eight seconds.
 
 Persistent values use the `sandevistan:*:v1` local-storage namespace.
 
 ## Optional navigation
 
-Only destination search and route calculation require a key. Set
-`ORS_API_KEY` in the server process to enable OpenRouteService. The key is never
-read from Vite client variables and is not included in source, browser responses,
-logs, or the EHPK package.
+Only destination search and route calculation require a key. The preferred flow
+is to enter a user-owned key in the Navigation card. Sandevistan validates it,
+stores it through the Even local-storage bridge, and sends it only in a dedicated
+same-origin request header. The server uses it for that request and never stores,
+returns, or logs it.
+
+`ORS_API_KEY` remains an optional local-development fallback. Neither key path
+uses Vite client variables or embeds a key in source, browser responses, logs,
+or the EHPK package.
 
 Without a key, location, weather, news, and the OSM map continue to work. Routing
 controls stay out of the way rather than occupying a disabled HUD panel.
@@ -192,7 +226,7 @@ Start the development server:
 npm run dev -- --host 0.0.0.0 --port 4176 --strictPort
 ```
 
-Enable routing only when needed:
+Optionally enable the server-side development fallback:
 
 ```bash
 ORS_API_KEY='<server-only-key>' \
@@ -251,7 +285,7 @@ The resulting `sandevistan.ehpk` is a local artifact. The npm package is marked
 ## Project structure
 
 ```text
-src/                     React preview, Canvas renderers, G2 transport, live state
+src/                     Phone companion, Canvas renderers, G2 transport, live state
 server/                  Same-origin weather, news, map, and optional route APIs
 tests/                   Node tests for API and production-worker behavior
 scripts/                 Build preparation and repository policy checks

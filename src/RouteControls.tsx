@@ -21,7 +21,8 @@ type RouteControlsProps = {
   ) => void | Promise<void>;
   readonly onEnd: () => void | Promise<void>;
   readonly onResume?: () => void | Promise<void>;
-  readonly search?: typeof searchDestinations;
+  readonly orsKey?: string;
+  readonly search?: (query: string) => ReturnType<typeof searchDestinations>;
 };
 
 const PROFILE_LABELS: ReadonlyArray<{
@@ -53,7 +54,8 @@ export function RouteControls({
   onStart,
   onEnd,
   onResume,
-  search = searchDestinations,
+  orsKey,
+  search,
 }: RouteControlsProps) {
   const [query, setQuery] = useState("");
   const [profile, setProfile] = useState<RouteProfile>("foot-walking");
@@ -80,7 +82,10 @@ export function RouteControls({
     setBusy(true);
     setError(undefined);
     try {
-      setResults((await search(normalized)).slice(0, 5));
+      const destinations = search
+        ? await search(normalized)
+        : await searchDestinations(normalized, fetch, orsKey);
+      setResults(destinations.slice(0, 5));
     } catch (caught) {
       setError(conciseError(caught, "search"));
     } finally {

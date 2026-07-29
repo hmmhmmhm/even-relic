@@ -1,0 +1,108 @@
+// @vitest-environment jsdom
+
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { EvenStorage } from "../live-cache";
+import { createInitialLiveDashboardState } from "../live-state";
+import { DEFAULT_PHONE_PREFERENCES } from "../phone-preferences";
+import { PhoneCompanion } from "./PhoneCompanion";
+
+afterEach(cleanup);
+
+class TestStorage implements EvenStorage {
+  readonly values = new Map<string, string>();
+
+  async getLocalStorage(key: string): Promise<string> {
+    return this.values.get(key) ?? "";
+  }
+
+  async setLocalStorage(key: string, value: string): Promise<boolean> {
+    this.values.set(key, value);
+    return true;
+  }
+}
+
+function renderCompanion() {
+  const storage = new TestStorage();
+  return render(
+    <PhoneCompanion
+      canvas={<canvas data-testid="persistent-canvas" width="576" height="288" />}
+      status="Ready"
+      live={createInitialLiveDashboardState()}
+      routingStatus={{ enabled: false }}
+      preferences={DEFAULT_PHONE_PREFERENCES}
+      storage={storage}
+      onPreferencesChange={vi.fn()}
+      onTodosChange={vi.fn()}
+      onWeatherRefresh={vi.fn(async (): Promise<"accepted"> => "accepted")}
+      routeControls={<div>Route controls</div>}
+    />,
+  );
+}
+
+describe("PhoneCompanion", () => {
+  it("renders the approved eight full-card destinations and footer", () => {
+    renderCompanion();
+
+    for (const name of [
+      "Devices",
+      "HUD layout",
+      "News",
+      "TODO",
+      "Weather",
+      "Navigation",
+      "Language",
+      "Developer",
+    ]) {
+      expect(screen.getByRole("button", { name: new RegExp(name) }))
+        .toBeTruthy();
+    }
+    expect(screen.queryByText("Manage")).toBeNull();
+    expect(screen.getByRole("link", { name: /GitHub/ }).getAttribute("href"))
+      .toBe("https://github.com/hmmhmmhm/sandevistan");
+    expect(screen.getByText("v0.1.0")).toBeTruthy();
+  });
+
+  it("opens a detail screen and returns without remounting the Canvas", () => {
+    renderCompanion();
+    const canvas = screen.getByTestId("persistent-canvas");
+
+    fireEvent.click(screen.getByRole("button", { name: /Devices/ }));
+    expect(screen.getByRole("heading", { name: "Devices" })).toBeTruthy();
+    expect(screen.getByTestId("persistent-canvas")).toBe(canvas);
+
+    fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    expect(screen.getByText("Dashboard")).toBeTruthy();
+    expect(screen.getByTestId("persistent-canvas")).toBe(canvas);
+  });
+
+  it("opens every dashboard card directly with no intermediate menu", () => {
+    renderCompanion();
+
+    for (const name of [
+      "Devices",
+      "HUD layout",
+      "News",
+      "TODO",
+      "Weather",
+      "Navigation",
+      "Language",
+      "Developer",
+    ]) {
+      fireEvent.click(screen.getByRole("button", {
+        name: new RegExp(`^${name}`),
+      }));
+      expect(screen.getByRole("heading", { name })).toBeTruthy();
+      expect(screen.queryByText("Manage")).toBeNull();
+      fireEvent.click(screen.getByRole("button", { name: "Back" }));
+    }
+  });
+
+  it("keeps diagnostics off Home and moves them into Developer", () => {
+    renderCompanion();
+
+    expect(screen.queryByText("WEBVIEW TRACE")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Developer/ }));
+    expect(screen.getByText("WEBVIEW TRACE")).toBeTruthy();
+  });
+});

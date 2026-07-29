@@ -6,6 +6,7 @@ import {
   NEWS_LIMIT,
   NEWS_MAX_AGE_MS,
   mergeNewsItems,
+  parseNewsFeed,
   parseNewsRss,
   resolveNews,
 } from "./news";
@@ -114,6 +115,31 @@ function rssWithItems(count: number): string {
 afterEach(() => vi.useRealTimers());
 
 describe("parseNewsRss", () => {
+  it("parses Atom entries with a sanitized source label", () => {
+    const items = parseNewsFeed(`<?xml version="1.0"?>
+      <feed xmlns="http://www.w3.org/2005/Atom">
+        <entry>
+          <id>tag:example.com,2026:item-1</id>
+          <title>Atom &amp; Headline</title>
+          <link rel="alternate" href="https://example.com/item-1" />
+          <updated>2026-07-27T05:30:00Z</updated>
+          <summary><![CDATA[<p>Atom summary</p>]]></summary>
+        </entry>
+      </feed>`, {
+      id: "example",
+      name: "Example Feed",
+    });
+
+    expect(items).toEqual([{
+      id: "guid:tag:example.com,2026:item-1",
+      title: "Atom & Headline",
+      url: "https://example.com/item-1",
+      publishedAt: Date.parse("2026-07-27T05:30:00Z"),
+      summary: "Atom summary",
+      source: "Example Feed",
+    }]);
+  });
+
   it("sanitizes, deduplicates, and sorts all available headlines", () => {
     const items = parseNewsRss(RSS);
 
@@ -196,6 +222,54 @@ describe("parseNewsRss", () => {
 });
 
 describe("resolveNews", () => {
+  it("fetches every enabled stored source and merges labelled results", async () => {
+    const storage = new TestStorage();
+    storage.values.set("sandevistan:rss-sources:v1", JSON.stringify([
+      {
+        id: "sbs-latest",
+        name: "SBS Latest",
+        url: "https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=01",
+        enabled: true,
+        isDefault: true,
+      },
+      {
+        id: "example",
+        name: "Example",
+        url: "https://feeds.example.com/atom.xml",
+        enabled: true,
+        isDefault: false,
+      },
+    ]));
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("feed=sbs-latest")) {
+        return {
+          ok: true,
+          text: async () => RSS,
+        } as Response;
+      }
+      return {
+        ok: true,
+        text: async () => `<feed xmlns="http://www.w3.org/2005/Atom">
+          <entry><id>atom-one</id><title>Atom article</title></entry>
+        </feed>`,
+      } as Response;
+    }) as typeof fetch;
+
+    const result = await resolveNews(storage, fetchImpl, NOW);
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetchImpl).mock.calls.map(([input]) => String(input)))
+      .toContain(
+        "/api/news?url=https%3A%2F%2Ffeeds.example.com%2Fatom.xml",
+      );
+    expect(result.value?.some((item) => (
+      item.title === "Atom article" && item.source === "Example"
+    ))).toBe(true);
+    expect(result.value?.some((item) => item.source === "SBS Latest"))
+      .toBe(true);
+  });
+
   it("returns a fresh cache immediately without fetching", async () => {
     const storage = new TestStorage();
     setCache(storage, ITEMS, NOW - NEWS_MAX_AGE_MS);

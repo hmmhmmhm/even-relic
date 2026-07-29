@@ -51,7 +51,6 @@ import {
 } from "./live-state";
 import { startMinuteRefresh } from "./minute-refresh";
 import { RouteControls } from "./RouteControls";
-import { DiagnosticConsole } from "./DiagnosticConsole";
 import {
   logDiagnostic,
   startDiagnosticHeartbeat,
@@ -62,6 +61,19 @@ import {
   type RouteProfile,
   type RoutingStatus,
 } from "./routing";
+import type { EvenStorage } from "./live-cache";
+import {
+  DEFAULT_PHONE_PREFERENCES,
+  resolvePhonePreferences,
+} from "./phone-preferences";
+import type { PhonePreferences } from "./phone-types";
+import { PhoneCompanion } from "./phone/PhoneCompanion";
+import { resolveOrsKey } from "./ors-key";
+import {
+  DEFAULT_RSS_SOURCE,
+  resolveRssSources,
+  type RssSource,
+} from "./rss-sources";
 
 type AppProps = {
   autoStart?: boolean;
@@ -70,6 +82,22 @@ type AppProps = {
 const diagnosticErrorKind = (error: unknown) => (
   error instanceof Error ? error.name : typeof error
 );
+
+function createBrowserStorage(): EvenStorage {
+  return {
+    async getLocalStorage(key) {
+      return typeof localStorage === "undefined"
+        ? ""
+        : localStorage.getItem(key) ?? "";
+    },
+    async setLocalStorage(key, value) {
+      if (typeof localStorage === "undefined") return false;
+      if (value) localStorage.setItem(key, value);
+      else localStorage.removeItem(key);
+      return true;
+    },
+  };
+}
 
 export function App({ autoStart = true }: AppProps) {
   const calibrationMode = window.location.pathname === "/calibration-max";
@@ -95,6 +123,73 @@ export function App({ autoStart = true }: AppProps) {
   const [companionRoute, setCompanionRoute] = useState<
     LiveDashboardState["route"]
   >({ status: "disabled" });
+  const [companionLive, setCompanionLive] = useState(
+    createInitialLiveDashboardState,
+  );
+  const [companionBattery, setCompanionBattery] = useState<
+    FastCanvasBattery | undefined
+  >();
+  const [companionStorage, setCompanionStorage] = useState<EvenStorage>(
+    createBrowserStorage,
+  );
+  const [phonePreferences, setPhonePreferencesState] = useState<
+    PhonePreferences
+  >(DEFAULT_PHONE_PREFERENCES);
+  const phonePreferencesRef = useRef<PhonePreferences>(
+    DEFAULT_PHONE_PREFERENCES,
+  );
+  const [companionOrsKey, setCompanionOrsKeyState] = useState<string>();
+  const companionOrsKeyRef = useRef<string | undefined>(undefined);
+  const [companionRssSources, setCompanionRssSources] = useState<
+    readonly RssSource[]
+  >([DEFAULT_RSS_SOURCE]);
+
+  const setPhonePreferences = (value: PhonePreferences) => {
+    phonePreferencesRef.current = value;
+    setPhonePreferencesState(value);
+  };
+
+  const setCompanionOrsKey = (value: string | undefined) => {
+    companionOrsKeyRef.current = value;
+    setCompanionOrsKeyState(value);
+    liveSessionRef.current?.setRoutingKey?.(value);
+  };
+
+  useEffect(() => {
+    if (!fastCanvasHudMode) return;
+    let active = true;
+    void resolvePhonePreferences(
+      companionStorage,
+      routingStatus.enabled,
+    ).then((value) => {
+      if (active) setPhonePreferences(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, [companionStorage, fastCanvasHudMode, routingStatus.enabled]);
+
+  useEffect(() => {
+    if (!fastCanvasHudMode) return;
+    let active = true;
+    void resolveOrsKey(companionStorage).then((value) => {
+      if (active) setCompanionOrsKey(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, [companionStorage, fastCanvasHudMode]);
+
+  useEffect(() => {
+    if (!fastCanvasHudMode) return;
+    let active = true;
+    void resolveRssSources(companionStorage).then((value) => {
+      if (active) setCompanionRssSources(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, [companionStorage, fastCanvasHudMode]);
 
   useEffect(() => {
     if (!autoStart || !canvasRef.current) return;
@@ -167,7 +262,11 @@ export function App({ autoStart = true }: AppProps) {
     const currentMapRadius = () => FAST_MAP_ZOOM_RADII[view.zoomIndex];
     const drawCurrentPage = () => {
       if (fastCanvasHudMode) {
-        page = normalizeFastHudPage(page, live.route.status);
+        page = normalizeFastHudPage(
+          page,
+          live.route.status,
+          phonePreferencesRef.current,
+        );
         if (
           view.mode === "navigation"
           && live.route.status === "disabled"
@@ -211,7 +310,12 @@ export function App({ autoStart = true }: AppProps) {
     };
     const navigateCanvas = async (direction: "next" | "previous") => {
       page = fastCanvasHudMode
-        ? getAdjacentFastHudPage(page, direction, live.route.status)
+        ? getAdjacentFastHudPage(
+            page,
+            direction,
+            live.route.status,
+            phonePreferencesRef.current,
+          )
         : getAdjacentHudPage(page as HudPage, direction);
       drawCurrentPage();
     };
@@ -242,6 +346,7 @@ export function App({ autoStart = true }: AppProps) {
             beforeRestore: drawCurrentPage,
             onBattery: (nextBattery) => {
               battery = nextBattery;
+              setCompanionBattery(nextBattery);
               logDiagnostic(
                 "APP",
                 nextBattery
@@ -365,6 +470,12 @@ export function App({ autoStart = true }: AppProps) {
         setCompanionRoute(nextRoutingStatus.enabled
           ? { status: "fresh" }
           : { status: "disabled" });
+        if (
+          typeof bridge.getLocalStorage === "function"
+          && typeof bridge.setLocalStorage === "function"
+        ) {
+          setCompanionStorage(bridge);
+        }
         liveSession = createLiveDashboardSession({
           bridge,
           routingStatus: nextRoutingStatus,
@@ -383,11 +494,13 @@ export function App({ autoStart = true }: AppProps) {
                 + ` · visible ${refreshTarget ?? "none"}`,
             );
             live = update.state;
+            setCompanionLive(update.state);
             view = syncFastHudView(view, viewContext());
             setCompanionRoute(update.state.route);
             if (refreshTarget) requestVisibleRefresh(refreshTarget);
           },
         });
+        liveSession.setRoutingKey?.(companionOrsKeyRef.current);
         liveSessionRef.current = liveSession;
         if (cancelled) {
           liveSession.dispose();
@@ -399,6 +512,11 @@ export function App({ autoStart = true }: AppProps) {
         }
         logDiagnostic("APP", "live session start");
         await liveSession.start();
+        const startedState = liveSession.getState();
+        if (startedState) {
+          live = startedState;
+          setCompanionLive(startedState);
+        }
         logDiagnostic("APP", "live session ready");
         return;
       }
@@ -491,6 +609,97 @@ export function App({ autoStart = true }: AppProps) {
     || companionRoute.status === "loading"
     ? companionRoute.value
     : undefined;
+  const effectiveRoutingStatus: RoutingStatus = {
+    enabled: routingStatus.enabled || companionOrsKey !== undefined,
+  };
+
+  const hudSurface = (
+    <section
+      className="hud-frame"
+      data-testid="hud-frame"
+      data-logical-size="576x288"
+      data-renderer={
+        fastCanvasHudMode
+          ? "canvas-fast"
+          : layeredHybridHudMode
+            ? "hybrid-z"
+            : hybridHudMode
+              ? "hybrid"
+              : canvasHudMode
+                ? "canvas"
+                : calibrationMode
+                  ? "calibration"
+                  : "image"
+      }
+      data-layering={layeredHybridHudMode ? "explicit" : undefined}
+      data-layout={
+        fastCanvasHudMode
+          ? "static-left-dynamic-right"
+          : layeredHybridHudMode
+            ? "map-text-console"
+            : undefined
+      }
+      data-update-tiles={fastCanvasHudMode ? "2" : undefined}
+      data-text-containers={diagnosticMode ? "2" : "1"}
+      data-image-containers={diagnosticMode ? "1" : "4"}
+      data-pages={
+        canvasHudMode || hybridHudMode ? HUD_PAGES.length : undefined
+      }
+      aria-label="SANDEVISTAN 이미지 전송 시안"
+    >
+      <canvas
+        ref={canvasRef}
+        width="576"
+        height="288"
+        role="img"
+        aria-label="SANDEVISTAN HUD 안경 프레임"
+      />
+    </section>
+  );
+
+  if (fastCanvasHudMode) {
+    return (
+      <PhoneCompanion
+        canvas={hudSurface}
+        status={status}
+        battery={companionBattery}
+        live={companionLive}
+        routingStatus={effectiveRoutingStatus}
+        preferences={phonePreferences}
+        storage={companionStorage}
+        onPreferencesChange={setPhonePreferences}
+        onTodosChange={(items) => {
+          liveSessionRef.current?.replaceTodos?.(items);
+          setCompanionLive((current) => ({
+            ...current,
+            todos: { status: "fresh", value: items },
+          }));
+        }}
+        onWeatherRefresh={() => (
+          liveSessionRef.current?.refreshWeather?.()
+          ?? Promise.resolve("dropped")
+        )}
+        rssSources={companionRssSources}
+        onRssSourcesChange={(sources) => {
+          setCompanionRssSources(sources);
+          void liveSessionRef.current?.refreshNewsSources?.();
+        }}
+        onOrsKeyChange={setCompanionOrsKey}
+        onDeleteRoute={endCompanionRoute}
+        routeControls={(
+          <RouteControls
+            status={effectiveRoutingStatus}
+            orsKey={companionOrsKey}
+            activeRoute={activeCompanionRoute}
+            routeStatus={companionRoute.status}
+            onStart={startCompanionRoute}
+            onResume={resumeCompanionRoute}
+            onEnd={endCompanionRoute}
+          />
+        )}
+      />
+    );
+  }
 
   return (
     <main className="preview-stage">
@@ -519,47 +728,7 @@ export function App({ autoStart = true }: AppProps) {
         <output aria-live="polite">{status}</output>
       </header>
 
-      <section
-        className="hud-frame"
-        data-testid="hud-frame"
-        data-logical-size="576x288"
-        data-renderer={
-          fastCanvasHudMode
-            ? "canvas-fast"
-            : layeredHybridHudMode
-              ? "hybrid-z"
-              : hybridHudMode
-                ? "hybrid"
-                : canvasHudMode
-                  ? "canvas"
-                  : calibrationMode
-                    ? "calibration"
-                    : "image"
-        }
-        data-layering={layeredHybridHudMode ? "explicit" : undefined}
-        data-layout={
-          fastCanvasHudMode
-            ? "static-left-dynamic-right"
-            : layeredHybridHudMode
-              ? "map-text-console"
-              : undefined
-        }
-        data-update-tiles={fastCanvasHudMode ? "2" : undefined}
-        data-text-containers={diagnosticMode ? "2" : "1"}
-        data-image-containers={diagnosticMode ? "1" : "4"}
-        data-pages={
-          canvasHudMode || hybridHudMode ? HUD_PAGES.length : undefined
-        }
-        aria-label="SANDEVISTAN 이미지 전송 시안"
-      >
-        <canvas
-          ref={canvasRef}
-          width="576"
-          height="288"
-          role="img"
-          aria-label="SANDEVISTAN HUD 안경 프레임"
-        />
-      </section>
+      {hudSurface}
 
       <p className="preview-note">
         {hardwareBmpMode
@@ -578,17 +747,6 @@ export function App({ autoStart = true }: AppProps) {
                       ? "기본 뉴스 화면에서 아래 스크롤은 다음, 위 스크롤은 이전 페이지를 네 타일로 전송합니다."
                       : "이 Canvas가 네 장의 PNG로 나뉘어 안경에 순차 전송됩니다."}
       </p>
-      {fastCanvasHudMode && <DiagnosticConsole />}
-      {fastCanvasHudMode && (
-        <RouteControls
-          status={routingStatus}
-          activeRoute={activeCompanionRoute}
-          routeStatus={companionRoute.status}
-          onStart={startCompanionRoute}
-          onResume={resumeCompanionRoute}
-          onEnd={endCompanionRoute}
-        />
-      )}
     </main>
   );
 }

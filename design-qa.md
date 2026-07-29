@@ -1,50 +1,62 @@
-# Sandevistan HUD Design QA
+# Sandevistan Phone Companion Design QA
 
-- source visual truth path: `docs/design/selected-peripheral-focus.png`
-- implementation screenshot path: unavailable
-- intended viewport: 576 x 288 CSS px
-- source pixels: 1792 x 896
-- implementation pixels: unavailable
-- density normalization: source and implementation were not normalized because browser capture was unavailable
-- state: selected Peripheral Focus source rasterized to a 576 x 288 Canvas
-- primary interactions tested: four-tile transport sequencing and double-tap exit wiring
-- console errors checked: blocked because no browser backend is available
+- source visual truth: user-provided Even app Home, Dashboard, and Menu screenshots
+- implementation route: `/hud-canvas-fast?sdk=0.0.11`
+- intended viewport: narrow phone WebView, up to 540 CSS px wide
+- implementation screenshot: unavailable in this session
+- state: live HUD preview plus eight-card phone companion Home
+- primary interactions tested: every card opens its detail directly, Back returns
+  to Home, and the Canvas DOM node remains mounted
+- browser console inspection: blocked because the in-app browser runtime exposed
+  no browser backend
 
-## Full-view comparison evidence
+## Source-matched geometry
 
-The exact source image is now loaded into the implementation Canvas and scaled
-to the G2 resolution. The implementation could not be captured because the
-in-app browser runtime reported no available browser backends.
+The implementation uses the dimensions measured from the supplied Even Home:
 
-## Focused region comparison evidence
+- `#eeeeee` page background and white cards;
+- two equal columns with an 8 px gap;
+- card aspect ratio `1.28 / 1`;
+- 8 px card radius with no shadow or glow;
+- responsive 24–36 px internal padding;
+- monochrome Pixelarticons at the upper left;
+- title and compact live status at the lower left;
+- a washed grayscale Canvas preview on a neutral gray panel.
 
-Blocked for the same reason. No implementation screenshot exists for a same-state comparison.
+## Functional comparison evidence
 
-## Findings
+React interaction tests open Devices, HUD layout, News, TODO, Weather,
+Navigation, Language, and Developer directly from their cards. The tests also
+verify that there is no `Manage` destination and that opening and closing a
+detail screen does not remount the G2 Canvas.
 
-- [P0] Browser and physical-glasses evidence is unavailable
-  - Location: full 576 x 288 HUD.
-  - Evidence: the implementation draws the source raster directly, but the browser runtime returned an empty browser list and the G2 optical output has not yet been reported.
-  - Impact: SDK 4-bit conversion, physical contrast, text legibility and peripheral placement cannot be approved from code alone.
-  - Fix: inspect the QR-sideloaded frame on the G2 and report which regions are too small, dim or distracting.
+The details provide real editable states for HUD ordering, RSS sources, TODOs,
+device-local ORS key validation, and language. Diagnostics appear only under
+Developer.
+
+## Visual comparison blocker
+
+The supplied reference was available, but the implementation could not be
+captured at the same viewport because the approved in-app browser runtime
+returned an empty browser list. A same-state side-by-side screenshot comparison
+therefore remains pending. The Tailscale preview is running for physical phone
+inspection.
 
 ## Comparison history
 
-No visual comparison iteration has run. Unit rendering tests and TypeScript checks are not substitutes for browser evidence.
+1. Matched the white/gray token set and removed dark HUD styling from phone UI.
+2. Replaced the intermediate management page with eight full-card destinations.
+3. Replaced generic symbols with local Pixelarticons.
+4. Corrected the cards to the measured `1.28 / 1` shape, 8 px gap/radius, and
+   wider reference-like internal padding.
 
-## Required fidelity surfaces
+## Remaining visual gate
 
-- Fonts and typography: fixed in the selected raster; physical legibility pending.
-- Spacing and layout rhythm: fixed in the selected raster; optical placement pending.
-- Colors and visual tokens: SDK 4-bit conversion pending physical confirmation.
-- Image quality and asset fidelity: direct source downscale is implemented; G2 conversion quality pending.
-- Copy and content: fixed in the selected raster.
-
-## Implementation checklist
-
-- View the four-tile frame on the real G2.
-- Record legibility for the top compass, minimap, telemetry and bottom labels.
-- Adjust density or contrast based on physical evidence.
-- Capture the browser preview when an approved browser backend is available.
+- Capture the Home screen at a fixed phone viewport.
+- Combine that screenshot with the supplied Even Home reference.
+- Check card proportions, HUD-preview density, icon placement, typography,
+  footer spacing, and any clipped Korean copy.
+- Repeat for one detail screen and record `final result: passed` after visible
+  mismatches are corrected.
 
 final result: blocked

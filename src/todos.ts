@@ -55,6 +55,59 @@ function cloneTodos(items: readonly TodoItem[]): readonly TodoItem[] {
   return items.map((item) => ({ ...item }));
 }
 
+function normalizeTodoTitle(value: string): string {
+  return [...value.trim().replace(/\s+/g, " ")]
+    .slice(0, TODO_TITLE_MAX_CODE_POINTS)
+    .join("");
+}
+
+function assertTodoTitle(value: string): string {
+  const normalized = normalizeTodoTitle(value);
+  if (!normalized || CONTROL_CHARACTERS.test(normalized)) {
+    throw new Error("todo_title");
+  }
+  return normalized;
+}
+
+export function addTodo(
+  items: readonly TodoItem[],
+  title: string,
+  createId: () => string = () => (
+    `todo-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+  ),
+): readonly TodoItem[] {
+  if (items.length >= TODO_LIMIT) throw new Error("todo_limit");
+  const id = createId().trim();
+  if (!isNormalizedText(id, TODO_ID_MAX_CODE_POINTS)) {
+    throw new Error("todo_id");
+  }
+  return [
+    ...items,
+    { id, title: assertTodoTitle(title), completed: false },
+  ];
+}
+
+export function renameTodo(
+  items: readonly TodoItem[],
+  id: string,
+  title: string,
+): readonly TodoItem[] {
+  const normalized = assertTodoTitle(title);
+  return items.map((item) => item.id === id
+    ? { ...item, title: normalized }
+    : item);
+}
+
+export function deleteTodo(
+  items: readonly TodoItem[],
+  id: string,
+): readonly TodoItem[] {
+  if (items.length <= 1 && items.some((item) => item.id === id)) {
+    throw new Error("todo_last_item");
+  }
+  return items.filter((item) => item.id !== id);
+}
+
 export async function resolveTodos(
   storage: EvenStorage,
 ): Promise<readonly TodoItem[]> {

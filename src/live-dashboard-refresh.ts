@@ -12,6 +12,7 @@ import { resolveWeather } from "./weather";
 import { logDiagnostic } from "./diagnostic-log";
 
 export type LiveRefreshTarget = "left" | "right" | "all";
+export type LiveRefreshDecision = "accepted" | "dropped";
 
 type LiveDashboardRefreshOptions = {
   readonly bridge: LocationBridge;
@@ -80,6 +81,7 @@ function isSameNewsState(
       const other = right.value?.[index];
       return item.id === other?.id
         && item.title === other.title
+        && item.source === other.source
         && item.url === other.url
         && item.summary === other.summary
         && item.publishedAt === other.publishedAt;
@@ -115,14 +117,16 @@ export function createLiveDashboardRefresh(
     options.setState({ ...options.getState(), map: clone(map) });
   };
 
-  const refreshWeather = (): Promise<void> => {
+  const refreshWeather = (
+    force = false,
+  ): Promise<LiveRefreshDecision> => {
     if (options.isDisposed()) {
       logDiagnostic("LIVE", "weather skipped · disposed");
-      return Promise.resolve();
+      return Promise.resolve("dropped");
     }
     if (weatherPromise) {
       logDiagnostic("LIVE", "weather dropped · busy");
-      return Promise.resolve();
+      return Promise.resolve("dropped");
     }
     const startedAt = diagnosticNow();
     logDiagnostic("LIVE", "weather start");
@@ -153,6 +157,7 @@ export function createLiveDashboardRefresh(
               `weather cache emitted · right · ${cached.status}`,
             );
           },
+          force,
         );
       } catch (error) {
         logDiagnostic(
@@ -179,17 +184,19 @@ export function createLiveDashboardRefresh(
       );
       weatherPromise = undefined;
     });
-    return weatherPromise;
+    return weatherPromise.then(() => "accepted");
   };
 
-  const refreshNews = (): Promise<void> => {
+  const refreshNews = (
+    force = false,
+  ): Promise<LiveRefreshDecision> => {
     if (options.isDisposed()) {
       logDiagnostic("LIVE", "news skipped · disposed");
-      return Promise.resolve();
+      return Promise.resolve("dropped");
     }
     if (newsPromise) {
       logDiagnostic("LIVE", "news dropped · busy");
-      return Promise.resolve();
+      return Promise.resolve("dropped");
     }
     const startedAt = diagnosticNow();
     logDiagnostic("LIVE", "news start");
@@ -211,6 +218,7 @@ export function createLiveDashboardRefresh(
               `news cache emitted · right · ${cached.status}`,
             );
           },
+          force,
         );
       } catch (error) {
         logDiagnostic(
@@ -228,7 +236,7 @@ export function createLiveDashboardRefresh(
       logDiagnostic("LIVE", "news complete", diagnosticDuration(startedAt));
       newsPromise = undefined;
     });
-    return newsPromise;
+    return newsPromise.then(() => "accepted");
   };
 
   const refreshMap = (): Promise<void> => {

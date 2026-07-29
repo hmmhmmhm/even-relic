@@ -5,6 +5,7 @@ import {
 import {
   createInitialLiveDashboardState,
   type LiveDashboardState,
+  type TodoItem,
 } from "./live-state";
 import {
   haversineMeters,
@@ -100,7 +101,11 @@ export function createLiveDashboardSession(
   ): Promise<void>;
   resumeRoute(): Promise<void>;
   endRoute(): Promise<void>;
+  setRoutingKey(key: string | undefined): void;
+  refreshWeather(): Promise<"accepted" | "dropped">;
+  refreshNewsSources(): Promise<"accepted" | "dropped">;
   refreshNewsIfDue(): void;
+  replaceTodos(items: readonly TodoItem[]): void;
   toggleTodo(index: number): Promise<boolean>;
   getState(): LiveDashboardState;
   dispose(): void;
@@ -109,9 +114,13 @@ export function createLiveDashboardSession(
   const fetchImpl = options.fetchImpl ?? fetch;
   const documentTarget = options.documentTarget
     ?? (typeof document === "undefined" ? undefined : document);
+  let routingKey: string | undefined;
+  const isRoutingEnabled = () => (
+    options.routingStatus?.enabled === true || routingKey !== undefined
+  );
   let state: LiveDashboardState = {
     ...createInitialLiveDashboardState(),
-    route: options.routingStatus?.enabled
+    route: isRoutingEnabled()
       ? { status: "fresh" }
       : { status: "disabled" },
   };
@@ -460,6 +469,8 @@ export function createLiveDashboardSession(
   routeSession = createLiveRouteSession({
     bridge: options.bridge,
     routingStatus: options.routingStatus,
+    isRoutingEnabled,
+    getRoutingKey: () => routingKey,
     fetchImpl,
     now,
     getState: () => state,
@@ -484,12 +495,38 @@ export function createLiveDashboardSession(
     return true;
   };
 
+  const replaceTodos = (items: readonly TodoItem[]) => {
+    if (disposed || todosMatch(state.todos.value, items)) return;
+    state = {
+      ...state,
+      todos: { status: "fresh", value: clone(items) },
+    };
+    emit("right");
+  };
+
+  const setRoutingKey = (key: string | undefined) => {
+    if (routingKey === key) return;
+    routingKey = key;
+    if (routeSession.activeRoute()) return;
+    state = {
+      ...state,
+      route: isRoutingEnabled()
+        ? { status: "fresh" }
+        : { status: "disabled" },
+    };
+    emit("all");
+  };
+
   return {
     start,
     startRoute: routeSession.startRoute,
     resumeRoute: routeSession.resumeRoute,
     endRoute: routeSession.endRoute,
+    setRoutingKey,
+    refreshWeather: () => refresh.refreshWeather(true),
+    refreshNewsSources: () => refresh.refreshNews(true),
     refreshNewsIfDue,
+    replaceTodos,
     toggleTodo: toggleTodoAt,
     getState: () => clone(state),
     dispose: () => {

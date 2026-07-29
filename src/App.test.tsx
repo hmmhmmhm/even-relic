@@ -221,17 +221,17 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(hud.dataset.renderer).toBe("canvas-fast");
     expect(hud.dataset.layout).toBe("static-left-dynamic-right");
     expect(hud.dataset.updateTiles).toBe("2");
-    expect(screen.getByText(/CANVAS HUD · FAST 2-TILE/)).toBeTruthy();
-    expect(screen.getByText(/LIVE DATA/)).toBeTruthy();
-    expect(screen.queryByText(/STATIC MOCK/)).toBeNull();
-    expect(screen.getByText(
-      "날씨: Open-Meteo · 지도 데이터: OpenStreetMap contributors · 뉴스: SBS RSS · 개인·비상업",
-    )).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Sandevistan" })).toBeTruthy();
+    expect(screen.getByText("Dashboard")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Devices/ })).toBeTruthy();
+    expect(screen.queryByText(/CANVAS HUD · FAST 2-TILE/)).toBeNull();
   });
 
-  it("shows the diagnostic console only on the fast HUD", () => {
+  it("shows diagnostics only after opening Developer on the fast HUD", () => {
     window.history.replaceState({}, "", "/hud-canvas-fast");
     const fast = render(<App autoStart={false} />);
+    expect(screen.queryByText("WEBVIEW TRACE")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Developer/ }));
     expect(screen.getByText("WEBVIEW TRACE")).toBeTruthy();
     fast.unmount();
 
@@ -648,7 +648,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     view.unmount();
   });
 
-  it("cycles keyless Weather fourth and adds Navigation only when routed", async () => {
+  it("cycles keyless Weather fourth and keeps Navigation opt-in when routed", async () => {
     window.history.replaceState({}, "", "/hud-canvas-fast");
     const requestRefresh = vi.fn();
     let navigate:
@@ -708,7 +708,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(mocks.drawFast).toHaveBeenLastCalledWith(
       expect.any(HTMLCanvasElement),
       expect.any(Date),
-      "navigation",
+      "overview",
       expect.objectContaining({ live: routed }),
     );
     view.unmount();
@@ -1152,6 +1152,9 @@ describe("SANDEVISTAN peripheral HUD", () => {
     mocks.createSession.mockReturnValue(session);
 
     const view = render(<App />);
+    fireEvent.click(await screen.findByRole("button", {
+      name: /Navigation/,
+    }));
     const textbox = await screen.findByRole("textbox", { name: "목적지" });
     expect(mocks.getRoutingStatus).toHaveBeenCalledOnce();
     expect(mocks.createSession).toHaveBeenCalledWith(expect.objectContaining({

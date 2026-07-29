@@ -1,11 +1,14 @@
 import { readCache, writeCache, type EvenStorage } from "./live-cache";
 import type { DataState, NewsItem } from "./live-state";
 import { logDiagnostic } from "./diagnostic-log";
+import {
+  resolveRssSources,
+  type RssSource,
+} from "./rss-sources";
 
 export const NEWS_MAX_AGE_MS = 60 * 60 * 1000;
 export const NEWS_LIMIT = 100;
 const NEWS_TIMEOUT_MS = 8_000;
-const NEWS_URL = "/api/news?feed=sbs-latest";
 const NEWS_SUMMARY_MAX_CODE_POINTS = 360;
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
@@ -34,6 +37,18 @@ function isNewsItem(value: unknown): value is NewsItem {
     || value.id.length === 0
     || typeof value.title !== "string"
     || value.title.length === 0
+  ) {
+    return false;
+  }
+  if (
+    value.source !== undefined
+    && (
+      typeof value.source !== "string"
+      || value.source.length === 0
+      || value.source !== value.source.trim()
+      || [...value.source].length > 40
+      || CONTROL_CHARACTERS.test(value.source)
+    )
   ) {
     return false;
   }
@@ -87,7 +102,9 @@ function sanitizeSummary(value: string): string | undefined {
 }
 
 function childText(item: Element, selector: string): string {
-  return item.querySelector(selector)?.textContent ?? "";
+  return [...item.children].find(
+    (child) => child.localName === selector,
+  )?.textContent ?? "";
 }
 
 function fnv1a(value: string): string {
@@ -134,11 +151,32 @@ export function mergeNewsItems(
     .map(({ mergeIndex: _, ...item }) => item);
 }
 
-export function parseNewsRss(xml: string): readonly NewsItem[] {
+type NewsSourceLabel = Pick<RssSource, "id" | "name">;
+
+function feedLink(item: Element, atom: boolean): string {
+  if (!atom) return childText(item, "link");
+  const links = [...item.children].filter(
+    (child) => child.localName === "link",
+  );
+  return (
+    links.find((link) => (
+      !link.getAttribute("rel") || link.getAttribute("rel") === "alternate"
+    ))?.getAttribute("href")
+    ?? links[0]?.getAttribute("href")
+    ?? ""
+  );
+}
+
+export function parseNewsFeed(
+  xml: string,
+  source?: NewsSourceLabel,
+): readonly NewsItem[] {
   const document = new DOMParser().parseFromString(xml, "application/xml");
+  const root = document.documentElement.localName;
+  const atom = root === "feed";
   if (
     document.querySelector("parsererror")
-    || document.documentElement.localName !== "rss"
+    || (root !== "rss" && root !== "feed" && root.toLowerCase() !== "rdf")
   ) {
     return [];
   }
@@ -146,13 +184,16 @@ export function parseNewsRss(xml: string): readonly NewsItem[] {
   const records: Array<NewsItem & { readonly sourceIndex: number }> = [];
   const seen = new Set<string>();
   for (const [sourceIndex, item] of [
-    ...document.querySelectorAll("item"),
+    ...document.getElementsByTagName(atom ? "entry" : "item"),
   ].entries()) {
     const title = sanitizeText(childText(item, "title"));
     if (!title) continue;
-    const guid = sanitizeText(childText(item, "guid"));
-    const url = normalizeUrl(childText(item, "link"));
-    const summary = sanitizeSummary(childText(item, "description"));
+    const guid = sanitizeText(childText(item, atom ? "id" : "guid"));
+    const url = normalizeUrl(feedLink(item, atom));
+    const summary = sanitizeSummary(
+      childText(item, atom ? "summary" : "description")
+      || (atom ? childText(item, "content") : ""),
+    );
     const id = guid
       ? `guid:${guid}`
       : url
@@ -161,10 +202,17 @@ export function parseNewsRss(xml: string): readonly NewsItem[] {
     if (seen.has(id)) continue;
     seen.add(id);
 
-    const parsedDate = Date.parse(sanitizeText(childText(item, "pubDate")));
+    const parsedDate = Date.parse(sanitizeText(
+      childText(item, atom ? "updated" : "pubDate")
+      || (atom ? childText(item, "published") : ""),
+    ));
+    const sourceName = source
+      ? [...sanitizeText(source.name)].slice(0, 40).join("")
+      : "";
     records.push({
       id,
       title,
+      ...(sourceName ? { source: sourceName } : {}),
       ...(url ? { url } : {}),
       ...(Number.isFinite(parsedDate) ? { publishedAt: parsedDate } : {}),
       ...(summary ? { summary } : {}),
@@ -186,6 +234,10 @@ export function parseNewsRss(xml: string): readonly NewsItem[] {
   return records.slice(0, NEWS_LIMIT).map(({ sourceIndex: _, ...item }) => item);
 }
 
+export function parseNewsRss(xml: string): readonly NewsItem[] {
+  return parseNewsFeed(xml);
+}
+
 function toState(
   cache: NewsCache,
   status: "fresh" | "stale",
@@ -202,6 +254,7 @@ export async function resolveNews(
   fetchImpl: typeof fetch = fetch,
   now = Date.now(),
   onCached?: (cached: DataState<readonly NewsItem[]>) => void,
+  force = false,
 ): Promise<DataState<readonly NewsItem[]>> {
   const cached = await readCache(storage, "news", isNewsCache);
   const usableCache = cached && cached.fetchedAt <= now ? cached : undefined;
@@ -211,23 +264,43 @@ export async function resolveNews(
       : "stale";
     const cachedState = toState(usableCache, status);
     onCached?.(cachedState);
-    if (status === "fresh") return cachedState;
+    if (status === "fresh" && !force) return cachedState;
   }
 
+  const sources = (await resolveRssSources(storage))
+    .filter((source) => source.enabled);
+  if (sources.length === 0) {
+    return usableCache
+      ? toState(usableCache, "stale")
+      : { status: "unavailable" };
+  }
   const controller = new AbortController();
   const timer = globalThis.setTimeout(
     () => controller.abort(),
     NEWS_TIMEOUT_MS,
   );
   try {
-    const response = await fetchImpl(NEWS_URL, {
-      headers: {
-        accept: "application/rss+xml, application/xml, text/xml",
-      },
-      signal: controller.signal,
-    });
-    if (!response.ok) throw new Error("NEWS_HTTP_ERROR");
-    const items = parseNewsRss(await response.text());
+    const snapshots = await Promise.all(sources.map(async (source) => {
+      const endpoint = source.isDefault
+        ? "/api/news?feed=sbs-latest"
+        : `/api/news?url=${encodeURIComponent(source.url)}`;
+      try {
+        const response = await fetchImpl(endpoint, {
+          headers: {
+            accept: "application/rss+xml, application/xml, text/xml",
+          },
+          signal: controller.signal,
+        });
+        if (!response.ok) return [];
+        return parseNewsFeed(await response.text(), source);
+      } catch {
+        return [];
+      }
+    }));
+    const items = snapshots.reduce<readonly NewsItem[]>(
+      (all, snapshot) => mergeNewsItems(snapshot, all),
+      [],
+    );
     if (items.length === 0) throw new Error("NEWS_EMPTY");
 
     const value = mergeNewsItems(items, usableCache?.value ?? []);

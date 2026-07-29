@@ -40,11 +40,103 @@ test("proxies only the fixed SBS latest feed with hardened options", async () =>
   assert.equal(response.headers.get("x-content-type-options"), "nosniff");
   assert.equal(calls.length, 1);
   assert.equal(calls[0].url, FEED_URL);
-  assert.equal(calls[0].options.redirect, "error");
+  assert.equal(calls[0].options.redirect, "manual");
   assert.deepEqual(calls[0].options.headers, {
     accept: "application/rss+xml, application/xml, text/xml",
   });
   assert.ok(calls[0].options.signal instanceof AbortSignal);
+});
+
+test("proxies one validated custom HTTPS RSS feed without shared caching", async () => {
+  const calls = [];
+  const source = "https://feeds.example.com/latest.xml?edition=kr";
+  const response = await handleApiRequest(
+    new Request(
+      `https://example.test/api/news?url=${encodeURIComponent(source)}`,
+    ),
+    {},
+    {
+      fetchImpl: async (url, options) => {
+        calls.push({ url, options });
+        return rssResponse("<feed xmlns=\"http://www.w3.org/2005/Atom\" />", {
+          headers: { "content-type": "application/atom+xml" },
+        });
+      },
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, source);
+  assert.equal(calls[0].options.redirect, "manual");
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(
+    response.headers.get("content-type"),
+    "application/xml; charset=utf-8",
+  );
+});
+
+for (const unsafe of [
+  "http://feeds.example.com/rss.xml",
+  "https://user:pass@feeds.example.com/rss.xml",
+  "https://feeds.example.com:8443/rss.xml",
+  "https://127.0.0.1/rss.xml",
+  "https://[::1]/rss.xml",
+  "https://localhost/rss.xml",
+  "https://reader.local/rss.xml",
+  "https://feeds.internal/rss.xml",
+  "https://feeds.example.com/rss.xml#private",
+]) {
+  test(`rejects unsafe custom RSS URL ${unsafe}`, async () => {
+    let calls = 0;
+    const response = await handleNewsRequest(
+      new Request(
+        `https://example.test/api/news?url=${encodeURIComponent(unsafe)}`,
+      ),
+      {},
+      { fetchImpl: async () => {
+        calls += 1;
+        return rssResponse();
+      } },
+    );
+
+    assert.equal(response.status, 400);
+    assert.equal(calls, 0);
+    assert.equal((await response.json()).error.code, "UNSAFE_FEED_URL");
+  });
+}
+
+test("rejects custom redirects, non-XML content, and non-feed XML", async () => {
+  const source = encodeURIComponent("https://feeds.example.com/rss.xml");
+  const redirect = await handleNewsRequest(
+    new Request(`https://example.test/api/news?url=${source}`),
+    {},
+    { fetchImpl: async () => new Response(null, {
+      status: 302,
+      headers: { location: "https://other.example.com/rss.xml" },
+    }) },
+  );
+  const html = await handleNewsRequest(
+    new Request(`https://example.test/api/news?url=${source}`),
+    {},
+    { fetchImpl: async () => new Response("<rss />", {
+      headers: { "content-type": "text/html" },
+    }) },
+  );
+  const nonFeed = await handleNewsRequest(
+    new Request(`https://example.test/api/news?url=${source}`),
+    {},
+    { fetchImpl: async () => new Response("<document />", {
+      headers: { "content-type": "application/xml" },
+    }) },
+  );
+
+  assert.equal(redirect.status, 502);
+  assert.equal((await redirect.json()).error.code, "NEWS_REDIRECT");
+  assert.equal(html.status, 502);
+  assert.equal((await html.json()).error.code, "NEWS_CONTENT_TYPE");
+  assert.equal(nonFeed.status, 502);
+  assert.equal((await nonFeed.json()).error.code, "NEWS_INVALID_FEED");
 });
 
 test("rejects unsupported feeds without calling upstream", async () => {
@@ -112,7 +204,10 @@ test("cancels and rejects a response larger than one million bytes", async () =>
     new Request("https://example.test/api/news?feed=sbs-latest"),
     {},
     {
-      fetchImpl: async () => new Response(body, { status: 200 }),
+      fetchImpl: async () => new Response(body, {
+        status: 200,
+        headers: { "content-type": "application/rss+xml" },
+      }),
     },
   );
 

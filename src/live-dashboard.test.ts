@@ -127,6 +127,64 @@ function deferred<T>() {
 }
 
 describe("createLiveDashboardSession", () => {
+  it("exposes a manual weather refresh decision for the phone companion", async () => {
+    const fetchImpl = liveFetch();
+    const session = createLiveDashboardSession({
+      bridge: new TestBridge(),
+      fetchImpl,
+      now: () => NOW,
+      onUpdate: vi.fn(),
+    });
+    await session.start();
+    const weatherCallsBefore = vi.mocked(fetchImpl).mock.calls.filter(
+      ([input]) => !String(input).startsWith("/api/"),
+    ).length;
+
+    await expect(session.refreshWeather()).resolves.toBe("accepted");
+    expect(vi.mocked(fetchImpl).mock.calls.filter(
+      ([input]) => !String(input).startsWith("/api/"),
+    )).toHaveLength(weatherCallsBefore + 1);
+    session.dispose();
+    await expect(session.refreshWeather()).resolves.toBe("dropped");
+  });
+
+  it("force-refills fresh news after phone RSS source changes", async () => {
+    const bridge = new TestBridge();
+    const fetchImpl = liveFetch();
+    const session = createLiveDashboardSession({
+      bridge,
+      fetchImpl,
+      now: () => NOW,
+      onUpdate: vi.fn(),
+    });
+    await session.start();
+    bridge.values.set("sandevistan:rss-sources:v1", JSON.stringify([
+      {
+        id: "sbs-latest",
+        name: "SBS Latest",
+        url: "https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=01",
+        enabled: true,
+        isDefault: true,
+      },
+      {
+        id: "example",
+        name: "Example",
+        url: "https://feeds.example.com/rss.xml",
+        enabled: true,
+        isDefault: false,
+      },
+    ]));
+    vi.mocked(fetchImpl).mockClear();
+
+    await expect(session.refreshNewsSources()).resolves.toBe("accepted");
+
+    expect(vi.mocked(fetchImpl).mock.calls.map(([input]) => String(input)))
+      .toEqual(expect.arrayContaining([
+        "/api/news?feed=sbs-latest",
+        "/api/news?url=https%3A%2F%2Ffeeds.example.com%2Frss.xml",
+      ]));
+  });
+
   it("does no work at construction, then resolves location, weather, and news", async () => {
     const bridge = new TestBridge();
     const updates: LiveDashboardUpdate[] = [];
@@ -192,12 +250,11 @@ describe("createLiveDashboardSession", () => {
     await session.start();
 
     expect(fetchImpl).toHaveBeenCalledTimes(2);
-    expect(String(vi.mocked(fetchImpl).mock.calls[0][0])).toBe(
-      "/api/news?feed=sbs-latest",
-    );
-    expect(String(vi.mocked(fetchImpl).mock.calls[1][0])).toMatch(
-      /^\/api\/map/,
-    );
+    expect(vi.mocked(fetchImpl).mock.calls.map(([input]) => String(input)))
+      .toEqual(expect.arrayContaining([
+        "/api/news?feed=sbs-latest",
+        expect.stringMatching(/^\/api\/map/),
+      ]));
     expect(updates.filter(({ target }) => target === "left")).toHaveLength(2);
     expect(updates.filter(({ target }) => target === "right")).toHaveLength(2);
     expect(updates[1].state.weather.value?.temperature).toBe(24);
@@ -449,6 +506,7 @@ describe("createLiveDashboardSession", () => {
       id: "guid:live-one",
       title: "실시간 첫 뉴스",
       publishedAt: Date.parse("2026-07-27T05:00:00Z"),
+      source: "SBS Latest",
     }]);
   });
 

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { EvenStorage } from "./live-cache";
 import {
+  addTodo,
   DEFAULT_TODOS,
+  deleteTodo,
+  renameTodo,
   resolveTodos,
   toggleTodo,
   writeTodos,
@@ -92,6 +95,42 @@ describe("resolveTodos", () => {
 });
 
 describe("todo changes", () => {
+  it("adds and trims a task without mutating the input", () => {
+    const result = addTodo(DEFAULT_TODOS, "  새 할 일  ", () => "new-id");
+
+    expect(result).toHaveLength(DEFAULT_TODOS.length + 1);
+    expect(result.at(-1)).toEqual({
+      id: "new-id",
+      title: "새 할 일",
+      completed: false,
+    });
+    expect(DEFAULT_TODOS).toHaveLength(3);
+  });
+
+  it("renames by id and enforces the forty-code-point title limit", () => {
+    const result = renameTodo(DEFAULT_TODOS, "station", `  ${"가".repeat(45)}  `);
+
+    expect(result[0].title).toBe("가".repeat(40));
+    expect(result[1]).toBe(DEFAULT_TODOS[1]);
+  });
+
+  it("rejects a seventh task and deletion of the final task", () => {
+    const six = Array.from({ length: 6 }, (_, index) => ({
+      id: `task-${index}`,
+      title: `Task ${index}`,
+      completed: false,
+    }));
+
+    expect(() => addTodo(six, "Seventh")).toThrowError("todo_limit");
+    expect(() => deleteTodo([six[0]], six[0].id))
+      .toThrowError("todo_last_item");
+  });
+
+  it("deletes a non-final task by id", () => {
+    expect(deleteTodo(DEFAULT_TODOS, "umbrella").map((item) => item.id))
+      .toEqual(["station", "route"]);
+  });
+
   it("toggles a valid task and leaves the input records unchanged", () => {
     const result = toggleTodo(DEFAULT_TODOS, 1);
 

@@ -37,6 +37,7 @@ export type WeatherValue = {
 export type NewsItem = {
   readonly id: string;
   readonly title: string;
+  readonly source?: string;
   readonly url?: string;
   readonly publishedAt?: number;
   readonly summary?: string;

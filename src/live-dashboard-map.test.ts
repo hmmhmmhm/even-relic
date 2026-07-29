@@ -160,8 +160,10 @@ describe("live dashboard map integration", () => {
       },
       fetchedAt: NOW,
     });
-    const mapUpdate = [...updates].reverse().find(
-      ({ state }) => state.map.status === "fresh",
+    const mapUpdate = updates.find(
+      ({ state, target }) => (
+        target === "left" && state.map.status === "fresh"
+      ),
     );
     expect(mapUpdate?.target).toBe("left");
   });

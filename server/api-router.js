@@ -4,6 +4,7 @@ import { handleNewsRequest } from "./news.js";
 import {
   handleGeocodeRequest,
   handleRouteRequest,
+  handleRoutingKeyTest,
   handleRoutingStatus,
 } from "./route.js";
 
@@ -18,6 +19,12 @@ export async function handleApiRequest(request, env, dependencies = {}) {
   }
   if (url.pathname === "/api/routing-status" && request.method === "GET") {
     return handleRoutingStatus(request, env);
+  }
+  if (
+    url.pathname === "/api/routing-key-test"
+    && request.method === "POST"
+  ) {
+    return handleRoutingKeyTest(request, env, dependencies);
   }
   if (url.pathname === "/api/geocode" && request.method === "GET") {
     return handleGeocodeRequest(request, env, dependencies);

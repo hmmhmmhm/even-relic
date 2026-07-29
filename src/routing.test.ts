@@ -4,6 +4,7 @@ import {
   getRoutingStatus,
   requestRoute,
   searchDestinations,
+  validateRoutingKey,
 } from "./routing";
 
 const destination = {
@@ -21,6 +22,26 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 describe("routing client", () => {
+  it("validates and forwards a device-local ORS key in the dedicated header", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({ valid: true }));
+
+    await expect(validateRoutingKey(
+      "abcdefghijklmnop",
+      fetchImpl as typeof fetch,
+    )).resolves.toBe(true);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "/api/routing-key-test",
+      expect.objectContaining({
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          "x-sandevistan-ors-key": "abcdefghijklmnop",
+        },
+        signal: expect.any(AbortSignal),
+      }),
+    );
+  });
+
   it("reads a disabled routing status from the same origin", async () => {
     const fetchImpl = vi.fn(async () => jsonResponse({ enabled: false }));
 
@@ -58,6 +79,42 @@ describe("routing client", () => {
         signal: expect.any(AbortSignal),
       }),
     );
+  });
+
+  it("attaches a supplied key to geocode and route requests", async () => {
+    const geocodeFetch = vi.fn(async () => jsonResponse({ results: [] }));
+    await searchDestinations(
+      "서울역",
+      geocodeFetch as typeof fetch,
+      "abcdefghijklmnop",
+    );
+    const geocodeInit = (
+      geocodeFetch.mock.calls as unknown as Array<[string, RequestInit]>
+    )[0][1];
+    expect(geocodeInit.headers).toEqual({
+      accept: "application/json",
+      "x-sandevistan-ors-key": "abcdefghijklmnop",
+    });
+
+    const routeFetch = vi.fn(async () => jsonResponse({
+      geometry: [[37.5563, 126.922], [37.5547, 126.9707]],
+      distance: 1,
+      duration: 1,
+      maneuvers: [],
+    }));
+    await requestRoute({
+      start: { latitude: 37.5563, longitude: 126.922 },
+      destination,
+      profile: "foot-walking",
+    }, routeFetch as typeof fetch, "abcdefghijklmnop");
+    const routeInit = (
+      routeFetch.mock.calls as unknown as Array<[string, RequestInit]>
+    )[0][1];
+    expect(routeInit.headers).toEqual({
+      accept: "application/json",
+      "content-type": "application/json",
+      "x-sandevistan-ors-key": "abcdefghijklmnop",
+    });
   });
 
   it("creates a normalized active route without exposing raw ORS data", async () => {

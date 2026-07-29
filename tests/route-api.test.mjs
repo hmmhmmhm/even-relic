@@ -3,6 +3,7 @@ import test from "node:test";
 import { handleApiRequest } from "../server/api-router.js";
 
 const SECRET = "fake-ors-secret";
+const DEVICE_SECRET = "fake-device-ors-secret";
 const START = { latitude: 37.5563, longitude: 126.922 };
 const DESTINATION = { latitude: 37.5547, longitude: 126.9707 };
 
@@ -32,7 +33,10 @@ function upstreamJson(body, init = {}) {
 }
 
 async function assertNoSecret(response) {
-  assert.doesNotMatch(await response.clone().text(), /fake-ors-secret/);
+  assert.doesNotMatch(
+    await response.clone().text(),
+    /fake-ors-secret|fake-device-ors-secret/,
+  );
 }
 
 test("disables every ORS endpoint cleanly when the server secret is absent", async () => {
@@ -56,6 +60,55 @@ test("disables every ORS endpoint cleanly when the server secret is absent", asy
     assert.equal(response.status, 503);
     assert.equal((await response.json()).error.code, "ROUTING_DISABLED");
   }
+});
+
+test("validates a device key and never returns it", async () => {
+  const calls = [];
+  const response = await handleApiRequest(
+    new Request("https://example.test/api/routing-key-test", {
+      method: "POST",
+      headers: { "x-sandevistan-ors-key": DEVICE_SECRET },
+    }),
+    {},
+    {
+      fetchImpl: async (url, options) => {
+        calls.push({ url: String(url), options });
+        return upstreamJson({ features: [] });
+      },
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.clone().json(), { valid: true });
+  await assertNoSecret(response);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.equal(calls.length, 1);
+  const upstream = new URL(calls[0].url);
+  assert.equal(upstream.origin, "https://api.openrouteservice.org");
+  assert.equal(upstream.pathname, "/geocode/search");
+  assert.equal(upstream.searchParams.get("api_key"), DEVICE_SECRET);
+  assert.equal(calls[0].options.redirect, "error");
+});
+
+test("prefers the request key over the development fallback", async () => {
+  const userKey = "device-owned-key-123456";
+  const calls = [];
+  const response = await handleApiRequest(
+    new Request("https://example.test/api/geocode?q=Seoul", {
+      headers: { "x-sandevistan-ors-key": userKey },
+    }),
+    { ORS_API_KEY: SECRET },
+    {
+      fetchImpl: async (url) => {
+        calls.push(String(url));
+        return upstreamJson({ features: [] });
+      },
+    },
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(new URL(calls[0]).searchParams.get("api_key"), userKey);
+  assert.doesNotMatch(await response.text(), /device-owned-key|fake-ors-secret/);
 });
 
 test("normalizes at most five valid Korean geocoding results", async () => {

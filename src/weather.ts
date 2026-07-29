@@ -242,6 +242,7 @@ export async function resolveWeather(
   fetchImpl: typeof fetch = fetch,
   now = Date.now(),
   onCached?: (cached: DataState<WeatherValue>) => void,
+  force = false,
 ): Promise<DataState<WeatherValue>> {
   const requestCoordinate = { ...coordinate };
   const cache = await readCache(storage, "weather", isWeatherCache);
@@ -267,7 +268,7 @@ export async function resolveWeather(
       } catch {
         // Rendering an accepted cache is optional and must not block refresh.
       }
-      if (cachedState.status === "fresh") {
+      if (cachedState.status === "fresh" && !force) {
         return cachedState;
       }
       staleState = cachedState;
