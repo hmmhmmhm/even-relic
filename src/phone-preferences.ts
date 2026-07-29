@@ -104,9 +104,10 @@ export async function resolvePhonePreferences(
     "phone-preferences",
     isPhonePreferences,
   );
-  return cached
-    ? normalizePhonePreferences(cached, navigationAvailable)
-    : clonePreferences(DEFAULT_PHONE_PREFERENCES);
+  return normalizePhonePreferences(
+    cached ?? DEFAULT_PHONE_PREFERENCES,
+    navigationAvailable,
+  );
 }
 
 export function writePhonePreferences(

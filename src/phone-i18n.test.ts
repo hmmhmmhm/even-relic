@@ -25,5 +25,8 @@ describe("phone localization", () => {
     expect(translatePhone("ko", "developmentFallback")).toBe("개발용 서버 키");
     expect(translatePhone("ko", "refreshDropped")).toBe("버린 화면 갱신");
     expect(translatePhone("en", "routingMode")).toBe("Routing mode");
+    expect(translatePhone("en", "refreshBusy")).toBe(
+      "A refresh is already in progress.",
+    );
   });
 });

@@ -87,12 +87,16 @@ export function NavigationScreen({
     }
     setBusy(true);
     try {
-      await onDeleteRoute?.();
       if (!await clearOrsKey(storage)) throw new Error("storage");
       setStoredKey(undefined);
       setConfirmDelete(false);
       setError(undefined);
       onKeyChange?.(undefined);
+      try {
+        await onDeleteRoute?.();
+      } catch {
+        // Removing a device-local secret must not depend on a live route session.
+      }
     } catch {
       setError(t("storageFailed"));
     } finally {

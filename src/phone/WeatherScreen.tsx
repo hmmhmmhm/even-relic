@@ -18,13 +18,22 @@ export function WeatherScreen({
 }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string>();
+  const [messageIsError, setMessageIsError] = useState(false);
   const weather = live.weather.value;
   const refresh = async () => {
     if (busy) return;
     setBusy(true);
-    const result = await onRefresh();
-    setMessage(result === "dropped" ? t("refreshing") : undefined);
-    setBusy(false);
+    setMessage(undefined);
+    setMessageIsError(false);
+    try {
+      const result = await onRefresh();
+      setMessage(result === "dropped" ? t("refreshBusy") : undefined);
+    } catch {
+      setMessage(t("refreshFailed"));
+      setMessageIsError(true);
+    } finally {
+      setBusy(false);
+    }
   };
   return (
     <div className="phone-detail-stack">
@@ -59,7 +68,14 @@ export function WeatherScreen({
         <PhoneIcon name="reload" size={22} />
         {busy ? t("refreshing") : t("refresh")}
       </button>
-      {message && <p className="phone-form-message">{message}</p>}
+      {message && (
+        <p
+          role={messageIsError ? "alert" : "status"}
+          className="phone-form-message"
+        >
+          {message}
+        </p>
+      )}
     </div>
   );
 }

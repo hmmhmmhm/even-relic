@@ -51,6 +51,16 @@ describe("phone preferences", () => {
     });
   });
 
+  it("adds Navigation when storage is empty and a local key is available", async () => {
+    const storage = new TestStorage();
+
+    await expect(resolvePhonePreferences(storage, true)).resolves.toEqual({
+      locale: "system",
+      order: ["overview", "news", "todo", "weather", "navigation"],
+      enabled: ["overview", "news", "todo", "weather"],
+    });
+  });
+
   it("restores and persists a valid layout using the versioned cache key", async () => {
     const storage = new TestStorage();
     const saved = {

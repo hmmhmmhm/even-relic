@@ -212,7 +212,7 @@ export function PhoneCompanion({
           <LanguageScreen
             value={preferences.locale}
             t={t}
-            onChange={(value) => void savePreferences({
+            onChange={(value) => savePreferences({
               ...preferences,
               locale: value,
             })}

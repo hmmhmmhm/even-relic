@@ -85,6 +85,8 @@ const en = {
   copied: "Copied",
   copyFailed: "Copy failed",
   clear: "Clear",
+  refreshBusy: "A refresh is already in progress.",
+  refreshFailed: "Could not refresh weather.",
 } as const;
 
 const ko = {
@@ -172,6 +174,8 @@ const ko = {
   copied: "복사됨",
   copyFailed: "복사 실패",
   clear: "비우기",
+  refreshBusy: "이미 날씨를 갱신하고 있습니다.",
+  refreshFailed: "날씨를 갱신하지 못했습니다.",
 } satisfies Record<keyof typeof en, string>;
 
 export const PHONE_STRINGS = { en, ko } as const;
