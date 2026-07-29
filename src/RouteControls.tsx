@@ -10,6 +10,7 @@ import {
   type RouteProfile,
   type RoutingStatus,
 } from "./routing";
+import { LOCALE_REGISTRY } from "./i18n/locale-registry";
 import type { PhoneLocale } from "./phone-types";
 
 type RouteControlsProps = {
@@ -27,55 +28,6 @@ type RouteControlsProps = {
   readonly search?: (query: string) => ReturnType<typeof searchDestinations>;
 };
 
-const ROUTE_COPY = {
-  en: {
-    navigation: "Navigation",
-    disabledHelp: "Connect an ORS key to enable navigation.",
-    minimumQuery: "Enter at least two characters.",
-    searchFailed: "Could not search destinations. Try again.",
-    endFailed: "Could not end navigation. Try again.",
-    startFailed: "Could not start the route. Try again.",
-    previousRoute: "previous route",
-    navigating: "navigating",
-    resume: "Resume navigation",
-    end: "End navigation",
-    destinationSearch: "Destination search",
-    destination: "Destination",
-    profile: "Travel mode",
-    searching: "Searching",
-    search: "Search",
-    searchResults: "Search results",
-    profiles: {
-      "foot-walking": "Walking",
-      "cycling-regular": "Cycling",
-      "driving-car": "Driving",
-    },
-  },
-  ko: {
-    navigation: "길찾기",
-    disabledHelp: "ORS 키 연결 후 길찾기 사용 가능",
-    minimumQuery: "목적지를 두 글자 이상 입력하세요.",
-    searchFailed: "목적지를 검색하지 못했습니다. 다시 시도하세요.",
-    endFailed: "길찾기를 종료하지 못했습니다. 다시 시도하세요.",
-    startFailed: "경로를 시작하지 못했습니다. 다시 시도하세요.",
-    previousRoute: "이전 경로",
-    navigating: "안내 중",
-    resume: "길찾기 다시 시작",
-    end: "길찾기 종료",
-    destinationSearch: "목적지 검색",
-    destination: "목적지",
-    profile: "이동 방식",
-    searching: "검색 중",
-    search: "검색",
-    searchResults: "검색 결과",
-    profiles: {
-      "foot-walking": "도보",
-      "cycling-regular": "자전거",
-      "driving-car": "자동차",
-    },
-  },
-} as const;
-
 const PROFILE_VALUES: readonly RouteProfile[] = [
   "foot-walking",
   "cycling-regular",
@@ -85,7 +37,7 @@ const PROFILE_VALUES: readonly RouteProfile[] = [
 function conciseError(
   error: unknown,
   action: "search" | "start" | "end",
-  copy: typeof ROUTE_COPY[PhoneLocale],
+  copy: typeof LOCALE_REGISTRY[PhoneLocale]["route"],
 ) {
   if (error instanceof RoutingError && error.disabled) {
     return copy.disabledHelp;
@@ -110,7 +62,7 @@ export function RouteControls({
   orsKey,
   search,
 }: RouteControlsProps) {
-  const copy = ROUTE_COPY[locale];
+  const copy = LOCALE_REGISTRY[locale].route;
   const [query, setQuery] = useState("");
   const [profile, setProfile] = useState<RouteProfile>("foot-walking");
   const [results, setResults] = useState<readonly Destination[]>([]);

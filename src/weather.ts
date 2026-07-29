@@ -1,4 +1,5 @@
 import { readCache, writeCache, type EvenStorage } from "./live-cache";
+import { LOCALE_REGISTRY } from "./i18n/locale-registry";
 import type { Coordinate, DataState, WeatherValue } from "./live-state";
 import type { PhoneLocale } from "./phone-types";
 
@@ -137,33 +138,7 @@ export function weatherCodeLabel(
   code: number,
   locale: PhoneLocale = "ko",
 ): string {
-  const labels = locale === "ko"
-    ? {
-        unknown: "알 수 없음",
-        clear: "맑음",
-        mostlyClear: "대체로 맑음",
-        overcast: "흐림",
-        fog: "안개",
-        drizzle: "이슬비",
-        rain: "비",
-        snow: "눈",
-        showers: "소나기",
-        snowShowers: "눈 소나기",
-        thunderstorm: "뇌우",
-      }
-    : {
-        unknown: "Unknown",
-        clear: "Clear",
-        mostlyClear: "Mostly clear",
-        overcast: "Overcast",
-        fog: "Fog",
-        drizzle: "Drizzle",
-        rain: "Rain",
-        snow: "Snow",
-        showers: "Showers",
-        snowShowers: "Snow showers",
-        thunderstorm: "Thunderstorm",
-      };
+  const labels = LOCALE_REGISTRY[locale].weather;
   if (!Number.isInteger(code) || code < 0 || code > 99) {
     return labels.unknown;
   }

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { LOCALE_REGISTRY } from "./i18n/locale-registry";
 import {
   PHONE_STRINGS,
   resolvePhoneLocale,
@@ -6,6 +7,11 @@ import {
 } from "./phone-i18n";
 
 describe("phone localization", () => {
+  it("uses the registry packs as the only phone-copy source", () => {
+    expect(PHONE_STRINGS.en).toBe(LOCALE_REGISTRY.en.phone);
+    expect(PHONE_STRINGS.ko).toBe(LOCALE_REGISTRY.ko.phone);
+  });
+
   it("keeps Korean and English dictionaries structurally identical", () => {
     expect(Object.keys(PHONE_STRINGS.ko).sort())
       .toEqual(Object.keys(PHONE_STRINGS.en).sort());

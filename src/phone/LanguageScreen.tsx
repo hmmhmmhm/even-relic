@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { LOCALE_OPTIONS } from "../i18n/locale-registry";
 import type { PhoneLocaleSetting } from "../phone-types";
 import type { PhoneStringKey } from "../phone-i18n";
 
@@ -16,10 +17,9 @@ export function LanguageScreen({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string>();
   const choices = [
-    ["system", t("system")],
-    ["ko", t("korean")],
-    ["en", t("english")],
-  ] as const;
+    { value: "system" as const, label: t("system") },
+    ...LOCALE_OPTIONS,
+  ];
   const choose = async (choice: PhoneLocaleSetting) => {
     if (saving || choice === value) return;
     setSaving(true);
@@ -31,7 +31,7 @@ export function LanguageScreen({
     <div className="phone-detail-stack">
       <fieldset className="phone-panel phone-choice-list">
         <legend className="phone-visually-hidden">{t("language")}</legend>
-        {choices.map(([choice, label]) => (
+        {choices.map(({ value: choice, label }) => (
           <label key={choice}>
             <span>{label}</span>
             <input

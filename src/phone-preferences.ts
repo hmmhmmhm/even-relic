@@ -1,4 +1,5 @@
 import { readCache, writeCache, type EvenStorage } from "./live-cache";
+import { isSupportedLocale } from "./i18n/locale-registry";
 import type {
   HudPageId,
   PhoneLocaleSetting,
@@ -17,8 +18,11 @@ const ALL_PAGES = [
   "navigation",
 ] as const satisfies readonly HudPageId[];
 
-const LOCALES = new Set<PhoneLocaleSetting>(["system", "ko", "en"]);
 const PAGE_IDS = new Set<HudPageId>(ALL_PAGES);
+
+function isLocaleSetting(value: unknown): value is PhoneLocaleSetting {
+  return value === "system" || isSupportedLocale(value);
+}
 
 export const DEFAULT_PHONE_PREFERENCES: PhonePreferences = {
   locale: "system",
@@ -38,7 +42,7 @@ function isPageArray(value: unknown): value is readonly HudPageId[] {
 function isPhonePreferences(value: unknown): value is PhonePreferences {
   return isRecord(value)
     && typeof value.locale === "string"
-    && LOCALES.has(value.locale as PhoneLocaleSetting)
+    && isLocaleSetting(value.locale)
     && isPageArray(value.order)
     && isPageArray(value.enabled);
 }
@@ -80,7 +84,7 @@ export function normalizePhonePreferences(
   if (!isValidLayout(value, navigationAvailable)) {
     return {
       ...DEFAULT_PHONE_PREFERENCES,
-      locale: LOCALES.has(value.locale) ? value.locale : "system",
+      locale: isLocaleSetting(value.locale) ? value.locale : "system",
       order: navigationAvailable
         ? [...DEFAULT_PHONE_PREFERENCES.order, "navigation"]
         : [...DEFAULT_PHONE_PREFERENCES.order],

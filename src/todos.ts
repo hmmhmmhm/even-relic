@@ -1,5 +1,10 @@
 import { readCache, writeCache, type EvenStorage } from "./live-cache";
 import {
+  LOCALE_REGISTRY,
+  SUPPORTED_LOCALES,
+} from "./i18n/locale-registry";
+import type { enLocale } from "./i18n/locales/en";
+import {
   DEFAULT_TODOS as LIVE_DEFAULT_TODOS,
   type TodoItem,
 } from "./live-state";
@@ -12,20 +17,20 @@ const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
 export const DEFAULT_TODOS = LIVE_DEFAULT_TODOS;
 
-const DEFAULT_TODO_TITLES = {
-  station: {
-    ko: "지하철역으로 이동",
-    en: "Go to the subway station",
-  },
-  umbrella: {
-    ko: "우산 챙기기",
-    en: "Bring an umbrella",
-  },
-  route: {
-    ko: "경로 확인",
-    en: "Check route",
-  },
-} as const;
+type BuiltInTodoId = keyof typeof enLocale.todos;
+
+function isBuiltInTodoId(value: string): value is BuiltInTodoId {
+  return value in LOCALE_REGISTRY.en.todos;
+}
+
+function isLocalizedBuiltInTitle(
+  id: BuiltInTodoId,
+  title: string,
+): boolean {
+  return SUPPORTED_LOCALES.some(
+    (locale) => LOCALE_REGISTRY[locale].todos[id] === title,
+  );
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -74,8 +79,9 @@ function cloneTodos(items: readonly TodoItem[]): readonly TodoItem[] {
 export function defaultTodos(locale: PhoneLocale): readonly TodoItem[] {
   return DEFAULT_TODOS.map((item) => ({
     ...item,
-    title: DEFAULT_TODO_TITLES[item.id as keyof typeof DEFAULT_TODO_TITLES]
-      ?.[locale] ?? item.title,
+    title: isBuiltInTodoId(item.id)
+      ? LOCALE_REGISTRY[locale].todos[item.id]
+      : item.title,
   }));
 }
 
@@ -84,15 +90,16 @@ export function localizeBuiltInTodos(
   locale: PhoneLocale,
 ): readonly TodoItem[] {
   return items.map((item) => {
-    const titles =
-      DEFAULT_TODO_TITLES[item.id as keyof typeof DEFAULT_TODO_TITLES];
     if (
-      !titles
-      || !Object.values(titles).some((title) => title === item.title)
+      !isBuiltInTodoId(item.id)
+      || !isLocalizedBuiltInTitle(item.id, item.title)
     ) {
       return item;
     }
-    return { ...item, title: titles[locale] };
+    return {
+      ...item,
+      title: LOCALE_REGISTRY[locale].todos[item.id],
+    };
   });
 }
 

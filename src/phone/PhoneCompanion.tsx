@@ -7,6 +7,7 @@ import {
 import type { FastCanvasBattery } from "../glasses";
 import type { EvenStorage } from "../live-cache";
 import type { LiveDashboardState, TodoItem } from "../live-state";
+import { LOCALE_REGISTRY } from "../i18n/locale-registry";
 import {
   resolvePhoneLocale,
   translatePhone,
@@ -14,7 +15,6 @@ import {
 } from "../phone-i18n";
 import { PhoneIcon } from "../phone-icons";
 import type {
-  PhoneLocale,
   PhonePreferences,
   PhoneScreen,
 } from "../phone-types";
@@ -160,9 +160,7 @@ export function PhoneCompanion({
         titleKey: "language",
         status: preferences.locale === "system"
           ? t("system")
-          : preferences.locale === "ko"
-            ? t("korean")
-            : t("english"),
+          : LOCALE_REGISTRY[preferences.locale].nativeName,
       },
       {
         screen: "developer",
@@ -229,7 +227,7 @@ export function PhoneCompanion({
         return (
           <WeatherScreen
             live={live}
-            locale={locale as PhoneLocale}
+            locale={locale}
             t={t}
             onRefresh={onWeatherRefresh}
           />
