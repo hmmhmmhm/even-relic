@@ -13,10 +13,11 @@
 ### Task 1: Lock the section-header contract with failing tests
 
 **Files:**
+- Modify: `src/App.test.tsx`
 - Modify: `src/phone/PhoneCompanion.test.tsx`
 - Modify: `src/phone/phone-home-styles.test.mjs`
 
-- [ ] **Step 1: Add the failing Home and detail header assertions**
+- [x] **Step 1: Add the failing Home and detail header assertions**
 
 Add assertions that Home exposes a `SANDEVISTAN / DASHBOARD` section label and
 that an opened detail screen uses a `phone-detail-header` element containing
@@ -30,7 +31,7 @@ expect(screen.getByRole("banner").classList.contains("phone-detail-header"))
   .toBe(true);
 ```
 
-- [ ] **Step 2: Add the failing compact style contract**
+- [x] **Step 2: Add the failing compact style contract**
 
 Read `phone-home.css` and `phone-shell.css` and assert the exact selected
 dimensions and surface treatment:
@@ -50,7 +51,7 @@ expect(shellCss).not.toMatch(
 );
 ```
 
-- [ ] **Step 3: Run the focused tests and verify RED**
+- [x] **Step 3: Run the focused tests and verify RED**
 
 Run:
 
@@ -68,7 +69,7 @@ header, and transparent detail surface do not exist yet.
 - Modify: `src/phone/phone-home.css`
 - Modify: `src/phone/phone-shell.css`
 
-- [ ] **Step 1: Replace the Home application title with a section label**
+- [x] **Step 1: Replace the Home application title with a section label**
 
 Use a non-heading header label so it does not compete with the native app bar:
 
@@ -80,7 +81,7 @@ Use a non-heading header label so it does not compete with the native app bar:
 </header>
 ```
 
-- [ ] **Step 2: Apply the compact Home style**
+- [x] **Step 2: Apply the compact Home style**
 
 ```css
 .phone-home__subheader {
@@ -99,7 +100,7 @@ Use a non-heading header label so it does not compete with the native app bar:
 Keep the screen-level `Dashboard` heading above the card grid because it labels
 the content region rather than duplicating native navigation.
 
-- [ ] **Step 3: Restyle the detail header as an inset section row**
+- [x] **Step 3: Restyle the detail header as an inset section row**
 
 ```css
 .phone-detail-header {
@@ -119,7 +120,7 @@ the content region rather than duplicating native navigation.
 Remove `backdrop-filter`, reduce Back to the existing 44-pixel target, and keep
 the header sticky with no shadow or border.
 
-- [ ] **Step 4: Run the focused tests and verify GREEN**
+- [x] **Step 4: Run the focused tests and verify GREEN**
 
 Run:
 
@@ -134,7 +135,7 @@ Expected: all focused tests pass.
 **Files:**
 - Modify: `docs/superpowers/plans/2026-07-29-phone-subheader.md`
 
-- [ ] **Step 1: Run the full serial test suite**
+- [x] **Step 1: Run the full serial test suite**
 
 ```bash
 npm test
@@ -142,7 +143,7 @@ npm test
 
 Expected: all Vitest files and tests pass.
 
-- [ ] **Step 2: Run TypeScript and production build checks**
+- [x] **Step 2: Run TypeScript and production build checks**
 
 ```bash
 npm run typecheck
@@ -151,7 +152,7 @@ npm run build
 
 Expected: both commands exit successfully.
 
-- [ ] **Step 3: Run repository checks**
+- [x] **Step 3: Run repository checks**
 
 ```bash
 npm run test:repo
@@ -160,7 +161,7 @@ git diff --check
 
 Expected: repository checks pass and no whitespace errors are reported.
 
-- [ ] **Step 4: Confirm the Tailscale preview is reachable**
+- [x] **Step 4: Confirm the Tailscale preview is reachable**
 
 ```bash
 curl -sS -o /dev/null -w '%{http_code}\n' \

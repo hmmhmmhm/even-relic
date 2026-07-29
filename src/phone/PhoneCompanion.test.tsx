@@ -44,6 +44,7 @@ describe("PhoneCompanion", () => {
   it("renders the approved eight full-card destinations and footer", () => {
     renderCompanion();
 
+    expect(screen.getByText("SANDEVISTAN / DASHBOARD")).toBeTruthy();
     for (const name of [
       "Devices",
       "HUD layout",

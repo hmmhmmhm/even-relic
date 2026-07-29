@@ -1,25 +1,24 @@
 .phone-home {
   min-height: 100dvh;
-  padding: calc(20px + env(safe-area-inset-top)) 8px
+  padding: calc(4px + env(safe-area-inset-top)) 8px
     calc(24px + env(safe-area-inset-bottom));
   background: var(--phone-bg);
 }
 
-.phone-home__title {
-  display: grid;
-  min-height: 52px;
-  place-items: center;
-}
-
-.phone-home__title h1 {
-  margin: 0;
-  font-size: 1.24rem;
-  font-weight: 500;
-  letter-spacing: -0.02em;
+.phone-home__subheader {
+  display: flex;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 12px;
+  color: #747474;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
 }
 
 .phone-home__preview {
-  margin-top: 8px;
+  margin-top: 4px;
   padding: 26px 28px;
   border-radius: 9px;
   background: var(--phone-preview);

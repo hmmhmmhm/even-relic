@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const css = readFileSync(new URL("./phone-home.css", import.meta.url), "utf8");
+const shellCss = readFileSync(
+  new URL("./phone-shell.css", import.meta.url),
+  "utf8",
+);
 
 describe("Even-style phone HUD preview", () => {
   it("neutralizes the global green HUD overlay inside the phone preview", () => {
@@ -19,6 +23,26 @@ describe("Even-style phone HUD preview", () => {
     );
     expect(css).toMatch(
       /\.phone-home__preview-slot \.hud-frame canvas\s*\{[^}]*mix-blend-mode:\s*normal/s,
+    );
+  });
+});
+
+describe("subordinate phone headers", () => {
+  it("uses a compact Home section label", () => {
+    expect(css).toMatch(
+      /\.phone-home__subheader\s*\{[^}]*min-height:\s*40px/s,
+    );
+  });
+
+  it("uses a compact transparent detail header without blur", () => {
+    expect(shellCss).toMatch(
+      /\.phone-detail-header\s*\{[^}]*min-height:\s*52px/s,
+    );
+    expect(shellCss).toMatch(
+      /\.phone-detail-header\s*\{[^}]*background:\s*transparent/s,
+    );
+    expect(shellCss).not.toMatch(
+      /\.phone-detail-header\s*\{[^}]*backdrop-filter:/s,
     );
   });
 });

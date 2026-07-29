@@ -221,7 +221,9 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(hud.dataset.renderer).toBe("canvas-fast");
     expect(hud.dataset.layout).toBe("static-left-dynamic-right");
     expect(hud.dataset.updateTiles).toBe("2");
-    expect(screen.getByRole("heading", { name: "Sandevistan" })).toBeTruthy();
+    expect(screen.getByRole("banner", {
+      name: "Sandevistan / Dashboard",
+    })).toBeTruthy();
     expect(screen.getByText("Dashboard")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Devices/ })).toBeTruthy();
     expect(screen.queryByText(/CANVAS HUD · FAST 2-TILE/)).toBeNull();

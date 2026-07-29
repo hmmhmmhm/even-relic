@@ -4,7 +4,8 @@
 - implementation route: `/hud-canvas-fast?sdk=0.0.11`
 - intended viewport: narrow phone WebView, up to 540 CSS px wide
 - implementation screenshot: unavailable in this session
-- state: live HUD preview plus eight-card phone companion Home
+- state: compact WebView section header, live HUD preview, and eight-card phone
+  companion Home
 - primary interactions tested: every card opens its detail directly, Back returns
   to Home, and the Canvas DOM node remains mounted
 - browser console inspection: blocked because the in-app browser runtime exposed
@@ -49,13 +50,16 @@ inspection.
 3. Replaced generic symbols with local Pixelarticons.
 4. Corrected the cards to the measured `1.28 / 1` shape, 8 px gap/radius, and
    wider reference-like internal padding.
+5. Demoted the WebView title bar to a 40 px inset section label and reduced
+   detail headers to a 52 px transparent, left-aligned navigation row so they
+   do not compete with the native Even app bar.
 
 ## Remaining visual gate
 
 - Capture the Home screen at a fixed phone viewport.
 - Combine that screenshot with the supplied Even Home reference.
 - Check card proportions, HUD-preview density, icon placement, typography,
-  footer spacing, and any clipped Korean copy.
+  subheader hierarchy, footer spacing, and any clipped Korean copy.
 - Repeat for one detail screen and record `final result: passed` after visible
   mismatches are corrected.
 

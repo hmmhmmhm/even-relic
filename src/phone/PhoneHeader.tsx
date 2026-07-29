@@ -20,7 +20,7 @@ export function PhoneHeader({
         aria-label={backLabel}
         onClick={onBack}
       >
-        <PhoneIcon name="back" size={30} />
+        <PhoneIcon name="back" size={24} />
       </button>
       <h1>{title}</h1>
       <div className="phone-detail-header__action">{action}</div>

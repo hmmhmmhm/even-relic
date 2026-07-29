@@ -38,21 +38,20 @@
   z-index: 3;
   top: 0;
   display: grid;
-  grid-template-columns: 52px 1fr 52px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
   align-items: center;
-  min-height: 68px;
-  padding: env(safe-area-inset-top) 10px 0;
-  background: rgb(238 238 238 / 94%);
-  backdrop-filter: blur(16px);
+  min-height: 52px;
+  padding: 0 12px;
+  background: transparent;
 }
 
 .phone-detail-header h1 {
   margin: 0;
   overflow: hidden;
-  font-size: 1.36rem;
-  font-weight: 500;
+  font-size: 1rem;
+  font-weight: 600;
   line-height: 1.2;
-  text-align: center;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
