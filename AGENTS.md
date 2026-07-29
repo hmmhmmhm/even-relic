@@ -65,20 +65,22 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   and resend the current IDs 3/5/2/4 to restore. Keep the event layer and app
   alive, update visibility only after successful transmission, and preserve
   legacy shutdown behavior on every other route.
-- Tint only the WebView preview with a flat `#91ff73` multiply layer. Keep the
-  transmitted grayscale Canvas palette unchanged and do not add preview
-  shadows or radial glow.
+- Present the WebView preview in the phone companion's washed grayscale Even
+  app treatment. Keep the transmitted grayscale Canvas palette unchanged and
+  do not add preview shadows, green tinting, or radial glow.
 - Keep general live features keyless: use the Even SDK for phone location,
-  Open-Meteo for weather, allowlisted RSS feeds through the Sandevistan Worker, and
-  OSM-derived road geometry rendered by Sandevistan's own Canvas code.
+  Open-Meteo for weather, the default SBS source plus validated user-added
+  HTTPS RSS feeds through the Sandevistan Worker, and OSM-derived road geometry
+  rendered by Sandevistan's own Canvas code.
 - The physical G2 approves SDK `0.0.11` for bilateral fast startup,
   `3/5/2/4` full transfers, `3/5` paging, and double-tap hide/restore. Use it
   as the live-data baseline; keep SDK `0.0.12` blocked until separately proven
   on the physical G2.
-- Treat routing as optional. Enable OpenRouteService only when `ORS_API_KEY`
-  exists in the server environment, keep the key out of WebView bundles and
-  source control, and show a clear disabled state without breaking the
-  keyless map, weather, or news experience.
+- Treat routing as optional. Accept a user-owned OpenRouteService key in the
+  phone companion, persist it only in Even local storage, forward it through
+  fixed same-origin routing endpoints without server persistence or logging,
+  and retain `ORS_API_KEY` only as a local-development fallback. Never include
+  any key value in a WebView bundle or source control.
 - Give every fast-HUD dashboard tab a one-tap fullscreen detail deck. Keep the
   existing map zoom deck; show one RSS title and summary at a time for news;
   make the persisted TODO list selectable and tappable; and show one ORS
@@ -88,9 +90,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   tap alone retains the black-frame display toggle.
 - Use only sanitized RSS title, description, and publication time for the G2
   news reader. Do not fetch or render arbitrary article HTML.
-- Persist at most six TODO items through Even local storage. The first detail
-  implementation toggles the three approved seeded tasks and does not add
-  editing controls.
+- Persist at most six TODO items through Even local storage. The phone
+  companion may add, rename, complete, uncomplete, and delete those items while
+  the glasses detail deck keeps its approved selection and toggle interaction.
 - Preserve `/hud-hybrid` as the hardware-proven missing-z-order diagnosis.
   Test SDK `0.0.10` z-order backport only on `/hud-hybrid-z`: image layers
   1–4, Text layer 5, and no image resend during scroll.
@@ -101,3 +103,25 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Keep each custom TypeScript/TSX/CSS implementation file at or below 450
   lines. Split live providers, state, transport, and rendering by
   responsibility instead of extending the existing large modules.
+
+## Sandevistan phone companion direction
+
+- Style the phone WebView after the owner-supplied Even app references: very
+  light gray page background, white cards, restrained gray borders, black
+  Pixelarticons, generous whitespace, and no glow or green treatment.
+- Keep one live grayscale HUD preview above a two-column card grid. Use eight
+  cards: Devices, HUD layout, News, TODO, Weather, Navigation, Language, and
+  Developer.
+- Match the Even card proportions rather than perfect squares: approximately
+  `1.28 / 1` width-to-height, subtle eight-pixel-equivalent corner rounding,
+  a small icon near the top, and the title and status near the bottom.
+- Every rounded dashboard card is the complete tap target for one focused
+  detail screen. Do not add a separate Manage list or explanatory destination
+  page to the shipped app.
+- Fix Overview as the first HUD page. Let the phone enable, disable, and reorder
+  News, TODO, and Weather; expose Navigation only after a user ORS key validates.
+- Ship Korean and English phone UI strings with a System language option.
+  Do not localize or otherwise change the hardware-proven glasses Canvas as
+  part of the phone redesign.
+- Finish Home with the Sandevistan project name, a Pixelarticons GitHub link to
+  the repository, the package version, and the development status.
