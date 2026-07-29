@@ -6,6 +6,9 @@ import {
 import { wrapHudText } from "./fast-detail-text";
 import { paginateFastNewsSummary } from "./fast-news-pages";
 import { drawFastWeatherIcon } from "./fast-weather-icon";
+import { translateHud } from "./hud-i18n";
+import type { PhoneLocale } from "./phone-types";
+import { weatherCodeLabel } from "./weather";
 import type {
   DataState,
   LiveDashboardState,
@@ -38,8 +41,13 @@ function formatDistance(distance: number): string {
     : `${rounded}m`;
 }
 
-function formatPublished(publishedAt: number | undefined): string {
-  if (publishedAt === undefined) return "발행 시각 미상";
+function formatPublished(
+  publishedAt: number | undefined,
+  locale: PhoneLocale,
+): string {
+  if (publishedAt === undefined) {
+    return translateHud(locale, "publishedUnknown");
+  }
   const date = new Date(publishedAt);
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -120,6 +128,7 @@ function drawNews(
   state: DataState<readonly NewsItem[]>,
   selectedIndex: number,
   selectedPage: number,
+  locale: PhoneLocale,
 ) {
   const items = state.value ?? [];
   const index = Math.min(Math.max(0, selectedIndex), Math.max(0, items.length - 1));
@@ -127,8 +136,8 @@ function drawNews(
     ? items[index]
     : undefined;
   const pages = item
-    ? paginateFastNewsSummary(context, item.summary)
-    : [["요약 없음"]];
+    ? paginateFastNewsSummary(context, item.summary, locale)
+    : [[translateHud(locale, "noSummary")]];
   const page = Math.min(
     Math.max(0, selectedPage),
     Math.max(0, pages.length - 1),
@@ -145,8 +154,8 @@ function drawNews(
     const loading = state.status === "loading";
     drawEmptyState(
       context,
-      loading ? "뉴스 불러오는 중" : "뉴스를 표시할 수 없음",
-      loading ? "RSS 업데이트를 기다리고 있습니다." : "연결 후 자동으로 다시 시도합니다.",
+      translateHud(locale, loading ? "newsLoading" : "newsUnavailable"),
+      translateHud(locale, loading ? "newsWaiting" : "retryConnected"),
     );
     drawFooter(context, "SCROLL // TEXT / ARTICLES");
     return;
@@ -178,7 +187,7 @@ function drawNews(
   });
   drawText(
     context,
-    formatPublished(item.publishedAt),
+    formatPublished(item.publishedAt, locale),
     34,
     230,
     10,
@@ -199,10 +208,15 @@ function drawTodo(
   context: CanvasRenderingContext2D,
   state: DataState<readonly TodoItem[]>,
   selectedIndex: number,
+  locale: PhoneLocale,
 ) {
   const items = state.value ?? [];
   const completed = items.filter((item) => item.completed).length;
-  drawHeader(context, todoLabel(state), `완료 ${completed} / ${items.length}`);
+  drawHeader(
+    context,
+    todoLabel(state),
+    `${translateHud(locale, "done")} ${completed} / ${items.length}`,
+  );
   drawFrame(context, 14, 44, 548, 204);
   if (
     (state.status !== "fresh" && state.status !== "stale")
@@ -210,8 +224,11 @@ function drawTodo(
   ) {
     drawEmptyState(
       context,
-      state.status === "loading" ? "할 일 불러오는 중" : "할 일을 표시할 수 없음",
-      "저장된 체크리스트를 확인하고 있습니다.",
+      translateHud(
+        locale,
+        state.status === "loading" ? "todoLoading" : "todoUnavailable",
+      ),
+      translateHud(locale, "todoChecking"),
     );
     drawFooter(context, "SCROLL // SELECT", "TAP // TOGGLE");
     return;
@@ -247,6 +264,7 @@ function weatherLabel(
 function drawWeather(
   context: CanvasRenderingContext2D,
   state: LiveDashboardState["weather"],
+  locale: PhoneLocale,
 ) {
   drawHeader(context, weatherLabel(state));
   drawFrame(context, 14, 44, 548, 204);
@@ -260,10 +278,11 @@ function drawWeather(
     const loading = state.status === "loading";
     drawEmptyState(
       context,
-      loading ? "날씨 불러오는 중" : "날씨를 표시할 수 없음",
-      loading
-        ? "현재 위치의 날씨 데이터를 기다리고 있습니다."
-        : "연결되면 현재 날씨를 자동으로 다시 확인합니다.",
+      translateHud(
+        locale,
+        loading ? "weatherLoading" : "weatherUnavailable",
+      ),
+      translateHud(locale, loading ? "weatherWaiting" : "weatherRetry"),
     );
     drawFooter(context, "SOURCE // OPEN-METEO");
     return;
@@ -287,7 +306,7 @@ function drawWeather(
   );
   drawText(
     context,
-    weather.condition,
+    weatherCodeLabel(weather.weatherCode, locale),
     318,
     72,
     25,
@@ -299,10 +318,10 @@ function drawWeather(
   }
 
   const metrics = [
-    ["체감온도", `${Math.round(weather.apparentTemperature)}°`],
-    ["습도", `${Math.round(weather.humidity)}%`],
-    ["강수확률", `${Math.round(weather.precipitationProbability)}%`],
-    ["바람", `${Math.round(weather.windSpeed)}km/h`],
+    [translateHud(locale, "feelsLike"), `${Math.round(weather.apparentTemperature)}°`],
+    [translateHud(locale, "humidity"), `${Math.round(weather.humidity)}%`],
+    [translateHud(locale, "precipitation"), `${Math.round(weather.precipitationProbability)}%`],
+    [translateHud(locale, "wind"), `${Math.round(weather.windSpeed)}km/h`],
   ] as const;
   const positions = [
     [34, 156],
@@ -330,6 +349,7 @@ function drawNavigation(
   context: CanvasRenderingContext2D,
   state: DataState<RouteValue>,
   selectedIndex: number,
+  locale: PhoneLocale,
 ) {
   const route = state.value;
   const maneuvers = route?.maneuvers ?? [];
@@ -347,10 +367,19 @@ function drawNavigation(
   drawFrame(context, 14, 44, 548, 204);
   if (!route || maneuvers.length === 0) {
     const copy = state.status === "disabled"
-      ? ["길찾기 키 필요", "폰에서 ORS 키를 설정하면 경로를 사용할 수 있습니다."]
+      ? [
+          translateHud(locale, "routingKeyRequired"),
+          translateHud(locale, "routingConfigure"),
+        ]
       : state.status === "loading"
-        ? ["경로 계산 중", "목적지까지의 경로를 준비하고 있습니다."]
-        : ["목적지를 선택하세요", "폰 화면에서 목적지와 이동 방식을 선택하세요."];
+        ? [
+            translateHud(locale, "routingCalculating"),
+            translateHud(locale, "routingPreparing"),
+          ]
+        : [
+            translateHud(locale, "destinationSelect"),
+            translateHud(locale, "destinationSearch"),
+          ];
     drawEmptyState(context, copy[0], copy[1]);
     drawFooter(context, "SCROLL // STEPS", "TAP // CURRENT");
     return;
@@ -410,9 +439,10 @@ function drawNavigation(
 export function drawFastDetailHud(
   canvas: HTMLCanvasElement,
   options: FastDetailHudOptions,
+  locale: PhoneLocale = "ko",
 ): void {
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
+  if (!context) throw new Error("2D Canvas unavailable");
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
   context.imageSmoothingEnabled = false;
@@ -425,16 +455,18 @@ export function drawFastDetailHud(
       options.live.news,
       options.newsIndex,
       options.newsPage,
+      locale,
     );
   } else if (options.mode === "weather") {
-    drawWeather(context, options.live.weather);
+    drawWeather(context, options.live.weather, locale);
   } else if (options.mode === "todo") {
-    drawTodo(context, options.live.todos, options.todoIndex);
+    drawTodo(context, options.live.todos, options.todoIndex, locale);
   } else {
     drawNavigation(
       context,
       options.live.route,
       options.navigationIndex,
+      locale,
     );
   }
 }

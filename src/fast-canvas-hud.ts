@@ -17,19 +17,15 @@ import {
   FAST_CANVAS_COLOR as COLOR,
 } from "./fast-canvas-style";
 import { drawFastWeatherIcon } from "./fast-weather-icon";
+import {
+  hudWeekday,
+  translateHud,
+} from "./hud-i18n";
+import type { PhoneLocale } from "./phone-types";
+import { weatherCodeLabel } from "./weather";
 
 const WIDTH = 576;
 const HEIGHT = 288;
-const WEEKDAYS = [
-  "일요일",
-  "월요일",
-  "화요일",
-  "수요일",
-  "목요일",
-  "금요일",
-  "토요일",
-] as const;
-
 export type FastCanvasHudData = {
   readonly battery?: FastCanvasBattery;
   readonly live: LiveDashboardState;
@@ -44,13 +40,13 @@ function formatTime(now: Date) {
     .join(":");
 }
 
-function formatDate(now: Date) {
+function formatDate(now: Date, locale: PhoneLocale) {
   const date = [
     now.getFullYear(),
     String(now.getMonth() + 1).padStart(2, "0"),
     String(now.getDate()).padStart(2, "0"),
   ].join(".");
-  return `${date} ${WEEKDAYS[now.getDay()]}`;
+  return `${date} ${hudWeekday(locale, now.getDay())}`;
 }
 
 function drawFrame(
@@ -100,13 +96,22 @@ function drawDynamicHeader(
   now: Date,
   page: FastHudPage,
   live: LiveDashboardState,
+  locale: PhoneLocale,
 ) {
   drawFrame(context, 296, 8, 272, 54);
   drawText(context, formatTime(now), 306, 12, 22, COLOR.primary, "bold");
-  drawText(context, formatDate(now), 306, 40, 10, COLOR.secondary, "bold");
   drawText(
     context,
-    weatherSummary(live),
+    formatDate(now, locale),
+    306,
+    40,
+    10,
+    COLOR.secondary,
+    "bold",
+  );
+  drawText(
+    context,
+    weatherSummary(live, locale),
     468,
     40,
     10,
@@ -131,6 +136,7 @@ function drawDynamicHeader(
 function drawOverview(
   context: CanvasRenderingContext2D,
   data: FastCanvasHudData,
+  locale: PhoneLocale,
 ) {
   const { battery, live } = data;
   const batteryText = battery?.level === undefined
@@ -141,13 +147,25 @@ function drawOverview(
   context.fillStyle = COLOR.dim;
   context.fillRect(308, 140, 248, 1);
   drawText(context, "WEATHER // NOW", 308, 152, 11, COLOR.secondary, "bold");
-  drawText(context, weatherSummary(live), 308, 172, 20, COLOR.primary, "bold");
+  drawText(
+    context,
+    weatherSummary(live, locale),
+    308,
+    172,
+    20,
+    COLOR.primary,
+    "bold",
+  );
 
   const weather = usableWeather(live);
   if (weather) {
     drawText(
       context,
-      `체감 ${Math.round(weather.apparentTemperature)}°  습도 ${Math.round(weather.humidity)}%`,
+      `${translateHud(locale, "feels")} ${
+        Math.round(weather.apparentTemperature)
+      }°  ${translateHud(locale, "humidity")} ${
+        Math.round(weather.humidity)
+      }%`,
       308,
       226,
       14,
@@ -156,7 +174,11 @@ function drawOverview(
     );
     drawText(
       context,
-      `강수 ${Math.round(weather.precipitationProbability)}%  바람 ${Math.round(weather.windSpeed)}km/h`,
+      `${translateHud(locale, "rain")} ${
+        Math.round(weather.precipitationProbability)
+      }%  ${translateHud(locale, "wind")} ${
+        Math.round(weather.windSpeed)
+      }km/h`,
       308,
       248,
       14,
@@ -174,6 +196,7 @@ function drawOverview(
 function drawWeather(
   context: CanvasRenderingContext2D,
   live: LiveDashboardState,
+  locale: PhoneLocale,
 ) {
   const weather = usableWeather(live);
   const status = live.weather.status === "stale"
@@ -188,7 +211,7 @@ function drawWeather(
     drawText(
       context,
       live.weather.status === "loading"
-        ? "날씨 불러오는 중"
+        ? translateHud(locale, "weatherLoading")
         : "WEATHER DATA UNAVAILABLE",
       308,
       112,
@@ -216,7 +239,7 @@ function drawWeather(
   );
   drawText(
     context,
-    weather.condition,
+    weatherCodeLabel(weather.weatherCode, locale),
     400,
     142,
     17,
@@ -225,7 +248,9 @@ function drawWeather(
   );
   drawText(
     context,
-    `체감 ${Math.round(weather.apparentTemperature)}°`,
+    `${translateHud(locale, "feels")} ${
+      Math.round(weather.apparentTemperature)
+    }°`,
     308,
     228,
     15,
@@ -234,7 +259,7 @@ function drawWeather(
   );
   drawText(
     context,
-    `습도 ${Math.round(weather.humidity)}%`,
+    `${translateHud(locale, "humidity")} ${Math.round(weather.humidity)}%`,
     430,
     228,
     15,
@@ -243,7 +268,9 @@ function drawWeather(
   );
   drawText(
     context,
-    `강수 ${Math.round(weather.precipitationProbability)}%`,
+    `${translateHud(locale, "rain")} ${
+      Math.round(weather.precipitationProbability)
+    }%`,
     308,
     252,
     15,
@@ -252,7 +279,7 @@ function drawWeather(
   );
   drawText(
     context,
-    `바람 ${Math.round(weather.windSpeed)}km/h`,
+    `${translateHud(locale, "wind")} ${Math.round(weather.windSpeed)}km/h`,
     430,
     252,
     15,
@@ -267,16 +294,22 @@ function usableWeather(live: LiveDashboardState) {
     : undefined;
 }
 
-function weatherSummary(live: LiveDashboardState) {
+function weatherSummary(
+  live: LiveDashboardState,
+  locale: PhoneLocale,
+) {
   const weather = usableWeather(live);
   return weather
-    ? `${Math.round(weather.temperature)}°C ${weather.condition}`
+    ? `${Math.round(weather.temperature)}°C ${
+      weatherCodeLabel(weather.weatherCode, locale)
+    }`
     : "WEATHER --";
 }
 
 function drawRouteDestination(
   context: CanvasRenderingContext2D,
   route: RouteValue,
+  locale: PhoneLocale,
 ) {
   drawText(
     context,
@@ -288,10 +321,10 @@ function drawRouteDestination(
     "bold",
   );
   const profile = route.profile === "foot-walking"
-    ? "도보"
+    ? translateHud(locale, "walking")
     : route.profile === "cycling-regular"
-      ? "자전거"
-      : "자동차";
+      ? translateHud(locale, "cycling")
+      : translateHud(locale, "driving");
   drawText(context, `MODE // ${profile}`, 308, 246, 15, COLOR.primary, "bold");
 }
 
@@ -305,39 +338,64 @@ function formatRouteDistance(distance: number) {
 function drawNavigation(
   context: CanvasRenderingContext2D,
   routeState: DataState<RouteValue>,
+  locale: PhoneLocale,
 ) {
   if (routeState.status === "disabled") {
     drawText(context, "NAV // READY", 308, 82, 11, COLOR.secondary, "bold");
-    drawText(context, "경로 키 필요", 308, 108, 24, COLOR.primary, "bold");
-    drawText(context, "ORS 연결 후 사용", 308, 150, 15, COLOR.secondary, "bold");
+    drawText(
+      context,
+      translateHud(locale, "routingKeyRequired"),
+      308,
+      108,
+      24,
+      COLOR.primary,
+      "bold",
+    );
+    drawText(
+      context,
+      translateHud(locale, "routingConnect"),
+      308,
+      150,
+      15,
+      COLOR.secondary,
+      "bold",
+    );
     drawText(context, "PHONE // COMPANION", 308, 226, 10, COLOR.secondary, "bold");
-    drawText(context, "키 설정 필요", 308, 246, 15, COLOR.primary, "bold");
+    drawText(
+      context,
+      translateHud(locale, "routingConfigure"),
+      308,
+      246,
+      15,
+      COLOR.primary,
+      "bold",
+    );
     return;
   }
 
   if (routeState.status === "loading") {
     drawText(context, "NAV // ROUTING", 308, 82, 11, COLOR.secondary, "bold");
-    drawText(context, "경로 계산 중", 308, 108, 24, COLOR.primary, "bold");
-    drawText(context, "목적지까지 경로 확인", 308, 150, 14, COLOR.secondary, "bold");
+    drawText(context, translateHud(locale, "routingCalculating"), 308, 108, 24, COLOR.primary, "bold");
+    drawText(context, translateHud(locale, "routingPreparing"), 308, 150, 14, COLOR.secondary, "bold");
     drawText(context, "ORS // WORKING", 308, 226, 10, COLOR.secondary, "bold");
-    drawText(context, "잠시만 기다려주세요", 308, 246, 14, COLOR.primary, "bold");
+    drawText(context, translateHud(locale, "routingWait"), 308, 246, 14, COLOR.primary, "bold");
     return;
   }
 
   const route = routeState.value;
   if (!route) {
     drawText(context, "NAV // READY", 308, 82, 11, COLOR.secondary, "bold");
-    drawText(context, "목적지를 선택하세요", 308, 108, 20, COLOR.primary, "bold");
-    drawText(context, "폰 화면에서 검색", 308, 150, 15, COLOR.secondary, "bold");
+    drawText(context, translateHud(locale, "destinationSelect"), 308, 108, 20, COLOR.primary, "bold");
+    drawText(context, translateHud(locale, "destinationSearch"), 308, 150, 15, COLOR.secondary, "bold");
     drawText(context, "PHONE // COMPANION", 308, 226, 10, COLOR.secondary, "bold");
-    drawText(context, "도보 · 자전거 · 자동차", 308, 246, 13, COLOR.primary, "bold");
+    drawText(context, translateHud(locale, "routingModes"), 308, 246, 13, COLOR.primary, "bold");
     return;
   }
 
   if (routeState.status === "stale") {
     const instruction = route.maneuvers[route.activeManeuverIndex]?.instruction;
     drawText(context, "NAV // STALE", 308, 82, 11, COLOR.secondary, "bold");
-    drawText(context, "경로 확인 필요", 308, 108, 23, COLOR.primary, "bold");
+    drawText(context, translateHud(locale, "routingCheck"), 308, 108, 23, COLOR.primary, "bold");
     if (instruction) {
       drawText(
         context,
@@ -349,12 +407,12 @@ function drawNavigation(
         "bold",
       );
     }
-    drawRouteDestination(context, route);
+    drawRouteDestination(context, route, locale);
     return;
   }
 
   const instruction = route.maneuvers[route.activeManeuverIndex]?.instruction
-    ?? "목적지 도착";
+    ?? translateHud(locale, "arrived");
   drawText(context, "NAV // ACTIVE", 308, 82, 11, COLOR.secondary, "bold");
   drawText(
     context,
@@ -389,7 +447,7 @@ function drawNavigation(
     COLOR.primary,
     "bold",
   );
-  drawRouteDestination(context, route);
+  drawRouteDestination(context, route, locale);
 }
 
 function hudUnits(value: string): number {
@@ -468,7 +526,11 @@ function drawNews(
   drawText(context, "NEWS // MORE", 308, 222, 10, COLOR.secondary, "bold");
 }
 
-function drawTodo(context: CanvasRenderingContext2D, live: LiveDashboardState) {
+function drawTodo(
+  context: CanvasRenderingContext2D,
+  live: LiveDashboardState,
+  locale: PhoneLocale,
+) {
   const items = live.todos.value ?? [];
   const completed = items.filter((item) => item.completed).length;
   drawText(context, "TODO // ACTIVE", 308, 82, 11, COLOR.secondary, "bold");
@@ -487,7 +549,9 @@ function drawTodo(context: CanvasRenderingContext2D, live: LiveDashboardState) {
   });
 
   drawText(context, "PROGRESS // TODAY", 308, 226, 10, COLOR.secondary, "bold");
-  const progress = `완료 ${completed} / ${items.length}`;
+  const progress = `${translateHud(locale, "done")} ${
+    completed
+  } / ${items.length}`;
   drawText(context, progress, 308, 244, 18, COLOR.primary, "bold");
 }
 
@@ -495,14 +559,15 @@ function drawDynamicPage(
   context: CanvasRenderingContext2D,
   page: FastHudPage,
   data: FastCanvasHudData,
+  locale: PhoneLocale,
 ) {
   drawFrame(context, 296, 72, 272, 134);
   drawFrame(context, 296, 216, 272, 64);
-  if (page === "overview") drawOverview(context, data);
-  if (page === "navigation") drawNavigation(context, data.live.route);
+  if (page === "overview") drawOverview(context, data, locale);
+  if (page === "navigation") drawNavigation(context, data.live.route, locale);
   if (page === "news") drawNews(context, data.live);
-  if (page === "todo") drawTodo(context, data.live);
-  if (page === "weather") drawWeather(context, data.live);
+  if (page === "todo") drawTodo(context, data.live, locale);
+  if (page === "weather") drawWeather(context, data.live, locale);
 }
 
 export function drawFastCanvasHud(
@@ -512,16 +577,17 @@ export function drawFastCanvasHud(
   data: FastCanvasHudData = {
     live: createInitialLiveDashboardState(),
   },
+  locale: PhoneLocale = "ko",
 ) {
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
+  if (!context) throw new Error("2D Canvas unavailable");
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
   context.imageSmoothingEnabled = false;
   context.fillStyle = COLOR.background;
   context.fillRect(0, 0, WIDTH, HEIGHT);
   const visiblePage = normalizeFastHudPage(page, data.live.route.status);
-  drawFastMap(context, data.live, data.mapRadiusMeters ?? 650);
-  drawDynamicHeader(context, now, visiblePage, data.live);
-  drawDynamicPage(context, visiblePage, data);
+  drawFastMap(context, data.live, data.mapRadiusMeters ?? 650, locale);
+  drawDynamicHeader(context, now, visiblePage, data.live, locale);
+  drawDynamicPage(context, visiblePage, data, locale);
 }

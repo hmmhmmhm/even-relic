@@ -4,6 +4,7 @@ import {
   createInitialLiveDashboardState,
   type LiveDashboardState,
 } from "./live-state";
+import type { PhoneLocale } from "./phone-types";
 
 type FastHudPage = "overview" | "navigation" | "news" | "todo" | "weather";
 type FastCanvasBattery = {
@@ -39,6 +40,7 @@ type FastHudModule = {
     now?: Date,
     page?: FastHudPage,
     data?: FastCanvasHudData,
+    locale?: PhoneLocale,
   ) => void;
 };
 
@@ -55,6 +57,7 @@ function renderFastHud(
   module: FastHudModule,
   page: FastHudPage,
   data?: Partial<FastCanvasHudData>,
+  locale: PhoneLocale = "ko",
 ) {
   const rectangles: Rectangle[] = [];
   const texts: TextRecord[] = [];
@@ -134,6 +137,7 @@ function renderFastHud(
       live: createInitialLiveDashboardState(),
       ...data,
     },
+    locale,
   );
   return {
     canvas,
@@ -167,6 +171,46 @@ function leftSnapshot(hud: ReturnType<typeof renderFastHud>) {
 }
 
 describe("fast split Canvas HUD", () => {
+  it("renders fixed overview and weather copy in English", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+    const initial = createInitialLiveDashboardState();
+    const live: LiveDashboardState = {
+      ...initial,
+      weather: {
+        status: "fresh",
+        value: {
+          temperature: 29,
+          apparentTemperature: 31,
+          humidity: 67,
+          windSpeed: 8,
+          precipitationProbability: 20,
+          weatherCode: 2,
+          condition: "대체로 맑음",
+        },
+      },
+    };
+
+    const overview = renderFastHud(module, "overview", { live }, "en");
+    expect(overview.values).toEqual(expect.arrayContaining([
+      "2026.07.27 Monday",
+      "29°C Mostly clear",
+      "FEELS 31°  HUMIDITY 67%",
+      "RAIN 20%  WIND 8km/h",
+    ]));
+    expect(overview.values.some((value) => /[가-힣]/.test(value))).toBe(false);
+
+    const weather = renderFastHud(module, "weather", { live }, "en");
+    expect(weather.values).toEqual(expect.arrayContaining([
+      "Mostly clear",
+      "FEELS 31°",
+      "HUMIDITY 67%",
+      "RAIN 20%",
+      "WIND 8km/h",
+    ]));
+    expect(weather.values.some((value) => /[가-힣]/.test(value))).toBe(false);
+  });
+
   it("keeps a static left map and draws high-contrast right pages", async () => {
     const module = await loadFastHud();
     if (!module) return;

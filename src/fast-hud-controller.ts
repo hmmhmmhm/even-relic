@@ -46,6 +46,7 @@ import { startMinuteRefresh } from "./minute-refresh";
 import type {
   UseHudControllerOptions,
 } from "./hud-controller-types";
+import { resolvePhoneLocale } from "./phone-i18n";
 import { getRoutingStatus } from "./routing";
 
 type LiveSession = ReturnType<typeof createLiveDashboardSession>;
@@ -59,6 +60,7 @@ export function useHudController({
   canvasRef,
   liveSessionRef,
   phonePreferencesRef,
+  displayRefreshRef,
   companionOrsKeyRef,
   modes,
   setStatus,
@@ -107,6 +109,10 @@ export function useHudController({
     const report = (message: string) => {
       if (!cancelled) setStatus(message);
     };
+    const currentLocale = () => resolvePhoneLocale(
+      phonePreferencesRef.current.locale,
+      typeof navigator === "undefined" ? "en" : navigator.language,
+    );
     const viewContext = (): FastHudViewContext => {
       const route = live.route.value;
       const news = live.news.value ?? [];
@@ -122,7 +128,11 @@ export function useHudController({
           const context = canvas.getContext("2d");
           newsPageCounts = context
             ? news.map((item) =>
-                paginateFastNewsSummary(context, item.summary).length
+                paginateFastNewsSummary(
+                  context,
+                  item.summary,
+                  currentLocale(),
+                ).length
               )
             : news.map(() => 1);
         }
@@ -153,8 +163,9 @@ export function useHudController({
       }
       view = syncFastHudView(view, viewContext());
       const mode = view.mode;
+      const locale = currentLocale();
       if (modes.fastCanvas && mode === "map") {
-        drawFastFullscreenMap(canvas, live, currentMapRadius());
+        drawFastFullscreenMap(canvas, live, currentMapRadius(), locale);
       } else if (
         modes.fastCanvas
         && (
@@ -171,13 +182,13 @@ export function useHudController({
           newsPage: view.newsPage,
           todoIndex: view.todoIndex,
           navigationIndex: view.navigationIndex,
-        });
+        }, locale);
       } else if (modes.fastCanvas) {
         drawFastCanvasHud(canvas, new Date(), page, {
           battery,
           live,
           mapRadiusMeters: currentMapRadius(),
-        });
+        }, locale);
       } else {
         drawDenseCanvasHud(canvas, new Date(), page as HudPage);
       }
@@ -279,6 +290,10 @@ export function useHudController({
             onRefreshReady: (request) => {
               if (cancelled) return;
               requestLiveRefresh = request;
+              displayRefreshRef.current = () => {
+                drawCurrentPage();
+                requestVisibleRefresh("all");
+              };
               logDiagnostic("APP", "transport refresh ready");
               stopMinuteRefresh ??= startMinuteRefresh((minute) => {
                 if (lastMinuteAttempt === minute) return;
@@ -401,6 +416,7 @@ export function useHudController({
       }
       cancelled = true;
       stopMinuteRefresh?.();
+      displayRefreshRef.current = undefined;
       liveSession?.dispose();
       if (liveSessionRef.current === liveSession) {
         liveSessionRef.current = undefined;
@@ -419,6 +435,7 @@ export function useHudController({
     autoStart,
     canvasRef,
     companionOrsKeyRef,
+    displayRefreshRef,
     liveSessionRef,
     modes.calibration,
     modes.canvas,

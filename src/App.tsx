@@ -74,6 +74,7 @@ export function App({ autoStart = true }: AppProps) {
   const liveSessionRef = useRef<
     ReturnType<typeof createLiveDashboardSession> | undefined
   >(undefined);
+  const displayRefreshRef = useRef<(() => void) | undefined>(undefined);
   const [status, setStatus] = useState(
     autoStart ? "HUD 이미지 준비 중" : "자동 전송 비활성",
   );
@@ -107,8 +108,20 @@ export function App({ autoStart = true }: AppProps) {
     || companionOrsKey !== undefined;
 
   const setPhonePreferences = (value: PhonePreferences) => {
+    const browserLanguage = typeof navigator === "undefined"
+      ? "en"
+      : navigator.language;
+    const previousLocale = resolvePhoneLocale(
+      phonePreferencesRef.current.locale,
+      browserLanguage,
+    );
     phonePreferencesRef.current = value;
     setPhonePreferencesState(value);
+    if (
+      resolvePhoneLocale(value.locale, browserLanguage) !== previousLocale
+    ) {
+      displayRefreshRef.current?.();
+    }
   };
   const setCompanionOrsKey = (value: string | undefined) => {
     companionOrsKeyRef.current = value;
@@ -161,6 +174,7 @@ export function App({ autoStart = true }: AppProps) {
     canvasRef,
     liveSessionRef,
     phonePreferencesRef,
+    displayRefreshRef,
     companionOrsKeyRef,
     modes,
     setStatus,

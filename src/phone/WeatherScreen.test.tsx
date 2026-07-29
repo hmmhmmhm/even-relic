@@ -48,6 +48,7 @@ describe("WeatherScreen", () => {
             },
           },
         }}
+        locale="en"
         t={(key) => translatePhone("en", key)}
         onRefresh={vi.fn(() => Promise.resolve<"accepted">("accepted"))}
       />,
@@ -65,6 +66,7 @@ describe("WeatherScreen", () => {
     render(
       <WeatherScreen
         live={createInitialLiveDashboardState()}
+        locale="en"
         t={(key) => translatePhone("en", key)}
         onRefresh={vi.fn(() => Promise.resolve<"dropped">("dropped"))}
       />,
@@ -80,6 +82,7 @@ describe("WeatherScreen", () => {
     render(
       <WeatherScreen
         live={createInitialLiveDashboardState()}
+        locale="en"
         t={(key) => translatePhone("en", key)}
         onRefresh={vi.fn(async () => {
           throw new Error("offline");

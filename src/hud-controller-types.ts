@@ -24,6 +24,7 @@ export type UseHudControllerOptions = {
   readonly canvasRef: RefObject<HTMLCanvasElement | null>;
   readonly liveSessionRef: MutableRefObject<LiveSession | undefined>;
   readonly phonePreferencesRef: MutableRefObject<PhonePreferences>;
+  readonly displayRefreshRef: MutableRefObject<(() => void) | undefined>;
   readonly companionOrsKeyRef: MutableRefObject<string | undefined>;
   readonly modes: HudControllerModes;
   readonly setStatus: (value: string) => void;

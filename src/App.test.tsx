@@ -78,6 +78,7 @@ const mocks = vi.hoisted(() => ({
   drawDetail: vi.fn(),
   drawFast: vi.fn(),
   drawFullscreen: vi.fn(),
+  drawLocale: vi.fn(),
   getRoutingStatus: vi.fn(),
   minuteStart: vi.fn(),
   searchDestinations: vi.fn(),
@@ -87,17 +88,26 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("./fast-detail-hud", async (importOriginal) => ({
   ...await importOriginal<typeof import("./fast-detail-hud")>(),
-  drawFastDetailHud: mocks.drawDetail,
+  drawFastDetailHud: (...args: unknown[]) => {
+    mocks.drawLocale(args[2]);
+    mocks.drawDetail(...args.slice(0, 2));
+  },
 }));
 
 vi.mock("./fast-canvas-hud", async (importOriginal) => ({
   ...await importOriginal<typeof import("./fast-canvas-hud")>(),
-  drawFastCanvasHud: mocks.drawFast,
+  drawFastCanvasHud: (...args: unknown[]) => {
+    mocks.drawLocale(args[4]);
+    mocks.drawFast(...args.slice(0, 4));
+  },
 }));
 
 vi.mock("./fast-map", async (importOriginal) => ({
   ...await importOriginal<typeof import("./fast-map")>(),
-  drawFastFullscreenMap: mocks.drawFullscreen,
+  drawFastFullscreenMap: (...args: unknown[]) => {
+    mocks.drawLocale(args[3]);
+    mocks.drawFullscreen(...args.slice(0, 3));
+  },
 }));
 
 vi.mock("./glasses", async (importOriginal) => ({
@@ -136,6 +146,7 @@ beforeEach(() => {
   mocks.drawDetail.mockReset();
   mocks.drawFast.mockReset();
   mocks.drawFullscreen.mockReset();
+  mocks.drawLocale.mockReset();
   mocks.getRoutingStatus.mockReset();
   mocks.getRoutingStatus.mockResolvedValue({ enabled: false });
   mocks.minuteStart.mockReset();
@@ -264,7 +275,14 @@ describe("SANDEVISTAN peripheral HUD", () => {
       options.onRefreshReady?.(requestRefresh);
       return transportCleanup;
     });
-    mocks.waitForBridge.mockResolvedValue({});
+    const storage = new Map<string, string>();
+    mocks.waitForBridge.mockResolvedValue({
+      getLocalStorage: vi.fn(async (key: string) => storage.get(key) ?? ""),
+      setLocalStorage: vi.fn(async (key: string, value: string) => {
+        storage.set(key, value);
+        return true;
+      }),
+    });
     const session = {
       start: vi.fn(async () => undefined),
       getState: vi.fn(),
@@ -299,6 +317,45 @@ describe("SANDEVISTAN peripheral HUD", () => {
       "overview",
       { battery: undefined, live: newest, mapRadiusMeters: 650 },
     );
+    expect(mocks.drawLocale).toHaveBeenLastCalledWith("en");
+    view.unmount();
+  });
+
+  it("redraws the visible HUD once after a saved language change", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const requestRefresh = vi.fn();
+    mocks.transmitFast.mockImplementation(async (...args: unknown[]) => {
+      const options = args[3] as FastTestOptions;
+      options.onRefreshReady?.(requestRefresh);
+      return vi.fn();
+    });
+    const storage = new Map<string, string>();
+    mocks.waitForBridge.mockResolvedValue({
+      getLocalStorage: vi.fn(async (key: string) => storage.get(key) ?? ""),
+      setLocalStorage: vi.fn(async (key: string, value: string) => {
+        storage.set(key, value);
+        return true;
+      }),
+    });
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+    requestRefresh.mockClear();
+    mocks.drawLocale.mockClear();
+
+    fireEvent.click(screen.getByRole("button", { name: /Language/ }));
+    fireEvent.click(screen.getByRole("radio", { name: "Korean" }));
+
+    await vi.waitFor(() => {
+      expect(requestRefresh).toHaveBeenCalledWith("all");
+    });
+    expect(mocks.drawLocale).toHaveBeenLastCalledWith("ko");
     view.unmount();
   });
 
@@ -512,7 +569,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(requestRefresh).toHaveBeenCalledWith("right-top");
   });
 
-  it("shows raw hidden input only in the phone status", async () => {
+  it("keeps raw hidden input out of localized phone status", async () => {
     window.history.replaceState({}, "", "/hud-canvas-fast");
     mocks.transmitFast.mockImplementation(async () => vi.fn());
     mocks.waitForBridge.mockResolvedValue({});
@@ -533,9 +590,9 @@ describe("SANDEVISTAN peripheral HUD", () => {
       eventSource: 2,
     });
 
-    await vi.waitFor(() => expect(screen.getByText(
+    await vi.waitFor(() => expect(screen.queryByText(
       "숨김 입력 #7 · SYS - · TEXT 3 · SRC 2",
-    )).toBeTruthy());
+    )).toBeNull());
   });
 
   it("refreshes a visible overview battery change and retains it on other pages", async () => {

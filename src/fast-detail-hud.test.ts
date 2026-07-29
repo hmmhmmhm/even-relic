@@ -114,6 +114,53 @@ function values(texts: readonly DrawnText[]) {
 }
 
 describe("drawFastDetailHud", () => {
+  it("renders English fixed copy while preserving source content", () => {
+    const weather = createCanvas();
+    drawFastDetailHud(weather.canvas, {
+      mode: "weather",
+      live: liveState(),
+      newsIndex: 0,
+      newsPage: 0,
+      todoIndex: 0,
+      navigationIndex: 0,
+    }, "en");
+    expect(values(weather.texts)).toEqual(expect.arrayContaining([
+      "Clear",
+      "FEELS LIKE",
+      "HUMIDITY",
+      "PRECIPITATION",
+      "WIND",
+    ]));
+
+    const todo = createCanvas();
+    drawFastDetailHud(todo.canvas, {
+      mode: "todo",
+      live: liveState(),
+      newsIndex: 0,
+      newsPage: 0,
+      todoIndex: 0,
+      navigationIndex: 0,
+    }, "en");
+    expect(values(todo.texts)).toContain("DONE 1 / 3");
+    expect(values(todo.texts)).toContain("> [ ] 지하철역으로 이동");
+
+    const initial = createInitialLiveDashboardState();
+    const news = createCanvas();
+    drawFastDetailHud(news.canvas, {
+      mode: "news",
+      live: { ...initial, news: { status: "unavailable" } },
+      newsIndex: 0,
+      newsPage: 0,
+      todoIndex: 0,
+      navigationIndex: 0,
+    }, "en");
+    expect(values(news.texts)).toEqual(expect.arrayContaining([
+      "News unavailable",
+      "Will retry automatically when connected.",
+    ]));
+    expect(values(news.texts).some((value) => /[가-힣]/.test(value))).toBe(false);
+  });
+
   it("draws a full-screen RSS article with summary and position", () => {
     const { canvas, texts, rectangles } = createCanvas();
 

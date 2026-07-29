@@ -27,4 +27,13 @@ describe("fast news summary pages", () => {
       ["요약 없음"],
     ]);
   });
+
+  it("localizes the fallback page without translating feed content", () => {
+    expect(paginateFastNewsSummary(context(), undefined, "en")
+      .flat()
+      .join("")).toBe("Nosummary");
+    expect(paginateFastNewsSummary(context(), "기사 원문", "en")
+      .flat()
+      .join("")).toBe("기사 원문");
+  });
 });

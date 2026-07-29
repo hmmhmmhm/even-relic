@@ -7,6 +7,7 @@ import type {
   RouteValue,
 } from "./live-state";
 import { projectCoordinate } from "./map";
+import type { PhoneLocale } from "./phone-types";
 import {
   layoutMapLabels,
   type MapLabelViewport,
@@ -362,6 +363,7 @@ export function drawFastMap(
   context: CanvasRenderingContext2D,
   live: LiveDashboardState,
   radiusMeters = 650,
+  _locale: PhoneLocale = "ko",
 ) {
   drawFrame(context);
   drawText(
@@ -442,9 +444,10 @@ export function drawFastFullscreenMap(
   canvas: HTMLCanvasElement,
   live: LiveDashboardState,
   radiusMeters: number,
+  _locale: PhoneLocale = "ko",
 ) {
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("2D Canvas를 사용할 수 없습니다.");
+  if (!context) throw new Error("2D Canvas unavailable");
   canvas.width = 576;
   canvas.height = 288;
   context.imageSmoothingEnabled = false;
