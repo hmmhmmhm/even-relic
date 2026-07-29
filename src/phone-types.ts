@@ -1,5 +1,9 @@
 import type { DataStatus, LiveDashboardState } from "./live-state";
 import type { FastCanvasBattery } from "./glasses";
+import type {
+  LocaleSetting,
+  SupportedLocale,
+} from "./i18n/locale-registry";
 import type { RoutingStatus } from "./routing";
 
 export type HudPageId =
@@ -9,8 +13,8 @@ export type HudPageId =
   | "weather"
   | "navigation";
 
-export type PhoneLocale = "ko" | "en";
-export type PhoneLocaleSetting = "system" | PhoneLocale;
+export type PhoneLocale = SupportedLocale;
+export type PhoneLocaleSetting = LocaleSetting;
 
 export type PhoneScreen =
   | "home"
