@@ -12,6 +12,7 @@ const serverFiles = [
   "http.js",
   "api-router.js",
   "news.js",
+  "news-feeds.js",
   "map.js",
   "route.js",
 ];

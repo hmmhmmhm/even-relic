@@ -1,13 +1,9 @@
 import { readCache, writeCache, type EvenStorage } from "./live-cache";
+import { BUILT_IN_RSS_FEEDS } from "../server/news-feeds.js";
+import { isSupportedLocale } from "./i18n/locale-registry";
 import type { PhoneLocale } from "./phone-types";
 
-export type BuiltInRssFeed =
-  | "sbs-latest"
-  | "newsis-breaking"
-  | "weekly-khan-latest"
-  | "bbc-world"
-  | "guardian-world"
-  | "lemonde-international";
+export type BuiltInRssFeed = string;
 
 export type RssSource = {
   readonly id: string;
@@ -19,62 +15,18 @@ export type RssSource = {
   readonly feed?: BuiltInRssFeed;
 };
 
-const BUILT_IN_RSS_SOURCES: readonly RssSource[] = [
-  {
-    id: "sbs-latest",
-    name: "SBS 최신뉴스",
-    url: "https://news.sbs.co.kr/news/newsflashRssFeed.do?plink=RSSREADER",
-    enabled: true,
-    isDefault: true,
-    locale: "ko",
-    feed: "sbs-latest",
-  },
-  {
-    id: "newsis-breaking",
-    name: "뉴시스 속보",
-    url: "https://www.newsis.com/RSS/sokbo.xml",
-    enabled: true,
-    isDefault: true,
-    locale: "ko",
-    feed: "newsis-breaking",
-  },
-  {
-    id: "weekly-khan-latest",
-    name: "주간경향 최신기사",
-    url: "https://weekly.khan.co.kr/rss/rssdata/total_news.xml",
-    enabled: true,
-    isDefault: true,
-    locale: "ko",
-    feed: "weekly-khan-latest",
-  },
-  {
-    id: "bbc-world",
-    name: "BBC World",
-    url: "https://feeds.bbci.co.uk/news/world/rss.xml",
-    enabled: true,
-    isDefault: true,
-    locale: "en",
-    feed: "bbc-world",
-  },
-  {
-    id: "guardian-world",
-    name: "The Guardian World",
-    url: "https://www.theguardian.com/world/rss",
-    enabled: true,
-    isDefault: true,
-    locale: "en",
-    feed: "guardian-world",
-  },
-  {
-    id: "lemonde-international",
-    name: "Le Monde International",
-    url: "https://www.lemonde.fr/en/international/rss_full.xml",
-    enabled: true,
-    isDefault: true,
-    locale: "en",
-    feed: "lemonde-international",
-  },
-];
+const BUILT_IN_RSS_SOURCES: readonly RssSource[] =
+  BUILT_IN_RSS_FEEDS.flatMap((source) => (
+    isSupportedLocale(source.locale)
+      ? [{
+          ...source,
+          enabled: true,
+          isDefault: true,
+          locale: source.locale,
+          feed: source.id,
+        }]
+      : []
+  ));
 
 export const DEFAULT_RSS_SOURCE: RssSource = {
   ...BUILT_IN_RSS_SOURCES[0],
@@ -110,8 +62,7 @@ function isSource(value: unknown): value is RssSource {
     && typeof value.isDefault === "boolean"
     && (
       value.locale === undefined
-      || value.locale === "ko"
-      || value.locale === "en"
+      || isSupportedLocale(value.locale)
     )
     && (
       value.feed === undefined

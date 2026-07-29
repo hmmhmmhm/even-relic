@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { BUILT_IN_RSS_FEEDS } from "../server/news-feeds.js";
+import {
+  SUPPORTED_LOCALES,
+  isSupportedLocale,
+} from "./i18n/locale-registry";
 import type { EvenStorage } from "./live-cache";
 import {
   DEFAULT_RSS_SOURCE,
@@ -25,6 +30,21 @@ class TestStorage implements EvenStorage {
 }
 
 describe("RSS source preferences", () => {
+  it("shares one valid three-feed catalog for every supported locale", () => {
+    expect(new Set(BUILT_IN_RSS_FEEDS.map(({ id }) => id)).size)
+      .toBe(BUILT_IN_RSS_FEEDS.length);
+    expect(new Set(BUILT_IN_RSS_FEEDS.map(({ url }) => url)).size)
+      .toBe(BUILT_IN_RSS_FEEDS.length);
+    for (const feed of BUILT_IN_RSS_FEEDS) {
+      expect(isSupportedLocale(feed.locale)).toBe(true);
+      expect(new URL(feed.url).protocol).toBe("https:");
+    }
+    for (const locale of SUPPORTED_LOCALES) {
+      expect(BUILT_IN_RSS_FEEDS.filter((feed) => feed.locale === locale))
+        .toHaveLength(3);
+    }
+  });
+
   it("seeds three enabled non-deletable sources for each locale", async () => {
     await expect(resolveRssSources(new TestStorage(), "ko")).resolves.toEqual(
       defaultRssSources("ko"),

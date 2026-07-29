@@ -3,24 +3,11 @@ import {
   jsonResponse,
   readLimitedBytes,
 } from "./http.js";
+import { BUILT_IN_RSS_FEEDS } from "./news-feeds.js";
 
-const FEEDS = new Map([
-  [
-    "sbs-latest",
-    "https://news.sbs.co.kr/news/newsflashRssFeed.do?plink=RSSREADER",
-  ],
-  ["newsis-breaking", "https://www.newsis.com/RSS/sokbo.xml"],
-  [
-    "weekly-khan-latest",
-    "https://weekly.khan.co.kr/rss/rssdata/total_news.xml",
-  ],
-  ["bbc-world", "https://feeds.bbci.co.uk/news/world/rss.xml"],
-  ["guardian-world", "https://www.theguardian.com/world/rss"],
-  [
-    "lemonde-international",
-    "https://www.lemonde.fr/en/international/rss_full.xml",
-  ],
-]);
+const FEEDS = new Map(
+  BUILT_IN_RSS_FEEDS.map(({ id, url }) => [id, url]),
+);
 const MAX_BYTES = 1_000_000;
 const TIMEOUT_MS = 8_000;
 const XML_CONTENT_TYPE = /^(?:application\/(?:atom\+xml|rss\+xml|xml)|text\/xml)(?:;|$)/i;

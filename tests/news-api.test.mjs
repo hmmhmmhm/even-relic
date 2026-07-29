@@ -1,24 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { handleApiRequest } from "../server/api-router.js";
+import { BUILT_IN_RSS_FEEDS } from "../server/news-feeds.js";
 import { handleNewsRequest } from "../server/news.js";
 
-const FEED_URL =
-  "https://news.sbs.co.kr/news/newsflashRssFeed.do?plink=RSSREADER";
-const FIXED_FEEDS = new Map([
-  ["sbs-latest", FEED_URL],
-  ["newsis-breaking", "https://www.newsis.com/RSS/sokbo.xml"],
-  [
-    "weekly-khan-latest",
-    "https://weekly.khan.co.kr/rss/rssdata/total_news.xml",
-  ],
-  ["bbc-world", "https://feeds.bbci.co.uk/news/world/rss.xml"],
-  ["guardian-world", "https://www.theguardian.com/world/rss"],
-  [
-    "lemonde-international",
-    "https://www.lemonde.fr/en/international/rss_full.xml",
-  ],
-]);
+const FIXED_FEEDS = new Map(
+  BUILT_IN_RSS_FEEDS.map(({ id, url }) => [id, url]),
+);
+const FEED_URL = FIXED_FEEDS.get("sbs-latest");
+
+test("uses unique fixed feed IDs and URLs", () => {
+  assert.equal(FIXED_FEEDS.size, BUILT_IN_RSS_FEEDS.length);
+  assert.equal(
+    new Set(BUILT_IN_RSS_FEEDS.map(({ url }) => url)).size,
+    BUILT_IN_RSS_FEEDS.length,
+  );
+});
 
 function rssResponse(body = "<rss><channel /></rss>", init = {}) {
   return new Response(body, {
