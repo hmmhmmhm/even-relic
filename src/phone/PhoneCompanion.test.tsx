@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EvenStorage } from "../live-cache";
 import { createInitialLiveDashboardState } from "../live-state";
 import { DEFAULT_PHONE_PREFERENCES } from "../phone-preferences";
+import { DEFAULT_RSS_SOURCE } from "../rss-sources";
 import { PhoneCompanion } from "./PhoneCompanion";
 
 afterEach(cleanup);
@@ -110,6 +111,34 @@ describe("PhoneCompanion", () => {
     expect(screen.queryByText("WEBVIEW TRACE")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Developer/ }));
     expect(screen.getByText("WEBVIEW TRACE")).toBeTruthy();
+  });
+
+  it("shows routing mode and enabled RSS count only in Developer", () => {
+    const storage = new TestStorage();
+    render(
+      <PhoneCompanion
+        canvas={<canvas width="576" height="288" />}
+        status="Ready"
+        live={createInitialLiveDashboardState()}
+        routingStatus={{ enabled: true }}
+        preferences={{
+          ...DEFAULT_PHONE_PREFERENCES,
+          locale: "en",
+        }}
+        storage={storage}
+        onPreferencesChange={vi.fn()}
+        onTodosChange={vi.fn()}
+        onWeatherRefresh={vi.fn(async (): Promise<"accepted"> => "accepted")}
+        routeControls={<div>Route controls</div>}
+        rssSources={[DEFAULT_RSS_SOURCE]}
+      />,
+    );
+
+    expect(screen.queryByText("Routing mode")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Developer/ }));
+    expect(screen.getByText("Routing mode")).toBeTruthy();
+    expect(screen.getByText("RSS sources")).toBeTruthy();
+    expect(screen.getByText("1 enabled")).toBeTruthy();
   });
 
   it("localizes the HUD preview landmark with the selected phone language", () => {

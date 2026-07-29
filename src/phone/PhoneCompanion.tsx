@@ -219,7 +219,14 @@ export function PhoneCompanion({
           />
         );
       case "developer":
-        return <DeveloperScreen status={status} t={t} />;
+        return (
+          <DeveloperScreen
+            status={status}
+            routingEnabled={routingStatus.enabled}
+            rssSources={rssSources}
+            t={t}
+          />
+        );
       case "home":
         return null;
     }

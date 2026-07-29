@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { APP_VERSION } from "../app-metadata";
 import type { PhoneStringKey } from "../phone-i18n";
 import type { PhoneIconName } from "../phone-icons";
 import { PhoneIcon } from "../phone-icons";
@@ -60,7 +61,7 @@ export function PhoneHome({
       <footer className="phone-home__footer">
         <div>
           <strong>{t("project")}</strong>
-          <span>v0.1.0</span>
+          <span>v{APP_VERSION}</span>
         </div>
         <a
           href="https://github.com/hmmhmmhm/sandevistan"

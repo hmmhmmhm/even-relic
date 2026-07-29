@@ -75,6 +75,16 @@ const en = {
   noData: "No data",
   liveHudPreview: "Live HUD preview",
   developmentFallback: "Development server key",
+  routingMode: "Routing mode",
+  rssSources: "RSS sources",
+  webviewTraceRegion: "WebView operation log",
+  webviewTrace: "WEBVIEW TRACE",
+  logDropped: "Log entries removed",
+  refreshDropped: "Refreshes dropped",
+  copy: "Copy",
+  copied: "Copied",
+  copyFailed: "Copy failed",
+  clear: "Clear",
 } as const;
 
 const ko = {
@@ -152,6 +162,16 @@ const ko = {
   noData: "데이터 없음",
   liveHudPreview: "실시간 HUD 미리보기",
   developmentFallback: "개발용 서버 키",
+  routingMode: "길찾기 모드",
+  rssSources: "RSS 소스",
+  webviewTraceRegion: "웹뷰 작업 기록",
+  webviewTrace: "웹뷰 기록",
+  logDropped: "삭제된 기록",
+  refreshDropped: "버린 화면 갱신",
+  copy: "복사",
+  copied: "복사됨",
+  copyFailed: "복사 실패",
+  clear: "비우기",
 } satisfies Record<keyof typeof en, string>;
 
 export const PHONE_STRINGS = { en, ko } as const;

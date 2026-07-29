@@ -78,4 +78,33 @@ describe("DiagnosticConsole", () => {
       name: "COPY FAILED",
     })).toBeTruthy();
   });
+
+  it("uses localized control labels and exposes refresh-drop count", () => {
+    vi.useFakeTimers();
+    const logger = createDiagnosticLogger();
+    render(
+      <DiagnosticConsole
+        logger={logger}
+        labels={{
+          region: "웹뷰 작업 기록",
+          title: "웹뷰 기록",
+          logDropped: "기록 삭제",
+          refreshDropped: "갱신 버림",
+          copy: "복사",
+          copied: "복사됨",
+          copyFailed: "복사 실패",
+          clear: "비우기",
+        }}
+      />,
+    );
+
+    logger.append("REFRESH", "external left dropped · busy");
+    act(() => vi.advanceTimersByTime(250));
+
+    expect(screen.getByRole("region", { name: "웹뷰 작업 기록" }))
+      .toBeTruthy();
+    expect(screen.getByRole("button", { name: "복사" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "비우기" })).toBeTruthy();
+    expect(screen.getByText(/갱신 버림 1/)).toBeTruthy();
+  });
 });

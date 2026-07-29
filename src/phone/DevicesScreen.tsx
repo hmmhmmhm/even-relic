@@ -1,4 +1,5 @@
 import type { FastCanvasBattery } from "../glasses";
+import { EVEN_HUB_SDK_VERSION } from "../app-metadata";
 import type { PhoneStringKey } from "../phone-i18n";
 
 function batteryText(
@@ -46,7 +47,7 @@ export function DevicesScreen({
       </section>
       <section className="phone-panel">
         <dl className="phone-data-list">
-          <div><dt>{t("sdk")}</dt><dd>0.0.11</dd></div>
+          <div><dt>{t("sdk")}</dt><dd>{EVEN_HUB_SDK_VERSION}</dd></div>
           <div><dt>{t("bilateral")}</dt><dd>{t("active")}</dd></div>
           <div><dt>{t("transport")}</dt><dd>{status}</dd></div>
         </dl>

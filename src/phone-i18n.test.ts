@@ -23,5 +23,7 @@ describe("phone localization", () => {
     expect(translatePhone("ko", "dashboard")).toBe("대시보드");
     expect(translatePhone("en", "liveHudPreview")).toBe("Live HUD preview");
     expect(translatePhone("ko", "developmentFallback")).toBe("개발용 서버 키");
+    expect(translatePhone("ko", "refreshDropped")).toBe("버린 화면 갱신");
+    expect(translatePhone("en", "routingMode")).toBe("Routing mode");
   });
 });

@@ -8,11 +8,35 @@ import { copyText } from "./copy-text";
 type DiagnosticConsoleProps = {
   readonly logger?: DiagnosticLogger;
   readonly clipboard?: Pick<Clipboard, "writeText">;
+  readonly labels?: DiagnosticConsoleLabels;
+};
+
+export type DiagnosticConsoleLabels = {
+  readonly region: string;
+  readonly title: string;
+  readonly logDropped: string;
+  readonly refreshDropped: string;
+  readonly copy: string;
+  readonly copied: string;
+  readonly copyFailed: string;
+  readonly clear: string;
+};
+
+const DEFAULT_LABELS: DiagnosticConsoleLabels = {
+  region: "WebView operation console",
+  title: "WEBVIEW TRACE",
+  logDropped: "LOG DROPPED",
+  refreshDropped: "REFRESH DROPPED",
+  copy: "COPY",
+  copied: "COPIED",
+  copyFailed: "COPY FAILED",
+  clear: "CLEAR",
 };
 
 export function DiagnosticConsole({
   logger = diagnosticLogger,
   clipboard,
+  labels = DEFAULT_LABELS,
 }: DiagnosticConsoleProps) {
   const [snapshot, setSnapshot] = useState(logger.snapshot());
   const [copyResult, setCopyResult] = useState<
@@ -57,22 +81,23 @@ export function DiagnosticConsole({
   };
 
   return (
-    <section className="diagnostic-console" aria-label="웹뷰 작업 콘솔">
+    <section className="diagnostic-console" aria-label={labels.region}>
       <header>
-        <strong>WEBVIEW TRACE</strong>
+        <strong>{labels.title}</strong>
         <span>
           {snapshot.entries.length}/{snapshot.capacity}
-          {" · "}DROPPED {snapshot.dropped}
+          {" · "}{labels.logDropped} {snapshot.dropped}
+          {" · "}{labels.refreshDropped} {snapshot.refreshDropped}
         </span>
         <div>
           <button type="button" onClick={() => void copy()}>
             {copyResult === "copied"
-              ? "COPIED"
+              ? labels.copied
               : copyResult === "failed"
-                ? "COPY FAILED"
-                : "COPY"}
+                ? labels.copyFailed
+                : labels.copy}
           </button>
-          <button type="button" onClick={clear}>CLEAR</button>
+          <button type="button" onClick={clear}>{labels.clear}</button>
         </div>
       </header>
       <pre ref={outputRef} data-testid="diagnostic-lines">

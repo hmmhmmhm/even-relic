@@ -43,11 +43,13 @@ export function createDiagnosticLogger(options: LoggerOptions = {}) {
   let entries: DiagnosticEntry[] = [];
   let sequence = 0;
   let dropped = 0;
+  let refreshDropped = 0;
   let version = 0;
 
   const snapshot = () => ({
     version,
     dropped,
+    refreshDropped,
     capacity,
     entries: entries.map((entry) => ({ ...entry })),
   });
@@ -68,6 +70,9 @@ export function createDiagnosticLogger(options: LoggerOptions = {}) {
           ? {}
           : { durationMs: Math.max(0, Math.round(durationMs)) }),
       });
+      if (category === "REFRESH" && /\bdropped\b/.test(message)) {
+        refreshDropped += 1;
+      }
       if (entries.length > capacity) {
         entries = entries.slice(entries.length - capacity);
         dropped += 1;
@@ -77,6 +82,7 @@ export function createDiagnosticLogger(options: LoggerOptions = {}) {
     clear() {
       entries = [];
       dropped = 0;
+      refreshDropped = 0;
       version += 1;
     },
     snapshot,

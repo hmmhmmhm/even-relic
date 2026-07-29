@@ -41,7 +41,21 @@ describe("diagnostic log", () => {
 
     expect(logger.snapshot()).toMatchObject({
       dropped: 0,
+      refreshDropped: 0,
       entries: [{ sequence: 3, message: "three" }],
+    });
+  });
+
+  it("counts fail-fast refresh drops separately from trimmed log entries", () => {
+    const logger = createDiagnosticLogger({ capacity: 10 });
+
+    logger.append("REFRESH", "external left dropped · busy");
+    logger.append("LIVE", "weather dropped · busy");
+    logger.append("REFRESH", "external right accepted");
+
+    expect(logger.snapshot()).toMatchObject({
+      dropped: 0,
+      refreshDropped: 1,
     });
   });
 
