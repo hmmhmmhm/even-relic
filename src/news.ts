@@ -5,6 +5,7 @@ import {
   resolveRssSources,
   type RssSource,
 } from "./rss-sources";
+import type { PhoneLocale } from "./phone-types";
 
 export const NEWS_MAX_AGE_MS = 60 * 60 * 1000;
 export const NEWS_LIMIT = 100;
@@ -255,6 +256,7 @@ export async function resolveNews(
   now = Date.now(),
   onCached?: (cached: DataState<readonly NewsItem[]>) => void,
   force = false,
+  locale: PhoneLocale = "ko",
 ): Promise<DataState<readonly NewsItem[]>> {
   const cached = await readCache(storage, "news", isNewsCache);
   const usableCache = cached && cached.fetchedAt <= now ? cached : undefined;
@@ -267,7 +269,7 @@ export async function resolveNews(
     if (status === "fresh" && !force) return cachedState;
   }
 
-  const sources = (await resolveRssSources(storage))
+  const sources = (await resolveRssSources(storage, locale))
     .filter((source) => source.enabled);
   if (sources.length === 0) {
     return usableCache
@@ -281,8 +283,8 @@ export async function resolveNews(
   );
   try {
     const snapshots = await Promise.all(sources.map(async (source) => {
-      const endpoint = source.isDefault
-        ? "/api/news?feed=sbs-latest"
+      const endpoint = source.feed
+        ? `/api/news?feed=${source.feed}`
         : `/api/news?url=${encodeURIComponent(source.url)}`;
       try {
         const response = await fetchImpl(endpoint, {

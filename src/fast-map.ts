@@ -19,6 +19,10 @@ import {
   type FastCanvasColor as HudColor,
   type FastCanvasPoint as Point,
 } from "./fast-canvas-style";
+import {
+  drawFullscreenMapFooter,
+  drawFullscreenMapHeader,
+} from "./fast-map-frame";
 export const EMBEDDED_MAP_VIEWPORT: MapLabelViewport = {
   minX: 18,
   maxX: 270,
@@ -393,61 +397,6 @@ export function drawFastMap(
   drawFooter(context, live.map, live.route, radiusMeters, area.status);
 }
 
-function drawFullscreenHeader(
-  context: CanvasRenderingContext2D,
-  live: LiveDashboardState,
-  radiusMeters: number,
-) {
-  const { source, layer } = mapDescriptor(live.location, live.map);
-  context.fillStyle = COLOR.background;
-  context.fillRect(0, 0, 576, 31);
-  context.fillStyle = COLOR.dim;
-  context.fillRect(0, 30, 576, 1);
-  drawText(
-    context,
-    `MAP // ${source} · ${layer}`,
-    14,
-    8,
-    12,
-    COLOR.primary,
-    "bold",
-  );
-  drawText(
-    context,
-    `ZOOM // ${radiusMeters}m`,
-    444,
-    8,
-    12,
-    COLOR.secondary,
-    "bold",
-  );
-}
-
-function drawFullscreenFooter(context: CanvasRenderingContext2D) {
-  context.fillStyle = COLOR.background;
-  context.fillRect(0, 254, 576, 34);
-  context.fillStyle = COLOR.dim;
-  context.fillRect(0, 253, 576, 1);
-  drawText(
-    context,
-    "© OSM CONTRIBUTORS",
-    14,
-    264,
-    9,
-    COLOR.secondary,
-    "bold",
-  );
-  drawText(
-    context,
-    "DOUBLE TAP // BACK",
-    400,
-    264,
-    9,
-    COLOR.primary,
-    "bold",
-  );
-}
-
 export function drawFastFullscreenMap(
   canvas: HTMLCanvasElement,
   live: LiveDashboardState,
@@ -469,6 +418,7 @@ export function drawFastFullscreenMap(
     18,
     locale,
   );
-  drawFullscreenHeader(context, live, radiusMeters);
-  drawFullscreenFooter(context);
+  const { source, layer } = mapDescriptor(live.location, live.map);
+  drawFullscreenMapHeader(context, source, layer, radiusMeters);
+  drawFullscreenMapFooter(context);
 }

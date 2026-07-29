@@ -1,4 +1,13 @@
 import { readCache, writeCache, type EvenStorage } from "./live-cache";
+import type { PhoneLocale } from "./phone-types";
+
+export type BuiltInRssFeed =
+  | "sbs-latest"
+  | "newsis-breaking"
+  | "weekly-khan-latest"
+  | "bbc-world"
+  | "guardian-world"
+  | "lemonde-international";
 
 export type RssSource = {
   readonly id: string;
@@ -6,18 +15,79 @@ export type RssSource = {
   readonly url: string;
   readonly enabled: boolean;
   readonly isDefault: boolean;
+  readonly locale?: PhoneLocale;
+  readonly feed?: BuiltInRssFeed;
 };
+
+const BUILT_IN_RSS_SOURCES: readonly RssSource[] = [
+  {
+    id: "sbs-latest",
+    name: "SBS 최신뉴스",
+    url: "https://news.sbs.co.kr/news/newsflashRssFeed.do?plink=RSSREADER",
+    enabled: true,
+    isDefault: true,
+    locale: "ko",
+    feed: "sbs-latest",
+  },
+  {
+    id: "newsis-breaking",
+    name: "뉴시스 속보",
+    url: "https://www.newsis.com/RSS/sokbo.xml",
+    enabled: true,
+    isDefault: true,
+    locale: "ko",
+    feed: "newsis-breaking",
+  },
+  {
+    id: "weekly-khan-latest",
+    name: "주간경향 최신기사",
+    url: "https://weekly.khan.co.kr/rss/rssdata/total_news.xml",
+    enabled: true,
+    isDefault: true,
+    locale: "ko",
+    feed: "weekly-khan-latest",
+  },
+  {
+    id: "bbc-world",
+    name: "BBC World",
+    url: "https://feeds.bbci.co.uk/news/world/rss.xml",
+    enabled: true,
+    isDefault: true,
+    locale: "en",
+    feed: "bbc-world",
+  },
+  {
+    id: "guardian-world",
+    name: "The Guardian World",
+    url: "https://www.theguardian.com/world/rss",
+    enabled: true,
+    isDefault: true,
+    locale: "en",
+    feed: "guardian-world",
+  },
+  {
+    id: "lemonde-international",
+    name: "Le Monde International",
+    url: "https://www.lemonde.fr/en/international/rss_full.xml",
+    enabled: true,
+    isDefault: true,
+    locale: "en",
+    feed: "lemonde-international",
+  },
+];
 
 export const DEFAULT_RSS_SOURCE: RssSource = {
-  id: "sbs-latest",
-  name: "SBS Latest",
-  url: "https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=01",
-  enabled: true,
-  isDefault: true,
+  ...BUILT_IN_RSS_SOURCES[0],
 };
 
-const SOURCE_LIMIT = 6;
+const CUSTOM_SOURCE_LIMIT = 6;
+const STORED_SOURCE_LIMIT =
+  BUILT_IN_RSS_SOURCES.length + CUSTOM_SOURCE_LIMIT;
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
+const BUILT_IN_IDS = new Set(BUILT_IN_RSS_SOURCES.map(({ id }) => id));
+const BUILT_IN_FEEDS = new Set(
+  BUILT_IN_RSS_SOURCES.map(({ feed }) => feed),
+);
 
 type UrlValidation =
   | { readonly ok: true; readonly value: string }
@@ -37,21 +107,65 @@ function isSource(value: unknown): value is RssSource {
     && typeof value.url === "string"
     && validateRssSourceUrl(value.url).ok
     && typeof value.enabled === "boolean"
-    && typeof value.isDefault === "boolean";
+    && typeof value.isDefault === "boolean"
+    && (
+      value.locale === undefined
+      || value.locale === "ko"
+      || value.locale === "en"
+    )
+    && (
+      value.feed === undefined
+      || BUILT_IN_FEEDS.has(value.feed as BuiltInRssFeed)
+    );
 }
 
-function isSourceList(value: unknown): value is readonly RssSource[] {
+function isStoredSourceList(value: unknown): value is readonly RssSource[] {
   return Array.isArray(value)
     && value.length > 0
-    && value.length <= SOURCE_LIMIT
+    && value.length <= STORED_SOURCE_LIMIT
     && value.every(isSource)
-    && value.filter((source) => source.isDefault).length === 1
-    && value.some((source) => source.id === DEFAULT_RSS_SOURCE.id)
+    && value.filter((source) => !source.isDefault).length
+      <= CUSTOM_SOURCE_LIMIT
     && new Set(value.map((source) => source.id)).size === value.length;
 }
 
 function cloneSources(value: readonly RssSource[]): readonly RssSource[] {
   return value.map((source) => ({ ...source }));
+}
+
+function customizedBuiltIn(
+  source: RssSource,
+  stored: readonly RssSource[],
+): RssSource {
+  const saved = stored.find((candidate) => (
+    candidate.id === source.id && candidate.isDefault
+  ));
+  return {
+    ...source,
+    ...(saved ? { name: saved.name, enabled: saved.enabled } : {}),
+  };
+}
+
+function customSources(
+  sources: readonly RssSource[],
+): readonly RssSource[] {
+  return sources
+    .filter((source) => !source.isDefault && !BUILT_IN_IDS.has(source.id))
+    .slice(0, CUSTOM_SOURCE_LIMIT)
+    .map((source) => ({
+      ...source,
+      isDefault: false,
+      locale: undefined,
+      feed: undefined,
+    }));
+}
+
+export function defaultRssSources(
+  locale: PhoneLocale,
+): readonly RssSource[] {
+  return cloneSources(
+    BUILT_IN_RSS_SOURCES.filter((source) => source.locale === locale),
+  );
 }
 
 export function validateRssSourceUrl(value: string): UrlValidation {
@@ -98,14 +212,22 @@ export function addRssSource(
   name: string,
   urlValue: string,
 ): readonly RssSource[] {
-  if (sources.length >= SOURCE_LIMIT) throw new Error("rss_source_limit");
+  if (sources.filter((source) => !source.isDefault).length
+    >= CUSTOM_SOURCE_LIMIT) {
+    throw new Error("rss_source_limit");
+  }
   const normalizedName = normalizeName(name);
   if (!normalizedName || CONTROL_CHARACTERS.test(normalizedName)) {
     throw new Error("rss_source_name");
   }
   const validation = validateRssSourceUrl(urlValue);
   if (!validation.ok) throw new Error("rss_source_url");
-  if (sources.some((source) => source.url === validation.value)) {
+  if (
+    sources.some((source) => source.url === validation.value)
+    || BUILT_IN_RSS_SOURCES.some(
+      (source) => source.url === validation.value,
+    )
+  ) {
     throw new Error("rss_source_duplicate");
   }
   return [
@@ -124,7 +246,9 @@ export function deleteRssSource(
   sources: readonly RssSource[],
   id: string,
 ): readonly RssSource[] {
-  if (id === DEFAULT_RSS_SOURCE.id) return sources;
+  if (sources.some((source) => source.id === id && source.isDefault)) {
+    return sources;
+  }
   return sources.filter((source) => source.id !== id);
 }
 
@@ -151,15 +275,47 @@ export function updateRssSource(
 
 export async function resolveRssSources(
   storage: EvenStorage,
+  locale: PhoneLocale = "ko",
 ): Promise<readonly RssSource[]> {
-  const cached = await readCache(storage, "rss-sources", isSourceList);
-  return cloneSources(cached ?? [DEFAULT_RSS_SOURCE]);
+  const stored = await readCache(
+    storage,
+    "rss-sources",
+    isStoredSourceList,
+  ) ?? [];
+  const builtIns = defaultRssSources(locale).map((source) => (
+    customizedBuiltIn(source, stored)
+  ));
+  return [...builtIns, ...customSources(stored)];
 }
 
-export function writeRssSources(
+export async function writeRssSources(
   storage: EvenStorage,
   sources: readonly RssSource[],
+  locale: PhoneLocale = "ko",
 ): Promise<boolean> {
-  if (!isSourceList(sources)) return Promise.resolve(false);
-  return writeCache(storage, "rss-sources", cloneSources(sources));
+  const expectedIds = new Set(
+    defaultRssSources(locale).map(({ id }) => id),
+  );
+  const activeBuiltIns = sources.filter((source) => source.isDefault);
+  if (
+    sources.length > CUSTOM_SOURCE_LIMIT + expectedIds.size
+    || activeBuiltIns.length !== expectedIds.size
+    || activeBuiltIns.some((source) => !expectedIds.has(source.id))
+    || sources.some((source) => !isSource(source))
+    || new Set(sources.map((source) => source.id)).size !== sources.length
+  ) {
+    return false;
+  }
+
+  const stored = await readCache(
+    storage,
+    "rss-sources",
+    isStoredSourceList,
+  ) ?? [];
+  const allBuiltIns = BUILT_IN_RSS_SOURCES.map((source) => {
+    const active = sources.find((candidate) => candidate.id === source.id);
+    return customizedBuiltIn(source, active ? sources : stored);
+  });
+  const value = [...allBuiltIns, ...customSources(sources)];
+  return writeCache(storage, "rss-sources", value);
 }

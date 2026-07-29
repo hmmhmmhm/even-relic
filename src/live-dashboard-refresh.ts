@@ -10,6 +10,7 @@ import { resolveNews } from "./news";
 import type { LocationBridge } from "./location";
 import { resolveWeather } from "./weather";
 import { logDiagnostic } from "./diagnostic-log";
+import type { PhoneLocale } from "./phone-types";
 
 export type LiveRefreshTarget = "left" | "right" | "all";
 export type LiveRefreshDecision = "accepted" | "dropped";
@@ -22,6 +23,7 @@ type LiveDashboardRefreshOptions = {
   readonly setState: (state: LiveDashboardState) => void;
   readonly emit: (target: LiveRefreshTarget) => void;
   readonly isDisposed: () => boolean;
+  readonly getLocale?: () => PhoneLocale;
 };
 
 const diagnosticNow = () => (
@@ -219,6 +221,7 @@ export function createLiveDashboardRefresh(
             );
           },
           force,
+          options.getLocale?.() ?? "ko",
         );
       } catch (error) {
         logDiagnostic(

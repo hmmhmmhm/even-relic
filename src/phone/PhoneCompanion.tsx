@@ -202,6 +202,7 @@ export function PhoneCompanion({
         return (
           <NewsScreen
             storage={storage}
+            locale={locale}
             t={t}
             onSourcesChange={onRssSourcesChange}
           />

@@ -18,7 +18,7 @@ import {
 import type { PhonePreferences } from "./phone-types";
 import { PhoneCompanion } from "./phone/PhoneCompanion";
 import {
-  DEFAULT_RSS_SOURCE,
+  defaultRssSources,
   resolveRssSources,
   type RssSource,
 } from "./rss-sources";
@@ -103,7 +103,7 @@ export function App({ autoStart = true }: AppProps) {
   const companionOrsKeyRef = useRef<string | undefined>(undefined);
   const [companionRssSources, setCompanionRssSources] = useState<
     readonly RssSource[]
-  >([DEFAULT_RSS_SOURCE]);
+  >(defaultRssSources("ko"));
   const phoneNavigationAvailable = routingStatus.enabled
     || companionOrsKey !== undefined;
 
@@ -120,6 +120,7 @@ export function App({ autoStart = true }: AppProps) {
     if (
       resolvePhoneLocale(value.locale, browserLanguage) !== previousLocale
     ) {
+      liveSessionRef.current?.refreshLocale?.();
       displayRefreshRef.current?.();
     }
   };
@@ -161,13 +162,15 @@ export function App({ autoStart = true }: AppProps) {
   useEffect(() => {
     if (!fastCanvasHudMode) return;
     let active = true;
-    void resolveRssSources(companionStorage).then((value) => {
-      if (active) setCompanionRssSources(value);
+    void resolveRssSources(companionStorage, phoneLocale).then((value) => {
+      if (!active) return;
+      setCompanionRssSources(value);
+      void liveSessionRef.current?.refreshNewsSources?.();
     });
     return () => {
       active = false;
     };
-  }, [companionStorage, fastCanvasHudMode]);
+  }, [companionStorage, fastCanvasHudMode, phoneLocale]);
 
   useHudController({
     autoStart,

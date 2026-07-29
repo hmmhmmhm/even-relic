@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { EvenStorage } from "../live-cache";
 import type { PhoneStringKey } from "../phone-i18n";
 import { PhoneIcon } from "../phone-icons";
+import type { PhoneLocale } from "../phone-types";
 import {
   addRssSource,
   deleteRssSource,
@@ -13,11 +14,13 @@ import {
 
 export function NewsScreen({
   storage,
+  locale,
   t,
   fetchImpl = fetch,
   onSourcesChange,
 }: {
   readonly storage?: EvenStorage;
+  readonly locale: PhoneLocale;
   readonly t: (key: PhoneStringKey) => string;
   readonly fetchImpl?: typeof fetch;
   readonly onSourcesChange?: (sources: readonly RssSource[]) => void;
@@ -32,18 +35,18 @@ export function NewsScreen({
   useEffect(() => {
     if (!storage) return;
     let active = true;
-    void resolveRssSources(storage).then((value) => {
+    void resolveRssSources(storage, locale).then((value) => {
       if (active) setSources(value);
     });
     return () => {
       active = false;
     };
-  }, [storage]);
+  }, [locale, storage]);
 
   const commit = async (next: readonly RssSource[]) => {
     if (!storage || busy) return false;
     setBusy(true);
-    const saved = await writeRssSources(storage, next);
+    const saved = await writeRssSources(storage, next, locale);
     if (saved) {
       setSources(next);
       onSourcesChange?.(next);
@@ -66,7 +69,9 @@ export function NewsScreen({
         { headers: { accept: "application/xml,text/xml" } },
       );
       if (!response.ok) throw new Error("feed_validation");
-      const saved = storage ? await writeRssSources(storage, candidate) : false;
+      const saved = storage
+        ? await writeRssSources(storage, candidate, locale)
+        : false;
       if (!saved) throw new Error("storage");
       setSources(candidate);
       onSourcesChange?.(candidate);

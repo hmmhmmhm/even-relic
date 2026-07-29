@@ -3,6 +3,7 @@ import {
   DEFAULT_TODOS as LIVE_DEFAULT_TODOS,
   type TodoItem,
 } from "./live-state";
+import type { PhoneLocale } from "./phone-types";
 
 const TODO_LIMIT = 6;
 const TODO_TITLE_MAX_CODE_POINTS = 40;
@@ -10,6 +11,21 @@ const TODO_ID_MAX_CODE_POINTS = 64;
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
 export const DEFAULT_TODOS = LIVE_DEFAULT_TODOS;
+
+const DEFAULT_TODO_TITLES = {
+  station: {
+    ko: "지하철역으로 이동",
+    en: "Go to the subway station",
+  },
+  umbrella: {
+    ko: "우산 챙기기",
+    en: "Bring an umbrella",
+  },
+  route: {
+    ko: "경로 확인",
+    en: "Check route",
+  },
+} as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -53,6 +69,31 @@ function isTodoList(value: unknown): value is readonly TodoItem[] {
 
 function cloneTodos(items: readonly TodoItem[]): readonly TodoItem[] {
   return items.map((item) => ({ ...item }));
+}
+
+export function defaultTodos(locale: PhoneLocale): readonly TodoItem[] {
+  return DEFAULT_TODOS.map((item) => ({
+    ...item,
+    title: DEFAULT_TODO_TITLES[item.id as keyof typeof DEFAULT_TODO_TITLES]
+      ?.[locale] ?? item.title,
+  }));
+}
+
+export function localizeBuiltInTodos(
+  items: readonly TodoItem[],
+  locale: PhoneLocale,
+): readonly TodoItem[] {
+  return items.map((item) => {
+    const titles =
+      DEFAULT_TODO_TITLES[item.id as keyof typeof DEFAULT_TODO_TITLES];
+    if (
+      !titles
+      || !Object.values(titles).some((title) => title === item.title)
+    ) {
+      return item;
+    }
+    return { ...item, title: titles[locale] };
+  });
 }
 
 function normalizeTodoTitle(value: string): string {
@@ -110,9 +151,12 @@ export function deleteTodo(
 
 export async function resolveTodos(
   storage: EvenStorage,
+  locale: PhoneLocale = "ko",
 ): Promise<readonly TodoItem[]> {
   const cached = await readCache(storage, "todos", isTodoList);
-  return cloneTodos(cached ?? DEFAULT_TODOS);
+  return cloneTodos(
+    cached ? localizeBuiltInTodos(cached, locale) : defaultTodos(locale),
+  );
 }
 
 export function toggleTodo(

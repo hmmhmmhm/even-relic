@@ -1,18 +1,9 @@
 import {
-  AppLocationAccuracy,
-  type AppLocation,
-} from "@evenrealities/even_hub_sdk";
-import {
   createInitialLiveDashboardState,
   type LiveDashboardState,
   type TodoItem,
 } from "./live-state";
 import {
-  haversineMeters,
-  LOCATION_UPDATE_DISTANCE_METERS,
-  LOCATION_UPDATE_INTERVAL_MS,
-  normalizeLiveLocation,
-  persistLiveLocation,
   resolveInitialLocation,
   type LocationBridge,
 } from "./location";
@@ -21,16 +12,23 @@ import {
   type LiveRefreshTarget,
 } from "./live-dashboard-refresh";
 import { createLiveRouteSession } from "./live-route-session";
-import { clientMapCell, MAP_MAX_AGE_MS } from "./map";
+import { MAP_MAX_AGE_MS } from "./map";
 import { NEWS_MAX_AGE_MS } from "./news";
 import type {
   Destination,
   RouteProfile,
   RoutingStatus,
 } from "./routing";
-import { resolveTodos, toggleTodo, writeTodos } from "./todos";
+import {
+  localizeBuiltInTodos,
+  resolveTodos,
+  toggleTodo,
+  writeTodos,
+} from "./todos";
 import { WEATHER_MAX_AGE_MS } from "./weather";
 import { logDiagnostic } from "./diagnostic-log";
+import type { PhoneLocale } from "./phone-types";
+import { createLiveLocationStream } from "./live-location-stream";
 
 export type LiveDashboardUpdate = {
   readonly state: LiveDashboardState;
@@ -46,6 +44,7 @@ type LiveDashboardSessionOptions = {
   readonly bridge: LocationBridge;
   readonly onUpdate: (update: LiveDashboardUpdate) => void;
   readonly canRefreshNews?: () => boolean;
+  readonly getLocale?: () => PhoneLocale;
   readonly fetchImpl?: typeof fetch;
   readonly now?: () => number;
   readonly documentTarget?: DocumentTarget;
@@ -68,14 +67,6 @@ const diagnosticErrorKind = (error: unknown) => (
 
 function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
-}
-
-function mergeTarget(
-  first: LiveRefreshTarget | undefined,
-  second: LiveRefreshTarget,
-): LiveRefreshTarget {
-  if (!first || first === second) return second;
-  return "all";
 }
 
 function todosMatch(
@@ -105,6 +96,7 @@ export function createLiveDashboardSession(
   refreshWeather(): Promise<"accepted" | "dropped">;
   refreshNewsSources(): Promise<"accepted" | "dropped">;
   refreshNewsIfDue(): void;
+  refreshLocale(): void;
   replaceTodos(items: readonly TodoItem[]): void;
   toggleTodo(index: number): Promise<boolean>;
   getState(): LiveDashboardState;
@@ -128,11 +120,8 @@ export function createLiveDashboardSession(
   let listenerRegistered = false;
   let locationResolved = false;
   let startPromise: Promise<void> | undefined;
-  let locationUpdatesStarted = false;
-  let locationUpdateMode: "general" | "navigation" | undefined;
-  let unsubscribeLocation: (() => void) | undefined;
-  let locationEventCount = 0;
-  let locationBusy = false;
+  let newsSourceVersion = 0;
+  let refreshedNewsSourceVersion = 0;
 
   const emit = (target: LiveRefreshTarget) => {
     if (disposed) return;
@@ -161,216 +150,22 @@ export function createLiveDashboardSession(
     },
     emit,
     isDisposed: () => disposed,
+    getLocale: options.getLocale,
   });
 
-  const stopLocationUpdates = async () => {
-    logDiagnostic("LOCATION", "stream stop requested");
-    unsubscribeLocation?.();
-    unsubscribeLocation = undefined;
-    if (
-      !locationUpdatesStarted
-      || !options.bridge.stopAppLocationUpdates
-    ) {
-      return;
-    }
-    locationUpdatesStarted = false;
-    locationUpdateMode = undefined;
-    try {
-      const stopped = await options.bridge.stopAppLocationUpdates();
-      logDiagnostic(
-        "LOCATION",
-        `stream stop ${stopped ? "success" : "rejected"}`,
-      );
-    } catch (error) {
-      logDiagnostic(
-        "ERROR",
-        `location stream stop failed · ${diagnosticErrorKind(error)}`,
-      );
-      // A failed stop must not block cleanup or a later restart attempt.
-    }
-  };
-
   let routeSession: ReturnType<typeof createLiveRouteSession>;
-
-  const processLocation = async (
-    location: AppLocation,
-    eventId: number,
-  ) => {
-    if (disposed) {
-      logDiagnostic("LOCATION", `process #${eventId} skipped · disposed`);
-      return;
-    }
-    const next = normalizeLiveLocation(location, now());
-    const previousCoordinate = state.location.value?.coordinate;
-    const nextCoordinate = next?.value?.coordinate;
-    if (!next || !nextCoordinate) {
-      logDiagnostic("LOCATION", "ignored · invalid");
-      return;
-    }
-    const activeRoute = routeSession.activeRoute();
-    const movement = previousCoordinate
-      ? haversineMeters(previousCoordinate, nextCoordinate)
-      : Number.POSITIVE_INFINITY;
-    const minimumMovement = activeRoute
-      ? 5
-      : LOCATION_UPDATE_DISTANCE_METERS;
-    if (movement < minimumMovement) {
-      logDiagnostic(
-        "LOCATION",
-        `ignored · movement ${Math.round(movement)}m < ${minimumMovement}m`,
-      );
-      return;
-    }
-
-    state = { ...state, location: clone(next) };
-    let target: LiveRefreshTarget | undefined;
-    const redrawMap = movement >= LOCATION_UPDATE_DISTANCE_METERS;
-    if (redrawMap) target = "left";
-    if (routeSession.updateProgress(nextCoordinate)) {
-      target = mergeTarget(target, "right");
-    }
-
-    logDiagnostic(
-      "LOCATION",
-      `accepted · movement ${
-        Number.isFinite(movement) ? `${Math.round(movement)}m` : "initial"
-      } · target ${target ?? "none"}`,
-    );
-    if (target) emit(target);
-    const persistStartedAt = diagnosticNow();
-    logDiagnostic("LOCATION", "persistence start");
-    void persistLiveLocation(options.bridge, next).then((persisted) => {
-      logDiagnostic(
-        "LOCATION",
-        `persistence ${persisted ? "success" : "rejected"}`,
-        diagnosticDuration(persistStartedAt),
-      );
-    });
-    if (
-      redrawMap
-      && state.map.value?.cell !== clientMapCell(nextCoordinate)
-    ) {
-      logDiagnostic("LOCATION", "map cell refresh requested");
-      await refresh.refreshMap();
-    }
-    await routeSession.maybeReroute(nextCoordinate);
-  };
-
-  const handleLocation = (location: AppLocation) => {
-    locationEventCount += 1;
-    const eventId = locationEventCount;
-    if (disposed || locationBusy) {
-      logDiagnostic(
-        "LOCATION",
-        `raw #${eventId} busy drop · ${disposed ? "disposed" : "active"}`,
-      );
-      return;
-    }
-    locationBusy = true;
-    const startedAt = diagnosticNow();
-    logDiagnostic(
-      "LOCATION",
-      `raw #${eventId} accepted`
-        + ` · accuracy=${Number.isFinite(location.accuracy) ? "yes" : "no"}`
-        + ` · speed=${Number.isFinite(location.speed) ? "yes" : "no"}`
-        + ` · heading=${Number.isFinite(location.heading) ? "yes" : "no"}`,
-    );
-    void processLocation(location, eventId)
-      .catch((error: unknown) => {
-        logDiagnostic(
-          "ERROR",
-          `location process #${eventId} failed · ${diagnosticErrorKind(error)}`,
-          diagnosticDuration(startedAt),
-        );
-      })
-      .finally(() => {
-        locationBusy = false;
-        logDiagnostic(
-          "LOCATION",
-          `process #${eventId} complete`,
-          diagnosticDuration(startedAt),
-        );
-      });
-  };
-
-  const startLocationUpdates = async (
-    mode: "general" | "navigation" = "general",
-  ): Promise<boolean> => {
-    const {
-      onAppLocationChanged,
-      startAppLocationUpdates,
-      stopAppLocationUpdates,
-    } = options.bridge;
-    if (
-      disposed
-      || !onAppLocationChanged
-      || !startAppLocationUpdates
-      || !stopAppLocationUpdates
-    ) {
-      logDiagnostic("LOCATION", "stream unavailable");
-      return false;
-    }
-    if (locationUpdatesStarted && locationUpdateMode === mode) {
-      logDiagnostic("LOCATION", `stream already active · ${mode}`);
-      return true;
-    }
-    if (locationUpdatesStarted) await stopLocationUpdates();
-
-    const startedAt = diagnosticNow();
-    logDiagnostic("LOCATION", `stream start requested · ${mode}`);
-    let started = false;
-    try {
-      started = await startAppLocationUpdates.call(options.bridge, {
-        accuracy: AppLocationAccuracy.Medium,
-        intervalMs: mode === "navigation"
-          ? 2_000
-          : LOCATION_UPDATE_INTERVAL_MS,
-        distanceFilter: mode === "navigation"
-          ? 5
-          : LOCATION_UPDATE_DISTANCE_METERS,
-      });
-    } catch (error) {
-      logDiagnostic(
-        "ERROR",
-        `location stream start failed · ${diagnosticErrorKind(error)}`,
-        diagnosticDuration(startedAt),
-      );
-      return false;
-    }
-    if (!started) {
-      logDiagnostic(
-        "LOCATION",
-        `stream start rejected · ${mode}`,
-        diagnosticDuration(startedAt),
-      );
-      return false;
-    }
-    locationUpdatesStarted = true;
-    locationUpdateMode = mode;
-    if (disposed) {
-      await stopLocationUpdates();
-      return false;
-    }
-    try {
-      unsubscribeLocation = onAppLocationChanged.call(
-        options.bridge,
-        handleLocation,
-      );
-    } catch (error) {
-      logDiagnostic(
-        "ERROR",
-        `location listener failed · ${diagnosticErrorKind(error)}`,
-      );
-      await stopLocationUpdates();
-      return false;
-    }
-    logDiagnostic(
-      "LOCATION",
-      `stream active · ${mode}`,
-      diagnosticDuration(startedAt),
-    );
-    return true;
-  };
+  const locationStream = createLiveLocationStream({
+    bridge: options.bridge,
+    now,
+    getState: () => state,
+    setState: (next) => {
+      state = next;
+    },
+    emit,
+    refreshMap: refresh.refreshMap,
+    getRouteSession: () => routeSession,
+    isDisposed: () => disposed,
+  });
 
   const onVisibilityChange = () => {
     if (
@@ -407,13 +202,24 @@ export function createLiveDashboardSession(
       return;
     }
     const fetchedAt = state.news.fetchedAt;
+    const sourceVersion = newsSourceVersion;
+    const sourcesChanged = sourceVersion !== refreshedNewsSourceVersion;
     if (
+      !sourcesChanged
+      &&
       fetchedAt !== undefined
       && now() - fetchedAt < NEWS_MAX_AGE_MS
     ) {
       return;
     }
-    void refresh.refreshNews();
+    void refresh.refreshNews(sourcesChanged).then((decision) => {
+      if (decision === "accepted") {
+        refreshedNewsSourceVersion = Math.max(
+          refreshedNewsSourceVersion,
+          sourceVersion,
+        );
+      }
+    });
   };
 
   const start = (): Promise<void> => {
@@ -431,7 +237,10 @@ export function createLiveDashboardSession(
       listenerRegistered = true;
     }
     startPromise = (async () => {
-      const todos = await resolveTodos(options.bridge);
+      const todos = await resolveTodos(
+        options.bridge,
+        options.getLocale?.() ?? "ko",
+      );
       if (disposed) return;
       if (!todosMatch(state.todos.value, todos)) {
         state = {
@@ -460,7 +269,7 @@ export function createLiveDashboardSession(
         refresh.refreshNews(),
         refresh.refreshMap(),
       ]);
-      await startLocationUpdates();
+      await locationStream.start();
       logDiagnostic("LIVE", "session ready");
     })();
     return startPromise;
@@ -478,7 +287,7 @@ export function createLiveDashboardSession(
     emit,
     isDisposed: () => disposed,
     ensureStarted: start,
-    setLocationMode: startLocationUpdates,
+    setLocationMode: locationStream.start,
   });
 
   const toggleTodoAt = async (index: number): Promise<boolean> => {
@@ -504,6 +313,20 @@ export function createLiveDashboardSession(
     emit("right");
   };
 
+  const refreshLocale = () => {
+    if (disposed || !state.todos.value) return;
+    const next = localizeBuiltInTodos(
+      state.todos.value,
+      options.getLocale?.() ?? "ko",
+    );
+    if (todosMatch(state.todos.value, next)) return;
+    state = {
+      ...state,
+      todos: { ...state.todos, value: clone(next) },
+    };
+    emit("right");
+  };
+
   const setRoutingKey = (key: string | undefined) => {
     if (routingKey === key) return;
     routingKey = key;
@@ -524,8 +347,25 @@ export function createLiveDashboardSession(
     endRoute: routeSession.endRoute,
     setRoutingKey,
     refreshWeather: () => refresh.refreshWeather(true),
-    refreshNewsSources: () => refresh.refreshNews(true),
+    refreshNewsSources: () => {
+      newsSourceVersion += 1;
+      if (options.canRefreshNews && !options.canRefreshNews()) {
+        logDiagnostic("LIVE", "news source refresh dropped · reading");
+        return Promise.resolve("dropped");
+      }
+      const sourceVersion = newsSourceVersion;
+      return refresh.refreshNews(true).then((decision) => {
+        if (decision === "accepted") {
+          refreshedNewsSourceVersion = Math.max(
+            refreshedNewsSourceVersion,
+            sourceVersion,
+          );
+        }
+        return decision;
+      });
+    },
     refreshNewsIfDue,
+    refreshLocale,
     replaceTodos,
     toggleTodo: toggleTodoAt,
     getState: () => clone(state),
@@ -534,7 +374,7 @@ export function createLiveDashboardSession(
       disposed = true;
       logDiagnostic("LIVE", "session dispose");
       routeSession.dispose();
-      void stopLocationUpdates();
+      void locationStream.stop();
       if (documentTarget && listenerRegistered) {
         documentTarget.removeEventListener(
           "visibilitychange",

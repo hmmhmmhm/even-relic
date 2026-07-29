@@ -3,6 +3,7 @@ import type { EvenStorage } from "./live-cache";
 import {
   addTodo,
   DEFAULT_TODOS,
+  defaultTodos,
   deleteTodo,
   renameTodo,
   resolveTodos,
@@ -39,6 +40,26 @@ function setTodos(storage: TestStorage, value: unknown): void {
 }
 
 describe("resolveTodos", () => {
+  it("localizes only unchanged built-in tasks", async () => {
+    const storage = new TestStorage();
+    setTodos(storage, [
+      { id: "station", title: "지하철역으로 이동", completed: false },
+      { id: "umbrella", title: "Bring a raincoat", completed: false },
+      { id: "route", title: "Check route", completed: true },
+    ]);
+
+    await expect(resolveTodos(storage, "en")).resolves.toEqual([
+      { id: "station", title: "Go to the subway station", completed: false },
+      { id: "umbrella", title: "Bring a raincoat", completed: false },
+      { id: "route", title: "Check route", completed: true },
+    ]);
+    expect(defaultTodos("en").map(({ title }) => title)).toEqual([
+      "Go to the subway station",
+      "Bring an umbrella",
+      "Check route",
+    ]);
+  });
+
   it("uses the three default tasks when no valid cache exists", async () => {
     const empty = new TestStorage();
     const corrupt = new TestStorage();

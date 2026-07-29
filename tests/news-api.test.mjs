@@ -5,6 +5,20 @@ import { handleNewsRequest } from "../server/news.js";
 
 const FEED_URL =
   "https://news.sbs.co.kr/news/newsflashRssFeed.do?plink=RSSREADER";
+const FIXED_FEEDS = new Map([
+  ["sbs-latest", FEED_URL],
+  ["newsis-breaking", "https://www.newsis.com/RSS/sokbo.xml"],
+  [
+    "weekly-khan-latest",
+    "https://weekly.khan.co.kr/rss/rssdata/total_news.xml",
+  ],
+  ["bbc-world", "https://feeds.bbci.co.uk/news/world/rss.xml"],
+  ["guardian-world", "https://www.theguardian.com/world/rss"],
+  [
+    "lemonde-international",
+    "https://www.lemonde.fr/en/international/rss_full.xml",
+  ],
+]);
 
 function rssResponse(body = "<rss><channel /></rss>", init = {}) {
   return new Response(body, {
@@ -46,6 +60,25 @@ test("proxies only the fixed SBS latest feed with hardened options", async () =>
   });
   assert.ok(calls[0].options.signal instanceof AbortSignal);
 });
+
+for (const [feed, url] of FIXED_FEEDS) {
+  test(`proxies the fixed ${feed} feed`, async () => {
+    const calls = [];
+    const response = await handleNewsRequest(
+      new Request(`https://example.test/api/news?feed=${feed}`),
+      {},
+      {
+        fetchImpl: async (input) => {
+          calls.push(input);
+          return rssResponse();
+        },
+      },
+    );
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(calls, [url]);
+  });
+}
 
 test("proxies one validated custom HTTPS RSS feed without shared caching", async () => {
   const calls = [];

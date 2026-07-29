@@ -222,6 +222,20 @@ describe("parseNewsRss", () => {
 });
 
 describe("resolveNews", () => {
+  it("uses the three built-in feed aliases for the selected locale", async () => {
+    const storage = new TestStorage();
+    const fetchImpl = xmlFetch(RSS);
+
+    await resolveNews(storage, fetchImpl, NOW, undefined, false, "en");
+
+    expect(vi.mocked(fetchImpl).mock.calls.map(([input]) => String(input)))
+      .toEqual([
+        "/api/news?feed=bbc-world",
+        "/api/news?feed=guardian-world",
+        "/api/news?feed=lemonde-international",
+      ]);
+  });
+
   it("fetches every enabled stored source and merges labelled results", async () => {
     const storage = new TestStorage();
     storage.values.set("sandevistan:rss-sources:v1", JSON.stringify([
@@ -258,7 +272,7 @@ describe("resolveNews", () => {
 
     const result = await resolveNews(storage, fetchImpl, NOW);
 
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
     expect(vi.mocked(fetchImpl).mock.calls.map(([input]) => String(input)))
       .toContain(
         "/api/news?url=https%3A%2F%2Ffeeds.example.com%2Fatom.xml",
@@ -315,7 +329,7 @@ describe("resolveNews", () => {
       },
     );
 
-    expect(order).toEqual(["cache", "fetch"]);
+    expect(order).toEqual(["cache", "fetch", "fetch", "fetch"]);
     expect(result.status).toBe("fresh");
     expect(result.value?.[0].title).toBe("첫 번째 최신 기사");
     expect(result.value?.some(({ id }) => id === "cached-only")).toBe(true);

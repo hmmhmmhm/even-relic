@@ -249,10 +249,12 @@ describe("createLiveDashboardSession", () => {
 
     await session.start();
 
-    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl).toHaveBeenCalledTimes(4);
     expect(vi.mocked(fetchImpl).mock.calls.map(([input]) => String(input)))
       .toEqual(expect.arrayContaining([
         "/api/news?feed=sbs-latest",
+        "/api/news?feed=newsis-breaking",
+        "/api/news?feed=weekly-khan-latest",
         expect.stringMatching(/^\/api\/map/),
       ]));
     expect(updates.filter(({ target }) => target === "left")).toHaveLength(2);
@@ -440,13 +442,59 @@ describe("createLiveDashboardSession", () => {
     canRefreshNews = true;
     session.refreshNewsIfDue();
     session.refreshNewsIfDue();
-    await vi.waitFor(() => expect(newsCalls()).toBe(1));
+    await vi.waitFor(() => expect(newsCalls()).toBe(3));
     pendingNews.resolve(newsResponse());
     await vi.waitFor(() => {
       expect(session.getState().news.fetchedAt).toBe(now);
     });
     await Promise.resolve();
-    expect(newsCalls()).toBe(1);
+    expect(newsCalls()).toBe(3);
+  });
+
+  it("defers a source-change refresh while the news reader is open", async () => {
+    let canRefreshNews = false;
+    const fetchImpl = liveFetch();
+    const session = createLiveDashboardSession({
+      bridge: new TestBridge(),
+      fetchImpl,
+      now: () => NOW,
+      canRefreshNews: () => canRefreshNews,
+      onUpdate: vi.fn(),
+    });
+    await session.start();
+    vi.mocked(fetchImpl).mockClear();
+
+    await expect(session.refreshNewsSources()).resolves.toBe("dropped");
+    expect(fetchImpl).not.toHaveBeenCalled();
+
+    canRefreshNews = true;
+    session.refreshNewsIfDue();
+    await vi.waitFor(() => expect(vi.mocked(fetchImpl).mock.calls.filter(
+      ([input]) => String(input).startsWith("/api/news"),
+    )).toHaveLength(3));
+  });
+
+  it("relabels unchanged built-in tasks when the locale changes", async () => {
+    let locale: "ko" | "en" = "ko";
+    const session = createLiveDashboardSession({
+      bridge: new TestBridge(),
+      fetchImpl: liveFetch(),
+      now: () => NOW,
+      getLocale: () => locale,
+      onUpdate: vi.fn(),
+    });
+    await session.start();
+    expect(session.getState().todos.value?.[0].title)
+      .toBe("지하철역으로 이동");
+
+    locale = "en";
+    session.refreshLocale();
+
+    expect(session.getState().todos.value?.map(({ title }) => title)).toEqual([
+      "Go to the subway station",
+      "Bring an umbrella",
+      "Check route",
+    ]);
   });
 
   it("disposes once and blocks late state, emissions, refresh, and restart", async () => {
@@ -506,7 +554,7 @@ describe("createLiveDashboardSession", () => {
       id: "guid:live-one",
       title: "실시간 첫 뉴스",
       publishedAt: Date.parse("2026-07-27T05:00:00Z"),
-      source: "SBS Latest",
+      source: "주간경향 최신기사",
     }]);
   });
 

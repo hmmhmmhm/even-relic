@@ -43,18 +43,13 @@ import {
   type LiveDashboardState,
 } from "./live-state";
 import { startMinuteRefresh } from "./minute-refresh";
-import type {
-  UseHudControllerOptions,
-} from "./hud-controller-types";
+import type { UseHudControllerOptions } from "./hud-controller-types";
 import { resolvePhoneLocale } from "./phone-i18n";
 import { getRoutingStatus } from "./routing";
-
 type LiveSession = ReturnType<typeof createLiveDashboardSession>;
-
 const diagnosticErrorKind = (error: unknown) => (
   error instanceof Error ? error.name : typeof error
 );
-
 export function useHudController({
   autoStart,
   canvasRef,
@@ -106,9 +101,7 @@ export function useHudController({
       window.addEventListener("error", onWindowError);
       window.addEventListener("unhandledrejection", onUnhandledRejection);
     }
-    const report = (message: string) => {
-      if (!cancelled) setStatus(message);
-    };
+    const report = (message: string) => { if (!cancelled) setStatus(message); };
     const currentLocale = () => resolvePhoneLocale(
       phonePreferencesRef.current.locale,
       typeof navigator === "undefined" ? "en" : navigator.language,
@@ -354,6 +347,7 @@ export function useHudController({
           bridge,
           routingStatus: nextRoutingStatus,
           canRefreshNews: () => view.mode !== "news",
+          getLocale: currentLocale,
           onUpdate: (update) => {
             if (cancelled) return;
             const refreshTarget = detailRefreshTarget(

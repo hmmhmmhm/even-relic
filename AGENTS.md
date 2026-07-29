@@ -69,9 +69,10 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   app treatment. Keep the transmitted grayscale Canvas palette unchanged and
   do not add preview shadows, green tinting, or radial glow.
 - Keep general live features keyless: use the Even SDK for phone location,
-  Open-Meteo for weather, the default SBS source plus validated user-added
-  HTTPS RSS feeds through the Sandevistan Worker, and OSM-derived road geometry
-  rendered by Sandevistan's own Canvas code.
+  Open-Meteo for weather, three built-in RSS sources for each supported
+  language plus up to six validated user-added HTTPS feeds through the
+  Sandevistan Worker, and OSM-derived road geometry rendered by Sandevistan's
+  own Canvas code.
 - The physical G2 approves SDK `0.0.11` for bilateral fast startup,
   `3/5/2/4` full transfers, `3/5` paging, and double-tap hide/restore. Use it
   as the live-data baseline; keep SDK `0.0.12` blocked until separately proven
@@ -120,9 +121,17 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   page to the shipped app.
 - Fix Overview as the first HUD page. Let the phone enable, disable, and reorder
   News, TODO, and Weather; expose Navigation only after a user ORS key validates.
-- Ship Korean and English phone UI strings with a System language option.
-  Do not localize or otherwise change the hardware-proven glasses Canvas as
-  part of the phone redesign.
+- Ship Korean and English phone UI strings with a System language option. The
+  resolved phone locale also controls fixed copy on the shipped
+  `/hud-canvas-fast` G2 Canvas, built-in sample TODO titles, weather labels,
+  OSM `name:ko`/`name:en` label selection, and the three active built-in RSS
+  sources. Never translate user-authored TODO text, RSS article content,
+  destination names, or route instructions.
+- Preserve six built-in RSS aliases in the same-origin Worker: SBS Latest,
+  Newsis Breaking, and Weekly Kyunghyang for Korean; BBC World, The Guardian
+  World, and Le Monde International for English. Built-ins are non-deletable
+  but may be disabled or renamed, and user-added HTTPS RSS sources are shared
+  across locales.
 - Finish Home with the Sandevistan project name, a Pixelarticons GitHub link to
   the repository, the Even app-manifest version, and the development status.
 - Let the Even native bar own the `SANDEVISTAN` project title and arrow. Start

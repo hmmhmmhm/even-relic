@@ -3,8 +3,10 @@ import type { EvenStorage } from "./live-cache";
 import {
   DEFAULT_RSS_SOURCE,
   addRssSource,
+  defaultRssSources,
   deleteRssSource,
   resolveRssSources,
+  updateRssSource,
   validateRssSourceUrl,
   writeRssSources,
 } from "./rss-sources";
@@ -23,15 +25,22 @@ class TestStorage implements EvenStorage {
 }
 
 describe("RSS source preferences", () => {
-  it("seeds one enabled non-deletable SBS source", async () => {
-    await expect(resolveRssSources(new TestStorage())).resolves.toEqual([
-      DEFAULT_RSS_SOURCE,
-    ]);
+  it("seeds three enabled non-deletable sources for each locale", async () => {
+    await expect(resolveRssSources(new TestStorage(), "ko")).resolves.toEqual(
+      defaultRssSources("ko"),
+    );
+    await expect(resolveRssSources(new TestStorage(), "en")).resolves.toEqual(
+      defaultRssSources("en"),
+    );
+    expect(defaultRssSources("ko")).toHaveLength(3);
+    expect(defaultRssSources("en")).toHaveLength(3);
     expect(DEFAULT_RSS_SOURCE).toMatchObject({
       id: "sbs-latest",
-      name: "SBS Latest",
+      name: "SBS 최신뉴스",
       enabled: true,
       isDefault: true,
+      locale: "ko",
+      feed: "sbs-latest",
     });
   });
 
@@ -45,32 +54,80 @@ describe("RSS source preferences", () => {
     expect(validateRssSourceUrl("https://127.0.0.1/feed.xml").ok).toBe(false);
   });
 
-  it("adds up to six sources and never deletes the default", () => {
-    let sources = [DEFAULT_RSS_SOURCE];
-    for (let index = 0; index < 5; index += 1) {
+  it("adds up to six custom sources and never deletes a built-in", () => {
+    let sources = [...defaultRssSources("ko")];
+    for (let index = 0; index < 6; index += 1) {
       sources = [...addRssSource(
         sources,
         `Feed ${index}`,
         `https://example${index}.com/feed.xml`,
       )];
     }
-    expect(sources).toHaveLength(6);
+    expect(sources).toHaveLength(9);
     expect(() => addRssSource(
       sources,
       "Overflow",
       "https://overflow.example/feed.xml",
     )).toThrowError("rss_source_limit");
     expect(deleteRssSource(sources, "sbs-latest")).toEqual(sources);
+    expect(deleteRssSource(sources, "newsis-breaking")).toEqual(sources);
   });
 
-  it("persists normalized sources", async () => {
+  it("persists locale-specific built-in settings and shared custom sources", async () => {
     const storage = new TestStorage();
-    const sources = addRssSource(
-      [DEFAULT_RSS_SOURCE],
+    const korean = addRssSource(
+      updateRssSource(
+        defaultRssSources("ko"),
+        "newsis-breaking",
+        { enabled: false },
+      ),
       "Example",
       "https://example.com/feed.xml",
     );
-    await expect(writeRssSources(storage, sources)).resolves.toBe(true);
-    await expect(resolveRssSources(storage)).resolves.toEqual(sources);
+    await expect(writeRssSources(storage, korean, "ko")).resolves.toBe(true);
+
+    const english = await resolveRssSources(storage, "en");
+    expect(english.slice(0, 3)).toEqual(defaultRssSources("en"));
+    expect(english.at(-1)?.name).toBe("Example");
+    await expect(writeRssSources(
+      storage,
+      updateRssSource(english, "bbc-world", { enabled: false }),
+      "en",
+    )).resolves.toBe(true);
+
+    await expect(resolveRssSources(storage, "ko")).resolves.toEqual(korean);
+    expect((await resolveRssSources(storage, "en"))[0].enabled).toBe(false);
+  });
+
+  it("migrates the legacy single SBS record without losing custom feeds", async () => {
+    const storage = new TestStorage();
+    storage.values.set("sandevistan:rss-sources:v1", JSON.stringify([
+      {
+        id: "sbs-latest",
+        name: "My SBS",
+        url: "https://news.sbs.co.kr/news/SectionRssFeed.do?sectionId=01",
+        enabled: false,
+        isDefault: true,
+      },
+      {
+        id: "example",
+        name: "Example",
+        url: "https://example.com/feed.xml",
+        enabled: true,
+        isDefault: false,
+      },
+    ]));
+
+    const resolved = await resolveRssSources(storage, "ko");
+
+    expect(resolved).toHaveLength(4);
+    expect(resolved[0]).toMatchObject({
+      id: "sbs-latest",
+      name: "My SBS",
+      enabled: false,
+      feed: "sbs-latest",
+      locale: "ko",
+    });
+    expect(resolved.at(-1)?.id).toBe("example");
   });
 });

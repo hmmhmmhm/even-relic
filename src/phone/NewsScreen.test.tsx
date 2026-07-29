@@ -42,6 +42,7 @@ describe("NewsScreen", () => {
     render(
       <NewsScreen
         storage={storage}
+        locale="ko"
         t={(key) => translatePhone("en", key)}
         fetchImpl={fetchImpl}
         onSourcesChange={onSourcesChange}
@@ -78,6 +79,7 @@ describe("NewsScreen", () => {
     render(
       <NewsScreen
         storage={storage}
+        locale="en"
         t={(key) => translatePhone("en", key)}
         fetchImpl={vi.fn(async () => new Response("<rss />", {
           status: 200,
@@ -85,6 +87,10 @@ describe("NewsScreen", () => {
         })) as typeof fetch}
       />,
     );
+
+    expect(await screen.findByText("BBC World")).toBeTruthy();
+    expect(screen.getByText("The Guardian World")).toBeTruthy();
+    expect(screen.getByText("Le Monde International")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Source name"), {
       target: { value: "Example" },

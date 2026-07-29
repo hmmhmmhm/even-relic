@@ -18,6 +18,8 @@ preserving user-added feeds and the existing no-queue image transport contract.
 - Fixed application copy is localized at render time. RSS article text, OSM
   names without a localized tag, route destinations, and user TODO titles stay
   in their source language.
+- The three untouched built-in sample TODO titles follow the selected locale.
+  A renamed or newly added user task is never translated.
 - Weather descriptions are derived from the stored WMO weather code in the
   active locale. A cached Korean description never leaks into English UI.
 - Map payloads retain `name`, `name:ko`, and `name:en` where available. The
