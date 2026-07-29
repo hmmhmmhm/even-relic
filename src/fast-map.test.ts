@@ -71,6 +71,10 @@ function liveState(): LiveDashboardState {
           {
             kind: "transit",
             name: "홍대입구역",
+            localizedNames: {
+              ko: "홍대입구역",
+              en: "Hongik University",
+            },
             point: { latitude: 37.5603, longitude: 126.918 },
           },
           {
@@ -113,6 +117,7 @@ function draw(
   live: LiveDashboardState,
   radiusMeters = 650,
   fullscreen = false,
+  locale: "ko" | "en" = "ko",
 ) {
   const strokes: Stroke[] = [];
   const fills: Array<{
@@ -206,12 +211,28 @@ function draw(
     height: 0,
     getContext: () => context,
   } as unknown as HTMLCanvasElement;
-  if (fullscreen) drawFastFullscreenMap(canvas, live, radiusMeters);
-  else drawFastMap(context, live, radiusMeters);
+  if (fullscreen) {
+    drawFastFullscreenMap(canvas, live, radiusMeters, locale);
+  } else {
+    drawFastMap(context, live, radiusMeters, locale);
+  }
   return { arcs, canvas, strokes, fills, texts, rectangles };
 }
 
 describe("fast OSM map Canvas layer", () => {
+  it("selects OSM labels using the active locale", () => {
+    const korean = draw(liveState(), 650, false, "ko");
+    const english = draw(liveState(), 650, false, "en");
+
+    expect(korean.texts.map(({ value }) => value))
+      .toContain("홍대입구역");
+    expect(english.texts.some(({ value }) =>
+      value.startsWith("Hongik")
+    )).toBe(true);
+    expect(english.texts.map(({ value }) => value))
+      .not.toContain("홍대입구역");
+  });
+
   it("draws minor, major, route, and position layers in tactical order", () => {
     const result = draw(liveState());
     const minor = result.strokes.find(

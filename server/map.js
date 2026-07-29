@@ -77,8 +77,7 @@ function normalizedRoad(element) {
   };
 }
 
-function normalizedName(tags) {
-  const raw = tags?.["name:ko"] ?? tags?.name;
+function normalizedName(raw) {
   if (typeof raw !== "string") return null;
   const clean = raw
     .replace(/[\u0000-\u001f\u007f]/g, " ")
@@ -86,6 +85,22 @@ function normalizedName(tags) {
     .trim();
   if (!clean) return null;
   return [...clean].slice(0, MAX_LABEL_CODE_POINTS).join("");
+}
+
+function normalizedNames(tags) {
+  const name = normalizedName(tags?.["name:ko"] ?? tags?.name);
+  if (!name) return null;
+  const ko = normalizedName(tags?.["name:ko"]);
+  const en = normalizedName(tags?.["name:en"]);
+  return {
+    name,
+    ...((ko || en) && {
+      localizedNames: {
+        ...(ko && { ko }),
+        ...(en && { en }),
+      },
+    }),
+  };
 }
 
 function geographicPoint(latitudeValue, longitudeValue) {
@@ -140,12 +155,12 @@ function normalizedLabels(elements) {
   const candidates = elements.flatMap((element, sourceIndex) => {
     const road = normalizedRoad(element);
     const classification = labelKind(element, road);
-    const name = normalizedName(element?.tags);
+    const names = normalizedNames(element?.tags);
     const point = labelPoint(element, road);
-    if (!classification || !name || !point) return [];
+    if (!classification || !names || !point) return [];
     return [{
       ...classification,
-      name,
+      ...names,
       point,
       sourceIndex,
     }];
@@ -165,6 +180,9 @@ function normalizedLabels(elements) {
     labels.push({
       kind: candidate.kind,
       name: candidate.name,
+      ...(candidate.localizedNames && {
+        localizedNames: candidate.localizedNames,
+      }),
       point: candidate.point,
     });
     if (labels.length >= MAX_LABELS) break;
@@ -201,7 +219,7 @@ function normalizeMapPayload(payload, cell) {
 
 function cacheRequest(cell) {
   return new Request(
-    `https://sandevistan-map-cache.invalid/roads-labels-v3?cell=${encodeURIComponent(cell)}`,
+    `https://sandevistan-map-cache.invalid/roads-labels-v4?cell=${encodeURIComponent(cell)}`,
   );
 }
 

@@ -28,7 +28,11 @@ describe("WeatherScreen", () => {
               roads: [],
               labels: [{
                 kind: "place",
-                name: "Hongdae",
+                name: "홍대",
+                localizedNames: {
+                  ko: "홍대",
+                  en: "Hongdae",
+                },
                 point: { latitude: 37.556, longitude: 126.923 },
               }],
               attribution: "© OSM CONTRIBUTORS",

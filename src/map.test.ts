@@ -4,6 +4,7 @@ import type { Coordinate, MapValue } from "./live-state";
 import {
   clientMapCell,
   MAP_MAX_AGE_MS,
+  mapLabelName,
   parseMapResponse,
   projectCoordinate,
   resolveMap,
@@ -78,7 +79,7 @@ function setCache(
   fetchedAt: number,
 ) {
   storage.values.set(
-    "sandevistan:map-labels:v1",
+    "sandevistan:map-labels-i18n:v1",
     JSON.stringify({ value, fetchedAt, cell: value.cell }),
   );
 }
@@ -97,6 +98,10 @@ describe("map response and projection helpers", () => {
       labels: [{
         kind: "transit",
         name: "홍대입구역",
+        localizedNames: {
+          ko: "홍대입구역",
+          en: "Hongik University",
+        },
         point: [37.5572, 126.9245],
       }],
     }).roads[0]).toEqual({
@@ -113,16 +118,37 @@ describe("map response and projection helpers", () => {
       labels: [{
         kind: "transit",
         name: "홍대입구역",
+        localizedNames: {
+          ko: "홍대입구역",
+          en: "Hongik University",
+        },
         point: [37.5572, 126.9245],
       }],
     }).labels[0]).toEqual({
       kind: "transit",
       name: "홍대입구역",
+      localizedNames: {
+        ko: "홍대입구역",
+        en: "Hongik University",
+      },
       point: {
         latitude: 37.5572,
         longitude: 126.9245,
       },
     });
+    const label = parseMapResponse({
+      cell: "37.555,126.920",
+      attribution: "© OSM CONTRIBUTORS",
+      roads: [],
+      labels: [{
+        kind: "road",
+        name: "Daeche-ro",
+        localizedNames: { ko: "대체로", en: "Daeche-ro" },
+        point: [37.5572, 126.9245],
+      }],
+    }).labels[0];
+    expect(mapLabelName(label, "ko")).toBe("대체로");
+    expect(mapLabelName(label, "en")).toBe("Daeche-ro");
   });
 
   it("rejects malformed, excessive, or untrusted normalized responses", () => {
@@ -153,6 +179,12 @@ describe("map response and projection helpers", () => {
       [{ kind: "place", name: "", point: [37, 127] }],
       [{ kind: "place", name: "가".repeat(41), point: [37, 127] }],
       [{ kind: "place", name: "장소", point: [91, 127] }],
+      [{
+        kind: "place",
+        name: "Place",
+        localizedNames: { en: "x".repeat(41) },
+        point: [37, 127],
+      }],
       Array.from({ length: 25 }, (_, index) => ({
         kind: "road",
         name: `도로 ${index}`,
@@ -289,7 +321,7 @@ describe("resolveMap", () => {
       fetchedAt: NOW,
     });
     expect(storage.writes).toEqual([[
-      "sandevistan:map-labels:v1",
+      "sandevistan:map-labels-i18n:v1",
       JSON.stringify({
         value: VALUE,
         fetchedAt: NOW,
@@ -321,6 +353,6 @@ describe("resolveMap", () => {
     await expect(resolveMap(storage, CENTER, fetchImpl, NOW))
       .resolves.toMatchObject({ status: "fresh", value: VALUE });
     expect(fetchImpl).toHaveBeenCalledOnce();
-    expect(storage.values.has("sandevistan:map-labels:v1")).toBe(true);
+    expect(storage.values.has("sandevistan:map-labels-i18n:v1")).toBe(true);
   });
 });

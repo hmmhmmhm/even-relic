@@ -6,7 +6,7 @@ import type {
   MapValue,
   RouteValue,
 } from "./live-state";
-import { projectCoordinate } from "./map";
+import { mapLabelName, projectCoordinate } from "./map";
 import type { PhoneLocale } from "./phone-types";
 import {
   layoutMapLabels,
@@ -161,8 +161,13 @@ function drawMapLabels(
   viewport: MapLabelViewport,
   radiusMeters: number,
   maximumLabels: number,
+  locale: PhoneLocale,
 ) {
-  for (const label of layoutMapLabels(map.labels, center, {
+  const localizedLabels = map.labels.map((label) => ({
+    ...label,
+    name: mapLabelName(label, locale),
+  }));
+  for (const label of layoutMapLabels(localizedLabels, center, {
     viewport,
     radiusMeters,
     maximumLabels,
@@ -334,6 +339,7 @@ function drawMapLayers(
   viewport: MapLabelViewport,
   radiusMeters: number,
   maximumLabels: number,
+  locale: PhoneLocale,
 ): MapAreaState {
   const area = mapAreaState(live);
   if (area.status !== "ready") {
@@ -350,6 +356,7 @@ function drawMapLayers(
     viewport,
     radiusMeters,
     maximumLabels,
+    locale,
   );
   const route = activeRoute(live.route);
   if (route) {
@@ -363,7 +370,7 @@ export function drawFastMap(
   context: CanvasRenderingContext2D,
   live: LiveDashboardState,
   radiusMeters = 650,
-  _locale: PhoneLocale = "ko",
+  locale: PhoneLocale = "ko",
 ) {
   drawFrame(context);
   drawText(
@@ -381,6 +388,7 @@ export function drawFastMap(
     EMBEDDED_MAP_VIEWPORT,
     radiusMeters,
     10,
+    locale,
   );
   drawFooter(context, live.map, live.route, radiusMeters, area.status);
 }
@@ -444,7 +452,7 @@ export function drawFastFullscreenMap(
   canvas: HTMLCanvasElement,
   live: LiveDashboardState,
   radiusMeters: number,
-  _locale: PhoneLocale = "ko",
+  locale: PhoneLocale = "ko",
 ) {
   const context = canvas.getContext("2d");
   if (!context) throw new Error("2D Canvas unavailable");
@@ -459,6 +467,7 @@ export function drawFastFullscreenMap(
     FULLSCREEN_MAP_VIEWPORT,
     radiusMeters,
     18,
+    locale,
   );
   drawFullscreenHeader(context, live, radiusMeters);
   drawFullscreenFooter(context);

@@ -4,12 +4,16 @@ import type { LiveDashboardState } from "../live-state";
 import { PhoneIcon } from "../phone-icons";
 import type { PhoneLocale } from "../phone-types";
 import { weatherCodeLabel } from "../weather";
+import { mapLabelName } from "../map";
 
 function valueOrDash(value: number | undefined, suffix: string): string {
   return value === undefined ? "—" : `${Math.round(value)}${suffix}`;
 }
 
-function locationText(live: LiveDashboardState): string {
+function locationText(
+  live: LiveDashboardState,
+  locale: PhoneLocale,
+): string {
   const coordinate = live.location.value?.coordinate;
   if (!coordinate) return "—";
   const labels = live.map.value?.labels ?? [];
@@ -26,8 +30,9 @@ function locationText(live: LiveDashboardState): string {
     },
     undefined,
   );
-  return nearest?.name
-    ?? `${coordinate.latitude.toFixed(4)}, ${coordinate.longitude.toFixed(4)}`;
+  return nearest
+    ? mapLabelName(nearest, locale)
+    : `${coordinate.latitude.toFixed(4)}, ${coordinate.longitude.toFixed(4)}`;
 }
 
 export function WeatherScreen({
@@ -75,7 +80,7 @@ export function WeatherScreen({
       </section>
       <section className="phone-panel">
         <dl className="phone-data-list">
-          <div><dt>{t("location")}</dt><dd>{locationText(live)}</dd></div>
+          <div><dt>{t("location")}</dt><dd>{locationText(live, locale)}</dd></div>
           <div><dt>{t("apparent")}</dt><dd>{valueOrDash(weather?.apparentTemperature, "°")}</dd></div>
           <div><dt>{t("humidity")}</dt><dd>{valueOrDash(weather?.humidity, "%")}</dd></div>
           <div><dt>{t("precipitation")}</dt><dd>{valueOrDash(weather?.precipitationProbability, "%")}</dd></div>

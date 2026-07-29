@@ -6,6 +6,7 @@ import type {
   MapRoad,
   MapValue,
 } from "./live-state";
+import type { PhoneLocale } from "./phone-types";
 
 export const MAP_MAX_AGE_MS = 24 * 60 * 60 * 1_000;
 export const MAP_RADIUS_METERS = 650;
@@ -15,7 +16,7 @@ const MAP_MAX_ROADS = 180;
 const MAP_MAX_POINTS = 4_000;
 const MAP_MAX_LABELS = 24;
 const MAP_MAX_LABEL_CODE_POINTS = 40;
-const MAP_CACHE_KEY = "map-labels";
+const MAP_CACHE_KEY = "map-labels-i18n";
 const MAP_CELL_DEGREES = 0.0018;
 const MAP_LABEL_KINDS = new Set<MapLabel["kind"]>([
   "place",
@@ -54,15 +55,37 @@ function isMapRoad(value: unknown): value is MapRoad {
     && value.points.every(isFiniteCoordinate);
 }
 
+function isMapLabelName(value: unknown): value is string {
+  return typeof value === "string"
+    && value.length > 0
+    && value.trim() === value
+    && [...value].length <= MAP_MAX_LABEL_CODE_POINTS
+    && !/[\u0000-\u001f\u007f]/.test(value);
+}
+
+function isLocalizedNames(
+  value: unknown,
+): value is NonNullable<MapLabel["localizedNames"]> {
+  if (!isRecord(value)) return false;
+  if (Object.keys(value).some((key) => key !== "ko" && key !== "en")) {
+    return false;
+  }
+  return (
+    (value.ko === undefined || isMapLabelName(value.ko))
+    && (value.en === undefined || isMapLabelName(value.en))
+    && (value.ko !== undefined || value.en !== undefined)
+  );
+}
+
 function isMapLabel(value: unknown): value is MapLabel {
   return isRecord(value)
     && typeof value.kind === "string"
     && MAP_LABEL_KINDS.has(value.kind as MapLabel["kind"])
-    && typeof value.name === "string"
-    && value.name.length > 0
-    && value.name.trim() === value.name
-    && [...value.name].length <= MAP_MAX_LABEL_CODE_POINTS
-    && !/[\u0000-\u001f\u007f]/.test(value.name)
+    && isMapLabelName(value.name)
+    && (
+      value.localizedNames === undefined
+      || isLocalizedNames(value.localizedNames)
+    )
     && isFiniteCoordinate(value.point);
 }
 
@@ -106,6 +129,9 @@ function cloneMapValue(value: MapValue): MapValue {
     labels: value.labels.map((label) => ({
       kind: label.kind,
       name: label.name,
+      ...(label.localizedNames && {
+        localizedNames: { ...label.localizedNames },
+      }),
       point: { ...label.point },
     })),
   };
@@ -179,11 +205,11 @@ export function parseMapResponse(input: unknown): MapValue {
       !isRecord(label)
       || typeof label.kind !== "string"
       || !MAP_LABEL_KINDS.has(label.kind as MapLabel["kind"])
-      || typeof label.name !== "string"
-      || label.name.length === 0
-      || label.name.trim() !== label.name
-      || [...label.name].length > MAP_MAX_LABEL_CODE_POINTS
-      || /[\u0000-\u001f\u007f]/.test(label.name)
+      || !isMapLabelName(label.name)
+      || (
+        label.localizedNames !== undefined
+        && !isLocalizedNames(label.localizedNames)
+      )
       || !Array.isArray(label.point)
       || label.point.length !== 2
     ) {
@@ -199,6 +225,9 @@ export function parseMapResponse(input: unknown): MapValue {
     return {
       kind: label.kind as MapLabel["kind"],
       name: label.name,
+      ...(label.localizedNames && {
+        localizedNames: { ...label.localizedNames },
+      }),
       point,
     };
   });
@@ -209,6 +238,13 @@ export function parseMapResponse(input: unknown): MapValue {
     roads,
     labels,
   };
+}
+
+export function mapLabelName(
+  label: MapLabel,
+  locale: PhoneLocale,
+): string {
+  return label.localizedNames?.[locale] ?? label.name;
 }
 
 export function projectCoordinate(

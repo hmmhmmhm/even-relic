@@ -57,6 +57,10 @@ export type MapRoad = {
 export type MapLabel = {
   readonly kind: "place" | "transit" | "landmark" | "road";
   readonly name: string;
+  readonly localizedNames?: {
+    readonly ko?: string;
+    readonly en?: string;
+  };
   readonly point: Coordinate;
 };
 

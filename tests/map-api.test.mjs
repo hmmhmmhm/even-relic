@@ -30,6 +30,7 @@ test("builds a bounded labelled Overpass query and normalizes geometry", async (
               highway: "primary",
               name: "Yanghwa-ro",
               "name:ko": "양화로",
+              "name:en": "Yanghwa-ro",
             },
             geometry: [
               { lat: 37.55, lon: 126.91 },
@@ -52,6 +53,7 @@ test("builds a bounded labelled Overpass query and normalizes geometry", async (
               railway: "station",
               name: "Hongik University",
               "name:ko": "홍대입구역",
+              "name:en": "Hongik University Station",
             },
           },
           {
@@ -86,11 +88,19 @@ test("builds a bounded labelled Overpass query and normalizes geometry", async (
       {
         kind: "transit",
         name: "홍대입구역",
+        localizedNames: {
+          ko: "홍대입구역",
+          en: "Hongik University Station",
+        },
         point: [37.5572, 126.9245],
       },
       {
         kind: "road",
         name: "양화로",
+        localizedNames: {
+          ko: "양화로",
+          en: "Yanghwa-ro",
+        },
         point: [37.56, 126.92],
       },
       {
@@ -327,7 +337,7 @@ test("caches a normalized response by rounded location cell", async () => {
   assert.equal(second.status, 200);
   assert.equal(calls, 1);
   assert.equal(new Set(cacheKeys).size, 1);
-  assert.match(cacheKeys[0], /roads-labels-v3/);
+  assert.match(cacheKeys[0], /roads-labels-v4/);
 });
 
 test("maps upstream, size, and timeout failures to stable errors", async () => {
