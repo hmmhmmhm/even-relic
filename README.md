@@ -324,6 +324,7 @@ Useful hardware records:
 - [SDK 0.0.12 LZ4 experiment](docs/hardware/2026-07-28-sdk-0012-lz4-experiment.md)
 - [Unchanged-tile skip experiment](docs/hardware/2026-07-28-g2-unchanged-tile-skip.md)
 - [Current project readiness audit](docs/hardware/2026-07-29-project-readiness-audit.md)
+- [Phone companion completion audit](docs/hardware/2026-07-29-phone-companion-completion-audit.md)
 
 ## Privacy, attribution, and limitations
 
