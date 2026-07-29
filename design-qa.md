@@ -33,15 +33,17 @@ detail screen does not remount the G2 Canvas.
 
 The details provide real editable states for HUD ordering, RSS sources, TODOs,
 device-local ORS key validation, and language. Diagnostics appear only under
-Developer.
+Developer. Storage and provider failures are represented as recoverable inline
+states, and deleting a local ORS key is not blocked by an unavailable live
+route session.
 
 ## Visual comparison blocker
 
 The supplied reference was available, but the implementation could not be
 captured at the same viewport because the approved in-app browser runtime
-returned an empty browser list. A same-state side-by-side screenshot comparison
-therefore remains pending. The Tailscale preview is running for physical phone
-inspection.
+again returned an empty browser list during the final 2026-07-29 audit. A
+same-state side-by-side screenshot comparison therefore remains pending. The
+Tailscale preview is running for physical phone inspection.
 
 ## Comparison history
 

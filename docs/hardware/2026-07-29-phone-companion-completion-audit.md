@@ -5,7 +5,7 @@ Date: 2026-07-29
 Target branch: `main`
 
 Audited implementation commit:
-`0efc23861aedf4afe7b5aafc218c8b1806b7c136`
+`9e0c8ff7036d1fd1e076347337a6193058c1faeb`
 
 Overall status:
 `SOFTWARE PASS — PHYSICAL G2 BASELINE PRESERVED — VISUAL CAPTURE PENDING`
@@ -44,6 +44,17 @@ the owner.
 - Replaced the exact-count Vitest badge with a non-stale `400+` badge.
 - Updated the two phone design specifications from implementation-pending to
   implemented with visual comparison pending.
+- Extracted Canvas, bridge, live-session, input, and transport coordination
+  from the 760-line `App.tsx`; route composition is now 334 lines and each new
+  controller module remains at or below 450 lines.
+- Made a device-local ORS key immediately expose Navigation in the editable HUD
+  layout, even when no development-server key exists.
+- Made ORS-key deletion independent of live-session availability so a local
+  secret can always be removed after confirmation.
+- Added recoverable, localized failure states for phone language persistence
+  and manual weather refresh.
+- Added live Developer counters for trimmed trace entries and refreshes dropped
+  by the no-queue coordinator.
 
 ## Fresh automated evidence
 
@@ -51,9 +62,9 @@ The following commands passed serially against the audited implementation:
 
 | Check | Result |
 | --- | --- |
-| `npm test` | 45 files, 414 tests passed |
+| `npm test` | 48 files, 422 tests passed |
 | `npm run typecheck` | `tsc --noEmit` passed |
-| `npm run build` | 105 modules transformed; production build passed |
+| `npm run build` | 109 modules transformed; production build passed |
 | `npm run test:repo` | 5 tests passed; repository copy check passed |
 | `npm run test:sites` | 4 tests passed |
 | `git diff --check` | Passed |
