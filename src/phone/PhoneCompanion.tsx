@@ -11,6 +11,7 @@ import {
   translatePhone,
   type PhoneStringKey,
 } from "../phone-i18n";
+import { PhoneIcon } from "../phone-icons";
 import type {
   PhoneLocale,
   PhonePreferences,
@@ -278,6 +279,14 @@ export function PhoneCompanion({
             parentLabel={t("dashboard")}
             onBack={() => setScreen("home")}
           />
+          <button
+            type="button"
+            className="phone-detail-back"
+            onClick={() => setScreen("home")}
+          >
+            <PhoneIcon name="back" size={24} />
+            <span>{t("backToDashboard")}</span>
+          </button>
           <div className="phone-detail-content">{content()}</div>
         </section>
       )}

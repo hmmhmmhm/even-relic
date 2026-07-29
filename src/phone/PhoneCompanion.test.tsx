@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EvenStorage } from "../live-cache";
@@ -79,6 +78,8 @@ describe("PhoneCompanion", () => {
   it("opens a detail screen and returns without remounting the Canvas", () => {
     renderCompanion();
     const canvas = screen.getByTestId("persistent-canvas");
+    expect(screen.queryByRole("button", { name: "Back to Dashboard" }))
+      .toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: /Devices/ }));
     expect(screen.getByRole("heading", { name: "Devices" })).toBeTruthy();
@@ -92,9 +93,24 @@ describe("PhoneCompanion", () => {
       .toBe(getComputedStyle(title).fontSize);
     expect(screen.getByTestId("persistent-canvas")).toBe(canvas);
     expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
+    const detailBack = screen.getByRole("button", {
+      name: "Back to Dashboard",
+    });
+    expect(detailBack.querySelector('[data-phone-icon="back"]')).toBeTruthy();
+    expect(detailBack.className).toContain("phone-detail-back");
 
     fireEvent.click(screen.getByRole("button", {
       name: "Dashboard / Devices",
+    }));
+    expect(screen.getByRole("heading", {
+      level: 2,
+      name: "Dashboard",
+    })).toBeTruthy();
+    expect(screen.getByTestId("persistent-canvas")).toBe(canvas);
+
+    fireEvent.click(screen.getByRole("button", { name: /Devices/ }));
+    fireEvent.click(screen.getByRole("button", {
+      name: "Back to Dashboard",
     }));
     expect(screen.getByRole("heading", {
       level: 2,
@@ -121,6 +137,9 @@ describe("PhoneCompanion", () => {
       }));
       expect(screen.getByRole("heading", { name })).toBeTruthy();
       expect(screen.queryByText("Manage")).toBeNull();
+      expect(screen.getByRole("button", {
+        name: "Back to Dashboard",
+      })).toBeTruthy();
       fireEvent.click(screen.getByRole("button", {
         name: `Dashboard / ${name}`,
       }));
@@ -171,6 +190,18 @@ describe("PhoneCompanion", () => {
 
     expect(screen.getByRole("region", {
       name: "실시간 HUD 미리보기",
+    })).toBeTruthy();
+  });
+
+  it("localizes the detail return button", () => {
+    renderCompanion({
+      ...DEFAULT_PHONE_PREFERENCES,
+      locale: "ko",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /^기기/ }));
+    expect(screen.getByRole("button", {
+      name: "대시보드로 돌아가기",
     })).toBeTruthy();
   });
 

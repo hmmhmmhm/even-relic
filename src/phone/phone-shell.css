@@ -80,6 +80,22 @@
   place-items: center;
 }
 
+.phone-detail-back {
+  display: flex;
+  width: calc(100% - 32px);
+  min-height: 58px;
+  margin: 6px 16px 10px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 18px;
+  color: var(--phone-text);
+  text-align: left;
+  border: 1px solid var(--phone-line);
+  border-radius: 10px;
+  background: var(--phone-card);
+  font-weight: 600;
+}
+
 .phone-icon-button {
   display: inline-grid;
   width: 44px;

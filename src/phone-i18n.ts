@@ -2,6 +2,7 @@ import type { PhoneLocale, PhoneLocaleSetting } from "./phone-types";
 
 const en = {
   back: "Back",
+  backToDashboard: "Back to Dashboard",
   dashboard: "Dashboard",
   devices: "Devices",
   hudLayout: "HUD layout",
@@ -91,6 +92,7 @@ const en = {
 
 const ko = {
   back: "뒤로",
+  backToDashboard: "대시보드로 돌아가기",
   dashboard: "대시보드",
   devices: "기기",
   hudLayout: "HUD 구성",

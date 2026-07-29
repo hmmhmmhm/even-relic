@@ -138,3 +138,6 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   WebView Home directly at the HUD preview, and use a text-only
   `Dashboard / Detail` breadcrumb to return from internal detail screens
   without rendering a second arrow.
+- On every internal detail screen, retain the clickable breadcrumb and place
+  one large localized white Back to Dashboard card immediately below it.
+  Never render that card on Home.
