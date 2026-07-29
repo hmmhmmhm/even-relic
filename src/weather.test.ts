@@ -88,6 +88,26 @@ afterEach(() => vi.useRealTimers());
 
 describe("weatherCodeLabel", () => {
   it.each([
+    [0, "Clear"],
+    [2, "Mostly clear"],
+    [3, "Overcast"],
+    [48, "Fog"],
+    [57, "Drizzle"],
+    [67, "Rain"],
+    [77, "Snow"],
+    [82, "Showers"],
+    [86, "Snow showers"],
+    [99, "Thunderstorm"],
+  ])("maps WMO code %s to English label %s", (code, label) => {
+    expect(weatherCodeLabel(code, "en")).toBe(label);
+  });
+
+  it("localizes unknown weather codes", () => {
+    expect(weatherCodeLabel(-1, "en")).toBe("Unknown");
+    expect(weatherCodeLabel(-1, "ko")).toBe("알 수 없음");
+  });
+
+  it.each([
     [0, "맑음"],
     [1, "대체로 맑음"],
     [2, "대체로 맑음"],

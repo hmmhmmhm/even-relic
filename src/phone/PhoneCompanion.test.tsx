@@ -3,7 +3,10 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { EvenStorage } from "../live-cache";
-import { createInitialLiveDashboardState } from "../live-state";
+import {
+  createInitialLiveDashboardState,
+  type LiveDashboardState,
+} from "../live-state";
 import { DEFAULT_PHONE_PREFERENCES } from "../phone-preferences";
 import { DEFAULT_RSS_SOURCE } from "../rss-sources";
 import { PhoneCompanion } from "./PhoneCompanion";
@@ -25,13 +28,15 @@ class TestStorage implements EvenStorage {
 
 function renderCompanion(
   preferences = DEFAULT_PHONE_PREFERENCES,
+  live: LiveDashboardState = createInitialLiveDashboardState(),
+  status = "Ready",
 ) {
   const storage = new TestStorage();
   return render(
     <PhoneCompanion
       canvas={<canvas data-testid="persistent-canvas" width="576" height="288" />}
-      status="Ready"
-      live={createInitialLiveDashboardState()}
+      status={status}
+      live={live}
       routingStatus={{ enabled: false }}
       preferences={preferences}
       storage={storage}
@@ -77,6 +82,14 @@ describe("PhoneCompanion", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Devices/ }));
     expect(screen.getByRole("heading", { name: "Devices" })).toBeTruthy();
+    const parent = screen.getByText("Dashboard", {
+      selector: ".phone-detail-header__parent",
+    });
+    const title = screen.getByText("Devices", {
+      selector: ".phone-detail-header__title",
+    });
+    expect(getComputedStyle(parent).fontSize)
+      .toBe(getComputedStyle(title).fontSize);
     expect(screen.getByTestId("persistent-canvas")).toBe(canvas);
     expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
 
@@ -159,5 +172,40 @@ describe("PhoneCompanion", () => {
     expect(screen.getByRole("region", {
       name: "실시간 HUD 미리보기",
     })).toBeTruthy();
+  });
+
+  it("renders cached weather and transport status in the selected language", () => {
+    const initial = createInitialLiveDashboardState();
+    renderCompanion(
+      {
+        ...DEFAULT_PHONE_PREFERENCES,
+        locale: "en",
+      },
+      {
+        ...initial,
+        weather: {
+          status: "fresh",
+          value: {
+            temperature: 26,
+            apparentTemperature: 28,
+            humidity: 62,
+            windSpeed: 5,
+            precipitationProbability: 10,
+            weatherCode: 2,
+            condition: "대체로 맑음",
+          },
+        },
+      },
+      "안경 전송 완료",
+    );
+
+    expect(screen.getByRole("button", { name: /Weather/ }).textContent)
+      .toContain("Mostly clear");
+    expect(screen.queryByText("대체로 맑음")).toBeNull();
+    expect(screen.queryByText("안경 전송 완료")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /Developer/ }));
+    expect(screen.queryByText("안경 전송 완료")).toBeNull();
+    expect(screen.getAllByText("Active").length).toBeGreaterThan(0);
   });
 });

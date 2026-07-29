@@ -12,12 +12,14 @@ import {
   type PhoneStringKey,
 } from "../phone-i18n";
 import type {
+  PhoneLocale,
   PhonePreferences,
   PhoneScreen,
 } from "../phone-types";
 import type { RoutingStatus } from "../routing";
 import { writePhonePreferences } from "../phone-preferences";
 import type { RssSource } from "../rss-sources";
+import { weatherCodeLabel } from "../weather";
 import { DevicesScreen } from "./DevicesScreen";
 import { DeveloperScreen } from "./DeveloperScreen";
 import { HudLayoutScreen } from "./HudLayoutScreen";
@@ -61,6 +63,16 @@ const SCREEN_TITLE: Record<Exclude<PhoneScreen, "home">, PhoneStringKey> = {
   developer: "developer",
 };
 
+function transportStatusLabel(
+  status: string,
+  t: (key: PhoneStringKey) => string,
+): string {
+  if (/fail|error|실패|오류/i.test(status)) return t("unavailable");
+  if (/disabled|비활성/i.test(status)) return t("disabled");
+  if (/wait|대기|준비/i.test(status)) return t("ready");
+  return t("active");
+}
+
 export function PhoneCompanion({
   canvas,
   status,
@@ -84,6 +96,7 @@ export function PhoneCompanion({
     typeof navigator === "undefined" ? "en" : navigator.language,
   );
   const t = (key: PhoneStringKey) => translatePhone(locale, key);
+  const localizedStatus = transportStatusLabel(status, t);
 
   const cards = useMemo(() => {
     const weather = live.weather.value;
@@ -121,7 +134,9 @@ export function PhoneCompanion({
         icon: "weather",
         titleKey: "weather",
         status: weather
-          ? `${Math.round(weather.temperature)}° · ${weather.condition}`
+          ? `${Math.round(weather.temperature)}° · ${
+              weatherCodeLabel(weather.weatherCode, locale)
+            }`
           : t("noData"),
       },
       {
@@ -144,7 +159,7 @@ export function PhoneCompanion({
         screen: "developer",
         icon: "debug",
         titleKey: "developer",
-        status,
+        status: localizedStatus,
       },
     ] as const;
   }, [
@@ -153,7 +168,7 @@ export function PhoneCompanion({
     preferences,
     routingStatus.enabled,
     rssSources,
-    status,
+    localizedStatus,
     locale,
   ]);
 
@@ -167,7 +182,13 @@ export function PhoneCompanion({
   const content = () => {
     switch (screen) {
       case "devices":
-        return <DevicesScreen battery={battery} status={status} t={t} />;
+        return (
+          <DevicesScreen
+            battery={battery}
+            status={localizedStatus}
+            t={t}
+          />
+        );
       case "hud-layout":
         return (
           <HudLayoutScreen
@@ -195,7 +216,14 @@ export function PhoneCompanion({
           />
         );
       case "weather":
-        return <WeatherScreen live={live} t={t} onRefresh={onWeatherRefresh} />;
+        return (
+          <WeatherScreen
+            live={live}
+            locale={locale as PhoneLocale}
+            t={t}
+            onRefresh={onWeatherRefresh}
+          />
+        );
       case "navigation":
         return (
           <NavigationScreen
@@ -221,7 +249,7 @@ export function PhoneCompanion({
       case "developer":
         return (
           <DeveloperScreen
-            status={status}
+            status={localizedStatus}
             routingEnabled={routingStatus.enabled}
             rssSources={rssSources}
             t={t}

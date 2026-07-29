@@ -61,7 +61,7 @@
 
 .phone-detail-header__parent {
   color: var(--phone-muted);
-  font-size: 0.72rem;
+  font-size: 1rem;
   font-weight: 500;
 }
 

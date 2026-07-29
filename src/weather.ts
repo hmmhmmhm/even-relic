@@ -1,5 +1,6 @@
 import { readCache, writeCache, type EvenStorage } from "./live-cache";
 import type { Coordinate, DataState, WeatherValue } from "./live-state";
+import type { PhoneLocale } from "./phone-types";
 
 export const WEATHER_MAX_AGE_MS = 15 * 60 * 1_000;
 export const WEATHER_CACHE_MAX_STALE_MS = 7 * 24 * 60 * 60 * 1_000;
@@ -132,38 +133,68 @@ function requiredWeatherCode(value: unknown): number {
   return value;
 }
 
-export function weatherCodeLabel(code: number): string {
+export function weatherCodeLabel(
+  code: number,
+  locale: PhoneLocale = "ko",
+): string {
+  const labels = locale === "ko"
+    ? {
+        unknown: "알 수 없음",
+        clear: "맑음",
+        mostlyClear: "대체로 맑음",
+        overcast: "흐림",
+        fog: "안개",
+        drizzle: "이슬비",
+        rain: "비",
+        snow: "눈",
+        showers: "소나기",
+        snowShowers: "눈 소나기",
+        thunderstorm: "뇌우",
+      }
+    : {
+        unknown: "Unknown",
+        clear: "Clear",
+        mostlyClear: "Mostly clear",
+        overcast: "Overcast",
+        fog: "Fog",
+        drizzle: "Drizzle",
+        rain: "Rain",
+        snow: "Snow",
+        showers: "Showers",
+        snowShowers: "Snow showers",
+        thunderstorm: "Thunderstorm",
+      };
   if (!Number.isInteger(code) || code < 0 || code > 99) {
-    return "알 수 없음";
+    return labels.unknown;
   }
   if (code === 0) {
-    return "맑음";
+    return labels.clear;
   }
   if (code <= 2) {
-    return "대체로 맑음";
+    return labels.mostlyClear;
   }
   if (code === 3) {
-    return "흐림";
+    return labels.overcast;
   }
   if (code <= 48) {
-    return "안개";
+    return labels.fog;
   }
   if (code <= 57) {
-    return "이슬비";
+    return labels.drizzle;
   }
   if (code <= 67) {
-    return "비";
+    return labels.rain;
   }
   if (code <= 77) {
-    return "눈";
+    return labels.snow;
   }
   if (code <= 82) {
-    return "소나기";
+    return labels.showers;
   }
   if (code <= 86) {
-    return "눈 소나기";
+    return labels.snowShowers;
   }
-  return "뇌우";
+  return labels.thunderstorm;
 }
 
 export function buildWeatherUrl(coordinate: Coordinate): URL {

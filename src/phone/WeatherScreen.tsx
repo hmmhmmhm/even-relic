@@ -2,6 +2,8 @@ import { useState } from "react";
 import type { PhoneStringKey } from "../phone-i18n";
 import type { LiveDashboardState } from "../live-state";
 import { PhoneIcon } from "../phone-icons";
+import type { PhoneLocale } from "../phone-types";
+import { weatherCodeLabel } from "../weather";
 
 function valueOrDash(value: number | undefined, suffix: string): string {
   return value === undefined ? "—" : `${Math.round(value)}${suffix}`;
@@ -30,10 +32,12 @@ function locationText(live: LiveDashboardState): string {
 
 export function WeatherScreen({
   live,
+  locale,
   t,
   onRefresh,
 }: {
   readonly live: LiveDashboardState;
+  readonly locale: PhoneLocale;
   readonly t: (key: PhoneStringKey) => string;
   readonly onRefresh: () => Promise<"accepted" | "dropped">;
 }) {
@@ -62,7 +66,11 @@ export function WeatherScreen({
         <PhoneIcon name="weather" size={58} />
         <div>
           <strong>{weather ? `${Math.round(weather.temperature)}°` : "—"}</strong>
-          <span>{weather?.condition ?? t("noData")}</span>
+          <span>
+            {weather
+              ? weatherCodeLabel(weather.weatherCode, locale)
+              : t("noData")}
+          </span>
         </div>
       </section>
       <section className="phone-panel">
