@@ -124,4 +124,4 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   Do not localize or otherwise change the hardware-proven glasses Canvas as
   part of the phone redesign.
 - Finish Home with the Sandevistan project name, a Pixelarticons GitHub link to
-  the repository, the package version, and the development status.
+  the repository, the Even app-manifest version, and the development status.

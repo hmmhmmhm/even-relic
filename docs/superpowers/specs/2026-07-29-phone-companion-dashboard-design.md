@@ -39,8 +39,8 @@ these requirements:
   icons in CSS, text, or handcrafted SVG.
 - Every card is the full tap target for one dedicated detail screen.
 - There is no separate Manage list and no explanatory destination-map screen.
-- Home ends with the Sandevistan name, a Pixelarticons GitHub link, the package
-  version, and the current development status.
+- Home ends with the Sandevistan name, a Pixelarticons GitHub link, the Even
+  app-manifest version, and the current development status.
 
 The approved Home cards are:
 
@@ -89,8 +89,8 @@ Home contains, in order:
 2. Live grayscale 576×288 HUD preview inside a pale gray frame.
 3. `Dashboard` label.
 4. Two-column card grid.
-5. Footer with project name, repository link, package version, and development
-   status.
+5. Footer with project name, repository link, Even app-manifest version, and
+   development status.
 
 The Canvas element remains mounted for the lifetime of the app. When a detail
 screen is open, the Canvas may be visually off-screen but must remain available
@@ -176,7 +176,7 @@ key, and hides Navigation from the editable HUD-page list.
 
 ### Language
 
-- Options: `System`, `한국어`, and `English`.
+- Options: `System`, `Korean`, and `English`.
 - System follows `navigator.language`, using Korean for `ko*` and English for
   every other value.
 - Localize the phone companion only.
@@ -351,7 +351,7 @@ dropped and never queued.
 ### Automated
 
 - Home renders eight cards, a live preview, project footer, repository link,
-  package version, and no Manage list.
+  Even app-manifest version, and no Manage list.
 - Every card is a semantic full-card button that opens the expected detail
   screen and returns without remounting the Canvas.
 - Pixelarticons render from local package assets with no external icon request.
