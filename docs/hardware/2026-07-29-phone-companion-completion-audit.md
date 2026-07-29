@@ -10,6 +10,9 @@ Audited implementation commit:
 I18n extensibility follow-up implementation commit:
 `2e809c8a059fa05263ead683bcf3dac3fa6656d4`
 
+Runtime locale completeness follow-up commit:
+`3abfd4421c5c745cd373b1f0517efcd44a4ab08a`
+
 Overall status:
 `SOFTWARE PASS — PHYSICAL G2 BASELINE PRESERVED — VISUAL QA PASS — RELEASE DEFERRED`
 
@@ -38,6 +41,8 @@ the owner.
 | Registry-derived language packs and generated language choices | PASS |
 | Shared browser/server built-in RSS feed catalog | PASS |
 | Generic bounded OSM `name:<language>` preservation | PASS |
+| Localized nested HUD-preview accessibility semantics | PASS |
+| Initial and runtime built-in TODO relocalization | PASS |
 | Localized destination search, travel modes, route actions, and errors | PASS |
 | Developer-only WebView trace panel | PASS |
 | Project, GitHub, version, and development-state footer | PASS |
@@ -93,6 +98,12 @@ the owner.
   retaining the OSM default name as fallback.
 - Added `docs/i18n/adding-a-language.md`; a locale now requires one pack, one
   registry entry, and three feed definitions.
+- Replaced the last fixed Korean accessibility names on the nested HUD preview
+  and Canvas image with locale-pack strings.
+- Localized unchanged built-in TODO titles before the first phone paint and
+  immediately after a language change, independently of G2 session readiness.
+- Preserved user-authored TODO titles while relabeling only the three known
+  unchanged built-in records.
 
 ## Fresh automated evidence
 
@@ -100,7 +111,7 @@ The following commands passed serially against the audited implementation:
 
 | Check | Result |
 | --- | --- |
-| `npm test` | 53 files, 469 tests passed |
+| `npm test` | 53 files, 471 tests passed |
 | `npm run typecheck` | `tsc --noEmit` passed |
 | `npm run build` | 120 modules transformed; production build passed |
 | `npm run test:repo` | 5 tests passed; repository copy check passed |
@@ -108,10 +119,10 @@ The following commands passed serially against the audited implementation:
 | `node --test --test-concurrency=1 tests/*.test.mjs` | 54 tests passed |
 | `git diff --check` | Passed |
 | `git grep -n "ORS_API_KEY" -- src app.json package.json` | No tracked match |
-| `npm run pack` | `sandevistan.ehpk`, 1,718,954 bytes |
+| `npm run pack` | `sandevistan.ehpk`, 1,719,032 bytes |
 
 The packed artifact SHA-256 is:
-`5f74df37686e767a08c510f2d1cb4af575641cd84aaf64f8fe34df4619fa98c6`.
+`b57b11896e5eafacab1f7bd4ffa6c5191b6f2eae96c5861a9dd4a1f744f34fee`.
 
 The existing physical G2 audit remains authoritative for four-tile serial
 transport, binocular output, no-queue refresh behavior, map, weather, RSS news,
@@ -135,6 +146,23 @@ Status: `PASS`
 The audit images remain local-only because the comparison composites include
 owner-supplied Even reference screenshots and are not republished in the
 repository.
+
+## Runtime locale gate
+
+Status: `PASS`
+
+- The current feature commit was served independently at the approved
+  `402×667` phone viewport without starting G2 image transport.
+- Korean System locale rendered Korean phone copy, localized HUD-preview
+  semantics, and Korean built-in TODO titles.
+- Selecting English immediately changed Home, the breadcrumb and return card,
+  the nested HUD-preview accessibility names, and all three unchanged built-in
+  TODO titles without a live G2 refresh.
+- Devices, HUD layout, News, TODO, Weather, Navigation, Language, and Developer
+  were opened individually in English. No fixed Korean product copy remained.
+  The Korean native-language option is intentionally preserved in Korean.
+- Browser inspection reported no page errors. Standalone missing-Flutter-handler
+  warnings remain expected outside the Even WebView bridge.
 
 ## Deferred work
 
