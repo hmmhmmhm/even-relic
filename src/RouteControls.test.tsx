@@ -19,6 +19,47 @@ const destination: Destination = {
 afterEach(cleanup);
 
 describe("RouteControls", () => {
+  it("localizes the complete disabled state in English", () => {
+    render(<RouteControls
+      locale="en"
+      status={{ enabled: false }}
+      onStart={vi.fn()}
+      onEnd={vi.fn()}
+    />);
+
+    expect(screen.getByRole("region", { name: "Navigation" })).toBeTruthy();
+    expect(screen.getByText(
+      "Connect an ORS key to enable navigation.",
+    )).toBeTruthy();
+  });
+
+  it("localizes English search controls, profiles, and validation", async () => {
+    const search = vi.fn();
+    render(<RouteControls
+      locale="en"
+      status={{ enabled: true }}
+      onStart={vi.fn()}
+      onEnd={vi.fn()}
+      search={search}
+    />);
+
+    expect(screen.getByRole("textbox", { name: "Destination" })).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Travel mode" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "Walking" })).toBeTruthy();
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: " a " },
+    });
+    fireEvent.submit(screen.getByRole("form", {
+      name: "Destination search",
+    }));
+
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "Enter at least two characters.",
+    );
+    expect(search).not.toHaveBeenCalled();
+  });
+
   it("shows a clean disabled state without a destination input", () => {
     render(<RouteControls
       status={{ enabled: false }}

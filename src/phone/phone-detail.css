@@ -163,24 +163,10 @@
   display: grid;
   width: 42px;
   height: 42px;
-  color: #fff;
+  color: #202020;
   border: 0;
   background: transparent;
   place-items: center;
-}
-
-.phone-check-button > span:first-child {
-  display: grid;
-  width: 23px;
-  height: 23px;
-  color: #fff;
-  border: 2px solid #202020;
-  background: #202020;
-  place-items: center;
-}
-
-.phone-check-button[aria-pressed="false"] > span:first-child {
-  background: #fff;
 }
 
 .phone-stacked-form {

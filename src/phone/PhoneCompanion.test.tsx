@@ -22,7 +22,9 @@ class TestStorage implements EvenStorage {
   }
 }
 
-function renderCompanion() {
+function renderCompanion(
+  preferences = DEFAULT_PHONE_PREFERENCES,
+) {
   const storage = new TestStorage();
   return render(
     <PhoneCompanion
@@ -30,7 +32,7 @@ function renderCompanion() {
       status="Ready"
       live={createInitialLiveDashboardState()}
       routingStatus={{ enabled: false }}
-      preferences={DEFAULT_PHONE_PREFERENCES}
+      preferences={preferences}
       storage={storage}
       onPreferencesChange={vi.fn()}
       onTodosChange={vi.fn()}
@@ -44,7 +46,10 @@ describe("PhoneCompanion", () => {
   it("renders the approved eight full-card destinations and footer", () => {
     renderCompanion();
 
-    expect(screen.getByText("SANDEVISTAN / DASHBOARD")).toBeTruthy();
+    expect(screen.getByRole("heading", {
+      level: 1,
+      name: "SANDEVISTAN / DASHBOARD",
+    })).toBeTruthy();
     for (const name of [
       "Devices",
       "HUD layout",
@@ -105,5 +110,16 @@ describe("PhoneCompanion", () => {
     expect(screen.queryByText("WEBVIEW TRACE")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Developer/ }));
     expect(screen.getByText("WEBVIEW TRACE")).toBeTruthy();
+  });
+
+  it("localizes the HUD preview landmark with the selected phone language", () => {
+    renderCompanion({
+      ...DEFAULT_PHONE_PREFERENCES,
+      locale: "ko",
+    });
+
+    expect(screen.getByRole("region", {
+      name: "실시간 HUD 미리보기",
+    })).toBeTruthy();
   });
 });

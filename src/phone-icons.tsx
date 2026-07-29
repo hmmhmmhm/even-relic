@@ -3,6 +3,8 @@ import articleIcon from "@iconify-icons/pixelarticons/article";
 import arrowDownIcon from "@iconify-icons/pixelarticons/arrow-down";
 import arrowUpIcon from "@iconify-icons/pixelarticons/arrow-up";
 import checklistIcon from "@iconify-icons/pixelarticons/checklist";
+import checkboxIcon from "@iconify-icons/pixelarticons/checkbox";
+import checkboxOnIcon from "@iconify-icons/pixelarticons/checkbox-on";
 import chevronLeftIcon from "@iconify-icons/pixelarticons/chevron-left";
 import cloudSunIcon from "@iconify-icons/pixelarticons/cloud-sun";
 import debugIcon from "@iconify-icons/pixelarticons/debug";
@@ -21,6 +23,8 @@ const ICONS = {
   arrowDown: arrowDownIcon,
   arrowUp: arrowUpIcon,
   checklist: checklistIcon,
+  checkbox: checkboxIcon,
+  checkboxOn: checkboxOnIcon,
   back: chevronLeftIcon,
   weather: cloudSunIcon,
   debug: debugIcon,

@@ -13,7 +13,7 @@
   <img alt="Vite 6" src="https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white">
   <img alt="Even Hub SDK 0.0.11" src="https://img.shields.io/badge/Even_Hub_SDK-0.0.11-7CF36A">
   <img alt="Validated on physical G2 hardware" src="https://img.shields.io/badge/G2-physical_hardware_validated-2EA043">
-  <img alt="406 Vitest tests passing" src="https://img.shields.io/badge/Vitest-406_passing-6E9F18?logo=vitest&logoColor=white">
+  <img alt="More than 400 Vitest tests passing" src="https://img.shields.io/badge/Vitest-400%2B_passing-6E9F18?logo=vitest&logoColor=white">
   <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-blue.svg">
 </p>
 

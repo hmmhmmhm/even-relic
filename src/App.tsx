@@ -67,6 +67,7 @@ import {
   resolvePhonePreferences,
 } from "./phone-preferences";
 import type { PhonePreferences } from "./phone-types";
+import { resolvePhoneLocale } from "./phone-i18n";
 import { PhoneCompanion } from "./phone/PhoneCompanion";
 import { resolveOrsKey } from "./ors-key";
 import {
@@ -154,6 +155,10 @@ export function App({ autoStart = true }: AppProps) {
     setCompanionOrsKeyState(value);
     liveSessionRef.current?.setRoutingKey?.(value);
   };
+  const phoneLocale = resolvePhoneLocale(
+    phonePreferences.locale,
+    typeof navigator === "undefined" ? "en" : navigator.language,
+  );
 
   useEffect(() => {
     if (!fastCanvasHudMode) return;
@@ -688,6 +693,7 @@ export function App({ autoStart = true }: AppProps) {
         onDeleteRoute={endCompanionRoute}
         routeControls={(
           <RouteControls
+            locale={phoneLocale}
             status={effectiveRoutingStatus}
             orsKey={companionOrsKey}
             activeRoute={activeCompanionRoute}

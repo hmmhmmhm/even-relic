@@ -106,7 +106,9 @@ export function NavigationScreen({
         <section className="phone-panel phone-key-status">
           <div>
             <span>{t("orsKey")}</span>
-            <strong>{storedKey ? maskOrsKey(storedKey) : "Development fallback"}</strong>
+            <strong>
+              {storedKey ? maskOrsKey(storedKey) : t("developmentFallback")}
+            </strong>
           </div>
           <span>{t("connected")}</span>
         </section>

@@ -103,7 +103,10 @@ export function TodoScreen({
               disabled={busy}
               onClick={() => void commit(toggleTodo(local, index))}
             >
-              <span aria-hidden="true">{item.completed ? "✓" : ""}</span>
+              <PhoneIcon
+                name={item.completed ? "checkbox" : "checkboxOn"}
+                size={24}
+              />
               <span className="phone-visually-hidden">
                 {item.completed ? t("enabled") : t("disabled")}
               </span>

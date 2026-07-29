@@ -28,9 +28,9 @@ export function PhoneHome({
         className="phone-home__subheader"
         aria-label={`Sandevistan / ${t("dashboard")}`}
       >
-        <span>{`SANDEVISTAN / ${t("dashboard").toUpperCase()}`}</span>
+        <h1>{`SANDEVISTAN / ${t("dashboard").toUpperCase()}`}</h1>
       </header>
-      <section className="phone-home__preview" aria-label="Live HUD preview">
+      <section className="phone-home__preview" aria-label={t("liveHudPreview")}>
         <div className="phone-home__preview-slot" data-phone-preview-slot>
           {preview}
         </div>

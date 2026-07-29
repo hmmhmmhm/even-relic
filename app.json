@@ -9,11 +9,11 @@
   "permissions": [
     {
       "name": "location",
-      "desc": "현재 위치를 기반으로 지도와 날씨를 표시합니다."
+      "desc": "Uses the current location to render local maps and weather."
     },
     {
       "name": "network",
-      "desc": "현재 날씨와 SANDEVISTAN 라이브 데이터를 불러옵니다.",
+      "desc": "Loads weather, map, news, and optional routing data.",
       "whitelist": ["https://api.open-meteo.com"]
     }
   ],

@@ -21,5 +21,7 @@ describe("phone localization", () => {
   it("reads strings from the selected dictionary", () => {
     expect(translatePhone("en", "dashboard")).toBe("Dashboard");
     expect(translatePhone("ko", "dashboard")).toBe("대시보드");
+    expect(translatePhone("en", "liveHudPreview")).toBe("Live HUD preview");
+    expect(translatePhone("ko", "developmentFallback")).toBe("개발용 서버 키");
   });
 });

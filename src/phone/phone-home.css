@@ -17,6 +17,11 @@
   line-height: 1;
 }
 
+.phone-home__subheader h1 {
+  margin: 0;
+  font: inherit;
+}
+
 .phone-home__preview {
   margin-top: 4px;
   padding: 26px 28px;

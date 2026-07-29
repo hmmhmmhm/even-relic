@@ -73,6 +73,8 @@ const en = {
   storageFailed: "Could not save on this device.",
   validationFailed: "Validation failed.",
   noData: "No data",
+  liveHudPreview: "Live HUD preview",
+  developmentFallback: "Development server key",
 } as const;
 
 const ko = {
@@ -148,6 +150,8 @@ const ko = {
   storageFailed: "이 기기에 저장하지 못했습니다.",
   validationFailed: "확인하지 못했습니다.",
   noData: "데이터 없음",
+  liveHudPreview: "실시간 HUD 미리보기",
+  developmentFallback: "개발용 서버 키",
 } satisfies Record<keyof typeof en, string>;
 
 export const PHONE_STRINGS = { en, ko } as const;

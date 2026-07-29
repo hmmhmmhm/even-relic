@@ -1157,14 +1157,18 @@ describe("SANDEVISTAN peripheral HUD", () => {
     fireEvent.click(await screen.findByRole("button", {
       name: /Navigation/,
     }));
-    const textbox = await screen.findByRole("textbox", { name: "목적지" });
+    const textbox = await screen.findByRole("textbox", {
+      name: "Destination",
+    });
     expect(mocks.getRoutingStatus).toHaveBeenCalledOnce();
     expect(mocks.createSession).toHaveBeenCalledWith(expect.objectContaining({
       routingStatus: { enabled: true },
     }));
 
     fireEvent.change(textbox, { target: { value: "서울역" } });
-    fireEvent.submit(screen.getByRole("form", { name: "목적지 검색" }));
+    fireEvent.submit(screen.getByRole("form", {
+      name: "Destination search",
+    }));
     fireEvent.click(await screen.findByRole("button", {
       name: /서울역, 서울특별시/,
     }));
@@ -1195,7 +1199,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     };
     sessionOptions().onUpdate({ state: active, target: "all" });
     fireEvent.click(await screen.findByRole("button", {
-      name: "길찾기 종료",
+      name: "End navigation",
     }));
     expect(session.endRoute).toHaveBeenCalledOnce();
 

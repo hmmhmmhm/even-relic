@@ -10,8 +10,10 @@ import {
   type RouteProfile,
   type RoutingStatus,
 } from "./routing";
+import type { PhoneLocale } from "./phone-types";
 
 type RouteControlsProps = {
+  readonly locale?: PhoneLocale;
   readonly status: RoutingStatus;
   readonly activeRoute?: RouteValue;
   readonly routeStatus?: DataStatus;
@@ -25,29 +27,80 @@ type RouteControlsProps = {
   readonly search?: (query: string) => ReturnType<typeof searchDestinations>;
 };
 
-const PROFILE_LABELS: ReadonlyArray<{
-  readonly value: RouteProfile;
-  readonly label: string;
-}> = [
-  { value: "foot-walking", label: "도보" },
-  { value: "cycling-regular", label: "자전거" },
-  { value: "driving-car", label: "자동차" },
+const ROUTE_COPY = {
+  en: {
+    navigation: "Navigation",
+    disabledHelp: "Connect an ORS key to enable navigation.",
+    minimumQuery: "Enter at least two characters.",
+    searchFailed: "Could not search destinations. Try again.",
+    endFailed: "Could not end navigation. Try again.",
+    startFailed: "Could not start the route. Try again.",
+    previousRoute: "previous route",
+    navigating: "navigating",
+    resume: "Resume navigation",
+    end: "End navigation",
+    destinationSearch: "Destination search",
+    destination: "Destination",
+    profile: "Travel mode",
+    searching: "Searching",
+    search: "Search",
+    searchResults: "Search results",
+    profiles: {
+      "foot-walking": "Walking",
+      "cycling-regular": "Cycling",
+      "driving-car": "Driving",
+    },
+  },
+  ko: {
+    navigation: "길찾기",
+    disabledHelp: "ORS 키 연결 후 길찾기 사용 가능",
+    minimumQuery: "목적지를 두 글자 이상 입력하세요.",
+    searchFailed: "목적지를 검색하지 못했습니다. 다시 시도하세요.",
+    endFailed: "길찾기를 종료하지 못했습니다. 다시 시도하세요.",
+    startFailed: "경로를 시작하지 못했습니다. 다시 시도하세요.",
+    previousRoute: "이전 경로",
+    navigating: "안내 중",
+    resume: "길찾기 다시 시작",
+    end: "길찾기 종료",
+    destinationSearch: "목적지 검색",
+    destination: "목적지",
+    profile: "이동 방식",
+    searching: "검색 중",
+    search: "검색",
+    searchResults: "검색 결과",
+    profiles: {
+      "foot-walking": "도보",
+      "cycling-regular": "자전거",
+      "driving-car": "자동차",
+    },
+  },
+} as const;
+
+const PROFILE_VALUES: readonly RouteProfile[] = [
+  "foot-walking",
+  "cycling-regular",
+  "driving-car",
 ];
 
-function conciseError(error: unknown, action: "search" | "start" | "end") {
+function conciseError(
+  error: unknown,
+  action: "search" | "start" | "end",
+  copy: typeof ROUTE_COPY[PhoneLocale],
+) {
   if (error instanceof RoutingError && error.disabled) {
-    return "ORS 키 연결 후 길찾기 사용 가능";
+    return copy.disabledHelp;
   }
   if (action === "search") {
-    return "목적지를 검색하지 못했습니다. 다시 시도하세요.";
+    return copy.searchFailed;
   }
   if (action === "end") {
-    return "길찾기를 종료하지 못했습니다. 다시 시도하세요.";
+    return copy.endFailed;
   }
-  return "경로를 시작하지 못했습니다. 다시 시도하세요.";
+  return copy.startFailed;
 }
 
 export function RouteControls({
+  locale = "ko",
   status,
   activeRoute,
   routeStatus = "fresh",
@@ -57,6 +110,7 @@ export function RouteControls({
   orsKey,
   search,
 }: RouteControlsProps) {
+  const copy = ROUTE_COPY[locale];
   const [query, setQuery] = useState("");
   const [profile, setProfile] = useState<RouteProfile>("foot-walking");
   const [results, setResults] = useState<readonly Destination[]>([]);
@@ -65,9 +119,9 @@ export function RouteControls({
 
   if (!status.enabled) {
     return (
-      <section className="route-controls" aria-label="길찾기">
+      <section className="route-controls" aria-label={copy.navigation}>
         <strong>ROUTE // DISABLED</strong>
-        <p>ORS 키 연결 후 길찾기 사용 가능</p>
+        <p>{copy.disabledHelp}</p>
       </section>
     );
   }
@@ -76,7 +130,7 @@ export function RouteControls({
     event.preventDefault();
     const normalized = query.trim();
     if ([...normalized].length < 2) {
-      setError("목적지를 두 글자 이상 입력하세요.");
+      setError(copy.minimumQuery);
       return;
     }
     setBusy(true);
@@ -87,7 +141,7 @@ export function RouteControls({
         : await searchDestinations(normalized, fetch, orsKey);
       setResults(destinations.slice(0, 5));
     } catch (caught) {
-      setError(conciseError(caught, "search"));
+      setError(conciseError(caught, "search", copy));
     } finally {
       setBusy(false);
     }
@@ -99,7 +153,7 @@ export function RouteControls({
     try {
       await onStart(destination, profile);
     } catch (caught) {
-      setError(conciseError(caught, "start"));
+      setError(conciseError(caught, "start", copy));
     } finally {
       setBusy(false);
     }
@@ -111,7 +165,7 @@ export function RouteControls({
     try {
       await onEnd();
     } catch (caught) {
-      setError(conciseError(caught, "end"));
+      setError(conciseError(caught, "end", copy));
     } finally {
       setBusy(false);
     }
@@ -124,7 +178,7 @@ export function RouteControls({
     try {
       await onResume();
     } catch (caught) {
-      setError(conciseError(caught, "start"));
+      setError(conciseError(caught, "start", copy));
     } finally {
       setBusy(false);
     }
@@ -133,10 +187,11 @@ export function RouteControls({
   if (activeRoute) {
     const stale = routeStatus === "stale";
     return (
-      <section className="route-controls" aria-label="길찾기">
+      <section className="route-controls" aria-label={copy.navigation}>
         <strong>{stale ? "ROUTE // STALE" : "ROUTE // ACTIVE"}</strong>
         <p>
-          {activeRoute.destinationName} {stale ? "이전 경로" : "안내 중"}
+          {activeRoute.destinationName}{" "}
+          {stale ? copy.previousRoute : copy.navigating}
         </p>
         <div className="route-actions">
           {stale && onResume && (
@@ -145,11 +200,11 @@ export function RouteControls({
               disabled={busy}
               onClick={() => void resume()}
             >
-              길찾기 다시 시작
+              {copy.resume}
             </button>
           )}
           <button type="button" disabled={busy} onClick={() => void end()}>
-            길찾기 종료
+            {copy.end}
           </button>
         </div>
         {error && <p role="alert">{error}</p>}
@@ -158,14 +213,14 @@ export function RouteControls({
   }
 
   return (
-    <section className="route-controls" aria-label="길찾기">
+    <section className="route-controls" aria-label={copy.navigation}>
       <strong>ROUTE // READY</strong>
       <form
-        aria-label="목적지 검색"
+        aria-label={copy.destinationSearch}
         onSubmit={(event) => void submitSearch(event)}
       >
         <label>
-          목적지
+          {copy.destination}
           <input
             value={query}
             disabled={busy}
@@ -174,7 +229,7 @@ export function RouteControls({
           />
         </label>
         <label>
-          이동 방식
+          {copy.profile}
           <select
             value={profile}
             disabled={busy}
@@ -182,18 +237,20 @@ export function RouteControls({
               setProfile(event.target.value as RouteProfile);
             }}
           >
-            {PROFILE_LABELS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
+            {PROFILE_VALUES.map((value) => (
+              <option key={value} value={value}>
+                {copy.profiles[value]}
+              </option>
             ))}
           </select>
         </label>
         <button type="submit" disabled={busy}>
-          {busy ? "검색 중" : "검색"}
+          {busy ? copy.searching : copy.search}
         </button>
       </form>
       {error && <p role="alert">{error}</p>}
       {results.length > 0 && (
-        <div className="route-results" aria-label="검색 결과">
+        <div className="route-results" aria-label={copy.searchResults}>
           {results.map((destination) => (
             <button
               key={destination.id}
