@@ -8,14 +8,15 @@ import { NewsScreen } from "./NewsScreen";
 
 class TestStorage implements EvenStorage {
   readonly values = new Map<string, string>();
+  writeResult = true;
 
   async getLocalStorage(key: string): Promise<string> {
     return this.values.get(key) ?? "";
   }
 
   async setLocalStorage(key: string, value: string): Promise<boolean> {
-    this.values.set(key, value);
-    return true;
+    if (this.writeResult) this.values.set(key, value);
+    return this.writeResult;
   }
 }
 
@@ -69,5 +70,31 @@ describe("NewsScreen", () => {
       { headers: { accept: "application/xml,text/xml" } },
     ));
     await vi.waitFor(() => expect(onSourcesChange).toHaveBeenCalledTimes(2));
+  });
+
+  it("distinguishes a local-storage rejection from feed validation", async () => {
+    const storage = new TestStorage();
+    storage.writeResult = false;
+    render(
+      <NewsScreen
+        storage={storage}
+        t={(key) => translatePhone("en", key)}
+        fetchImpl={vi.fn(async () => new Response("<rss />", {
+          status: 200,
+          headers: { "content-type": "application/xml" },
+        })) as typeof fetch}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Source name"), {
+      target: { value: "Example" },
+    });
+    fireEvent.change(screen.getByLabelText("HTTPS RSS URL"), {
+      target: { value: "https://feeds.example.com/rss.xml" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(await screen.findByText("Could not save on this device."))
+      .toBeTruthy();
   });
 });

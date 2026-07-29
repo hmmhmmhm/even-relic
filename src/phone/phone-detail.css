@@ -88,7 +88,7 @@
 
 .phone-reorder-actions button {
   display: grid;
-  width: 42px;
+  width: 44px;
   height: 46px;
   color: var(--phone-text);
   border: 0;
@@ -137,7 +137,7 @@
 
 .phone-item-row {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) 42px 42px;
+  grid-template-columns: 44px minmax(0, 1fr) 44px 44px;
   min-height: 66px;
   align-items: center;
   padding: 7px 5px;
@@ -161,8 +161,8 @@
 
 .phone-check-button {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 44px;
+  height: 44px;
   color: #202020;
   border: 0;
   background: transparent;
@@ -252,6 +252,7 @@
 .phone-companion .route-controls select,
 .phone-companion .route-controls button,
 .phone-companion .diagnostic-console button {
+  min-height: 44px;
   color: var(--phone-text);
   border-color: var(--phone-line);
   background: #fff;

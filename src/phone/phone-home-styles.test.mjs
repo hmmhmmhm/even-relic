@@ -6,6 +6,10 @@ const shellCss = readFileSync(
   new URL("./phone-shell.css", import.meta.url),
   "utf8",
 );
+const detailCss = readFileSync(
+  new URL("./phone-detail.css", import.meta.url),
+  "utf8",
+);
 
 describe("Even-style phone HUD preview", () => {
   it("neutralizes the global green HUD overlay inside the phone preview", () => {
@@ -23,6 +27,44 @@ describe("Even-style phone HUD preview", () => {
     );
     expect(css).toMatch(
       /\.phone-home__preview-slot \.hud-frame canvas\s*\{[^}]*mix-blend-mode:\s*normal/s,
+    );
+  });
+});
+
+describe("Even-style phone card geometry", () => {
+  it("uses the approved neutral palette and two-column proportions", () => {
+    expect(shellCss).toMatch(/--phone-bg:\s*#eeeeee/);
+    expect(shellCss).toMatch(/--phone-card:\s*#ffffff/);
+    expect(shellCss).toMatch(/--phone-preview:\s*#e0e0e0/);
+    expect(css).toMatch(
+      /\.phone-home__grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[^}]*gap:\s*8px/s,
+    );
+    expect(css).toMatch(
+      /\.phone-home-card\s*\{[^}]*aspect-ratio:\s*1\.28\s*\/\s*1[^}]*border-radius:\s*8px[^}]*box-shadow:\s*none/s,
+    );
+  });
+
+  it("preserves two columns at the 320-pixel acceptance width", () => {
+    const narrowRule = css.match(/@media\s*\(max-width:\s*350px\)\s*\{([\s\S]*)\}\s*$/)?.[1]
+      ?? "";
+    expect(narrowRule).toContain(".phone-home-card");
+    expect(narrowRule).not.toContain("grid-template-columns");
+  });
+});
+
+describe("phone interaction targets", () => {
+  it("keeps compact reorder and TODO controls at least 44 pixels wide", () => {
+    expect(detailCss).toMatch(
+      /\.phone-reorder-actions button\s*\{[^}]*width:\s*44px[^}]*height:\s*46px/s,
+    );
+    expect(detailCss).toMatch(
+      /\.phone-check-button\s*\{[^}]*width:\s*44px[^}]*height:\s*44px/s,
+    );
+    expect(detailCss).toMatch(
+      /\.phone-item-row\s*\{[^}]*grid-template-columns:\s*44px\s+minmax\(0,\s*1fr\)\s+44px\s+44px/s,
+    );
+    expect(detailCss).toMatch(
+      /\.phone-companion \.route-controls input,[\s\S]*?\.phone-companion \.diagnostic-console button\s*\{[^}]*min-height:\s*44px/s,
     );
   });
 });

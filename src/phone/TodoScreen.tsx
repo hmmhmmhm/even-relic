@@ -104,7 +104,7 @@ export function TodoScreen({
               onClick={() => void commit(toggleTodo(local, index))}
             >
               <PhoneIcon
-                name={item.completed ? "checkbox" : "checkboxOn"}
+                name={item.completed ? "checkboxOn" : "checkbox"}
                 size={24}
               />
               <span className="phone-visually-hidden">
@@ -134,6 +134,7 @@ export function TodoScreen({
               type="button"
               className="phone-icon-button"
               aria-label={`${t("edit")} ${item.title}`}
+              disabled={busy}
               onClick={() => setEditing(item.id)}
             >
               <PhoneIcon name="edit" size={20} />
@@ -142,6 +143,7 @@ export function TodoScreen({
               type="button"
               className="phone-icon-button"
               aria-label={`${t("delete")} ${item.title}`}
+              disabled={busy}
               onClick={() => remove(item.id)}
             >
               <PhoneIcon name="trash" size={20} />

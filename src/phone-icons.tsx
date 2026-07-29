@@ -56,6 +56,7 @@ export function PhoneIcon({
       width={size}
       height={size}
       className={className}
+      data-phone-icon={name}
       aria-hidden="true"
     />
   );

@@ -74,9 +74,14 @@ export function NewsScreen({
       setUrl("");
       setError(undefined);
     } catch (caught) {
-      setError(caught instanceof Error && caught.message === "rss_source_limit"
-        ? t("sourceLimit")
-        : t("validationFailed"));
+      const code = caught instanceof Error ? caught.message : "";
+      setError(
+        code === "rss_source_limit"
+          ? t("sourceLimit")
+          : code === "storage"
+            ? t("storageFailed")
+            : t("validationFailed"),
+      );
     } finally {
       setBusy(false);
     }

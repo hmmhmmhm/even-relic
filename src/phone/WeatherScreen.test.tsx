@@ -9,6 +9,58 @@ import { WeatherScreen } from "./WeatherScreen";
 afterEach(cleanup);
 
 describe("WeatherScreen", () => {
+  it("shows the nearest available place label and complete weather details", () => {
+    const live = createInitialLiveDashboardState();
+    render(
+      <WeatherScreen
+        live={{
+          ...live,
+          location: {
+            status: "fresh",
+            value: {
+              coordinate: { latitude: 37.5563, longitude: 126.922 },
+              source: "live",
+            },
+          },
+          map: {
+            status: "fresh",
+            value: {
+              roads: [],
+              labels: [{
+                kind: "place",
+                name: "Hongdae",
+                point: { latitude: 37.556, longitude: 126.923 },
+              }],
+              attribution: "© OSM CONTRIBUTORS",
+            },
+          },
+          weather: {
+            status: "fresh",
+            fetchedAt: Date.now(),
+            value: {
+              temperature: 27,
+              apparentTemperature: 29,
+              humidity: 71,
+              windSpeed: 12,
+              precipitationProbability: 35,
+              weatherCode: 1,
+              condition: "대체로 맑음",
+            },
+          },
+        }}
+        t={(key) => translatePhone("en", key)}
+        onRefresh={vi.fn(() => Promise.resolve<"accepted">("accepted"))}
+      />,
+    );
+
+    expect(screen.getByText("Hongdae")).toBeTruthy();
+    expect(screen.getByText("27°")).toBeTruthy();
+    expect(screen.getByText("29°")).toBeTruthy();
+    expect(screen.getByText("71%")).toBeTruthy();
+    expect(screen.getByText("35%")).toBeTruthy();
+    expect(screen.getByText("12 km/h")).toBeTruthy();
+  });
+
   it("explains that a dropped refresh is already in progress", async () => {
     render(
       <WeatherScreen

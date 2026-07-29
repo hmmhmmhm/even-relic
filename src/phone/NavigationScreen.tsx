@@ -9,6 +9,7 @@ import {
   validateOrsKey,
   writeOrsKey,
 } from "../ors-key";
+import { clearActiveRouteCache } from "../navigation";
 
 export function NavigationScreen({
   storage,
@@ -71,8 +72,12 @@ export function NavigationScreen({
       setStoredKey(validation.value);
       setCandidate("");
       onKeyChange?.(validation.value);
-    } catch {
-      setError(t("validationFailed"));
+    } catch (caught) {
+      setError(
+        caught instanceof Error && caught.message === "storage"
+          ? t("storageFailed")
+          : t("validationFailed"),
+      );
     } finally {
       setBusy(false);
     }
@@ -87,6 +92,7 @@ export function NavigationScreen({
     }
     setBusy(true);
     try {
+      if (!await clearActiveRouteCache(storage)) throw new Error("storage");
       if (!await clearOrsKey(storage)) throw new Error("storage");
       setStoredKey(undefined);
       setConfirmDelete(false);

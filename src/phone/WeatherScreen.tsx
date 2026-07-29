@@ -7,6 +7,27 @@ function valueOrDash(value: number | undefined, suffix: string): string {
   return value === undefined ? "—" : `${Math.round(value)}${suffix}`;
 }
 
+function locationText(live: LiveDashboardState): string {
+  const coordinate = live.location.value?.coordinate;
+  if (!coordinate) return "—";
+  const labels = live.map.value?.labels ?? [];
+  const nearest = labels.reduce<(typeof labels)[number] | undefined>(
+    (current, candidate) => {
+      if (!current) return candidate;
+      const distance = (point: typeof candidate.point) => (
+        (point.latitude - coordinate.latitude) ** 2
+        + (point.longitude - coordinate.longitude) ** 2
+      );
+      return distance(candidate.point) < distance(current.point)
+        ? candidate
+        : current;
+    },
+    undefined,
+  );
+  return nearest?.name
+    ?? `${coordinate.latitude.toFixed(4)}, ${coordinate.longitude.toFixed(4)}`;
+}
+
 export function WeatherScreen({
   live,
   t,
@@ -46,7 +67,7 @@ export function WeatherScreen({
       </section>
       <section className="phone-panel">
         <dl className="phone-data-list">
-          <div><dt>{t("location")}</dt><dd>{live.location.value?.source ?? "—"}</dd></div>
+          <div><dt>{t("location")}</dt><dd>{locationText(live)}</dd></div>
           <div><dt>{t("apparent")}</dt><dd>{valueOrDash(weather?.apparentTemperature, "°")}</dd></div>
           <div><dt>{t("humidity")}</dt><dd>{valueOrDash(weather?.humidity, "%")}</dd></div>
           <div><dt>{t("precipitation")}</dt><dd>{valueOrDash(weather?.precipitationProbability, "%")}</dd></div>
