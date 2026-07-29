@@ -5,23 +5,6 @@
   background: var(--phone-bg);
 }
 
-.phone-home__subheader {
-  display: flex;
-  min-height: 40px;
-  align-items: center;
-  padding: 0 12px;
-  color: #747474;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  line-height: 1;
-}
-
-.phone-home__subheader h1 {
-  margin: 0;
-  font: inherit;
-}
-
 .phone-home__preview {
   margin-top: 4px;
   padding: 26px 28px;

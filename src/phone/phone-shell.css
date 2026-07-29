@@ -38,26 +38,46 @@
   z-index: 3;
   top: 0;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   min-height: 52px;
   padding: 0 12px;
   background: transparent;
 }
 
-.phone-detail-header h1 {
-  margin: 0;
+.phone-detail-header__breadcrumb {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  color: var(--phone-text);
+  text-align: left;
+  border: 0;
+  background: transparent;
+}
+
+.phone-detail-header__parent {
+  color: var(--phone-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.phone-detail-header__title {
   overflow: hidden;
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.2;
-  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .phone-detail-header__action {
-  min-width: 44px;
+  display: grid;
+  min-width: 0;
+  place-items: center;
 }
 
 .phone-icon-button {

@@ -25,12 +25,6 @@ export function PhoneHome({
 }) {
   return (
     <div className="phone-home">
-      <header
-        className="phone-home__subheader"
-        aria-label={`Sandevistan / ${t("dashboard")}`}
-      >
-        <h1>{`SANDEVISTAN / ${t("dashboard").toUpperCase()}`}</h1>
-      </header>
       <section className="phone-home__preview" aria-label={t("liveHudPreview")}>
         <div className="phone-home__preview-slot" data-phone-preview-slot>
           {preview}

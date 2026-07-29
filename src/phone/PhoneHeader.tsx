@@ -1,14 +1,13 @@
 import type { ReactNode } from "react";
-import { PhoneIcon } from "../phone-icons";
 
 export function PhoneHeader({
   title,
-  backLabel,
+  parentLabel,
   onBack,
   action,
 }: {
   readonly title: string;
-  readonly backLabel: string;
+  readonly parentLabel: string;
   readonly onBack: () => void;
   readonly action?: ReactNode;
 }) {
@@ -16,13 +15,15 @@ export function PhoneHeader({
     <header className="phone-detail-header">
       <button
         type="button"
-        className="phone-icon-button"
-        aria-label={backLabel}
+        className="phone-detail-header__breadcrumb"
+        aria-label={`${parentLabel} / ${title}`}
         onClick={onBack}
       >
-        <PhoneIcon name="back" size={24} />
+        <span className="phone-detail-header__parent">{parentLabel}</span>
+        <span aria-hidden="true">/</span>
+        <span className="phone-detail-header__title">{title}</span>
       </button>
-      <h1>{title}</h1>
+      <h1 className="phone-visually-hidden">{title}</h1>
       <div className="phone-detail-header__action">{action}</div>
     </header>
   );

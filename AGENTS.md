@@ -125,3 +125,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   part of the phone redesign.
 - Finish Home with the Sandevistan project name, a Pixelarticons GitHub link to
   the repository, the Even app-manifest version, and the development status.
+- Let the Even native bar own the `SANDEVISTAN` project title and arrow. Start
+  WebView Home directly at the HUD preview, and use a text-only
+  `Dashboard / Detail` breadcrumb to return from internal detail screens
+  without rendering a second arrow.

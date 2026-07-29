@@ -4,10 +4,11 @@
 - implementation route: `/hud-canvas-fast?sdk=0.0.11`
 - intended viewport: narrow phone WebView, up to 540 CSS px wide
 - implementation screenshot: unavailable in this session
-- state: compact WebView section header, live HUD preview, and eight-card phone
-  companion Home
-- primary interactions tested: every card opens its detail directly, Back returns
-  to Home, and the Canvas DOM node remains mounted
+- state: native `SANDEVISTAN` title, Home beginning at the live HUD preview,
+  eight-card dashboard, and text-breadcrumb detail navigation
+- primary interactions tested: every card opens its detail directly, the
+  `Dashboard / Detail` breadcrumb returns Home, and the Canvas DOM node remains
+  mounted
 - browser console inspection: blocked because the in-app browser runtime exposed
   no browser backend
 
@@ -42,19 +43,22 @@ device states.
 
 Static visual-contract tests additionally lock the approved neutral tokens,
 two-column `1.28 / 1` card geometry, 8 px gap and radius, shadow-free cards,
-320 px two-column behavior, neutral HUD-preview filter, compact subheaders, and
-44 px minimum targets. These checks prevent token regressions but do not replace
-the required rendered screenshot comparison.
+320 px two-column behavior, neutral HUD-preview filter, the absence of a
+redundant Home eyebrow, a full-width text breadcrumb, and 44 px minimum targets.
+These checks prevent token regressions but do not replace the required rendered
+screenshot comparison.
 
 ## Visual comparison blocker
 
-The supplied reference was available, but the implementation could not be
-captured at the same viewport because the approved in-app browser runtime
-again returned an empty browser list during the latest 2026-07-29 audit. The
-owner-supplied reference image is still locally available, but there is no
-approved implementation-capture surface to pair with it. A
-same-state side-by-side screenshot comparison therefore remains pending. The
-Tailscale preview is running for physical phone inspection.
+The owner supplied current Home and HUD-layout screenshots on 2026-07-29. They
+showed the exact hierarchy defects addressed here: `SANDEVISTAN HUD Prototype`
+in the native bar, a redundant `SANDEVISTAN / DASHBOARD` Home eyebrow, and a
+second arrow beside the HUD-layout title. The implementation could not be
+captured after the change at the same viewport because the approved in-app
+browser runtime is unavailable in this session. There is therefore no approved
+post-change capture to pair with those screenshots. A same-state side-by-side
+comparison remains pending, while the Tailscale preview remains available for
+physical phone inspection.
 
 ## Comparison history
 
@@ -63,16 +67,20 @@ Tailscale preview is running for physical phone inspection.
 3. Replaced generic symbols with local Pixelarticons.
 4. Corrected the cards to the measured `1.28 / 1` shape, 8 px gap/radius, and
    wider reference-like internal padding.
-5. Demoted the WebView title bar to a 40 px inset section label and reduced
-   detail headers to a 52 px transparent, left-aligned navigation row so they
-   do not compete with the native Even app bar.
+5. Removed the WebView Home project eyebrow so the live preview is the first
+   app-owned element.
+6. Changed the document title from `SANDEVISTAN HUD Prototype` to
+   `SANDEVISTAN`.
+7. Replaced the internal detail Back arrow with a localized, full-width
+   `Dashboard / Detail` breadcrumb that returns Home without remounting Canvas.
 
 ## Remaining visual gate
 
 - Capture the Home screen at a fixed phone viewport.
 - Combine that screenshot with the supplied Even Home reference.
 - Check card proportions, HUD-preview density, icon placement, typography,
-  subheader hierarchy, footer spacing, and any clipped Korean copy.
+  native/WebView hierarchy, breadcrumb spacing, footer spacing, and any clipped
+  Korean copy.
 - Repeat for one detail screen and record `final result: passed` after visible
   mismatches are corrected.
 

@@ -70,18 +70,19 @@ describe("phone interaction targets", () => {
 });
 
 describe("subordinate phone headers", () => {
-  it("uses a compact Home section label", () => {
-    expect(css).toMatch(
-      /\.phone-home__subheader\s*\{[^}]*min-height:\s*40px/s,
-    );
+  it("starts Home at the preview without a redundant project eyebrow", () => {
+    expect(css).not.toContain(".phone-home__subheader");
   });
 
-  it("uses a compact transparent detail header without blur", () => {
+  it("uses a compact text breadcrumb without a second arrow", () => {
     expect(shellCss).toMatch(
       /\.phone-detail-header\s*\{[^}]*min-height:\s*52px/s,
     );
     expect(shellCss).toMatch(
       /\.phone-detail-header\s*\{[^}]*background:\s*transparent/s,
+    );
+    expect(shellCss).toMatch(
+      /\.phone-detail-header__breadcrumb\s*\{[^}]*width:\s*100%[^}]*min-height:\s*44px[^}]*text-align:\s*left[^}]*background:\s*transparent/s,
     );
     expect(shellCss).not.toMatch(
       /\.phone-detail-header\s*\{[^}]*backdrop-filter:/s,

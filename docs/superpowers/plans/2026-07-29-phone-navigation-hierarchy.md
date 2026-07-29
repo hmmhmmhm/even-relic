@@ -1,6 +1,6 @@
 # Phone Navigation Hierarchy Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Remove duplicated WebView navigation chrome while preserving a clear, functional path from each phone detail screen back to the dashboard.
 
@@ -17,7 +17,7 @@
 - Modify: `src/phone/phone-home-styles.test.mjs`
 - Create: `src/document-title.test.mjs`
 
-- [ ] **Step 1: Replace the Home heading expectation**
+- [x] **Step 1: Replace the Home heading expectation**
 
 Assert that the redundant project eyebrow is absent while the Dashboard section
 heading remains:
@@ -30,7 +30,7 @@ expect(screen.getByRole("heading", {
 })).toBeTruthy();
 ```
 
-- [ ] **Step 2: Specify the detail breadcrumb behavior**
+- [x] **Step 2: Specify the detail breadcrumb behavior**
 
 After opening Devices, assert that there is no arrow-style Back button and that
 the localized breadcrumb returns Home without remounting the Canvas:
@@ -47,7 +47,7 @@ expect(screen.getByRole("heading", {
 expect(screen.getByTestId("persistent-canvas")).toBe(canvas);
 ```
 
-- [ ] **Step 3: Specify the new CSS contract**
+- [x] **Step 3: Specify the new CSS contract**
 
 Assert that `phone-home__subheader` is absent and the breadcrumb button is
 full-width, left-aligned, transparent, and at least 44 pixels high:
@@ -59,7 +59,7 @@ expect(shellCss).toMatch(
 );
 ```
 
-- [ ] **Step 4: Specify the document title**
+- [x] **Step 4: Specify the document title**
 
 Read `index.html` and assert:
 
@@ -68,7 +68,7 @@ expect(html).toContain("<title>SANDEVISTAN</title>");
 expect(html).not.toContain("SANDEVISTAN HUD Prototype");
 ```
 
-- [ ] **Step 5: Run focused tests and verify RED**
+- [x] **Step 5: Run focused tests and verify RED**
 
 Run:
 
@@ -90,7 +90,7 @@ missing breadcrumb styles, and old document title.
 - Modify: `src/phone/phone-shell.css`
 - Modify: `AGENTS.md`
 
-- [ ] **Step 1: Set the native wrapper title**
+- [x] **Step 1: Set the native wrapper title**
 
 Change the document title to:
 
@@ -98,12 +98,12 @@ Change the document title to:
 <title>SANDEVISTAN</title>
 ```
 
-- [ ] **Step 2: Remove the Home eyebrow**
+- [x] **Step 2: Remove the Home eyebrow**
 
 Delete the `phone-home__subheader` element from `PhoneHome` so the preview is
 the first WebView-owned element.
 
-- [ ] **Step 3: Render a text breadcrumb**
+- [x] **Step 3: Render a text breadcrumb**
 
 Replace the icon Back button in `PhoneHeader` with:
 
@@ -111,10 +111,10 @@ Replace the icon Back button in `PhoneHeader` with:
 <button
   type="button"
   className="phone-detail-header__breadcrumb"
-  aria-label={`${backLabel} / ${title}`}
+  aria-label={`${parentLabel} / ${title}`}
   onClick={onBack}
 >
-  <span>{backLabel}</span>
+  <span>{parentLabel}</span>
   <span aria-hidden="true">/</span>
   <h1>{title}</h1>
 </button>
@@ -122,32 +122,32 @@ Replace the icon Back button in `PhoneHeader` with:
 
 Keep the optional action slot separate and do not add a new icon.
 
-- [ ] **Step 4: Supply the dashboard parent label**
+- [x] **Step 4: Supply the dashboard parent label**
 
 Change the `PhoneHeader` call to:
 
 ```tsx
 <PhoneHeader
   title={t(SCREEN_TITLE[screen])}
-  backLabel={t("dashboard")}
+  parentLabel={t("dashboard")}
   onBack={() => setScreen("home")}
 />
 ```
 
-- [ ] **Step 5: Update scoped CSS**
+- [x] **Step 5: Update scoped CSS**
 
 Remove `.phone-home__subheader` rules and define a compact header with a
 full-width breadcrumb. Use `#888888` for the parent label, the existing
 `--phone-text` for the screen title, no border, no shadow, no blur, and no
 background fill.
 
-- [ ] **Step 6: Record the durable design rule**
+- [x] **Step 6: Record the durable design rule**
 
 Add to the phone companion section in `AGENTS.md` that the Even native bar owns
 the project title and arrow, Home starts at the preview, and internal detail
 navigation uses a text breadcrumb without an arrow.
 
-- [ ] **Step 7: Run focused tests and verify GREEN**
+- [x] **Step 7: Run focused tests and verify GREEN**
 
 Run the focused command from Task 1.
 
@@ -159,7 +159,7 @@ Expected: all focused tests pass.
 - Modify: `design-qa.md`
 - Modify: `docs/superpowers/plans/2026-07-29-phone-navigation-hierarchy.md`
 
-- [ ] **Step 1: Run the complete serial verification**
+- [x] **Step 1: Run the complete serial verification**
 
 Run each command separately:
 
@@ -174,18 +174,18 @@ git diff --check
 
 Expected: every command exits with status 0.
 
-- [ ] **Step 2: Update design evidence**
+- [x] **Step 2: Update design evidence**
 
 Document the owner-supplied screenshots as the source evidence, record the
 removed duplicate Home label and duplicate detail arrow, and leave the visual
 comparison result accurate if a same-viewport post-change screenshot is not
 available.
 
-- [ ] **Step 3: Mark this plan complete**
+- [x] **Step 3: Mark this plan complete**
 
 Change every checkbox in this file from `[ ]` to `[x]`.
 
-- [ ] **Step 4: Commit and push**
+- [x] **Step 4: Commit and push**
 
 Run:
 
@@ -195,7 +195,7 @@ git commit -m "fix: simplify phone navigation hierarchy"
 git push origin main
 ```
 
-- [ ] **Step 5: Confirm the running Tailscale preview**
+- [x] **Step 5: Confirm the running Tailscale preview**
 
 Run:
 
@@ -204,4 +204,3 @@ curl -fsS -o /dev/null -w '%{http_code}\n' 'http://100.96.68.73:4176/hud-canvas-
 ```
 
 Expected: `200`.
-

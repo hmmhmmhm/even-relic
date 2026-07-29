@@ -246,7 +246,7 @@ export function PhoneCompanion({
         <section className="phone-detail-screen">
           <PhoneHeader
             title={t(SCREEN_TITLE[screen])}
-            backLabel={t("back")}
+            parentLabel={t("dashboard")}
             onBack={() => setScreen("home")}
           />
           <div className="phone-detail-content">{content()}</div>

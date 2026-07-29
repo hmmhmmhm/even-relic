@@ -47,9 +47,10 @@ describe("PhoneCompanion", () => {
   it("renders the approved eight full-card destinations and footer", () => {
     renderCompanion();
 
+    expect(screen.queryByText("SANDEVISTAN / DASHBOARD")).toBeNull();
     expect(screen.getByRole("heading", {
-      level: 1,
-      name: "SANDEVISTAN / DASHBOARD",
+      level: 2,
+      name: "Dashboard",
     })).toBeTruthy();
     for (const name of [
       "Devices",
@@ -77,9 +78,15 @@ describe("PhoneCompanion", () => {
     fireEvent.click(screen.getByRole("button", { name: /Devices/ }));
     expect(screen.getByRole("heading", { name: "Devices" })).toBeTruthy();
     expect(screen.getByTestId("persistent-canvas")).toBe(canvas);
+    expect(screen.queryByRole("button", { name: "Back" })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.getByText("Dashboard")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", {
+      name: "Dashboard / Devices",
+    }));
+    expect(screen.getByRole("heading", {
+      level: 2,
+      name: "Dashboard",
+    })).toBeTruthy();
     expect(screen.getByTestId("persistent-canvas")).toBe(canvas);
   });
 
@@ -101,7 +108,9 @@ describe("PhoneCompanion", () => {
       }));
       expect(screen.getByRole("heading", { name })).toBeTruthy();
       expect(screen.queryByText("Manage")).toBeNull();
-      fireEvent.click(screen.getByRole("button", { name: "Back" }));
+      fireEvent.click(screen.getByRole("button", {
+        name: `Dashboard / ${name}`,
+      }));
     }
   });
 
