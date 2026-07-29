@@ -25,10 +25,10 @@ function messagePaths(
 
 describe("locale registry", () => {
   it("derives supported locales and native language options", () => {
-    expect(SUPPORTED_LOCALES).toEqual(["en", "ko"]);
+    expect(SUPPORTED_LOCALES).toEqual(["ko", "en"]);
     expect(LOCALE_OPTIONS).toEqual([
-      { value: "en", label: "English" },
       { value: "ko", label: "한국어" },
+      { value: "en", label: "English" },
     ]);
     expect(isSupportedLocale("ko")).toBe(true);
     expect(isSupportedLocale("en")).toBe(true);

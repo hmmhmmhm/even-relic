@@ -350,7 +350,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     mocks.drawLocale.mockClear();
 
     fireEvent.click(screen.getByRole("button", { name: /Language/ }));
-    fireEvent.click(screen.getByRole("radio", { name: "Korean" }));
+    fireEvent.click(screen.getByRole("radio", { name: "한국어" }));
 
     await vi.waitFor(() => {
       expect(requestRefresh).toHaveBeenCalledWith("all");

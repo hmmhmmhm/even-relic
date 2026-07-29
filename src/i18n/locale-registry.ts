@@ -2,8 +2,8 @@ import { enLocale } from "./locales/en";
 import { koLocale } from "./locales/ko";
 
 export const LOCALE_REGISTRY = {
-  en: enLocale,
   ko: koLocale,
+  en: enLocale,
 } as const;
 
 export type SupportedLocale = keyof typeof LOCALE_REGISTRY;
