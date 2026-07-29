@@ -77,6 +77,8 @@ export const koLocale = {
     validationFailed: "확인하지 못했습니다.",
     noData: "데이터 없음",
     liveHudPreview: "실시간 HUD 미리보기",
+    hudRasterPreview: "Sandevistan 이미지 전송 미리보기",
+    hudGlassesFrame: "Sandevistan 안경 HUD 프레임",
     developmentFallback: "개발용 서버 키",
     routingMode: "길찾기 모드",
     rssSources: "RSS 소스",

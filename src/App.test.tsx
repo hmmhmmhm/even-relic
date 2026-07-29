@@ -167,7 +167,9 @@ describe("SANDEVISTAN peripheral HUD", () => {
     render(<App autoStart={false} />);
 
     const hud = screen.getByTestId("hud-frame");
-    const canvas = screen.getByRole("img", { name: "SANDEVISTAN HUD 안경 프레임" });
+    const canvas = screen.getByRole("img", {
+      name: "Sandevistan glasses HUD frame",
+    });
 
     expect(hud.getAttribute("data-logical-size")).toBe("576x288");
     expect(hud.dataset.textContainers).toBe("1");
@@ -242,6 +244,58 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(screen.getByText("Dashboard")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Devices/ })).toBeTruthy();
     expect(screen.queryByText(/CANVAS HUD · FAST 2-TILE/)).toBeNull();
+  });
+
+  it("localizes fast HUD preview semantics in the effective phone language", () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    render(<App autoStart={false} />);
+
+    expect(screen.getByTestId("hud-frame").getAttribute("aria-label"))
+      .toBe("Sandevistan image-transfer preview");
+    expect(screen.getByRole("img", {
+      name: "Sandevistan glasses HUD frame",
+    })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^TODO/ }));
+    expect(screen.getByText("Go to the subway station")).toBeTruthy();
+    expect(screen.queryByText("지하철역으로 이동")).toBeNull();
+  });
+
+  it("relocalizes built-in TODOs independently of a G2 refresh", async () => {
+    vi.spyOn(window.navigator, "language", "get").mockReturnValue("ko-KR");
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+    mocks.waitForBridge.mockResolvedValue({
+      getLocalStorage: vi.fn(async () => ""),
+      setLocalStorage: vi.fn(async () => true),
+    });
+    const session = {
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    };
+    mocks.createSession.mockReturnValue(session);
+    render(<App />);
+    await vi.waitFor(() => expect(session.start).toHaveBeenCalledOnce());
+
+    fireEvent.click(screen.getByRole("button", { name: /^할 일/ }));
+    expect(screen.getByText("지하철역으로 이동")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", {
+      name: "대시보드로 돌아가기",
+    }));
+    fireEvent.click(screen.getByRole("button", { name: /^언어/ }));
+    fireEvent.click(screen.getByRole("radio", { name: "English" }));
+
+    await vi.waitFor(() => expect(screen.getByRole("heading", {
+      level: 1,
+      name: "Language",
+    })).toBeTruthy());
+    fireEvent.click(screen.getByRole("button", {
+      name: "Back to Dashboard",
+    }));
+    fireEvent.click(screen.getByRole("button", { name: /^TODO/ }));
+
+    expect(screen.getByText("Go to the subway station")).toBeTruthy();
+    expect(screen.queryByText("지하철역으로 이동")).toBeNull();
   });
 
   it("shows diagnostics only after opening Developer on the fast HUD", () => {

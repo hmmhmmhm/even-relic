@@ -10,7 +10,10 @@ import {
   type LiveDashboardState,
 } from "./live-state";
 import { resolveOrsKey } from "./ors-key";
-import { resolvePhoneLocale } from "./phone-i18n";
+import {
+  resolvePhoneLocale,
+  translatePhone,
+} from "./phone-i18n";
 import {
   DEFAULT_PHONE_PREFERENCES,
   resolvePhonePreferences,
@@ -22,6 +25,7 @@ import {
   resolveRssSources,
   type RssSource,
 } from "./rss-sources";
+import { localizeBuiltInTodos } from "./todos";
 import { RouteControls } from "./RouteControls";
 import type {
   Destination,
@@ -84,9 +88,23 @@ export function App({ autoStart = true }: AppProps) {
   const [companionRoute, setCompanionRoute] = useState<
     LiveDashboardState["route"]
   >({ status: "disabled" });
-  const [companionLive, setCompanionLive] = useState(
-    createInitialLiveDashboardState,
-  );
+  const [companionLive, setCompanionLive] = useState<LiveDashboardState>(() => {
+    const initial = createInitialLiveDashboardState();
+    const initialLocale = resolvePhoneLocale(
+      DEFAULT_PHONE_PREFERENCES.locale,
+      typeof navigator === "undefined" ? "en" : navigator.language,
+    );
+    return {
+      ...initial,
+      todos: {
+        ...initial.todos,
+        value: localizeBuiltInTodos(
+          initial.todos.value ?? [],
+          initialLocale,
+        ),
+      },
+    };
+  });
   const [companionBattery, setCompanionBattery] = useState<
     FastCanvasBattery | undefined
   >();
@@ -115,11 +133,20 @@ export function App({ autoStart = true }: AppProps) {
       phonePreferencesRef.current.locale,
       browserLanguage,
     );
+    const nextLocale = resolvePhoneLocale(value.locale, browserLanguage);
     phonePreferencesRef.current = value;
     setPhonePreferencesState(value);
-    if (
-      resolvePhoneLocale(value.locale, browserLanguage) !== previousLocale
-    ) {
+    if (nextLocale !== previousLocale) {
+      setCompanionLive((current) => {
+        if (!current.todos.value) return current;
+        return {
+          ...current,
+          todos: {
+            ...current.todos,
+            value: localizeBuiltInTodos(current.todos.value, nextLocale),
+          },
+        };
+      });
       liveSessionRef.current?.refreshLocale?.();
       displayRefreshRef.current?.();
     }
@@ -247,14 +274,14 @@ export function App({ autoStart = true }: AppProps) {
       data-pages={
         canvasHudMode || hybridHudMode ? HUD_PAGES.length : undefined
       }
-      aria-label="SANDEVISTAN 이미지 전송 시안"
+      aria-label={translatePhone(phoneLocale, "hudRasterPreview")}
     >
       <canvas
         ref={canvasRef}
         width="576"
         height="288"
         role="img"
-        aria-label="SANDEVISTAN HUD 안경 프레임"
+        aria-label={translatePhone(phoneLocale, "hudGlassesFrame")}
       />
     </section>
   );

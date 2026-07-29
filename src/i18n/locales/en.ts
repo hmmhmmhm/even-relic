@@ -75,6 +75,8 @@ export const enLocale = {
     validationFailed: "Validation failed.",
     noData: "No data",
     liveHudPreview: "Live HUD preview",
+    hudRasterPreview: "Sandevistan image-transfer preview",
+    hudGlassesFrame: "Sandevistan glasses HUD frame",
     developmentFallback: "Development server key",
     routingMode: "Routing mode",
     rssSources: "RSS sources",
