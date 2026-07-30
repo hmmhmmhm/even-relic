@@ -27,4 +27,15 @@ describe("Even Hub SDK compatibility", () => {
       imageData: [1, 2, 3],
     });
   });
+
+  it("exposes isolated pipeline two and three hardware QR scripts", () => {
+    const scripts = packageManifest.scripts as Record<string, string>;
+
+    expect(scripts["qr:pipeline2"]).toContain(
+      "sdk=0.0.11&pipeline=2&build=pipeline-2-036",
+    );
+    expect(scripts["qr:pipeline3"]).toContain(
+      "sdk=0.0.11&pipeline=3&build=pipeline-3-037",
+    );
+  });
 });
