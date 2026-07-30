@@ -246,6 +246,7 @@ export function App({ autoStart = true }: AppProps) {
     <section
       className="hud-frame"
       data-testid="hud-frame"
+      dir="ltr"
       data-logical-size="576x288"
       data-renderer={
         fastCanvasHudMode
@@ -280,6 +281,7 @@ export function App({ autoStart = true }: AppProps) {
         ref={canvasRef}
         width="576"
         height="288"
+        dir="ltr"
         role="img"
         aria-label={translatePhone(phoneLocale, "hudGlassesFrame")}
       />

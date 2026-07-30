@@ -51,6 +51,28 @@ function renderCompanion(
 }
 
 describe("PhoneCompanion", () => {
+  it("applies the selected locale direction to the phone root", () => {
+    renderCompanion({
+      ...DEFAULT_PHONE_PREFERENCES,
+      locale: "ar",
+    });
+
+    const companion = screen.getByTestId("phone-companion");
+    expect(companion.getAttribute("lang")).toBe("ar");
+    expect(companion.getAttribute("dir")).toBe("rtl");
+  });
+
+  it("keeps left-to-right direction for English", () => {
+    renderCompanion({
+      ...DEFAULT_PHONE_PREFERENCES,
+      locale: "en",
+    });
+
+    const companion = screen.getByTestId("phone-companion");
+    expect(companion.getAttribute("lang")).toBe("en");
+    expect(companion.getAttribute("dir")).toBe("ltr");
+  });
+
   it("renders the approved eight full-card destinations and footer", () => {
     renderCompanion();
 

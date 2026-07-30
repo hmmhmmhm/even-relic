@@ -269,7 +269,12 @@ export function PhoneCompanion({
   };
 
   return (
-    <main className="phone-companion">
+    <main
+      className="phone-companion"
+      data-testid="phone-companion"
+      lang={locale}
+      dir={LOCALE_REGISTRY[locale].direction}
+    >
       <div hidden={screen !== "home"}>
         <PhoneHome
           t={t}

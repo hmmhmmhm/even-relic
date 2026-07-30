@@ -177,6 +177,8 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(canvas.tagName).toBe("CANVAS");
     expect(canvas.getAttribute("width")).toBe("576");
     expect(canvas.getAttribute("height")).toBe("288");
+    expect(hud.getAttribute("dir")).toBe("ltr");
+    expect(canvas.getAttribute("dir")).toBe("ltr");
   });
 
   it("keeps mock information inside the raster instead of native text", () => {
