@@ -102,6 +102,7 @@ export async function transmitFastCanvas(
     options.onInput,
     options.onRawEvent,
     () => options.onDisplayCommitted?.(Math.floor(now() / 60_000)),
+    options.imageSendConcurrency ?? 1,
   );
   let cleaned = false;
   let unsubscribeDeviceStatus: (() => void) | undefined;

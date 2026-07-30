@@ -11,10 +11,11 @@ import {
   createContainerObjects,
   createGlassesPage,
   encodeCanvasTiles,
-  sendTilesSequentially,
   type Tile,
 } from "./g2-canvas";
+import { runBounded } from "./bounded-task-pool";
 import { logDiagnostic } from "./diagnostic-log";
+import type { ImageSendConcurrency } from "./image-send-concurrency";
 import type {
   Bridge,
   DisplayToggle,
@@ -118,6 +119,7 @@ export async function transmitCanvas(
   ) => FastCanvasInputResult | Promise<FastCanvasInputResult>,
   onRawEvent?: (event: FastCanvasRawEvent) => void,
   onDisplayCommitted?: () => void,
+  imageSendConcurrency: ImageSendConcurrency = 1,
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();
@@ -150,6 +152,7 @@ export async function transmitCanvas(
       logDiagnostic("REFRESH", "image refresh skipped before encode");
       return;
     }
+    const refreshStartedAt = diagnosticNow();
     const encodeStartedAt = diagnosticNow();
     logDiagnostic("ENCODE", `start · ${targetTiles.length} tiles`);
     let encodedTiles: Uint8Array[];
@@ -175,60 +178,72 @@ export async function transmitCanvas(
     if (!shouldContinue()) return;
     let sentCount = 0;
     let skippedCount = 0;
-    await sendTilesSequentially(encodedTiles, async (bytes, index) => {
-      if (!shouldContinue()) return;
-      const tile = targetTiles[index];
-      if (bytesEqual(lastSuccessfulTilePayload.get(tile.id), bytes)) {
-        skippedCount += 1;
-        logDiagnostic("TILE", `${tile.name} skipped · unchanged`);
-        return;
-      }
-      const tileStartedAt = diagnosticNow();
-      logDiagnostic(
-        "TILE",
-        `${tile.name} start · ${index + 1}/${targetTiles.length}`,
-      );
-      let result: ImageRawDataUpdateResult;
-      try {
-        result = ImageRawDataUpdateResult.normalize(
-          await waitForTileSend(
-            bridge.updateImageRawData(new ImageRawDataUpdate({
-              containerID: tile.id,
-              containerName: tile.name,
-              imageData: bytes,
-            })),
-            tile.name,
-          ),
-        );
-      } catch (error) {
+    let activeImageSends = 0;
+    await runBounded(
+      encodedTiles,
+      imageSendConcurrency,
+      async (bytes, index) => {
+        if (!shouldContinue()) return;
+        const tile = targetTiles[index];
+        if (bytesEqual(lastSuccessfulTilePayload.get(tile.id), bytes)) {
+          skippedCount += 1;
+          logDiagnostic("TILE", `${tile.name} skipped · unchanged`);
+          return;
+        }
+        const tileStartedAt = diagnosticNow();
+        activeImageSends += 1;
         logDiagnostic(
-          "ERROR",
-          `${tile.name} send threw · ${diagnosticError(error)}`,
-          diagnosticDuration(tileStartedAt),
+          "TILE",
+          `${tile.name} start · ${index + 1}/${targetTiles.length}`
+            + ` · inflight ${activeImageSends}/${imageSendConcurrency}`,
         );
-        throw error;
-      }
-      if (!ImageRawDataUpdateResult.isSuccess(result)) {
-        logDiagnostic(
-          "ERROR",
-          `${tile.name} failed · ${String(result)}`,
-          diagnosticDuration(tileStartedAt),
-        );
-        throw new Error(`${tile.name} 전송 실패: ${result}`);
-      }
-      logDiagnostic(
-        "TILE",
-        `${tile.name} success`,
-        diagnosticDuration(tileStartedAt),
-      );
-      lastSuccessfulTilePayload.set(tile.id, bytes.slice());
-      sentCount += 1;
-      onProgress(`안경 이미지 전송 중 ${index + 1}/${targetTiles.length}`);
-    });
+        try {
+          let result: ImageRawDataUpdateResult;
+          try {
+            result = ImageRawDataUpdateResult.normalize(
+              await waitForTileSend(
+                bridge.updateImageRawData(new ImageRawDataUpdate({
+                  containerID: tile.id,
+                  containerName: tile.name,
+                  imageData: bytes,
+                })),
+                tile.name,
+              ),
+            );
+          } catch (error) {
+            logDiagnostic(
+              "ERROR",
+              `${tile.name} send threw · ${diagnosticError(error)}`,
+              diagnosticDuration(tileStartedAt),
+            );
+            throw error;
+          }
+          if (!ImageRawDataUpdateResult.isSuccess(result)) {
+            logDiagnostic(
+              "ERROR",
+              `${tile.name} failed · ${String(result)}`,
+              diagnosticDuration(tileStartedAt),
+            );
+            throw new Error(`${tile.name} 전송 실패: ${result}`);
+          }
+          logDiagnostic(
+            "TILE",
+            `${tile.name} success`,
+            diagnosticDuration(tileStartedAt),
+          );
+          lastSuccessfulTilePayload.set(tile.id, bytes.slice());
+          sentCount += 1;
+          onProgress(`안경 이미지 전송 중 ${index + 1}/${targetTiles.length}`);
+        } finally {
+          activeImageSends -= 1;
+        }
+      },
+    );
     if (!shouldContinue()) return;
     logDiagnostic(
       "REFRESH",
       `image refresh complete · sent ${sentCount} · skipped ${skippedCount}`,
+      diagnosticDuration(refreshStartedAt),
     );
     onProgress(completionMessage);
     try {

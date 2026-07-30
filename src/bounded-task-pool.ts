@@ -23,23 +23,30 @@ export async function runBounded<T>(
         const index = nextIndex;
         nextIndex += 1;
         active += 1;
-        void Promise.resolve()
-          .then(() => run(items[index], index))
-          .then(
-            () => {
-              active -= 1;
-              launch();
-              finishIfReady();
-            },
-            (error: unknown) => {
-              active -= 1;
-              if (!failed) {
-                failed = true;
-                firstError = error;
-              }
-              finishIfReady();
-            },
-          );
+        let task: Promise<void>;
+        try {
+          task = run(items[index], index);
+        } catch (error) {
+          active -= 1;
+          failed = true;
+          firstError = error;
+          break;
+        }
+        void task.then(
+          () => {
+            active -= 1;
+            launch();
+            finishIfReady();
+          },
+          (error: unknown) => {
+            active -= 1;
+            if (!failed) {
+              failed = true;
+              firstError = error;
+            }
+            finishIfReady();
+          },
+        );
       }
       finishIfReady();
     };

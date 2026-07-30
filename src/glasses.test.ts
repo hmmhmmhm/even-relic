@@ -32,6 +32,7 @@ type TestRawEvent = {
 type FastRefreshHarnessConfig = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly beforeRestore?: () => void | Promise<void>;
+  readonly imageSendConcurrency?: 1 | 2 | 3;
   readonly encode?: (
     ids: number[],
     attempt: number,
@@ -125,6 +126,7 @@ async function createFastRefreshHarness(
           tiles?: readonly { id: number }[],
         ) => Promise<Uint8Array[]>;
       };
+      imageSendConcurrency?: 1 | 2 | 3;
       onRefreshReady: (
         request: (target: TestRefreshTarget) => void,
       ) => void;
@@ -163,6 +165,7 @@ async function createFastRefreshHarness(
           ) ?? ids.map((id) => new Uint8Array([id, currentEncodeAttempt]));
         },
       },
+      imageSendConcurrency: config.imageSendConcurrency,
       onInput: (input) => {
         inputs.push(input);
         return inputResult;
@@ -692,6 +695,173 @@ describe("G2 raster transport", () => {
     ]);
     expect(harness.imageIds).toEqual([3, 5, 2, 4, 2, 4]);
     expect(harness.maximumActiveImageSends).toBe(1);
+  });
+
+  it("pipelines two image sends while preserving tile start order", async () => {
+    const gates = new Map([
+      [3, deferred()],
+      [5, deferred()],
+      [2, deferred()],
+      [4, deferred()],
+    ]);
+    const harness = await createFastRefreshHarness({
+      imageSendConcurrency: 2,
+      update: async (id, _call, encodeAttempt) => {
+        if (encodeAttempt === 2) await gates.get(id)?.promise;
+        return "success";
+      },
+    });
+    diagnosticLogger.clear();
+
+    harness.request("all");
+    await vi.waitFor(() => expect(harness.imageIds.slice(4)).toEqual([3, 5]));
+    expect(harness.maximumActiveImageSends).toBe(2);
+    expect(diagnosticLogger.text()).toContain(
+      "[TILE] sandevistanTR start · 1/4 · inflight 1/2",
+    );
+    expect(diagnosticLogger.text()).toContain(
+      "[TILE] sandevistanBR start · 2/4 · inflight 2/2",
+    );
+
+    gates.get(5)?.resolve();
+    await vi.waitFor(() => expect(harness.imageIds.slice(4)).toEqual([
+      3,
+      5,
+      2,
+    ]));
+    gates.get(3)?.resolve();
+    await vi.waitFor(() => expect(harness.imageIds.slice(4)).toEqual([
+      3,
+      5,
+      2,
+      4,
+    ]));
+    gates.get(2)?.resolve();
+    gates.get(4)?.resolve();
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "[REFRESH] external all complete",
+    ));
+
+    expect(harness.maximumActiveImageSends).toBe(2);
+  });
+
+  it("pipelines at most three image sends", async () => {
+    const gates = new Map([
+      [3, deferred()],
+      [5, deferred()],
+      [2, deferred()],
+      [4, deferred()],
+    ]);
+    const harness = await createFastRefreshHarness({
+      imageSendConcurrency: 3,
+      update: async (id, _call, encodeAttempt) => {
+        if (encodeAttempt === 2) await gates.get(id)?.promise;
+        return "success";
+      },
+    });
+
+    harness.request("all");
+    await vi.waitFor(() => expect(harness.imageIds.slice(4)).toEqual([
+      3,
+      5,
+      2,
+    ]));
+    expect(harness.maximumActiveImageSends).toBe(3);
+    gates.get(5)?.resolve();
+    await vi.waitFor(() => expect(harness.imageIds.slice(4)).toEqual([
+      3,
+      5,
+      2,
+      4,
+    ]));
+    gates.get(3)?.resolve();
+    gates.get(2)?.resolve();
+    gates.get(4)?.resolve();
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "[REFRESH] external all complete",
+    ));
+
+    expect(harness.maximumActiveImageSends).toBe(3);
+  });
+
+  it("keeps serial image concurrency by default", async () => {
+    const gates = new Map([
+      [3, deferred()],
+      [5, deferred()],
+      [2, deferred()],
+      [4, deferred()],
+    ]);
+    const harness = await createFastRefreshHarness({
+      update: async (id, _call, encodeAttempt) => {
+        if (encodeAttempt === 2) await gates.get(id)?.promise;
+        return "success";
+      },
+    });
+
+    harness.request("all");
+    await vi.waitFor(() => expect(harness.imageIds.slice(4)).toEqual([3]));
+    gates.get(3)?.resolve();
+    await vi.waitFor(() => expect(harness.imageIds.slice(4)).toEqual([3, 5]));
+    gates.get(5)?.resolve();
+    await vi.waitFor(() => expect(harness.imageIds.slice(4)).toEqual([
+      3,
+      5,
+      2,
+    ]));
+    gates.get(2)?.resolve();
+    await vi.waitFor(() => expect(harness.imageIds.slice(4)).toEqual([
+      3,
+      5,
+      2,
+      4,
+    ]));
+    gates.get(4)?.resolve();
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "[REFRESH] external all complete",
+    ));
+
+    expect(harness.maximumActiveImageSends).toBe(1);
+  });
+
+  it("stops a failed pipeline without queueing later tiles and retains peer cache", async () => {
+    const peer = deferred();
+    const harness = await createFastRefreshHarness({
+      imageSendConcurrency: 2,
+      encode: async (ids, attempt) => ids.map((id) => new Uint8Array([
+        id,
+        attempt === 1 ? 0 : 1,
+      ])),
+      update: async (id, _call, encodeAttempt) => {
+        if (encodeAttempt === 2 && id === 3) return "sendFailed";
+        if (encodeAttempt === 2 && id === 5) await peer.promise;
+        return "success";
+      },
+    });
+    diagnosticLogger.clear();
+
+    harness.request("all");
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "[ERROR] sandevistanTR failed · sendFailed",
+    ));
+    expect(harness.imageIds.slice(4)).toEqual([3, 5]);
+    harness.request("left");
+    await Promise.resolve();
+    expect(harness.encodedTileIds).toHaveLength(2);
+
+    peer.resolve();
+    await vi.waitFor(() => expect(harness.progress.some(
+      (message) => message.includes("sendFailed"),
+    )).toBe(true));
+    diagnosticLogger.clear();
+    harness.request("all");
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "[REFRESH] external all complete",
+    ));
+
+    expect(harness.imageIds).toEqual([3, 5, 2, 4, 3, 5, 3, 2, 4]);
+    expect(diagnosticLogger.text()).toContain(
+      "[TILE] sandevistanBR skipped · unchanged",
+    );
   });
 
   it("live refresh maps independent requests to their display halves", async () => {
