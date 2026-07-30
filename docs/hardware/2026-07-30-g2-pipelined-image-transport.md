@@ -20,11 +20,19 @@ Application routing commit: `4b317c6`
 
 Transport integration commit: `54a0e0f`
 
+Four-call design commit: `ee30de1`
+
+Four-call implementation-plan commit: `a981c79`
+
+Four-call resolver commit: `288ad27`
+
+Four-call transport coverage commit: `4414d7d`
+
 ## Purpose
 
-Measure whether allowing two G2 image updates to remain in flight inside one
-accepted refresh reduces page and detail transition wall-clock time without
-reducing display integrity or WebView stability.
+Measure whether allowing two, three, or four G2 image updates to remain in
+flight inside one accepted refresh reduces page and detail transition
+wall-clock time without reducing display integrity or WebView stability.
 
 This branch does not change the stable SDK, tile geometry, refresh busy gate,
 12-second tile timeout, unchanged-tile skip, success-only cache, page rollback,
@@ -40,9 +48,13 @@ Pipeline two:
 
 `http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=2&build=pipeline-2-036`
 
-Pipeline three, blocked until every pipeline-two gate passes:
+Pipeline three:
 
 `http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=3&build=pipeline-3-037`
+
+Pipeline four, owner-approved direct high-risk trial:
+
+`http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=4&build=pipeline-4-038`
 
 Rollback URL:
 
@@ -56,6 +68,8 @@ Rollback URL:
   with tile `2`, followed by tile `4`.
 - A limit of three starts tiles `3`, `5`, and `2`, then fills the first
   available slot with tile `4`.
+- A limit of four starts tiles `3`, `5`, `2`, and `4` without waiting for an
+  earlier SDK call to finish.
 - Missing or invalid `pipeline` values resolve to the serial limit of one.
 - Only SDK tile calls inside one accepted refresh overlap.
 - Independent input, clock, battery, location, and content refreshes never
@@ -66,17 +80,19 @@ Rollback URL:
 
 ## Expected diagnostics
 
-Startup identifies the selected mode:
+Startup identifies the selected mode. For the four-call trial:
 
 ```text
-[APP] transport start · pipeline 2
+[APP] transport start · pipeline 4
 ```
 
-The first two full-frame tile starts identify their bounded in-flight count:
+The full-frame tile starts identify their order and bounded in-flight count:
 
 ```text
-[TILE] sandevistanTR start · 1/4 · inflight 1/2
-[TILE] sandevistanBR start · 2/4 · inflight 2/2
+[TILE] sandevistanTR start · 1/4 · inflight 1/4
+[TILE] sandevistanBR start · 2/4 · inflight 2/4
+[TILE] sandevistanTL start · 3/4 · inflight 3/4
+[TILE] sandevistanBL start · 4/4 · inflight 4/4
 ```
 
 Each success or failure retains its per-tile duration. Refresh completion
@@ -110,7 +126,9 @@ one test URL at a time.
 6. Confirm there is no `sendFailed`, timeout, missing quadrant, persistent
    tearing, deferred refresh, duplicate action, or WebView freeze.
 7. Compare complete-refresh durations with the same-session serial baseline.
-8. Test pipeline three only after every pipeline-two item passes.
+8. Close pipeline two before opening the owner-approved pipeline-four URL.
+9. Repeat the same interactions and compare pipeline four directly with
+   pipeline two.
 
 ## Pipeline-two physical checklist
 
@@ -131,6 +149,21 @@ one test URL at a time.
   occurs.
 - [ ] Complete-refresh duration is lower than the serial baseline.
 
+## Pipeline-four physical checklist
+
+- [ ] Startup completes with all four quadrants.
+- [ ] Output appears in both eyes.
+- [ ] Full-frame start order is `3 → 5 → 2 → 4`.
+- [ ] The full-frame in-flight count reaches `4/4` and never exceeds it.
+- [ ] No quadrant is missing or persistently torn.
+- [ ] General page movement advances exactly one page per accepted input.
+- [ ] Overview, News, TODO, Weather, and Navigation detail entry and return work.
+- [ ] Map, news body, TODO, hide, and restore inputs remain responsive.
+- [ ] Busy requests are dropped and never replayed later.
+- [ ] No automatic retry occurs after a failed tile.
+- [ ] No `sendFailed`, timeout, or WebView freeze occurs.
+- [ ] Complete-refresh duration is lower than pipeline two.
+
 ## Physical evidence
 
 Owner:
@@ -141,21 +174,32 @@ Serial baseline log:
 
 Pipeline-two log:
 
+Pipeline-four log:
+
 Serial startup duration:
 
 Pipeline-two startup duration:
+
+Pipeline-four startup duration:
 
 Serial four-tile detail duration:
 
 Pipeline-two four-tile detail duration:
 
+Pipeline-four four-tile detail duration:
+
 Serial two-tile page duration:
 
 Pipeline-two two-tile page duration:
 
+Pipeline-four two-tile page duration:
+
 Visual observations:
 
 Responsiveness observations:
+
+Preliminary observation: the owner reports that pipeline two feels somewhat
+better than serial. Exact comparable logs are not yet recorded.
 
 Result: `PENDING`
 
@@ -163,7 +207,8 @@ Result: `PENDING`
 
 Pipeline two passes only when it is faster than the same-session serial
 baseline and every visual, binocular, control, failure, and responsiveness
-gate passes. Pipeline three remains blocked until that result is recorded.
+gate passes. Pipeline four passes only when it also satisfies every gate and
+is faster than pipeline two.
 
-If a pipelined mode fails, use `pipeline=1`, keep `main` serial, record the
-failure on this branch, and do not promote the failed mode.
+If pipeline four fails, return to `pipeline=2` or `pipeline=1`, keep `main`
+serial, record the failure on this branch, and do not promote the failed mode.

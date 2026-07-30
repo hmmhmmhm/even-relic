@@ -149,16 +149,17 @@ The hardware-proven send order is:
 
 Only one accepted refresh owns the transport at a time. Tiles are sent serially
 inside that refresh by default. This experimental branch also accepts
-`pipeline=2` or `pipeline=3` to overlap only the SDK tile calls belonging to
-that one refresh; missing or invalid values resolve to the serial limit of one.
-A tile whose encoded bytes match the last successful send is skipped. Any
-refresh request arriving while transport is busy is dropped immediately: it is
-not queued, merged, replayed, or retried. A failed refresh remains failed and
-the next independent event may try again.
+`pipeline=2`, `pipeline=3`, or `pipeline=4` to overlap only the SDK tile calls
+belonging to that one refresh; missing or invalid values resolve to the serial
+limit of one. A tile whose encoded bytes match the last successful send is
+skipped. Any refresh request arriving while transport is busy is dropped
+immediately: it is not queued, merged, replayed, or retried. A failed refresh
+remains failed and the next independent event may try again.
 
 The bounded pipeline is a physical-hardware experiment and is not the `main`
-default. Pipeline two must pass the documented binocular, visual, latency, and
-stability gate before pipeline three is attempted or any mode is promoted.
+default. The owner approved a direct four-call trial after observing an initial
+improvement with pipeline two. No pipelined mode is promoted without the
+documented binocular, visual, latency, and stability evidence.
 See the [G2 pipelined image transport hardware gate](docs/hardware/2026-07-30-g2-pipelined-image-transport.md).
 
 This policy replaced an earlier backlog design that could accumulate tens of
