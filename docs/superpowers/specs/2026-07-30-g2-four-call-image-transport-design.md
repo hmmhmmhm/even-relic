@@ -2,7 +2,7 @@
 
 Date: 2026-07-30
 
-Status: Owner-approved experiment; written-spec review pending
+Status: Implemented; partial physical pass
 
 Branch: `experiment/g2-pipelined-transport`
 

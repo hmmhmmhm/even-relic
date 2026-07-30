@@ -2,7 +2,7 @@
 
 Date: 2026-07-30
 
-Status: Ready for physical gate
+Status: Pipeline four partial physical pass
 
 Branch: `experiment/g2-pipelined-transport`
 
@@ -161,12 +161,13 @@ one test URL at a time.
 - [ ] Map, news body, TODO, hide, and restore inputs remain responsive.
 - [ ] Busy requests are dropped and never replayed later.
 - [ ] No automatic retry occurs after a failed tile.
-- [ ] No `sendFailed`, timeout, or WebView freeze occurs.
+- [x] No `sendFailed` occurs.
+- [ ] No timeout or WebView freeze occurs during an extended run.
 - [ ] Complete-refresh duration is lower than pipeline two.
 
 ## Physical evidence
 
-Owner:
+Owner: Repository owner, 2026-07-30
 
 Device and Even app version:
 
@@ -174,7 +175,7 @@ Serial baseline log:
 
 Pipeline-two log:
 
-Pipeline-four log:
+Pipeline-four log: Not supplied; owner confirmed no `SENDFAILED`.
 
 Serial startup duration:
 
@@ -194,14 +195,18 @@ Pipeline-two two-tile page duration:
 
 Pipeline-four two-tile page duration:
 
-Visual observations:
+Visual observations: Owner reports that pipeline four also appears acceptable.
 
 Responsiveness observations:
 
 Preliminary observation: the owner reports that pipeline two feels somewhat
 better than serial. Exact comparable logs are not yet recorded.
 
-Result: `PENDING`
+Pipeline-four immediate observation: no `SENDFAILED` occurred. Exact
+pipeline-two versus pipeline-four timing and extended idle stability are not
+yet recorded.
+
+Result: `PARTIAL PASS — DISPLAY ACCEPTABLE, NO SENDFAILED`
 
 ## Decision rule
 
