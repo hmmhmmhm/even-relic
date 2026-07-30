@@ -23,7 +23,8 @@ import type { LocalePack } from "../locale-schema";
 export const jaLocale = {
   code: "ja",
   nativeName: "日本語",
-  browserTags: ["ja"],
+  browserTags: ["ja", "ja-JP"],
+  direction: "ltr",
   phone: {
     // Every phone key from the English reference pack.
   },
@@ -55,6 +56,9 @@ export const jaLocale = {
 
 `LocalePack` is derived from the English reference pack. TypeScript rejects a
 missing, misspelled, extra, or structurally incompatible translation key.
+Use `direction: "rtl"` only when the phone language reads right to left.
+The phone root derives its `lang` and `dir` attributes from this metadata; the
+nested tactical HUD remains LTR so its fixed tile geometry never mirrors.
 
 ### 2. Register the pack once
 
@@ -97,6 +101,10 @@ Built-in feed IDs and URLs must be unique. Feeds must return bounded RSS or Atom
 XML without an upstream redirect. Custom sources remain separate and do not
 count toward the three built-ins.
 
+The current baseline is thirty registered languages and ninety built-in feeds.
+For Google News, store final canonical topic URLs rather than short topic paths
+that return a redirect.
+
 ## No other language branches
 
 Do not add:
@@ -123,6 +131,7 @@ npx vitest run src/rss-sources.test.ts --no-file-parallelism --maxWorkers=1
 npm run typecheck
 npm test
 node --test --test-concurrency=1 tests/*.test.mjs
+npm run verify:rss-live
 npm run build
 npm run test:sites
 npm run pack
@@ -131,7 +140,10 @@ npm run pack
 Add language-specific assertions for representative phone, HUD, weather, TODO,
 and route strings. Registry tests verify pack structure, seven weekdays,
 code/key consistency, native options, and fallback. RSS tests fail unless the
-new locale has exactly three built-in feeds.
+new locale has exactly three built-in feeds. The live verifier checks every
+feed serially with an eight-second timeout and rejects redirects, non-200
+responses, non-XML content, bodies over 1 MB, missing RSS/Atom roots, and empty
+feeds.
 
 The new locale must not change four-tile encoding, the `3/5/2/4` initial
 transfer order, `3/5` page transfers, binocular output, busy-drop refresh, or

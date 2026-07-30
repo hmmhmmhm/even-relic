@@ -13,6 +13,8 @@
   <img alt="Vite 6" src="https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white">
   <img alt="Even Hub SDK 0.0.11" src="https://img.shields.io/badge/Even_Hub_SDK-0.0.11-7CF36A">
   <img alt="Validated on physical G2 hardware" src="https://img.shields.io/badge/G2-physical_hardware_validated-2EA043">
+  <img alt="30 bundled languages" src="https://img.shields.io/badge/Languages-30-555555">
+  <img alt="90 live-validated news feeds" src="https://img.shields.io/badge/RSS_feeds-90_live--validated-555555">
   <img alt="More than 400 Vitest tests passing" src="https://img.shields.io/badge/Vitest-400%2B_passing-6E9F18?logo=vitest&logoColor=white">
   <img alt="MIT License" src="https://img.shields.io/badge/License-MIT-blue.svg">
 </p>
@@ -36,6 +38,7 @@ with the Even Hub SDK pinned to `0.0.11`.
 - [Interaction model](#interaction-model)
 - [Transport design](#transport-design)
 - [Live data](#live-data)
+- [Localization](#localization)
 - [Optional navigation](#optional-navigation)
 - [Local development](#local-development)
 - [Build, test, and package](#build-test-and-package)
@@ -78,7 +81,7 @@ menu:
 | TODO | Add, edit, complete, reopen, and delete up to six tasks |
 | Weather | Inspect current conditions and request one immediate refresh |
 | Navigation | Validate and store a user-owned ORS key on the device |
-| Language | Follow the system language or select English/Korean |
+| Language | Follow the system language or select one of 30 bundled languages |
 | Developer | Inspect, copy, and clear the WebView trace |
 
 The footer identifies the project, app-manifest version, development status,
@@ -181,6 +184,27 @@ responses over 1 MB, and requests over eight seconds.
 
 Persistent values use the `sandevistan:*:v1` local-storage namespace.
 
+## Localization
+
+Sandevistan ships thirty structurally complete, offline locale packs:
+
+`Korean`, `English`, `Japanese`, `Simplified Chinese`, `Traditional Chinese`,
+`Spanish`, `French`, `German`, `Italian`, `Portuguese`, `Dutch`, `Polish`,
+`Russian`, `Ukrainian`, `Turkish`, `Arabic`, `Hebrew`, `Hindi`, `Bengali`,
+`Indonesian`, `Vietnamese`, `Thai`, `Malay`, `Filipino`, `Swedish`,
+`Norwegian`, `Danish`, `Finnish`, `Czech`, and `Romanian`.
+
+Each pack owns all phone, HUD, route, weather, default-task, and weekday copy.
+There is no runtime translation service and no English fallback for a
+registered language. Arabic and Hebrew set the phone companion to RTL while
+the fixed tactical HUD geometry remains LTR.
+
+Every language receives exactly three built-in news channels from the shared
+server catalog. The catalog contains ninety unique HTTPS URLs and can be
+checked live, one request at a time, with `npm run verify:rss-live`. See
+[Adding a Sandevistan language](docs/i18n/adding-a-language.md) for the
+type-safe extension workflow.
+
 ## Optional navigation
 
 Only destination search and route calculation require a key. The preferred flow
@@ -259,11 +283,8 @@ npm run test:repo
 npm run typecheck
 npm run build
 npm run test:sites
-node --test --test-concurrency=1 \
-  tests/api-router.test.mjs \
-  tests/map-api.test.mjs \
-  tests/news-api.test.mjs \
-  tests/route-api.test.mjs
+node --test --test-concurrency=1 tests/*.test.mjs
+npm run verify:rss-live
 git diff --check
 ```
 

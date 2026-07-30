@@ -37,9 +37,11 @@ the owner.
 | Phone TODO add, edit, toggle, reopen, and delete | PASS |
 | Weather detail and immediate fail-fast refresh | PASS |
 | Device-local ORS key validation, masking, and deletion | PASS |
-| English/Korean/System phone language selection | PASS |
+| System or explicit selection across 30 bundled languages | PASS |
 | Registry-derived language packs and generated language choices | PASS |
-| Shared browser/server built-in RSS feed catalog | PASS |
+| Shared 90-feed browser/server built-in RSS catalog | PASS |
+| Arabic/Hebrew RTL phone shell with isolated LTR tactical HUD | PASS |
+| Serial live validation of all 90 built-in feeds | PASS |
 | Generic bounded OSM `name:<language>` preservation | PASS |
 | Localized nested HUD-preview accessibility semantics | PASS |
 | Initial and runtime built-in TODO relocalization | PASS |
@@ -90,8 +92,8 @@ the owner.
   typed locale registry.
 - Moved phone, fast-HUD, route, weather, default TODO, and weekday copy into
   structurally complete locale packs.
-- Preserved the existing `System`, `Korean`, `English` choice order while
-  generating the language screen from registry metadata.
+- Preserved `System` first and expanded the generated language screen to thirty
+  complete registry-defined locale packs.
 - Replaced duplicate client/server RSS definitions with one runtime catalog and
   enforced exactly three built-in feeds for every supported locale.
 - Generalized bounded OSM localized names beyond Korean and English while
@@ -104,6 +106,13 @@ the owner.
   immediately after a language change, independently of G2 session readiness.
 - Preserved user-authored TODO titles while relabeling only the three known
   unchanged built-in records.
+- Added locale direction metadata. Arabic and Hebrew render the phone companion
+  in RTL while the nested tactical Canvas retains its fixed LTR geometry.
+- Expanded the single RSS catalog to ninety unique HTTPS channels: exactly
+  three for every bundled locale.
+- Added `npm run verify:rss-live`, which checks all built-ins serially for
+  redirects, HTTP status, XML content type, the 1 MB limit, RSS/Atom structure,
+  at least one item, and the eight-second timeout.
 
 ## Fresh automated evidence
 
@@ -111,18 +120,19 @@ The following commands passed serially against the audited implementation:
 
 | Check | Result |
 | --- | --- |
-| `npm test` | 53 files, 471 tests passed |
+| `npm test` | 53 files, 473 tests passed |
 | `npm run typecheck` | `tsc --noEmit` passed |
-| `npm run build` | 120 modules transformed; production build passed |
+| `npm run build` | 148 modules transformed; production build passed |
 | `npm run test:repo` | 5 tests passed; repository copy check passed |
 | `npm run test:sites` | 4 tests passed |
-| `node --test --test-concurrency=1 tests/*.test.mjs` | 54 tests passed |
+| `node --test --test-concurrency=1 tests/*.test.mjs` | 147 tests passed |
+| `npm run verify:rss-live` | 90 live feeds passed; 0 failed |
 | `git diff --check` | Passed |
 | `git grep -n "ORS_API_KEY" -- src app.json package.json` | No tracked match |
-| `npm run pack` | `sandevistan.ehpk`, 1,719,032 bytes |
+| `npm run pack` | `sandevistan.ehpk`, 1,772,479 bytes |
 
 The packed artifact SHA-256 is:
-`b57b11896e5eafacab1f7bd4ffa6c5191b6f2eae96c5861a9dd4a1f744f34fee`.
+`a48047413baab4b30535de9fd210b4b44c28f046e9610cd02182f47892f8a44d`.
 
 The existing physical G2 audit remains authoritative for four-tile serial
 transport, binocular output, no-queue refresh behavior, map, weather, RSS news,
@@ -163,6 +173,21 @@ Status: `PASS`
   The Korean native-language option is intentionally preserved in Korean.
 - Browser inspection reported no page errors. Standalone missing-Flutter-handler
   warnings remain expected outside the Even WebView bridge.
+
+## Thirty-language catalog gate
+
+Status: `PASS`
+
+- Thirty locale packs expose complete phone, HUD, route, weather, default TODO,
+  and weekday copy with no runtime translation dependency.
+- Browser-tag aliases cover Chinese script variants plus legacy Hebrew,
+  Indonesian, Filipino, and Norwegian tags.
+- Every locale maps to exactly three built-in sources; all ninety IDs and URLs
+  are unique HTTPS values.
+- The complete external catalog passed the bounded serial live audit:
+  `90 passed, 0 failed`.
+- The SDK remains pinned to `0.0.11`; tile IDs, transfer order, binocular
+  output, busy-drop behavior, and hide/restore transport were not changed.
 
 ## Deferred work
 

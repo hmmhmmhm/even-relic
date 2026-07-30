@@ -53,7 +53,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   navigation. User-forward scroll still advances pages 1→2→3→4, and no
   event-direction inversion is needed. Keep `/hud-canvas` on its original
   order.
-- Show minute-only time plus `YYYY.MM.DD` and the Korean weekday. Fetch one SDK
+- Show minute-only time plus `YYYY.MM.DD` and the active locale's weekday. Fetch one SDK
   `0.0.11` `DeviceInfo` before initial fast-Canvas encoding and show its
   G1/G2/R1 battery on overview. Fall back to `BATTERY --` without blocking
   image transmission. Do not resend tiles every second or on device-status
@@ -126,14 +126,22 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   built-in sample TODO titles, weather labels, generic OSM `name:<language>`
   selection, and the active built-in RSS bundle. Never translate user-authored
   TODO text, RSS article content, destination names, or route instructions.
+- Ship thirty complete locale packs. Arabic and Hebrew set the phone companion
+  root to RTL, while the nested 576×288 tactical HUD and Canvas remain LTR.
 - Add a language only through one complete `src/i18n/locales/<code>.ts` pack,
-  one registry entry, and three entries in `server/news-feeds.js`. Do not add
+  including `direction`, one registry entry, and three entries in
+  `server/news-feeds.js`. Do not add
   locale unions, language-picker choices, weather branches, route dictionaries,
   TODO title tables, or RSS URLs anywhere else.
 - Keep `server/news-feeds.js` as the single browser/server built-in RSS catalog.
-  Every supported locale has exactly three non-deletable built-ins that may be
+  Its current thirty-locale baseline is ninety unique HTTPS feeds. Every
+  supported locale has exactly three non-deletable built-ins that may be
   disabled or renamed. User-added HTTPS RSS sources remain shared across
   locales and retain the six-source limit.
+- Run `npm run verify:rss-live` after any built-in feed change. It must check
+  all feeds serially and reject redirects, non-200 responses, non-XML content,
+  responses over 1 MB, missing RSS/Atom roots or items, and eight-second
+  timeouts.
 - Preserve bounded OSM `name:<language>` fields generically in the map Worker.
   A new locale must not require a map-server code change or a new hardcoded
   language-tag branch.
