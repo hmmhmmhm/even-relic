@@ -23,6 +23,7 @@ type FastInput =
 type FastInputResult = "unhandled" | "consume" | "redraw";
 type FastTestOptions = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
+  readonly imageSendConcurrency?: 1 | 2 | 3;
   readonly onBattery?: (battery: {
     readonly label: "G1" | "G2" | "R1";
     readonly level?: number;
@@ -246,6 +247,34 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(screen.getByText("Dashboard")).toBeTruthy();
     expect(screen.getByRole("button", { name: /Devices/ })).toBeTruthy();
     expect(screen.queryByText(/CANVAS HUD · FAST 2-TILE/)).toBeNull();
+  });
+
+  it("passes the opt-in image pipeline limit to the fast transport", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/hud-canvas-fast?pipeline=2",
+    );
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().imageSendConcurrency).toBe(2);
+  });
+
+  it("falls back to serial image transport for an invalid pipeline", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/hud-canvas-fast?pipeline=9",
+    );
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().imageSendConcurrency).toBe(1);
   });
 
   it("localizes fast HUD preview semantics in the effective phone language", () => {

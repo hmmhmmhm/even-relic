@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { HUD_PAGES } from "./canvas-hud";
 import { useHudController } from "./fast-hud-controller";
 import type { HudControllerModes } from "./hud-controller-types";
+import { resolveImageSendConcurrency } from "./image-send-concurrency";
 import type { FastCanvasBattery } from "./glasses";
 import { createLiveDashboardSession } from "./live-dashboard";
 import type { EvenStorage } from "./live-cache";
@@ -54,6 +55,9 @@ function createBrowserStorage(): EvenStorage {
 }
 
 export function App({ autoStart = true }: AppProps) {
+  const imageSendConcurrency = resolveImageSendConcurrency(
+    window.location.search,
+  );
   const calibrationMode = window.location.pathname === "/calibration-max";
   const legacyCanvasHudMode = window.location.pathname === "/hud-canvas";
   const fastCanvasHudMode = window.location.pathname === "/hud-canvas-fast";
@@ -206,6 +210,7 @@ export function App({ autoStart = true }: AppProps) {
     phonePreferencesRef,
     displayRefreshRef,
     companionOrsKeyRef,
+    imageSendConcurrency,
     modes,
     setStatus,
     setRoutingStatus,

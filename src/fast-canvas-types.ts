@@ -8,6 +8,7 @@ import type {
   RebuildPageContainer,
 } from "@evenrealities/even_hub_sdk";
 import type { encodeCanvasTiles, Tile } from "./g2-canvas";
+import type { ImageSendConcurrency } from "./image-send-concurrency";
 
 export type Bridge = {
   createStartUpPageContainer: (
@@ -77,6 +78,7 @@ export type FastCanvasOptions = {
   readonly beforeRestore?: () => void | Promise<void>;
   readonly createHiddenSource?: () => HTMLCanvasElement;
   readonly dependencies?: TransportDependencies;
+  readonly imageSendConcurrency?: ImageSendConcurrency;
   readonly now?: () => number;
   readonly onBattery?: (
     battery: FastCanvasBattery | undefined,

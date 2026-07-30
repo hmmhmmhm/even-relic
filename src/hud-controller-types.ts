@@ -5,6 +5,7 @@ import type { EvenStorage } from "./live-cache";
 import type { LiveDashboardState } from "./live-state";
 import type { PhonePreferences } from "./phone-types";
 import type { RoutingStatus } from "./routing";
+import type { ImageSendConcurrency } from "./image-send-concurrency";
 
 export type HudControllerModes = {
   readonly calibration: boolean;
@@ -26,6 +27,7 @@ export type UseHudControllerOptions = {
   readonly phonePreferencesRef: MutableRefObject<PhonePreferences>;
   readonly displayRefreshRef: MutableRefObject<(() => void) | undefined>;
   readonly companionOrsKeyRef: MutableRefObject<string | undefined>;
+  readonly imageSendConcurrency: ImageSendConcurrency;
   readonly modes: HudControllerModes;
   readonly setStatus: (value: string) => void;
   readonly setRoutingStatus: (value: RoutingStatus) => void;

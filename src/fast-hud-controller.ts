@@ -57,6 +57,7 @@ export function useHudController({
   phonePreferencesRef,
   displayRefreshRef,
   companionOrsKeyRef,
+  imageSendConcurrency,
   modes,
   setStatus,
   setRoutingStatus,
@@ -204,7 +205,10 @@ export function useHudController({
       await prepareInitialHud(canvas, modes, drawCurrentPage);
       report("Even 앱 브리지 연결 대기 중 · Safari에서는 미리보기만 표시됩니다");
       if (modes.fastCanvas) {
-        logDiagnostic("APP", "transport start");
+        logDiagnostic(
+          "APP",
+          `transport start · pipeline ${imageSendConcurrency}`,
+        );
         const transportCleanup = await transmitFastCanvas(
           canvas,
           report,
@@ -212,6 +216,7 @@ export function useHudController({
           {
             beforeExternalRefresh: drawCurrentPage,
             beforeRestore: drawCurrentPage,
+            imageSendConcurrency,
             onBattery: (nextBattery) => {
               battery = nextBattery;
               setCompanionBattery(nextBattery);
@@ -430,6 +435,7 @@ export function useHudController({
     canvasRef,
     companionOrsKeyRef,
     displayRefreshRef,
+    imageSendConcurrency,
     liveSessionRef,
     modes.calibration,
     modes.canvas,
