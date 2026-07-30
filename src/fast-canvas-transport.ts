@@ -14,6 +14,7 @@ import {
   type Tile,
 } from "./g2-canvas";
 import { runBounded } from "./bounded-task-pool";
+import { bytesEqual } from "./bytes-equal";
 import { logDiagnostic } from "./diagnostic-log";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
 import type {
@@ -53,17 +54,6 @@ const diagnosticDuration = (startedAt: number) => (
 const diagnosticError = (error: unknown) => (
   error instanceof Error ? error.message : String(error)
 );
-
-const bytesEqual = (
-  left: Uint8Array | undefined,
-  right: Uint8Array,
-) => {
-  if (!left || left.length !== right.length) return false;
-  for (let index = 0; index < right.length; index += 1) {
-    if (left[index] !== right[index]) return false;
-  }
-  return true;
-};
 
 const TILE_SEND_TIMEOUT_MS = 12_000;
 
