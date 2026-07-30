@@ -57,7 +57,7 @@ around that fact:
 - Dense overview information distributed across four focused pages.
 - Full-screen detail decks for maps, news, tasks, weather, and navigation.
 - Canvas-first rendering for visual consistency and fast page changes.
-- Serial, fail-fast image transport with no deferred refresh queue.
+- Serial-by-default, fail-fast image transport with no deferred refresh queue.
 - Keyless location, weather, news, and map data.
 - Optional OpenRouteService routing with a device-local key or development fallback.
 - An Even-style phone companion for configuration and live status.
@@ -148,10 +148,18 @@ The hardware-proven send order is:
 - Visible minute or battery change: top-right only, `3`.
 
 Only one accepted refresh owns the transport at a time. Tiles are sent serially
-inside that refresh. A tile whose encoded bytes match the last successful send is
-skipped. Any refresh request arriving while transport is busy is dropped
-immediately: it is not queued, merged, replayed, or retried. A failed refresh
-remains failed and the next independent event may try again.
+inside that refresh by default. This experimental branch also accepts
+`pipeline=2` or `pipeline=3` to overlap only the SDK tile calls belonging to
+that one refresh; missing or invalid values resolve to the serial limit of one.
+A tile whose encoded bytes match the last successful send is skipped. Any
+refresh request arriving while transport is busy is dropped immediately: it is
+not queued, merged, replayed, or retried. A failed refresh remains failed and
+the next independent event may try again.
+
+The bounded pipeline is a physical-hardware experiment and is not the `main`
+default. Pipeline two must pass the documented binocular, visual, latency, and
+stability gate before pipeline three is attempted or any mode is promoted.
+See the [G2 pipelined image transport hardware gate](docs/hardware/2026-07-30-g2-pipelined-image-transport.md).
 
 This policy replaced an earlier backlog design that could accumulate tens of
 thousands of stale minute and location operations and eventually freeze the
