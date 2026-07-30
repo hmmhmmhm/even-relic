@@ -7,6 +7,12 @@ import {
   resolveLocale,
 } from "./locale-registry";
 
+const EXPECTED_LOCALES = [
+  "ko", "en", "ja", "zh-Hans", "zh-Hant", "es", "fr", "de", "it", "pt",
+  "nl", "pl", "ru", "uk", "tr", "ar", "he", "hi", "bn", "id", "vi", "th",
+  "ms", "fil", "sv", "no", "da", "fi", "cs", "ro",
+] as const;
+
 function messagePaths(
   value: unknown,
   prefix = "",
@@ -25,21 +31,29 @@ function messagePaths(
 
 describe("locale registry", () => {
   it("derives supported locales and native language options", () => {
-    expect(SUPPORTED_LOCALES).toEqual(["ko", "en"]);
-    expect(LOCALE_OPTIONS).toEqual([
-      { value: "ko", label: "한국어" },
-      { value: "en", label: "English" },
-    ]);
+    expect(SUPPORTED_LOCALES).toEqual(EXPECTED_LOCALES);
+    expect(new Set(SUPPORTED_LOCALES)).toHaveLength(30);
+    expect(LOCALE_OPTIONS).toHaveLength(30);
+    for (const locale of SUPPORTED_LOCALES) {
+      expect(["ltr", "rtl"]).toContain(LOCALE_REGISTRY[locale].direction);
+    }
     expect(isSupportedLocale("ko")).toBe(true);
     expect(isSupportedLocale("en")).toBe(true);
-    expect(isSupportedLocale("ja")).toBe(false);
+    expect(isSupportedLocale("ja")).toBe(true);
   });
 
   it("resolves exact, normalized, base, explicit, and fallback locales", () => {
     expect(resolveLocale("system", "ko-KR")).toBe("ko");
     expect(resolveLocale("system", "en_US")).toBe("en");
     expect(resolveLocale("system", "KO_kr")).toBe("ko");
-    expect(resolveLocale("system", "ja-JP")).toBe("en");
+    expect(resolveLocale("system", "ja-JP")).toBe("ja");
+    expect(resolveLocale("system", "zh_TW")).toBe("zh-Hant");
+    expect(resolveLocale("system", "zh-CN")).toBe("zh-Hans");
+    expect(resolveLocale("system", "pt_BR")).toBe("pt");
+    expect(resolveLocale("system", "iw-IL")).toBe("he");
+    expect(resolveLocale("system", "in-ID")).toBe("id");
+    expect(resolveLocale("system", "tl-PH")).toBe("fil");
+    expect(resolveLocale("system", "nb-NO")).toBe("no");
     expect(resolveLocale("ko", "en-US")).toBe("ko");
   });
 

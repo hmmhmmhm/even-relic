@@ -2,6 +2,7 @@ export const enLocale = {
   code: "en",
   nativeName: "English",
   browserTags: ["en"],
+  direction: "ltr",
   phone: {
     back: "Back",
     backToDashboard: "Back to Dashboard",

@@ -4,6 +4,7 @@ export const koLocale = {
   code: "ko",
   nativeName: "한국어",
   browserTags: ["ko"],
+  direction: "ltr",
   phone: {
     back: "뒤로",
     backToDashboard: "대시보드로 돌아가기",

@@ -13,9 +13,10 @@ type TranslatedEnglishPack = LocalizedShape<typeof enLocale>;
 
 export type LocalePack = Omit<
   TranslatedEnglishPack,
-  "code" | "nativeName" | "browserTags"
+  "code" | "nativeName" | "browserTags" | "direction"
 > & {
   readonly code: string;
   readonly nativeName: string;
   readonly browserTags: readonly string[];
+  readonly direction: "ltr" | "rtl";
 };
