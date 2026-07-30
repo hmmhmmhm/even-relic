@@ -10,6 +10,7 @@ const FIXED_FEEDS = new Map(
 const FEED_URL = FIXED_FEEDS.get("sbs-latest");
 
 test("uses unique fixed feed IDs and URLs", () => {
+  assert.equal(BUILT_IN_RSS_FEEDS.length, 90);
   assert.equal(FIXED_FEEDS.size, BUILT_IN_RSS_FEEDS.length);
   assert.equal(
     new Set(BUILT_IN_RSS_FEEDS.map(({ url }) => url)).size,

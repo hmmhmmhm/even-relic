@@ -31,6 +31,7 @@ class TestStorage implements EvenStorage {
 
 describe("RSS source preferences", () => {
   it("shares one valid three-feed catalog for every supported locale", () => {
+    expect(BUILT_IN_RSS_FEEDS).toHaveLength(90);
     expect(new Set(BUILT_IN_RSS_FEEDS.map(({ id }) => id)).size)
       .toBe(BUILT_IN_RSS_FEEDS.length);
     expect(new Set(BUILT_IN_RSS_FEEDS.map(({ url }) => url)).size)
@@ -46,14 +47,11 @@ describe("RSS source preferences", () => {
   });
 
   it("seeds three enabled non-deletable sources for each locale", async () => {
-    await expect(resolveRssSources(new TestStorage(), "ko")).resolves.toEqual(
-      defaultRssSources("ko"),
-    );
-    await expect(resolveRssSources(new TestStorage(), "en")).resolves.toEqual(
-      defaultRssSources("en"),
-    );
-    expect(defaultRssSources("ko")).toHaveLength(3);
-    expect(defaultRssSources("en")).toHaveLength(3);
+    for (const locale of SUPPORTED_LOCALES) {
+      await expect(resolveRssSources(new TestStorage(), locale))
+        .resolves.toEqual(defaultRssSources(locale));
+      expect(defaultRssSources(locale)).toHaveLength(3);
+    }
     expect(DEFAULT_RSS_SOURCE).toMatchObject({
       id: "sbs-latest",
       name: "SBS 최신뉴스",
