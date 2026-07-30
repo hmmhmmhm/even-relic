@@ -1,9 +1,65 @@
+import { arLocale } from "./locales/ar";
+import { bnLocale } from "./locales/bn";
+import { csLocale } from "./locales/cs";
+import { daLocale } from "./locales/da";
+import { deLocale } from "./locales/de";
 import { enLocale } from "./locales/en";
+import { esLocale } from "./locales/es";
+import { fiLocale } from "./locales/fi";
+import { filLocale } from "./locales/fil";
+import { frLocale } from "./locales/fr";
+import { heLocale } from "./locales/he";
+import { hiLocale } from "./locales/hi";
+import { idLocale } from "./locales/id";
+import { itLocale } from "./locales/it";
+import { jaLocale } from "./locales/ja";
 import { koLocale } from "./locales/ko";
+import { msLocale } from "./locales/ms";
+import { nlLocale } from "./locales/nl";
+import { noLocale } from "./locales/no";
+import { plLocale } from "./locales/pl";
+import { ptLocale } from "./locales/pt";
+import { roLocale } from "./locales/ro";
+import { ruLocale } from "./locales/ru";
+import { svLocale } from "./locales/sv";
+import { thLocale } from "./locales/th";
+import { trLocale } from "./locales/tr";
+import { ukLocale } from "./locales/uk";
+import { viLocale } from "./locales/vi";
+import { zhHansLocale } from "./locales/zh-Hans";
+import { zhHantLocale } from "./locales/zh-Hant";
 
 export const LOCALE_REGISTRY = {
   ko: koLocale,
   en: enLocale,
+  ja: jaLocale,
+  "zh-Hans": zhHansLocale,
+  "zh-Hant": zhHantLocale,
+  es: esLocale,
+  fr: frLocale,
+  de: deLocale,
+  it: itLocale,
+  pt: ptLocale,
+  nl: nlLocale,
+  pl: plLocale,
+  ru: ruLocale,
+  uk: ukLocale,
+  tr: trLocale,
+  ar: arLocale,
+  he: heLocale,
+  hi: hiLocale,
+  bn: bnLocale,
+  id: idLocale,
+  vi: viLocale,
+  th: thLocale,
+  ms: msLocale,
+  fil: filLocale,
+  sv: svLocale,
+  no: noLocale,
+  da: daLocale,
+  fi: fiLocale,
+  cs: csLocale,
+  ro: roLocale,
 } as const;
 
 export type SupportedLocale = keyof typeof LOCALE_REGISTRY;

@@ -17,10 +17,11 @@ describe("phone localization", () => {
       .toEqual(Object.keys(PHONE_STRINGS.en).sort());
   });
 
-  it("resolves System to Korean only for ko locales", () => {
+  it("resolves System to registered browser locales", () => {
     expect(resolvePhoneLocale("system", "ko-KR")).toBe("ko");
     expect(resolvePhoneLocale("system", "en-US")).toBe("en");
-    expect(resolvePhoneLocale("system", "ja-JP")).toBe("en");
+    expect(resolvePhoneLocale("system", "ja-JP")).toBe("ja");
+    expect(resolvePhoneLocale("system", "ar-SA")).toBe("ar");
     expect(resolvePhoneLocale("ko", "en-US")).toBe("ko");
   });
 

@@ -29,6 +29,19 @@ function messagePaths(
   ));
 }
 
+function translatedMessages(
+  pack: (typeof LOCALE_REGISTRY)[keyof typeof LOCALE_REGISTRY],
+) {
+  const {
+    code: _code,
+    nativeName: _nativeName,
+    browserTags: _browserTags,
+    direction: _direction,
+    ...messages
+  } = pack;
+  return messages;
+}
+
 describe("locale registry", () => {
   it("derives supported locales and native language options", () => {
     expect(SUPPORTED_LOCALES).toEqual(EXPECTED_LOCALES);
@@ -58,12 +71,12 @@ describe("locale registry", () => {
   });
 
   it("keeps every locale pack structurally complete", () => {
-    const englishPaths = messagePaths(LOCALE_REGISTRY.en);
+    const englishPaths = messagePaths(translatedMessages(LOCALE_REGISTRY.en));
     for (const locale of SUPPORTED_LOCALES) {
       const pack = LOCALE_REGISTRY[locale];
       expect(pack.code).toBe(locale);
       expect(pack.weekdays).toHaveLength(7);
-      expect(messagePaths(pack)).toEqual(englishPaths);
+      expect(messagePaths(translatedMessages(pack))).toEqual(englishPaths);
     }
   });
 });
