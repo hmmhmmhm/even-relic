@@ -62,6 +62,7 @@ describe("runBounded", () => {
   it.each([
     [1, 1],
     [3, 3],
+    [4, 4],
   ])("enforces limit %i", async (limit, expectedMaximum) => {
     let active = 0;
     let maximum = 0;

@@ -32,7 +32,7 @@ type TestRawEvent = {
 type FastRefreshHarnessConfig = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly beforeRestore?: () => void | Promise<void>;
-  readonly imageSendConcurrency?: 1 | 2 | 3;
+  readonly imageSendConcurrency?: 1 | 2 | 3 | 4;
   readonly encode?: (
     ids: number[],
     attempt: number,
@@ -126,7 +126,7 @@ async function createFastRefreshHarness(
           tiles?: readonly { id: number }[],
         ) => Promise<Uint8Array[]>;
       };
-      imageSendConcurrency?: 1 | 2 | 3;
+      imageSendConcurrency?: 1 | 2 | 3 | 4;
       onRefreshReady: (
         request: (target: TestRefreshTarget) => void,
       ) => void;
@@ -782,6 +782,41 @@ describe("G2 raster transport", () => {
     ));
 
     expect(harness.maximumActiveImageSends).toBe(3);
+  });
+
+  it("pipelines all four full-frame image sends at limit four", async () => {
+    const gates = new Map([
+      [3, deferred()],
+      [5, deferred()],
+      [2, deferred()],
+      [4, deferred()],
+    ]);
+    const harness = await createFastRefreshHarness({
+      imageSendConcurrency: 4,
+      update: async (id, _call, encodeAttempt) => {
+        if (encodeAttempt === 2) await gates.get(id)?.promise;
+        return "success";
+      },
+    });
+    diagnosticLogger.clear();
+
+    harness.request("all");
+    await vi.waitFor(() => expect(harness.imageIds.slice(4)).toEqual([
+      3,
+      5,
+      2,
+      4,
+    ]));
+
+    expect(harness.maximumActiveImageSends).toBe(4);
+    expect(diagnosticLogger.text()).toContain(
+      "[TILE] sandevistanBL start · 4/4 · inflight 4/4",
+    );
+
+    for (const gate of gates.values()) gate.resolve();
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "[REFRESH] external all complete",
+    ));
   });
 
   it("keeps serial image concurrency by default", async () => {
