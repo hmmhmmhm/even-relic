@@ -34,8 +34,14 @@ describe("Even Hub SDK compatibility", () => {
     expect(scripts["qr:pipeline2"]).toContain(
       "sdk=0.0.11&pipeline=2&build=pipeline-2-036",
     );
+    expect(scripts["qr:pipeline2"]).toContain(
+      "http://100.127.255.11:4177/",
+    );
     expect(scripts["qr:pipeline3"]).toContain(
       "sdk=0.0.11&pipeline=3&build=pipeline-3-037",
+    );
+    expect(scripts["qr:pipeline3"]).toContain(
+      "http://100.127.255.11:4177/",
     );
   });
 });

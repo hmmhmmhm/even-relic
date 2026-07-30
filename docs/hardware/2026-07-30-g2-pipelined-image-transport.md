@@ -34,19 +34,19 @@ or the rule that busy refresh requests are dropped rather than deferred.
 
 Serial baseline:
 
-`http://100.96.68.73:4177/hud-canvas-fast?sdk=0.0.11&pipeline=1&build=pipeline-baseline-036`
+`http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=1&build=pipeline-baseline-036`
 
 Pipeline two:
 
-`http://100.96.68.73:4177/hud-canvas-fast?sdk=0.0.11&pipeline=2&build=pipeline-2-036`
+`http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=2&build=pipeline-2-036`
 
 Pipeline three, blocked until every pipeline-two gate passes:
 
-`http://100.96.68.73:4177/hud-canvas-fast?sdk=0.0.11&pipeline=3&build=pipeline-3-037`
+`http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=3&build=pipeline-3-037`
 
 Rollback URL:
 
-`http://100.96.68.73:4177/hud-canvas-fast?sdk=0.0.11&pipeline=1&build=pipeline-rollback-036`
+`http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=1&build=pipeline-rollback-036`
 
 ## Transport contract
 
