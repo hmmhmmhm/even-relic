@@ -23,7 +23,7 @@ type FastInput =
 type FastInputResult = "unhandled" | "consume" | "redraw";
 type FastTestOptions = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
-  readonly imageSendConcurrency?: 1 | 2 | 3;
+  readonly imageSendConcurrency?: 1 | 2 | 3 | 4;
   readonly onBattery?: (battery: {
     readonly label: "G1" | "G2" | "R1";
     readonly level?: number;
@@ -261,6 +261,20 @@ describe("SANDEVISTAN peripheral HUD", () => {
 
     await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
     expect(fastOptions().imageSendConcurrency).toBe(2);
+  });
+
+  it("passes the four-call image pipeline to the fast transport", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/hud-canvas-fast?pipeline=4",
+    );
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().imageSendConcurrency).toBe(4);
   });
 
   it("falls back to serial image transport for an invalid pipeline", async () => {
