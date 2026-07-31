@@ -568,6 +568,7 @@ describe("G2 raster transport", () => {
 
     let listener: ((event: EvenHubEvent) => void) | undefined;
     const encodedTileIds: number[][] = [];
+    const encodedPaletteModes: Array<"original" | "hud-4" | undefined> = [];
     const imageIds: number[] = [];
     const order: string[] = [];
     const batteries: unknown[] = [];
@@ -606,9 +607,13 @@ describe("G2 raster transport", () => {
             _source: HTMLCanvasElement,
             _factory: unknown,
             tiles = module.G2_TILES,
+            options?: {
+              readonly paletteMode?: "original" | "hud-4";
+            },
           ) => {
             order.push("encode");
             encodedTileIds.push(tiles.map(({ id }) => id));
+            encodedPaletteModes.push(options?.paletteMode);
             return tiles.map(({ id }) => new Uint8Array([
               id,
               encodedTileIds.length,
@@ -616,6 +621,7 @@ describe("G2 raster transport", () => {
           },
         },
         onBattery: (battery: unknown) => batteries.push(battery),
+        tilePaletteMode: "hud-4",
       },
     );
     listener!({
@@ -624,6 +630,7 @@ describe("G2 raster transport", () => {
     await vi.waitFor(() => expect(imageIds).toHaveLength(6));
 
     expect(encodedTileIds).toEqual([[3, 5, 2, 4], [3, 5]]);
+    expect(encodedPaletteModes).toEqual(["hud-4", "hud-4"]);
     expect(imageIds).toEqual([3, 5, 2, 4, 3, 5]);
     expect(order.indexOf("device")).toBeLessThan(order.indexOf("encode"));
     expect(batteries).toEqual([{

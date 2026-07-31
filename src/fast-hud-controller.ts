@@ -58,6 +58,7 @@ export function useHudController({
   displayRefreshRef,
   companionOrsKeyRef,
   imageSendConcurrency,
+  tilePaletteMode,
   modes,
   setStatus,
   setRoutingStatus,
@@ -207,7 +208,8 @@ export function useHudController({
       if (modes.fastCanvas) {
         logDiagnostic(
           "APP",
-          `transport start · pipeline ${imageSendConcurrency}`,
+          `transport start · pipeline ${imageSendConcurrency}`
+            + ` · palette ${tilePaletteMode}`,
         );
         const transportCleanup = await transmitFastCanvas(
           canvas,
@@ -217,6 +219,7 @@ export function useHudController({
             beforeExternalRefresh: drawCurrentPage,
             beforeRestore: drawCurrentPage,
             imageSendConcurrency,
+            tilePaletteMode,
             onBattery: (nextBattery) => {
               battery = nextBattery;
               setCompanionBattery(nextBattery);
@@ -436,6 +439,7 @@ export function useHudController({
     companionOrsKeyRef,
     displayRefreshRef,
     imageSendConcurrency,
+    tilePaletteMode,
     liveSessionRef,
     modes.calibration,
     modes.canvas,

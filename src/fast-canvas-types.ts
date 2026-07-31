@@ -80,6 +80,7 @@ export type FastCanvasOptions = {
   readonly createHiddenSource?: () => HTMLCanvasElement;
   readonly dependencies?: TransportDependencies;
   readonly imageSendConcurrency?: ImageSendConcurrency;
+  readonly tilePaletteMode?: G2TilePaletteMode;
   readonly now?: () => number;
   readonly onBattery?: (
     battery: FastCanvasBattery | undefined,

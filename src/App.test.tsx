@@ -24,6 +24,7 @@ type FastInputResult = "unhandled" | "consume" | "redraw";
 type FastTestOptions = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly imageSendConcurrency?: 1 | 2 | 3 | 4;
+  readonly tilePaletteMode?: "original" | "hud-4";
   readonly onBattery?: (battery: {
     readonly label: "G1" | "G2" | "R1";
     readonly level?: number;
@@ -289,6 +290,31 @@ describe("SANDEVISTAN peripheral HUD", () => {
 
     await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
     expect(fastOptions().imageSendConcurrency).toBe(1);
+  });
+
+  it("passes the opt-in four-level tile palette to the fast transport", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/hud-canvas-fast?pipeline=4&levels=4",
+    );
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().imageSendConcurrency).toBe(4);
+    expect(fastOptions().tilePaletteMode).toBe("hud-4");
+  });
+
+  it("keeps the original tile palette by default", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast?pipeline=4");
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().tilePaletteMode).toBe("original");
   });
 
   it("localizes fast HUD preview semantics in the effective phone language", () => {
