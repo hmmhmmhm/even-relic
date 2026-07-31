@@ -168,4 +168,3 @@ document as a rejected hardware record.
 - native text over Canvas content;
 - changing the accepted PNG, palette, or pipeline defaults;
 - replacing the production display toggle before physical approval.
-
