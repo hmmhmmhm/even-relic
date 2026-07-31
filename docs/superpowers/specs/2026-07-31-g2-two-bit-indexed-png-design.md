@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-31  
 **Branch:** `experiment/g2-indexed-png`  
-**Status:** Implemented and automatically verified; awaiting physical A/B test
+**Status:** Physical A/B completed; not promoted because latency did not improve
 
 ## Summary
 

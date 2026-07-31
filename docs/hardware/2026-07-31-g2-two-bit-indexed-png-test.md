@@ -5,9 +5,9 @@
 - Branch: `experiment/g2-indexed-png`
 - Automated verification: passed on 2026-07-31
 - Physical baseline: transport passed on 2026-07-31
-- Physical candidate: not started
+- Physical candidate: transport passed on 2026-07-31
 - Default encoder: Canvas
-- Promotion decision: not requested
+- Promotion decision: rejected for speed; Canvas remains the default
 
 ## Automated Verification Record
 
@@ -48,6 +48,50 @@ submitted trace. Refresh requests arriving during an active operation were
 dropped as designed. The trace contains no WebView stall evidence. No separate
 four-tile detail sample was included; the five restore samples provide the
 recorded full-frame baseline.
+
+## Two-Bit Indexed Candidate Record
+
+The owner supplied one physical G2 trace from 20:40:24 through 20:41:07. The
+trace confirms `palette hud-4 · encoder indexed-2` for every visible restore and
+`palette original · encoder canvas` for every hide.
+
+Observed samples:
+
+- Eight hide payloads: 4,704 bytes each.
+- Eight hide encode times: 33, 25, 20, 30, 29, 24, 16, and 24 ms; median
+  24.5 ms.
+- Eight hide refresh times: 329, 367, 358, 362, 421, 363, 351, and 335 ms;
+  median 360 ms.
+- Seven restore payloads: 7,174, 7,174, 7,174, 7,174, 7,174, 7,174, and
+  7,141 bytes; median 7,174 bytes.
+- Seven restore encode times: 104, 101, 99, 99, 104, 106, and 101 ms; median
+  101 ms.
+- Seven restore refresh times: 1,887, 1,977, 2,089, 1,969, 2,068, 2,133, and
+  2,118 ms; median 2,068 ms.
+
+No `sendFailed`, timeout, retry, pending replay, queue growth, or WebView stall
+appears in the submitted candidate trace. One double tap arriving during an
+active restore was dropped as designed. No separate two-tile or four-tile
+detail candidate sample was included. The user did not report a visual failure,
+but the submitted message does not constitute a separate item-by-item visual
+check record.
+
+## A/B Decision
+
+For full-frame restore, the indexed encoder reduced the median payload from
+22,860 to 7,174 bytes: 15,686 fewer bytes, or a 68.6% reduction. Its median
+encode time increased from 89 to 101 ms, and its median end-to-end refresh time
+increased from 1,972 to 2,068 ms. The 96 ms increase is a 4.9% regression rather
+than a speed improvement.
+
+The hidden-frame path remained effectively unchanged: median encode time was
+24.5 ms for both variants, while median refresh time changed from 363.5 to
+360 ms. This expected control result does not affect the visible-frame decision.
+
+The indexed PNG is transport-compatible in the supplied run and substantially
+smaller, but it does not satisfy the speed-promotion rule. Canvas therefore
+remains the default encoder. The indexed implementation and this record remain
+on the experiment branch for future SDK or firmware retesting.
 
 ## Purpose
 
@@ -129,10 +173,10 @@ Record values from `ENCODE complete` and `REFRESH image refresh complete`.
 | Canvas | Two-tile visible | 2 | 9,756 median | 43.5 median | 707 median | Pass |
 | Canvas | Hide | 6 | 4,704 median | 24.5 median | 363.5 median | Pass |
 | Canvas | Restore | 5 | 22,860 median | 89 median | 1,972 median | Pass |
-| Indexed | Four-tile visible | 1-5 | — | — | — | Not run |
-| Indexed | Two-tile visible | 1-5 | — | — | — | Not run |
-| Indexed | Hide | 1-5 | — | — | — | Not run |
-| Indexed | Restore | 1-5 | — | — | — | Not run |
+| Indexed | Four-tile detail | — | — | — | — | No separate sample |
+| Indexed | Two-tile visible | — | — | — | — | No sample |
+| Indexed | Hide | 8 | 4,704 median | 24.5 median | 360 median | Pass |
+| Indexed | Restore | 7 | 7,174 median | 101 median | 2,068 median | Stable, slower |
 
 Calculate medians separately for each variant and operation. Do not combine
 two-tile, four-tile, hide, and restore samples.
