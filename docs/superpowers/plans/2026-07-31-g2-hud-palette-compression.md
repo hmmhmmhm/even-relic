@@ -16,7 +16,7 @@
 - Create: `src/g2-tile-palette.ts`
 - Create: `src/g2-tile-palette.test.ts`
 
-- [ ] **Step 1: Write the failing resolver and quantizer tests**
+- [x] **Step 1: Write the failing resolver and quantizer tests**
 
 ```ts
 import { describe, expect, it } from "vitest";
@@ -71,7 +71,7 @@ describe("G2 transmitted-tile palette", () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused test and verify it fails**
+- [x] **Step 2: Run the focused test and verify it fails**
 
 Run:
 
@@ -81,7 +81,7 @@ npx vitest run src/g2-tile-palette.test.ts --no-file-parallelism --maxWorkers=1
 
 Expected: FAIL because `src/g2-tile-palette.ts` does not exist.
 
-- [ ] **Step 3: Implement the literal resolver and pure quantizer**
+- [x] **Step 3: Implement the literal resolver and pure quantizer**
 
 ```ts
 export type G2TilePaletteMode = "original" | "hud-4";
@@ -127,13 +127,13 @@ export function quantizeHudFourLevelPixels(
 }
 ```
 
-- [ ] **Step 4: Run the focused test and verify it passes**
+- [x] **Step 4: Run the focused test and verify it passes**
 
 Run the Step 2 command.
 
 Expected: PASS for all resolver and quantizer cases.
 
-- [ ] **Step 5: Commit the pure unit**
+- [x] **Step 5: Commit the pure unit**
 
 ```bash
 git add src/g2-tile-palette.ts src/g2-tile-palette.test.ts
@@ -148,7 +148,7 @@ git commit -m "feat: add G2 tile palette quantizer"
 - Modify: `src/fast-canvas-types.ts:22-31`
 - Modify: `src/glasses.test.ts:347-375`
 
-- [ ] **Step 1: Write failing encoder-isolation and diagnostic tests**
+- [x] **Step 1: Write failing encoder-isolation and diagnostic tests**
 
 Add a Canvas test that supplies a temporary tile context with
 `getImageData`/`putImageData`, enables `paletteMode: "hud-4"`, and asserts:
@@ -184,7 +184,7 @@ expect(trace).toContain(
 );
 ```
 
-- [ ] **Step 2: Run the focused glasses tests and verify failure**
+- [x] **Step 2: Run the focused glasses tests and verify failure**
 
 Run:
 
@@ -195,7 +195,7 @@ npx vitest run src/glasses.test.ts --no-file-parallelism --maxWorkers=1
 Expected: FAIL because `encodeCanvasTiles` has no palette option and the
 diagnostic message has no palette or byte counts.
 
-- [ ] **Step 3: Extend the encoder without mutating the source Canvas**
+- [x] **Step 3: Extend the encoder without mutating the source Canvas**
 
 In `src/g2-canvas.ts`, add:
 
@@ -224,7 +224,7 @@ if (options.paletteMode === "hud-4") {
 The source Canvas is only read by `drawImage`; all mutation remains on the
 temporary tile Canvas.
 
-- [ ] **Step 4: Pass the palette mode into encoding and log real byte counts**
+- [x] **Step 4: Pass the palette mode into encoding and log real byte counts**
 
 In `src/fast-canvas-types.ts`, import `G2TilePaletteMode` and keep
 `TransportDependencies.encode` typed as `typeof encodeCanvasTiles`.
@@ -257,13 +257,13 @@ logDiagnostic(
 
 Do not change the busy gate, bounded sender, cache, retry, or failure paths.
 
-- [ ] **Step 5: Run the focused tests and verify they pass**
+- [x] **Step 5: Run the focused tests and verify they pass**
 
 Run the Step 2 command.
 
 Expected: PASS with the palette isolation and exact byte diagnostic assertions.
 
-- [ ] **Step 6: Commit encoder integration**
+- [x] **Step 6: Commit encoder integration**
 
 ```bash
 git add src/g2-canvas.ts src/fast-canvas-transport.ts \
@@ -284,7 +284,7 @@ git commit -m "feat: quantize transmitted G2 tiles"
 - Modify: `src/sdk-version.test.ts:26-55`
 - Modify: `package.json:15-20`
 
-- [ ] **Step 1: Write failing application option tests**
+- [x] **Step 1: Write failing application option tests**
 
 Extend the local `FastTestOptions` with:
 
@@ -330,7 +330,7 @@ expect(scripts["qr:palette4"]).toContain(
 expect(scripts["qr:palette4"]).toContain("http://100.127.255.11:4177/");
 ```
 
-- [ ] **Step 2: Run application and SDK tests and verify failure**
+- [x] **Step 2: Run application and SDK tests and verify failure**
 
 Run:
 
@@ -342,7 +342,7 @@ npx vitest run src/App.test.tsx src/sdk-version.test.ts \
 Expected: FAIL because the palette mode is not resolved or passed and the QR
 script does not exist.
 
-- [ ] **Step 3: Resolve and carry the palette mode**
+- [x] **Step 3: Resolve and carry the palette mode**
 
 In `App.tsx`, resolve once:
 
@@ -377,7 +377,7 @@ Startup diagnostics must report both independent settings:
   + ` · palette ${tilePaletteMode}`
 ```
 
-- [ ] **Step 4: Add the hardware QR script**
+- [x] **Step 4: Add the hardware QR script**
 
 Add to `package.json`:
 
@@ -385,7 +385,7 @@ Add to `package.json`:
 "qr:palette4": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=4&levels=4&build=palette-4-039\""
 ```
 
-- [ ] **Step 5: Run the focused application, SDK, and glasses tests**
+- [x] **Step 5: Run the focused application, SDK, and glasses tests**
 
 Run:
 
@@ -398,7 +398,7 @@ npx vitest run src/g2-tile-palette.test.ts src/App.test.tsx \
 Expected: PASS with literal mode resolution, default isolation, encoder option
 plumbing, byte diagnostics, and the hardware URL.
 
-- [ ] **Step 6: Commit option plumbing**
+- [x] **Step 6: Commit option plumbing**
 
 ```bash
 git add src/App.tsx src/App.test.tsx src/hud-controller-types.ts \
@@ -414,7 +414,7 @@ git commit -m "feat: expose G2 palette compression gate"
 - Create: `docs/hardware/2026-07-31-g2-hud-palette-compression.md`
 - Modify: `docs/superpowers/specs/2026-07-31-g2-hud-palette-compression-design.md`
 
-- [ ] **Step 1: Run the complete verification suite serially**
+- [x] **Step 1: Run the complete verification suite serially**
 
 Run each command only after the previous command finishes:
 
@@ -436,7 +436,7 @@ Expected:
 - Sites worker tests pass with Node test concurrency one;
 - `sandevistan.ehpk` is produced with SDK `0.0.11`.
 
-- [ ] **Step 2: Write the hardware gate record**
+- [x] **Step 2: Write the hardware gate record**
 
 Create an English record containing:
 
@@ -464,7 +464,7 @@ same serial action sequence.
 
 Change the design status to `Implemented; awaiting physical comparison`.
 
-- [ ] **Step 3: Verify the final diff and commit**
+- [x] **Step 3: Verify the final diff and commit**
 
 Run:
 
@@ -483,7 +483,7 @@ git add docs/hardware/2026-07-31-g2-hud-palette-compression.md \
 git commit -m "docs: prepare G2 palette compression hardware gate"
 ```
 
-- [ ] **Step 4: Start and verify the isolated server**
+- [x] **Step 4: Start and verify the isolated server**
 
 Start the existing experiment worktree on host `0.0.0.0`, port `4177`, then
 verify the candidate route returns HTTP 200 and contains the Vite application
