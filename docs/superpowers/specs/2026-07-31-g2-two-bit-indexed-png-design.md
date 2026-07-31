@@ -57,6 +57,10 @@ Resolution rules:
 - `encoder=canvas`, a missing value, or any unknown value selects the existing Canvas encoder.
 - The default remains `canvas`.
 - `levels` and `pipeline` retain their current independent behavior.
+- Indexed encoding is effective only when the refresh palette is `hud-4`.
+  A refresh using `levels=original` uses Canvas even if the URL requests
+  `encoder=indexed-2`, because a four-entry indexed file cannot preserve the
+  original color space.
 
 Recommended serial physical-test URLs on the dedicated experiment server are:
 
@@ -106,6 +110,11 @@ When the mode is `indexed-2`, visible `hud-4` tiles use a deterministic PNG writ
 7. Emit a deterministic indexed PNG.
 
 The source canvas and source pixel data must not be mutated.
+
+If the requested palette is `original`, the effective encoder is `canvas`.
+This compatibility rule is resolved before encoding and the diagnostic reports
+the effective mode, so it never labels an original-color Canvas payload as an
+indexed payload.
 
 ## PNG Binary Format
 
@@ -238,6 +247,7 @@ Implementation follows test-driven development. Tests are run serially.
 - Application query parsing passes the resolved encoder into the transport.
 - Baseline Canvas mode continues to call `toBlob` and satisfies its current tests.
 - Indexed visible refreshes produce indexed PNG payloads.
+- Original-palette refreshes force Canvas even when the URL selects indexed.
 - Hidden refreshes force Canvas/original regardless of the selected encoder.
 - Restore returns to indexed/hud-4.
 - Byte-cache skipping compares the final encoded payload.
