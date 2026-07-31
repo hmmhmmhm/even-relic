@@ -4,14 +4,14 @@ import appManifest from "../app.json";
 import packageManifest from "../package.json";
 
 describe("Even Hub SDK compatibility", () => {
-  it("pins the isolated 0.0.13 SDK and its minimum Even App version", () => {
+  it("pins the promoted 0.0.13 SDK and its minimum Even App version", () => {
     const installed = packageManifest.dependencies["@evenrealities/even_hub_sdk"];
 
     expect(installed).toBe("0.0.13");
     expect(appManifest.min_sdk_version).toBe(installed);
     expect(appManifest.min_app_version).toBe("2.2.6");
     expect(packageManifest.scripts.qr).toBe(
-      'evenhub qr --url "http://100.127.255.11:4179/hud-canvas-fast?sdk=0.0.13&build=sdk-0013-repair-042"',
+      'evenhub qr --url "http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.13&build=sdk-0013-main-043"',
     );
   });
 
@@ -30,40 +30,41 @@ describe("Even Hub SDK compatibility", () => {
     });
   });
 
-  it("exposes isolated pipeline two through four hardware QR scripts", () => {
+  it("keeps every main hardware QR script on the promoted SDK", () => {
     const scripts = packageManifest.scripts as Record<string, string>;
 
     expect(scripts["qr:pipeline2"]).toContain(
-      "sdk=0.0.11&pipeline=2&build=pipeline-2-036",
+      "sdk=0.0.13&pipeline=2&build=pipeline-2-sdk0013-043",
     );
     expect(scripts["qr:pipeline2"]).toContain(
       "http://100.127.255.11:4177/",
     );
     expect(scripts["qr:pipeline3"]).toContain(
-      "sdk=0.0.11&pipeline=3&build=pipeline-3-037",
+      "sdk=0.0.13&pipeline=3&build=pipeline-3-sdk0013-043",
     );
     expect(scripts["qr:pipeline3"]).toContain(
       "http://100.127.255.11:4177/",
     );
     expect(scripts["qr:pipeline4"]).toContain(
-      "sdk=0.0.11&pipeline=4&build=pipeline-4-038",
+      "sdk=0.0.13&pipeline=4&build=pipeline-4-sdk0013-043",
     );
     expect(scripts["qr:pipeline4"]).toContain(
       "http://100.127.255.11:4177/",
     );
     expect(scripts["qr:palette4"]).toContain(
-      "sdk=0.0.11&pipeline=4&levels=4&build=palette-4-039",
+      "sdk=0.0.13&pipeline=4&levels=4&build=palette-4-sdk0013-043",
     );
     expect(scripts["qr:palette4"]).toContain(
       "http://100.127.255.11:4177/",
     );
     expect(scripts["qr:rollback"]).toContain(
-      "sdk=0.0.11&pipeline=1&levels=original"
-        + "&build=rollback-serial-original-040",
+      "sdk=0.0.13&pipeline=1&levels=original"
+        + "&build=rollback-serial-original-sdk0013-043",
     );
     expect(scripts["qr:rollback"]).toContain(
       "http://100.127.255.11:4177/",
     );
-    expect(scripts["qr:rollback"]).toContain("sdk=0.0.11");
+    expect(Object.values(scripts).filter((script) => script.includes("evenhub qr")))
+      .not.toContain(expect.stringContaining("sdk=0.0.11"));
   });
 });

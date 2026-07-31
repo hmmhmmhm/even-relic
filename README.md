@@ -11,7 +11,7 @@
   <img alt="TypeScript 5.9" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white">
   <img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111111">
   <img alt="Vite 6" src="https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white">
-  <img alt="Even Hub SDK 0.0.11" src="https://img.shields.io/badge/Even_Hub_SDK-0.0.11-7CF36A">
+  <img alt="Even Hub SDK 0.0.13" src="https://img.shields.io/badge/Even_Hub_SDK-0.0.13-7CF36A">
   <img alt="Validated on physical G2 hardware" src="https://img.shields.io/badge/G2-physical_hardware_validated-2EA043">
   <img alt="30 bundled languages" src="https://img.shields.io/badge/Languages-30-555555">
   <img alt="90 live-validated news feeds" src="https://img.shields.io/badge/RSS_feeds-90_live--validated-555555">
@@ -28,7 +28,8 @@ current product candidate is `/hud-canvas-fast`.
 
 The project favors useful information, predictable controls, and hardware-proven
 behavior over browser-only effects. It has been tested on physical G2 glasses
-with the Even Hub SDK pinned to `0.0.11`.
+with the Even Hub SDK pinned to `0.0.13`, Even App `2.2.6`, and updated G2
+firmware.
 
 ## Table of contents
 
@@ -43,7 +44,7 @@ with the Even Hub SDK pinned to `0.0.11`.
 - [Local development](#local-development)
 - [Build, test, and package](#build-test-and-package)
 - [Project structure](#project-structure)
-- [Compatibility and SDK 0.0.12 reproduction](#compatibility-and-sdk-0012-reproduction)
+- [SDK compatibility](#sdk-compatibility)
 - [Privacy, attribution, and limitations](#privacy-attribution-and-limitations)
 - [Contributing](#contributing)
 - [License and trademarks](#license-and-trademarks)
@@ -270,13 +271,13 @@ ORS_API_KEY='<server-only-key>' \
 Open the app through **Even Hub → Scan QR**:
 
 ```text
-http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.11&build=<BUILD-ID>
+http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.13&build=<BUILD-ID>
 ```
 
 No performance query is required. For an explicit transport rollback, use:
 
 ```text
-http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.11&pipeline=1&levels=original&build=<BUILD-ID>
+http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.13&pipeline=1&levels=original&build=<BUILD-ID>
 ```
 
 You can generate the configured QR code with:
@@ -342,24 +343,27 @@ Preserved diagnostic routes include:
 - `/calibration-max` — 576×288 display-boundary calibration.
 - `/diagnostic-v10` — tap-to-send 1-bit BMP transport diagnostic.
 
-## Compatibility and SDK 0.0.12 reproduction
+## SDK compatibility
 
 | SDK | Physical G2 result | Status |
 | --- | --- | --- |
-| `0.0.11` | Four-tile bounded image transport works | Supported and pinned |
-| `0.0.12` | First tile returns `sendFailed` in roughly 7ms; no image appears | Isolated reproduction only |
+| `0.0.11` | Four-tile bounded image transport works | Proven legacy baseline |
+| `0.0.12` | The old host failed immediately on its compressed image path | Historical reproduction only |
+| `0.0.13` | Four-tile bilateral transport, paging, detail views, and repeated hide/restore pass | Supported and pinned |
 
-SDK `0.0.12` adds a `compressMode: 2` path that is incompatible with the tested
-Even app and glasses combination. The minimal failing code remains available on
-the unchanged
+SDK `0.0.12` introduced the `compressMode: 2` path that failed on the earlier
+Even app and glasses combination. After the Even App and G2 firmware update,
+the same compressed-image contract succeeds through SDK `0.0.13`. The minimal
+historical failure remains available on the unchanged
 [`0.0.12-reproduce`](https://github.com/hmmhmmhm/sandevistan/tree/0.0.12-reproduce)
-branch for the Even Realities team. Main remains pinned to `0.0.11`.
+branch for the Even Realities team.
 
 Useful hardware records:
 
 - [First successful G2 image transfer](docs/hardware/2026-07-26-first-g2-image-success.md)
 - [SDK 0.0.11 transport checkpoint](docs/hardware/2026-07-27-sdk-0011-transport-success.md)
 - [SDK 0.0.12 LZ4 experiment](docs/hardware/2026-07-28-sdk-0012-lz4-experiment.md)
+- [SDK 0.0.13 physical promotion gate](docs/hardware/2026-07-31-sdk-0013-image-transport.md)
 - [Unchanged-tile skip experiment](docs/hardware/2026-07-28-g2-unchanged-tile-skip.md)
 - [Current project readiness audit](docs/hardware/2026-07-29-project-readiness-audit.md)
 - [Phone companion completion audit](docs/hardware/2026-07-29-phone-companion-completion-audit.md)

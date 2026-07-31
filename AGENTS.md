@@ -54,7 +54,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   event-direction inversion is needed. Keep `/hud-canvas` on its original
   order.
 - Show minute-only time plus `YYYY.MM.DD` and the active locale's weekday. Fetch one SDK
-  `0.0.11` `DeviceInfo` before initial fast-Canvas encoding and show its
+  `0.0.13` `DeviceInfo` before initial fast-Canvas encoding and show its
   G1/G2/R1 battery on overview. Fall back to `BATTERY --` without blocking
   image transmission. Do not resend tiles every second or on device-status
   events.
@@ -73,14 +73,14 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   language plus up to six validated user-added HTTPS feeds through the
   Sandevistan Worker, and OSM-derived road geometry rendered by Sandevistan's
   own Canvas code.
-- The physical G2 approves SDK `0.0.11` for bilateral fast startup,
-  `3/5/2/4` full transfers, `3/5` paging, and double-tap hide/restore. Use it
-  as the live-data baseline; keep SDK `0.0.12` blocked until separately proven
-  on the physical G2.
-- Even Realities reported the compressed-image failure repaired after the owner
-  updated the Even App and G2 firmware. Test the current SDK `0.0.13`, which
-  requires Even App `2.2.6`, only on `experiment/g2-sdk-0013`; keep SDK
-  `0.0.11` on `main` until a physical bilateral transport trace passes.
+- The physical G2 approves SDK `0.0.13` with Even App `2.2.6` and updated
+  firmware for bilateral fast startup, `3/5/2/4` full transfers, `3/5`
+  paging, detail views, and repeated double-tap hide/restore. Keep it as the
+  main live-data baseline.
+- Preserve SDK `0.0.11` as the proven legacy commit and the unchanged
+  `0.0.12-reproduce` branch as the historical compressed-image failure sent to
+  Even Realities. Do not describe the reproduction branch as the current host
+  behavior.
 - The query-free `/hud-canvas-fast` transport defaults to four in-flight SDK
   image calls and the `hud-4` transmitted palette. Preserve
   `?pipeline=1&levels=original` as the explicit rollback. Encode generated
@@ -154,7 +154,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Preserve bounded OSM `name:<language>` fields generically in the map Worker.
   A new locale must not require a map-server code change or a new hardcoded
   language-tag branch.
-- Locale additions must not change the proven SDK `0.0.11` tile order,
+- Locale additions must not change the proven SDK `0.0.13` tile order,
   bilateral output, busy-drop behavior, or display-toggle transport contract.
 - Finish Home with the Sandevistan project name, a Pixelarticons GitHub link to
   the repository, the Even app-manifest version, and the development status.

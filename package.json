@@ -12,12 +12,12 @@
     "typecheck": "tsc --noEmit",
     "test:sites": "node --test --test-concurrency=1 tests/sites-worker.test.mjs",
     "verify:rss-live": "node scripts/verify-rss-feeds.mjs",
-    "qr": "evenhub qr --url \"http://100.127.255.11:4179/hud-canvas-fast?sdk=0.0.13&build=sdk-0013-repair-042\"",
-    "qr:rollback": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=1&levels=original&build=rollback-serial-original-040\"",
-    "qr:pipeline2": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=2&build=pipeline-2-036\"",
-    "qr:pipeline3": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=3&build=pipeline-3-037\"",
-    "qr:pipeline4": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=4&build=pipeline-4-038\"",
-    "qr:palette4": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=4&levels=4&build=palette-4-039\"",
+    "qr": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.13&build=sdk-0013-main-043\"",
+    "qr:rollback": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.13&pipeline=1&levels=original&build=rollback-serial-original-sdk0013-043\"",
+    "qr:pipeline2": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.13&pipeline=2&build=pipeline-2-sdk0013-043\"",
+    "qr:pipeline3": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.13&pipeline=3&build=pipeline-3-sdk0013-043\"",
+    "qr:pipeline4": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.13&pipeline=4&build=pipeline-4-sdk0013-043\"",
+    "qr:palette4": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.13&pipeline=4&levels=4&build=palette-4-sdk0013-043\"",
     "pack": "npm run build && evenhub pack app.json dist/client -o sandevistan.ehpk"
   },
   "dependencies": {
