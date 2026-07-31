@@ -2,7 +2,7 @@
 
 Date: 2026-07-31
 
-Status: Ready for physical comparison
+Status: Partial physical pass; hide-path refinement required
 
 Branch: `experiment/g2-pipelined-transport`
 
@@ -60,6 +60,52 @@ For each route, record:
 The candidate passes only if it reduces total encoded bytes, improves the
 median four-tile complete-refresh duration, and preserves every visual and
 stability requirement.
+
+## Physical result
+
+The owner compared the baseline and candidate serially on 2026-07-31 and
+provided the raw WebView trace.
+
+### Content restore
+
+| Metric | Baseline | Four-level candidate | Change |
+| --- | ---: | ---: | ---: |
+| Full HUD PNG bytes | 50,031 | 22,821 median | 54.4% lower |
+| Encode duration | 22.5 ms median, n=4 | 96 ms median, n=8 | 73.5 ms higher |
+| Complete refresh | 2,468 ms median, n=4 | 1,855 ms median, n=8 | 613 ms / 24.8% faster |
+
+The reduced payload outweighed the additional pixel-processing cost. The
+four-level candidate therefore passes the measured full-content restore
+performance gate.
+
+### Black-frame hide
+
+| Metric | Baseline | Four-level candidate | Change |
+| --- | ---: | ---: | ---: |
+| Black PNG bytes | 4,704 | 4,704 | unchanged |
+| Complete refresh | 338 ms median, n=5 | 393 ms median, n=8 | 55 ms / 16.3% slower |
+
+The hidden frame was already solid black, so palette processing could not
+reduce its PNG payload and added avoidable CPU work. A follow-up candidate
+should bypass palette conversion for the generated black hidden Canvas while
+retaining four-level conversion for content restores.
+
+### Stability and visual report
+
+- No `sendFailed` or tile timeout appears in either supplied trace.
+- All shown full-frame calls started with four in-flight SDK calls.
+- Busy external refreshes were dropped rather than replayed.
+- The owner reported that the candidate may feel somewhat faster, without a
+  clear visual regression in this comparison.
+- This trace does not independently prove the full binocular, page-transition,
+  long-idle, or every-label legibility gate.
+
+## Decision
+
+Retain the four-level content candidate. Do not promote this exact revision as
+the final default yet: remove redundant hide-frame quantization first, then
+repeat the hide/restore comparison and finish the remaining visual and
+stability checks.
 
 ## Automated gate
 
