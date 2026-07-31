@@ -159,8 +159,8 @@ refresh remains failed and the next independent event may try again.
 
 Content tiles use a four-level grayscale palette by default. On physical G2
 hardware this reduced the measured full-frame payload by 54.4% and the median
-restore latency by 24.8%. Solid-black hide frames bypass palette conversion
-because their encoded payload is already minimal. Use
+restore latency by 24.8%. Explicit black-control hide frames bypass palette
+conversion because their encoded payload is already minimal. Use
 `?pipeline=1&levels=original` for the complete serial/original rollback.
 See the [pipeline hardware gate](docs/hardware/2026-07-30-g2-pipelined-image-transport.md)
 and [palette comparison](docs/hardware/2026-07-31-g2-hud-palette-compression.md).
@@ -172,15 +172,14 @@ A Base64 string SDK bridge was also rejected: all four tile calls returned
 remains mandatory, and stale `bridge` query values are ignored. See the
 [Base64 bridge hardware gate](docs/hardware/2026-07-31-g2-base64-image-bridge-experiment.md).
 
-An isolated `?hide=blank` candidate replaces the image page with one blank,
-full-screen event-capture container. Hiding performs no image encode or image
-send; restoring rebuilds the normal page and resends all four current tiles.
-It is fail-fast and never falls back within the same input event. The
-query-free black-tile path remains the production default until the
-[fast blank display hardware gate](docs/hardware/2026-07-31-g2-fast-blank-display-experiment.md)
-is complete. Preliminary physical evidence reduced median hide latency from
-394 ms to 87.5 ms (77.8%) with no sampled transport failure; two complete
-cycles, explicit binocular confirmation, and the idle-recovery gate remain.
+The query-free fast HUD replaces the image page with one blank, full-screen
+event-capture container when hiding. It performs no image encode or image send;
+restoring rebuilds the normal page and resends all four current tiles. The path
+is fail-fast and never falls back within the same input event. Physical G2
+evidence reduced median hide latency from 394 ms to 87.5 ms (77.8%) with no
+sampled transport failure, so the owner promoted it to the production default.
+Use exact `?hide=black` only for the former four-black-tile diagnostic control.
+See the [fast blank display hardware record](docs/hardware/2026-07-31-g2-fast-blank-display-experiment.md).
 
 This policy replaced an earlier backlog design that could accumulate tens of
 thousands of stale minute and location operations and eventually freeze the
@@ -302,13 +301,13 @@ You can generate the configured QR code with:
 
 ```bash
 npm run qr
-npm run qr:hide-blank
+npm run qr:hide-black
 npm run qr:rollback
 ```
 
-Run the control and `qr:hide-blank` routes one at a time. Close the first Even
-Hub WebView before opening the second so their transport sessions cannot
-overlap.
+Run the production `qr` and diagnostic `qr:hide-black` routes one at a time.
+Close the first Even Hub WebView before opening the second so their transport
+sessions cannot overlap.
 
 A normal desktop or mobile browser shows the Canvas preview. G2 transfer starts
 only when the page is opened through the Even app bridge.
@@ -404,10 +403,8 @@ Useful hardware records:
   [ODbL](https://www.openstreetmap.org/copyright).
 - Public endpoints are used conservatively for a personal, non-commercial
   prototype. This is not a hosted multi-user service.
-- The black-tile display toggle is not an official G2 sleep mode; the app and
-  listeners continue running.
-- The blank-page candidate is also not an official sleep mode; it only tests a
-  faster display-off presentation while preserving the event-capture surface.
+- Neither the production blank-page display toggle nor its black-tile control
+  is an official G2 sleep mode; the app and listeners continue running.
 - Hardware timing varies with the phone, Even app, glasses state, and radio link.
 
 ## Contributing

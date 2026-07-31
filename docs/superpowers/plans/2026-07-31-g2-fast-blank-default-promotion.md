@@ -75,7 +75,7 @@ const harness = await createFastRefreshHarness({
 Run:
 
 ```bash
-npx vitest run src/g2-display-hide.test.ts src/App.test.tsx src/glasses.test.ts --maxWorkers=1 --minWorkers=1
+npx vitest run src/g2-display-hide.test.ts src/App.test.tsx src/glasses.test.ts --no-file-parallelism --maxWorkers=1
 ```
 
 Expected: resolver, App query-free, explicit black, and default transport

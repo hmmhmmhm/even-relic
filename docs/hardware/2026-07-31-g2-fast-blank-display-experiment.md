@@ -2,7 +2,7 @@
 
 Date: 2026-07-31
 
-Status: Partial physical pass — hide performance passed; full promotion pending
+Status: Promoted by owner decision
 
 Branch: `experiment/g2-fast-blank-display`
 
@@ -19,27 +19,28 @@ live-data session, and phone companion remain active.
 ## Control
 
 ```text
-http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.13&build=hide-black-control-047
+http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.13&hide=black&build=hide-black-control-048
 ```
 
-The query-free production route encodes and sends four minimal black PNG tiles
+The explicit diagnostic control encodes and sends four minimal black PNG tiles
 when hiding. A second double tap sends the latest four HUD tiles.
 
 ## Candidate
 
 ```text
-http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.13&hide=blank&build=hide-blank-sdk0013-047
+http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.13&build=hide-blank-default-048
 ```
 
-The candidate rebuilds the page as one 576×288 blank event-capture text
+The production default rebuilds the page as one 576×288 blank event-capture text
 container. It performs no image encoding or image transfer while hiding. A
 second double tap redraws the latest HUD, rebuilds the normal five-container
 page, clears the successful-tile cache, and sends all four current tiles.
 
 ## Transport invariants
 
-- Only the exact `hide=blank` query selects the candidate.
-- Missing, differently cased, or invalid `hide` values use black tiles.
+- Only the exact `hide=black` query selects the diagnostic control.
+- Missing, `hide=blank`, differently cased, or invalid `hide` values use the
+  blank rebuild.
 - One accepted input owns the transport; input received while busy is dropped.
 - There is no deferred queue, merge, replay, automatic retry, or same-event
   fallback.
@@ -91,9 +92,9 @@ Record any `sendFailed`, timeout, false rebuild, missing tile, one-eye-only
 frame, persistent tearing, ignored post-idle input, close prompt, or WebView
 freeze.
 
-## Promotion gate
+## Original promotion gate
 
-The candidate passes only when all of the following hold:
+The original experiment defined all of the following conditions:
 
 - candidate median hide duration is at least 25% lower than the control median;
 - all ten measured candidate hides are visually blank in both eyes;
@@ -103,8 +104,9 @@ The candidate passes only when all of the following hold:
 - page scrolling and the post-idle hide/restore remain responsive; and
 - logs prove the candidate hide performed no image encode or image send.
 
-Automated tests cannot promote this candidate. Physical G2 evidence and the
-owner's visual confirmation are mandatory.
+The owner later accepted the measured physical result and explicitly waived
+the remaining sampling and idle checks. The incomplete rows below remain
+unchanged so the historical evidence is not overstated.
 
 ## Result table
 
@@ -151,21 +153,23 @@ refresh was dropped rather than replayed.
 
 ## Decision
 
-The hide-performance and sampled transport-reliability criteria pass. Keep the
-candidate available and preserve these measurements. Do not yet replace the
-query-free black-tile default: the strict promotion gate still requires two
-more complete measured cycles, explicit binocular hide-and-restore confirmation,
-and the five-minute idle recovery check.
+The hide-performance and sampled transport-reliability criteria pass. On
+2026-07-31 the owner reported that disappearance was extremely fast, accepted
+the result, declined further testing of this behavior, and directed that blank
+rebuild become the query-free production default. The uncompleted items in the
+original gate are therefore recorded as waived rather than silently marked as
+passed. The former black-tile behavior remains available only through exact
+`hide=black` for diagnosis and rollback.
 
 ## Automated evidence
 
 The implementation gate covers strict query resolution, blank and normal page
 shape, option propagation, zero-image candidate hide, forced four-tile restore,
 failed-hide visibility, failed-restore hidden state, fresh-event recovery,
-query-free control behavior, serial test execution, and the 450-line transport
-module boundary.
+query-free blank behavior, explicit black-control behavior, serial test
+execution, and the 450-line transport module boundary.
 
 ## Rollback
 
-Remove `hide=blank` or use `npm run qr`. No source rollback is required. The
-query-free route remains the production behavior throughout this experiment.
+Use `hide=black` or `npm run qr:hide-black`. No source rollback is required.
+Remove the query again to return to the production blank-rebuild behavior.
