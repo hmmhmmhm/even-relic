@@ -178,7 +178,9 @@ send; restoring rebuilds the normal page and resends all four current tiles.
 It is fail-fast and never falls back within the same input event. The
 query-free black-tile path remains the production default until the
 [fast blank display hardware gate](docs/hardware/2026-07-31-g2-fast-blank-display-experiment.md)
-has physical timing and binocular evidence.
+is complete. Preliminary physical evidence reduced median hide latency from
+394 ms to 87.5 ms (77.8%) with no sampled transport failure; two complete
+cycles, explicit binocular confirmation, and the idle-recovery gate remain.
 
 This policy replaced an earlier backlog design that could accumulate tens of
 thousands of stale minute and location operations and eventually freeze the

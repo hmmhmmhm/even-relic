@@ -2,7 +2,7 @@
 
 Date: 2026-07-31
 
-Status: Awaiting physical evidence
+Status: Partial physical pass — hide performance passed; full promotion pending
 
 Branch: `experiment/g2-fast-blank-display`
 
@@ -110,16 +110,52 @@ owner's visual confirmation are mandatory.
 
 | Metric | Black-tile control | Blank-rebuild candidate |
 | --- | ---: | ---: |
-| Measured cycles | Awaiting | Awaiting |
-| Median hide | Awaiting | Awaiting |
-| Median restore | Awaiting | Awaiting |
-| Hide image encodes | Awaiting | Expected: 0 |
-| Hide image sends | Awaiting | Expected: 0 |
-| Rebuild failures | Awaiting | Awaiting |
-| `sendFailed` / timeout | Awaiting | Awaiting |
-| Binocular blank hides | Awaiting | Awaiting |
-| Complete four-tile restores | Awaiting | Awaiting |
+| Measured hide / restore | 5 / 5 prior control operations | 8 / 7 candidate operations |
+| Median hide | 394 ms | 87.5 ms |
+| Median restore | 2,105 ms | 2,044 ms |
+| Hide image encodes | 1 per hide | 0 per hide |
+| Hide image sends | 4 per hide | 0 per hide |
+| Rebuild failures | Not applicable | 0 observed |
+| `sendFailed` / timeout | 0 observed | 0 observed |
+| Binocular blank hides | Prior control accepted | Immediate disappearance reported; count pending |
+| Complete four-tile restores | 5/5 transport operations | 7/7 transport operations |
 | Five-minute idle recovery | Awaiting | Awaiting |
+
+## Physical result
+
+The owner ran the candidate on updated G2 hardware and Even App with SDK
+`0.0.13`, reported that disappearance was extremely fast, and supplied the
+complete WebView trace excerpt on 2026-07-31.
+
+Eight candidate hide operations completed in `94`, `93`, `86`, `63`, `65`,
+`64`, `94`, and `89` ms. The median was 87.5 ms, with a 63–94 ms range. The
+blank page rebuild itself had an 87 ms median. Every hide trace contained the
+required blank-rebuild records and no `ENCODE` or `TILE` operation between hide
+start and completion.
+
+The most recent same-SDK black-tile control trace contained five comparable
+hide operations with a 394 ms median. The candidate therefore reduced median
+hide latency by 77.8%, comfortably passing the required 25% performance gate.
+
+Seven candidate restores completed in `1,962`, `1,979`, `2,005`, `2,131`,
+`2,044`, `2,135`, and `2,103` ms. The median was 2,044 ms. The restore-page
+rebuild had an 84 ms median, the four-tile encode had a 91 ms median, and the
+four-tile image refresh had a 1,952 ms median. Every recorded restore rebuilt
+the normal page, encoded once, started all four tile calls, received four
+success results, and committed the display.
+
+No rebuild failure, `sendFailed`, timeout, retry, queued replay, WebView freeze,
+or unexpected close prompt appears in the supplied trace. A tap received while
+hidden was ignored as designed, and input received during an active image
+refresh was dropped rather than replayed.
+
+## Decision
+
+The hide-performance and sampled transport-reliability criteria pass. Keep the
+candidate available and preserve these measurements. Do not yet replace the
+query-free black-tile default: the strict promotion gate still requires two
+more complete measured cycles, explicit binocular hide-and-restore confirmation,
+and the five-minute idle recovery check.
 
 ## Automated evidence
 
