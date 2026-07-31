@@ -18,8 +18,13 @@ import { bytesEqual } from "./bytes-equal";
 import { logDiagnostic } from "./diagnostic-log";
 import { formatG2TileEncodingDiagnostic, type G2TilePaletteMode } from "./g2-tile-palette";
 import type { G2TileImageFormat } from "./g2-tile-format";
+import {
+  createBlankDisplayPage,
+  createImageDisplayPage,
+  type G2DisplayHideStrategy,
+} from "./g2-display-hide";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
-import type { G2DisplayHideStrategy } from "./g2-display-hide";
+import { waitForTileSend } from "./image-send-timeout";
 import type {
   Bridge,
   DisplayToggle,
@@ -44,53 +49,14 @@ export type {
   PageDirection,
 } from "./fast-canvas-types";
 
-const diagnosticNow = () => (
-  typeof globalThis.performance?.now === "function"
-    ? globalThis.performance.now()
-    : Date.now()
-);
+const diagnosticNow = () => typeof globalThis.performance?.now === "function"
+  ? globalThis.performance.now()
+  : Date.now();
 
 const diagnosticDuration = (startedAt: number) => diagnosticNow() - startedAt;
-const diagnosticError = (error: unknown) => error instanceof Error
-  ? error.message
-  : String(error);
-
-const TILE_SEND_TIMEOUT_MS = 12_000;
-
-function waitForTileSend<T>(
-  promise: Promise<T>,
-  tileName: string,
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    let settled = false;
-    const timer = globalThis.setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      logDiagnostic(
-        "ERROR",
-        `${tileName} timeout · ${TILE_SEND_TIMEOUT_MS}ms`,
-      );
-      reject(new Error(
-        `${tileName} 전송 제한 시간 초과: ${TILE_SEND_TIMEOUT_MS}ms`,
-      ));
-    }, TILE_SEND_TIMEOUT_MS);
-
-    promise.then(
-      (value) => {
-        if (settled) return;
-        settled = true;
-        globalThis.clearTimeout(timer);
-        resolve(value);
-      },
-      (error: unknown) => {
-        if (settled) return;
-        settled = true;
-        globalThis.clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
-}
+const diagnosticError = (error: unknown) => (
+  error instanceof Error ? error.message : String(error)
+);
 
 export async function transmitCanvas(
   source: HTMLCanvasElement,
@@ -112,7 +78,7 @@ export async function transmitCanvas(
   imageSendConcurrency: ImageSendConcurrency = 1,
   tilePaletteMode: G2TilePaletteMode = "original",
   tileImageFormat: G2TileImageFormat = "png",
-  _displayHideStrategy: G2DisplayHideStrategy = "black-tiles",
+  displayHideStrategy: G2DisplayHideStrategy = "black-tiles",
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();
@@ -329,10 +295,42 @@ export async function transmitCanvas(
       onProgress("HUD 표시 복원 중");
       await displayToggle.beforeRestore?.();
       if (disposed) return;
+      if (displayHideStrategy === "blank-rebuild") {
+        const rebuildStartedAt = diagnosticNow();
+        const rebuilt = await bridge.rebuildPageContainer(
+          createImageDisplayPage(tiles),
+        );
+        if (!rebuilt) throw new Error("안경 페이지 복원 재구성 실패");
+        logDiagnostic(
+          "REFRESH",
+          "restore page rebuild success",
+          diagnosticDuration(rebuildStartedAt),
+        );
+        lastSuccessfulTilePayload.clear();
+      }
       await refreshImages(source, tiles, "HUD 표시 복원 완료");
       hidden = false;
       logDiagnostic("REFRESH", "restore complete");
     } else {
+      if (displayHideStrategy === "blank-rebuild") {
+        logDiagnostic("REFRESH", "hide start · strategy blank-rebuild");
+        onProgress("HUD 표시 숨기는 중");
+        const rebuildStartedAt = diagnosticNow();
+        const rebuilt = await bridge.rebuildPageContainer(
+          createBlankDisplayPage(),
+        );
+        if (!rebuilt) throw new Error("빈 안경 페이지 재구성 실패");
+        logDiagnostic(
+          "REFRESH",
+          "blank rebuild success",
+          diagnosticDuration(rebuildStartedAt),
+        );
+        lastSuccessfulTilePayload.clear();
+        hidden = true;
+        onProgress("HUD 표시 숨김 완료");
+        logDiagnostic("REFRESH", "hide complete");
+        return;
+      }
       logDiagnostic("REFRESH", "hide start");
       onProgress("HUD 표시 숨기는 중");
       await refreshImages(

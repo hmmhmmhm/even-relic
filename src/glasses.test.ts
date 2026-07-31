@@ -32,6 +32,7 @@ type TestRawEvent = {
 type FastRefreshHarnessConfig = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly beforeRestore?: () => void | Promise<void>;
+  readonly displayHideStrategy?: "black-tiles" | "blank-rebuild";
   readonly imageSendConcurrency?: 1 | 2 | 3 | 4;
   readonly tileImageFormat?: "png" | "bmp-1";
   readonly tilePaletteMode?: "original" | "hud-4";
@@ -49,6 +50,10 @@ type FastRefreshHarnessConfig = {
   readonly navigate?: (
     direction: "next" | "previous",
   ) => void | Promise<void>;
+  readonly rebuild?: (
+    page: Record<string, unknown>,
+    call: number,
+  ) => boolean | Promise<boolean>;
 };
 
 function deferred() {
@@ -77,6 +82,7 @@ async function createFastRefreshHarness(
   const inputs: TestInput[] = [];
   const progress: string[] = [];
   const rawEvents: TestRawEvent[] = [];
+  const rebuiltPages: Record<string, unknown>[] = [];
   let activeImageSends = 0;
   let maximumActiveImageSends = 0;
   let currentEncodeAttempt = 0;
@@ -87,7 +93,13 @@ async function createFastRefreshHarness(
 
   const bridge = {
     createStartUpPageContainer: async () => 0,
-    rebuildPageContainer: async () => true,
+    rebuildPageContainer: async (page: {
+      toJson?: () => Record<string, unknown>;
+    }) => {
+      const serialized = page.toJson?.() ?? page;
+      rebuiltPages.push(serialized);
+      return await (config.rebuild?.(serialized, rebuiltPages.length) ?? true);
+    },
     updateImageRawData: async (update: { containerID?: number }) => {
       const id = update.containerID!;
       imageIds.push(id);
@@ -134,6 +146,7 @@ async function createFastRefreshHarness(
           },
         ) => Promise<Uint8Array[]>;
       };
+      displayHideStrategy?: "black-tiles" | "blank-rebuild";
       imageSendConcurrency?: 1 | 2 | 3 | 4;
       tileImageFormat?: "png" | "bmp-1";
       tilePaletteMode?: "original" | "hud-4";
@@ -178,6 +191,7 @@ async function createFastRefreshHarness(
           ) ?? ids.map((id) => new Uint8Array([id, currentEncodeAttempt]));
         },
       },
+      displayHideStrategy: config.displayHideStrategy,
       imageSendConcurrency: config.imageSendConcurrency,
       tileImageFormat: config.tileImageFormat,
       tilePaletteMode: config.tilePaletteMode,
@@ -217,6 +231,7 @@ async function createFastRefreshHarness(
     inputs,
     progress,
     rawEvents,
+    rebuiltPages,
     request: refreshRequest,
     setInputResult: (result: TestInputResult) => {
       inputResult = result;
@@ -1381,6 +1396,77 @@ describe("G2 raster transport", () => {
       "png",
       "bmp-1",
     ]);
+  });
+
+  it("blank rebuild hides without images and restores all four tiles", async () => {
+    const harness = await createFastRefreshHarness({
+      displayHideStrategy: "blank-rebuild",
+    });
+
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.rebuiltPages).toHaveLength(1));
+    expect(harness.encodedSources).toEqual(["hud"]);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4]);
+    expect(harness.rebuiltPages[0].containerTotalNum).toBe(1);
+
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.rebuiltPages).toHaveLength(2));
+    await vi.waitFor(() => expect(harness.imageIds).toEqual([
+      3, 5, 2, 4,
+      3, 5, 2, 4,
+    ]));
+    expect(harness.encodedSources).toEqual(["hud", "hud"]);
+    expect(harness.rebuiltPages[1].containerTotalNum).toBe(5);
+  });
+
+  it("keeps visible input active after a failed blank hide rebuild", async () => {
+    const harness = await createFastRefreshHarness({
+      displayHideStrategy: "blank-rebuild",
+      rebuild: () => false,
+    });
+    diagnosticLogger.clear();
+
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "[ERROR] input double-tap failed · 빈 안경 페이지 재구성 실패",
+    ));
+    expect(harness.rebuiltPages).toHaveLength(1);
+    expect(harness.encodedSources).toEqual(["hud"]);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4]);
+
+    harness.emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await vi.waitFor(() => expect(harness.imageIds).toHaveLength(6));
+    expect(harness.inputs).toEqual(["double-tap", "scroll-next"]);
+    expect(harness.rebuiltPages).toHaveLength(1);
+  });
+
+  it("keeps a failed blank restore hidden until a fresh double tap", async () => {
+    const harness = await createFastRefreshHarness({
+      displayHideStrategy: "blank-rebuild",
+      rebuild: (_page, call) => call !== 2,
+    });
+
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.rebuiltPages).toHaveLength(1));
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.rebuiltPages).toHaveLength(2));
+    await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
+      "[ERROR] input double-tap failed · 안경 페이지 복원 재구성 실패",
+    ));
+
+    harness.emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
+    await Promise.resolve();
+    expect(harness.inputs).toEqual(["double-tap"]);
+    expect(harness.encodedSources).toEqual(["hud"]);
+    expect(harness.imageIds).toEqual([3, 5, 2, 4]);
+
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.rebuiltPages).toHaveLength(3));
+    await vi.waitFor(() => expect(harness.imageIds).toEqual([
+      3, 5, 2, 4,
+      3, 5, 2, 4,
+    ]));
+    expect(harness.encodedSources).toEqual(["hud", "hud"]);
   });
 
   it("live refresh ignores captured requests after cleanup", async () => {

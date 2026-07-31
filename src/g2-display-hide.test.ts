@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   createBlankDisplayPage,
+  createImageDisplayPage,
   resolveG2DisplayHideStrategy,
 } from "./g2-display-hide";
+import { G2_TILES } from "./g2-canvas";
 
 describe("G2 display hide strategy", () => {
   it.each([
@@ -33,6 +35,20 @@ describe("G2 display hide strategy", () => {
         content: " ",
         isEventCapture: 1,
       }),
+    ]);
+  });
+
+  it("rebuilds the normal event layer and all four image containers", () => {
+    const page = createImageDisplayPage(G2_TILES).toJson();
+
+    expect(page.containerTotalNum).toBe(5);
+    expect(page.textObject).toEqual([
+      expect.objectContaining({ containerName: "eventLayer" }),
+    ]);
+    expect(page.imageObject?.map(
+      (image: { containerID?: number }) => image.containerID,
+    )).toEqual([
+      2, 3, 4, 5,
     ]);
   });
 });
