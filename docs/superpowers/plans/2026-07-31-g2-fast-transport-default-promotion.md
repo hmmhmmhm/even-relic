@@ -226,7 +226,7 @@ Change only the hide call:
 await refreshImages(
   hiddenSource ??= displayToggle.createHiddenSource(),
   tiles,
-  "HUD 표시 숨김 완료",
+  "HUD hidden",
   undefined,
   "original",
 );

@@ -10,7 +10,7 @@ describe("Even Hub SDK compatibility", () => {
     expect(installed).toBe("0.0.11");
     expect(appManifest.min_sdk_version).toBe(installed);
     expect(packageManifest.scripts.qr).toBe(
-      'evenhub qr --url "http://100.96.68.73:4176/hud-canvas-fast?sdk=0.0.11&build=dirty-tiles-032"',
+      'evenhub qr --url "http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&build=fast-default-040"',
     );
   });
 
@@ -53,6 +53,13 @@ describe("Even Hub SDK compatibility", () => {
       "sdk=0.0.11&pipeline=4&levels=4&build=palette-4-039",
     );
     expect(scripts["qr:palette4"]).toContain(
+      "http://100.127.255.11:4177/",
+    );
+    expect(scripts["qr:rollback"]).toContain(
+      "sdk=0.0.11&pipeline=1&levels=original"
+        + "&build=rollback-serial-original-040",
+    );
+    expect(scripts["qr:rollback"]).toContain(
       "http://100.127.255.11:4177/",
     );
   });

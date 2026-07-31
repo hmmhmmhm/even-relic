@@ -29,7 +29,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   overview, navigation, news, and TODO/status. G2 and R1 bottom scroll advances;
   top scroll goes back.
 - Keep the four image containers alive during page changes. Redraw the same
-  Canvas and update container IDs 2–5 serially instead of rebuilding the page.
+  Canvas and update container IDs 2–5 instead of rebuilding the page.
 - Preserve `/hud-canvas` as the proven all-Canvas baseline. Test faster native
   text paging only on `/hud-hybrid`: send a text-free four-tile background once,
   then reuse the full-screen event-capture Text container for one in-place text
@@ -66,8 +66,8 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   alive, update visibility only after successful transmission, and preserve
   legacy shutdown behavior on every other route.
 - Present the WebView preview in the phone companion's washed grayscale Even
-  app treatment. Keep the transmitted grayscale Canvas palette unchanged and
-  do not add preview shadows, green tinting, or radial glow.
+  app treatment. Keep that phone preview independent from transmitted-tile
+  compression and do not add preview shadows, green tinting, or radial glow.
 - Keep general live features keyless: use the Even SDK for phone location,
   Open-Meteo for weather, three built-in RSS sources for each supported
   language plus up to six validated user-added HTTPS feeds through the
@@ -77,6 +77,11 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   `3/5/2/4` full transfers, `3/5` paging, and double-tap hide/restore. Use it
   as the live-data baseline; keep SDK `0.0.12` blocked until separately proven
   on the physical G2.
+- The query-free `/hud-canvas-fast` transport defaults to four in-flight SDK
+  image calls and the `hud-4` transmitted palette. Preserve
+  `?pipeline=1&levels=original` as the explicit rollback. Encode generated
+  solid-black hide frames with the original path, then restore content with
+  the resolved content palette.
 - Treat routing as optional. Accept a user-owned OpenRouteService key in the
   phone companion, persist it only in Even local storage, forward it through
   fixed same-origin routing endpoints without server persistence or logging,

@@ -23,7 +23,7 @@
 
 Sandevistan is an unofficial, fan-made personal HUD for the Even Realities G2.
 It renders a 576×288 tactical interface to Canvas, splits it into four 288×144
-images, and sends those tiles to the glasses in a measured serial sequence. The
+images, and sends those tiles through a bounded four-call SDK pipeline. The
 current product candidate is `/hud-canvas-fast`.
 
 The project favors useful information, predictable controls, and hardware-proven
@@ -57,7 +57,7 @@ around that fact:
 - Dense overview information distributed across four focused pages.
 - Full-screen detail decks for maps, news, tasks, weather, and navigation.
 - Canvas-first rendering for visual consistency and fast page changes.
-- Serial-by-default, fail-fast image transport with no deferred refresh queue.
+- Four-call, fail-fast image transport with no deferred refresh queue.
 - Keyless location, weather, news, and map data.
 - Optional OpenRouteService routing with a device-local key or development fallback.
 - An Even-style phone companion for configuration and live status.
@@ -147,20 +147,21 @@ The hardware-proven send order is:
 - Map movement: left side only, `2 → 4`.
 - Visible minute or battery change: top-right only, `3`.
 
-Only one accepted refresh owns the transport at a time. Tiles are sent serially
-inside that refresh by default. This experimental branch also accepts
-`pipeline=2`, `pipeline=3`, or `pipeline=4` to overlap only the SDK tile calls
-belonging to that one refresh; missing or invalid values resolve to the serial
-limit of one. A tile whose encoded bytes match the last successful send is
-skipped. Any refresh request arriving while transport is busy is dropped
-immediately: it is not queued, merged, replayed, or retried. A failed refresh
-remains failed and the next independent event may try again.
+Only one accepted refresh owns the transport at a time. Up to four SDK tile
+calls belonging to that refresh may be in flight; missing or invalid `pipeline`
+values resolve to four, while explicit values from `1` through `4` remain
+available for diagnosis. A tile whose encoded bytes match the last successful
+send is skipped. Any refresh request arriving while transport is busy is
+dropped immediately: it is not queued, merged, replayed, or retried. A failed
+refresh remains failed and the next independent event may try again.
 
-The bounded pipeline is a physical-hardware experiment and is not the `main`
-default. The owner approved a direct four-call trial after observing an initial
-improvement with pipeline two. No pipelined mode is promoted without the
-documented binocular, visual, latency, and stability evidence.
-See the [G2 pipelined image transport hardware gate](docs/hardware/2026-07-30-g2-pipelined-image-transport.md).
+Content tiles use a four-level grayscale palette by default. On physical G2
+hardware this reduced the measured full-frame payload by 54.4% and the median
+restore latency by 24.8%. Solid-black hide frames bypass palette conversion
+because their encoded payload is already minimal. Use
+`?pipeline=1&levels=original` for the complete serial/original rollback.
+See the [pipeline hardware gate](docs/hardware/2026-07-30-g2-pipelined-image-transport.md)
+and [palette comparison](docs/hardware/2026-07-31-g2-hud-palette-compression.md).
 
 This policy replaced an earlier backlog design that could accumulate tens of
 thousands of stale minute and location operations and eventually freeze the
@@ -272,10 +273,17 @@ Open the app through **Even Hub → Scan QR**:
 http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.11&build=<BUILD-ID>
 ```
 
+No performance query is required. For an explicit transport rollback, use:
+
+```text
+http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.11&pipeline=1&levels=original&build=<BUILD-ID>
+```
+
 You can generate the configured QR code with:
 
 ```bash
 npm run qr
+npm run qr:rollback
 ```
 
 A normal desktop or mobile browser shows the Canvas preview. G2 transfer starts
@@ -338,7 +346,7 @@ Preserved diagnostic routes include:
 
 | SDK | Physical G2 result | Status |
 | --- | --- | --- |
-| `0.0.11` | Four-tile serial image transport works | Supported and pinned |
+| `0.0.11` | Four-tile bounded image transport works | Supported and pinned |
 | `0.0.12` | First tile returns `sendFailed` in roughly 7ms; no image appears | Isolated reproduction only |
 
 SDK `0.0.12` adds a `compressMode: 2` path that is incompatible with the tested
@@ -374,7 +382,7 @@ Useful hardware records:
 
 Issues and focused pull requests are welcome. Before opening a change:
 
-1. Keep image transport serial and fail-fast.
+1. Keep image transport bounded and fail-fast.
 2. Do not add a deferred refresh queue.
 3. Keep credentials on the server.
 4. Preserve the 576×288 and 288×144 transport boundaries.
