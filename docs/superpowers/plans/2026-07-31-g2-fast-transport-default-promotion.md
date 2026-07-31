@@ -19,7 +19,7 @@
 - Modify: `src/g2-tile-palette.test.ts:9-19`
 - Modify: `src/App.test.tsx:252-320`
 
-- [ ] **Step 1: Write failing resolver tests**
+- [x] **Step 1: Write failing resolver tests**
 
 Replace the concurrency cases with:
 
@@ -77,7 +77,7 @@ it("passes the explicit serial and original rollback", async () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run:
 
@@ -90,7 +90,7 @@ npx vitest run src/image-send-concurrency.test.ts \
 Expected: FAIL because missing and invalid queries still resolve to serial and
 original.
 
-- [ ] **Step 3: Implement the new resolver defaults**
+- [x] **Step 3: Implement the new resolver defaults**
 
 Implement concurrency resolution as:
 
@@ -116,13 +116,13 @@ export function resolveG2TilePaletteMode(search: string): G2TilePaletteMode {
 }
 ```
 
-- [ ] **Step 4: Run the focused tests and verify GREEN**
+- [x] **Step 4: Run the focused tests and verify GREEN**
 
 Run the Step 2 command.
 
 Expected: all resolver and App option tests pass.
 
-- [ ] **Step 5: Commit the resolver promotion**
+- [x] **Step 5: Commit the resolver promotion**
 
 ```bash
 git add src/image-send-concurrency.ts src/image-send-concurrency.test.ts \
@@ -136,7 +136,7 @@ git commit -m "feat: promote fast G2 route defaults"
 - Modify: `src/fast-canvas-transport.ts:136-166,324-344`
 - Modify: `src/glasses.test.ts:20-190,1425-1470`
 
-- [ ] **Step 1: Extend the test harness and write the failing hide test**
+- [x] **Step 1: Extend the test harness and write the failing hide test**
 
 Add to `FastRefreshHarnessConfig`:
 
@@ -189,7 +189,7 @@ it("bypasses the content palette only for black hide frames", async () => {
 });
 ```
 
-- [ ] **Step 2: Run the focused transport test and verify RED**
+- [x] **Step 2: Run the focused transport test and verify RED**
 
 Run:
 
@@ -199,7 +199,7 @@ npx vitest run src/glasses.test.ts --no-file-parallelism --maxWorkers=1
 
 Expected: FAIL because hide still receives `"hud-4"`.
 
-- [ ] **Step 3: Add a per-refresh encoding-mode override**
+- [x] **Step 3: Add a per-refresh encoding-mode override**
 
 Extend the local function signature:
 
@@ -234,14 +234,14 @@ await refreshImages(
 
 No other refresh call receives an override.
 
-- [ ] **Step 4: Run the focused transport test and verify GREEN**
+- [x] **Step 4: Run the focused transport test and verify GREEN**
 
 Run the Step 2 command.
 
 Expected: all transport tests pass, with content/hide/restore modes exactly
 `hud-4 → original → hud-4`.
 
-- [ ] **Step 5: Commit the hide-path refinement**
+- [x] **Step 5: Commit the hide-path refinement**
 
 ```bash
 git add src/fast-canvas-transport.ts src/glasses.test.ts
@@ -257,7 +257,7 @@ git commit -m "perf: bypass palette work for hidden G2 frames"
 - Modify: `AGENTS.md:28-34,44-52,60-72`
 - Modify: `docs/superpowers/specs/2026-07-31-g2-fast-transport-default-promotion-design.md:1-10`
 
-- [ ] **Step 1: Write failing package-script tests**
+- [x] **Step 1: Write failing package-script tests**
 
 Update the primary QR expectation to:
 
@@ -280,7 +280,7 @@ expect(scripts["qr:rollback"]).toContain("http://100.127.255.11:4177/");
 
 Keep every historical pipeline and palette script assertion.
 
-- [ ] **Step 2: Run the SDK test and verify RED**
+- [x] **Step 2: Run the SDK test and verify RED**
 
 Run:
 
@@ -291,7 +291,7 @@ npx vitest run src/sdk-version.test.ts --no-file-parallelism --maxWorkers=1
 Expected: FAIL because the primary URL is still the historical serial build
 and `qr:rollback` does not exist.
 
-- [ ] **Step 3: Update package scripts**
+- [x] **Step 3: Update package scripts**
 
 Set:
 
@@ -303,7 +303,7 @@ Set:
 Do not edit the existing `qr:pipeline2`, `qr:pipeline3`, `qr:pipeline4`, or
 `qr:palette4` values.
 
-- [ ] **Step 4: Update durable project documentation**
+- [x] **Step 4: Update durable project documentation**
 
 Update README transport copy to state:
 
@@ -327,7 +327,7 @@ Add an `AGENTS.md` decision that preserves:
 Change the promotion design status to
 `Implemented; awaiting default-route physical gate`.
 
-- [ ] **Step 5: Run focused SDK and repository checks**
+- [x] **Step 5: Run focused SDK and repository checks**
 
 Run serially:
 
@@ -339,7 +339,7 @@ npm run test:repo
 Expected: SDK tests and all five repository-copy tests pass, with no active
 copy claiming serial-by-default behavior.
 
-- [ ] **Step 6: Commit the published default**
+- [x] **Step 6: Commit the published default**
 
 ```bash
 git add package.json src/sdk-version.test.ts README.md AGENTS.md \
@@ -353,7 +353,7 @@ git commit -m "docs: publish fast G2 transport default"
 - Create: `docs/hardware/2026-07-31-g2-fast-transport-default-promotion.md`
 - Modify: `docs/superpowers/plans/2026-07-31-g2-fast-transport-default-promotion.md`
 
-- [ ] **Step 1: Run the complete verification suite serially**
+- [x] **Step 1: Run the complete verification suite serially**
 
 Run one command only after the previous command exits:
 
@@ -375,7 +375,7 @@ Expected:
 - four Sites worker tests pass with Node concurrency one;
 - `sandevistan.ehpk` is produced with SDK `0.0.11`.
 
-- [ ] **Step 2: Create the physical promotion record**
+- [x] **Step 2: Create the physical promotion record**
 
 Create an English hardware record with:
 
@@ -405,7 +405,7 @@ Include the already measured 54.4% payload reduction and 24.8% restore
 improvement as prior evidence, while leaving the default-route hide bypass
 unpassed until physical logs arrive.
 
-- [ ] **Step 3: Mark the implementation plan complete and commit**
+- [x] **Step 3: Mark the implementation plan complete and commit**
 
 Change every executed checkbox in this plan from `[ ]` to `[x]`, then run:
 
