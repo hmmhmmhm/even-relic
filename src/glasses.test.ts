@@ -1307,6 +1307,7 @@ describe("G2 raster transport", () => {
   it("live refresh skips hidden work and restores the newest full HUD", async () => {
     const order: string[] = [];
     const harness = await createFastRefreshHarness({
+      displayHideStrategy: "black-tiles",
       beforeExternalRefresh: async () => {
         order.push("external-redraw");
       },
@@ -1347,6 +1348,7 @@ describe("G2 raster transport", () => {
 
   it("bypasses HUD palette conversion for the black hidden frame", async () => {
     const harness = await createFastRefreshHarness({
+      displayHideStrategy: "black-tiles",
       tilePaletteMode: "hud-4",
     });
 
@@ -1373,6 +1375,7 @@ describe("G2 raster transport", () => {
 
   it("keeps BMP for content but uses PNG for the black hidden frame", async () => {
     const harness = await createFastRefreshHarness({
+      displayHideStrategy: "black-tiles",
       tileImageFormat: "bmp-1",
       tilePaletteMode: "hud-4",
     });
@@ -1398,10 +1401,8 @@ describe("G2 raster transport", () => {
     ]);
   });
 
-  it("blank rebuild hides without images and restores all four tiles", async () => {
-    const harness = await createFastRefreshHarness({
-      displayHideStrategy: "blank-rebuild",
-    });
+  it("default blank rebuild hides without images and restores all four tiles", async () => {
+    const harness = await createFastRefreshHarness();
 
     harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
     await vi.waitFor(() => expect(harness.rebuiltPages).toHaveLength(1));
@@ -1628,6 +1629,7 @@ describe("G2 raster transport", () => {
 
   it("traces one handled tap and one dashboard hide without extra sends", async () => {
     const harness = await createFastRefreshHarness({
+      displayHideStrategy: "black-tiles",
       inputResult: "redraw",
     });
     diagnosticLogger.clear();
@@ -1669,7 +1671,9 @@ describe("G2 raster transport", () => {
   });
 
   it("reports an omitted hidden event before discarding it", async () => {
-    const harness = await createFastRefreshHarness();
+    const harness = await createFastRefreshHarness({
+      displayHideStrategy: "black-tiles",
+    });
 
     harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
     await vi.waitFor(() => expect(harness.imageIds).toHaveLength(8));
@@ -1728,7 +1732,9 @@ describe("G2 raster transport", () => {
   });
 
   it("lets handled double-tap input redraw before dashboard hide fallback", async () => {
-    const harness = await createFastRefreshHarness();
+    const harness = await createFastRefreshHarness({
+      displayHideStrategy: "black-tiles",
+    });
 
     harness.setInputResult("redraw");
     harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
@@ -1757,6 +1763,7 @@ describe("G2 raster transport", () => {
     const hideGate = deferred();
     let hideBlocked = false;
     const harness = await createFastRefreshHarness({
+      displayHideStrategy: "black-tiles",
       update: async (_id, _call, encodeAttempt) => {
         if (encodeAttempt === 2 && !hideBlocked) {
           hideBlocked = true;
@@ -1873,6 +1880,7 @@ describe("G2 raster transport", () => {
           },
         },
         createHiddenSource: () => blackSource,
+        displayHideStrategy: "black-tiles",
         beforeRestore: async () => {
           beforeRestoreCalls += 1;
         },
@@ -1979,6 +1987,7 @@ describe("G2 raster transport", () => {
           },
         },
         createHiddenSource: () => blackSource,
+        displayHideStrategy: "black-tiles",
       },
     );
 

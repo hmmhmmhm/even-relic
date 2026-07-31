@@ -78,7 +78,7 @@ export async function transmitCanvas(
   imageSendConcurrency: ImageSendConcurrency = 1,
   tilePaletteMode: G2TilePaletteMode = "original",
   tileImageFormat: G2TileImageFormat = "png",
-  displayHideStrategy: G2DisplayHideStrategy = "black-tiles",
+  displayHideStrategy: G2DisplayHideStrategy = "blank-rebuild",
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();

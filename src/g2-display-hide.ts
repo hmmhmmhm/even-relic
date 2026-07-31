@@ -9,9 +9,9 @@ export type G2DisplayHideStrategy = "black-tiles" | "blank-rebuild";
 export function resolveG2DisplayHideStrategy(
   search: string,
 ): G2DisplayHideStrategy {
-  return new URLSearchParams(search).get("hide") === "blank"
-    ? "blank-rebuild"
-    : "black-tiles";
+  return new URLSearchParams(search).get("hide") === "black"
+    ? "black-tiles"
+    : "blank-rebuild";
 }
 
 export function createBlankDisplayPage(): RebuildPageContainer {

@@ -8,10 +8,11 @@ import { G2_TILES } from "./g2-canvas";
 
 describe("G2 display hide strategy", () => {
   it.each([
-    ["", "black-tiles"],
+    ["", "blank-rebuild"],
     ["?hide=blank", "blank-rebuild"],
-    ["?hide=BLACK", "black-tiles"],
-    ["?hide=invalid", "black-tiles"],
+    ["?hide=black", "black-tiles"],
+    ["?hide=BLACK", "blank-rebuild"],
+    ["?hide=invalid", "blank-rebuild"],
   ] as const)("resolves %s to %s", (search, expected) => {
     expect(resolveG2DisplayHideStrategy(search)).toBe(expected);
   });

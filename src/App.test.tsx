@@ -319,7 +319,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(fastOptions().tilePaletteMode).toBe("hud-4");
   });
 
-  it("enables blank rebuild only on the explicit candidate route", async () => {
+  it("keeps the explicit blank route as a blank-rebuild alias", async () => {
     window.history.replaceState({}, "", "/hud-canvas-fast?hide=blank");
     mocks.transmitFast.mockResolvedValue(vi.fn());
 
@@ -329,8 +329,18 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(fastOptions().displayHideStrategy).toBe("blank-rebuild");
   });
 
-  it("keeps black tiles as the query-free display toggle", async () => {
+  it("uses blank rebuild as the query-free display toggle", async () => {
     window.history.replaceState({}, "", "/hud-canvas-fast");
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().displayHideStrategy).toBe("blank-rebuild");
+  });
+
+  it("keeps black tiles behind the explicit control route", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast?hide=black");
     mocks.transmitFast.mockResolvedValue(vi.fn());
 
     render(<App />);
