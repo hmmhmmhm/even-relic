@@ -251,10 +251,10 @@ add:
 ```ts
 if (!hidden && displayHideStrategy === "blank-rebuild") {
   logDiagnostic("REFRESH", "hide start · strategy blank-rebuild");
-  onProgress("HUD 표시 숨기는 중");
+  onProgress("<localized hiding status>");
   const rebuildStartedAt = diagnosticNow();
   const rebuilt = await bridge.rebuildPageContainer(createBlankDisplayPage());
-  if (!rebuilt) throw new Error("빈 안경 페이지 재구성 실패");
+  if (!rebuilt) throw new Error("<blank page rebuild failed>");
   logDiagnostic(
     "REFRESH",
     "blank rebuild success",
@@ -262,7 +262,7 @@ if (!hidden && displayHideStrategy === "blank-rebuild") {
   );
   lastSuccessfulTilePayload.clear();
   hidden = true;
-  onProgress("HUD 표시 숨김 완료");
+  onProgress("<localized hidden status>");
   logDiagnostic("REFRESH", "hide complete");
   return;
 }
@@ -284,7 +284,7 @@ if (displayHideStrategy === "blank-rebuild") {
     textObject: [eventLayer],
     imageObject,
   }));
-  if (!rebuilt) throw new Error("안경 페이지 복원 재구성 실패");
+  if (!rebuilt) throw new Error("<display restore rebuild failed>");
   logDiagnostic(
     "REFRESH",
     "restore page rebuild success",
@@ -292,7 +292,7 @@ if (displayHideStrategy === "blank-rebuild") {
   );
   lastSuccessfulTilePayload.clear();
 }
-await refreshImages(source, tiles, "HUD 표시 복원 완료");
+await refreshImages(source, tiles, "<localized restore complete status>");
 hidden = false;
 ```
 

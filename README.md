@@ -117,8 +117,9 @@ The same gestures work from the G2 temple and the R1 ring:
 - **Scroll:** move between dashboard pages.
 - **Single tap:** open the active detail deck or activate its selected item.
 - **Fast double tap:** return from a detail deck to its dashboard page.
-- **Dashboard double tap:** replace all tiles with black images while leaving
-  the app and event listeners alive; double tap again to restore the latest view.
+- **Dashboard double tap:** on the production route, replace all tiles with
+  black images while leaving the app and event listeners alive; double tap
+  again to restore the latest view.
 
 Within full-screen details:
 
@@ -170,6 +171,14 @@ A Base64 string SDK bridge was also rejected: all four tile calls returned
 `sendFailed` within 3–4 ms before transfer began. The stable typed-byte path
 remains mandatory, and stale `bridge` query values are ignored. See the
 [Base64 bridge hardware gate](docs/hardware/2026-07-31-g2-base64-image-bridge-experiment.md).
+
+An isolated `?hide=blank` candidate replaces the image page with one blank,
+full-screen event-capture container. Hiding performs no image encode or image
+send; restoring rebuilds the normal page and resends all four current tiles.
+It is fail-fast and never falls back within the same input event. The
+query-free black-tile path remains the production default until the
+[fast blank display hardware gate](docs/hardware/2026-07-31-g2-fast-blank-display-experiment.md)
+has physical timing and binocular evidence.
 
 This policy replaced an earlier backlog design that could accumulate tens of
 thousands of stale minute and location operations and eventually freeze the
@@ -291,8 +300,13 @@ You can generate the configured QR code with:
 
 ```bash
 npm run qr
+npm run qr:hide-blank
 npm run qr:rollback
 ```
+
+Run the control and `qr:hide-blank` routes one at a time. Close the first Even
+Hub WebView before opening the second so their transport sessions cannot
+overlap.
 
 A normal desktop or mobile browser shows the Canvas preview. G2 transfer starts
 only when the page is opened through the Even app bridge.
@@ -373,6 +387,7 @@ Useful hardware records:
 - [SDK 0.0.13 physical promotion gate](docs/hardware/2026-07-31-sdk-0013-image-transport.md)
 - [1-bit BMP versus PNG hardware gate](docs/hardware/2026-07-31-g2-lz4-friendly-bmp-experiment.md)
 - [Typed-array versus Base64 SDK bridge gate](docs/hardware/2026-07-31-g2-base64-image-bridge-experiment.md)
+- [Fast blank display hardware gate](docs/hardware/2026-07-31-g2-fast-blank-display-experiment.md)
 - [Unchanged-tile skip experiment](docs/hardware/2026-07-28-g2-unchanged-tile-skip.md)
 - [Current project readiness audit](docs/hardware/2026-07-29-project-readiness-audit.md)
 - [Phone companion completion audit](docs/hardware/2026-07-29-phone-companion-completion-audit.md)
@@ -389,6 +404,8 @@ Useful hardware records:
   prototype. This is not a hosted multi-user service.
 - The black-tile display toggle is not an official G2 sleep mode; the app and
   listeners continue running.
+- The blank-page candidate is also not an official sleep mode; it only tests a
+  faster display-off presentation while preserving the event-capture surface.
 - Hardware timing varies with the phone, Even app, glasses state, and radio link.
 
 ## Contributing
