@@ -4,7 +4,7 @@
 
 - Branch: `experiment/g2-indexed-png`
 - Automated verification: passed on 2026-07-31
-- Physical baseline: not started
+- Physical baseline: transport passed on 2026-07-31
 - Physical candidate: not started
 - Default encoder: Canvas
 - Promotion decision: not requested
@@ -22,6 +22,32 @@
   `bc0fc16b6f8838d4883b2a5078be23ce34cc9328c71f764ef1d99a786d52d4d1`.
 - Client source and production bundle scan found no embedded ORS JWT prefix.
 - Custom transport files remain within the 450-line repository boundary.
+
+## Canvas Baseline Record
+
+The owner supplied one physical G2 trace from 20:36:56 through 20:37:25.
+The trace confirms `palette hud-4 · encoder canvas` for visible frames and
+`palette original · encoder canvas` for every hide.
+
+Observed samples:
+
+- Two-tile visible refresh bytes: 9,802 and 9,710; median 9,756 bytes.
+- Two-tile visible encode times: 36 and 51 ms; median 43.5 ms.
+- Two-tile visible refresh times: 704 and 710 ms; median 707 ms.
+- Six hide payloads: 4,704 bytes each.
+- Six hide encode times: 24, 26, 24, 22, 26, and 25 ms; median 24.5 ms.
+- Six hide refresh times: 330, 480, 364, 362, 363, and 364 ms;
+  median 363.5 ms.
+- Five restore payloads: 22,860 bytes each.
+- Five restore encode times: 93, 85, 91, 86, and 89 ms; median 89 ms.
+- Five restore refresh times: 2,185, 2,034, 1,888, 1,972, and 1,915 ms;
+  median 1,972 ms.
+
+No `sendFailed`, timeout, retry, pending replay, or queue growth appears in the
+submitted trace. Refresh requests arriving during an active operation were
+dropped as designed. The trace contains no WebView stall evidence. No separate
+four-tile detail sample was included; the five restore samples provide the
+recorded full-frame baseline.
 
 ## Purpose
 
@@ -99,10 +125,10 @@ Record values from `ENCODE complete` and `REFRESH image refresh complete`.
 
 | Variant | Operation | Run | Bytes | Encode ms | Refresh ms | Result |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
-| Canvas | Four-tile visible | 1-5 | — | — | — | Not run |
-| Canvas | Two-tile visible | 1-5 | — | — | — | Not run |
-| Canvas | Hide | 1-5 | — | — | — | Not run |
-| Canvas | Restore | 1-5 | — | — | — | Not run |
+| Canvas | Four-tile detail | — | — | — | — | No separate sample |
+| Canvas | Two-tile visible | 2 | 9,756 median | 43.5 median | 707 median | Pass |
+| Canvas | Hide | 6 | 4,704 median | 24.5 median | 363.5 median | Pass |
+| Canvas | Restore | 5 | 22,860 median | 89 median | 1,972 median | Pass |
 | Indexed | Four-tile visible | 1-5 | — | — | — | Not run |
 | Indexed | Two-tile visible | 1-5 | — | — | — | Not run |
 | Indexed | Hide | 1-5 | — | — | — | Not run |
