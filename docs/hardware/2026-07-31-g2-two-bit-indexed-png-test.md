@@ -1,0 +1,163 @@
+# G2 Two-Bit Indexed PNG Hardware Test
+
+## Status
+
+- Branch: `experiment/g2-indexed-png`
+- Automated verification: passed on 2026-07-31
+- Physical baseline: not started
+- Physical candidate: not started
+- Default encoder: Canvas
+- Promotion decision: not requested
+
+## Automated Verification Record
+
+- `npm test`: 59 files and 534 tests passed.
+- `npm run typecheck`: passed.
+- `npm run test:repo`: 5 tests passed and repository copy check passed.
+- `npm run build`: 156 modules transformed and production build completed.
+- `npm run test:sites`: 4 tests passed.
+- `node --test --test-concurrency=1 tests/*.test.mjs`: 147 tests passed.
+- `npm run pack`: produced `sandevistan.ehpk` at 1,777,391 bytes.
+- EHPK SHA-256:
+  `bc0fc16b6f8838d4883b2a5078be23ce34cc9328c71f764ef1d99a786d52d4d1`.
+- Client source and production bundle scan found no embedded ORS JWT prefix.
+- Custom transport files remain within the 450-line repository boundary.
+
+## Purpose
+
+This test isolates PNG representation from the already proven transport setup.
+Both variants use SDK 0.0.11, four-level visible HUD pixels, four concurrent
+tile sends, unchanged-tile skipping, and no refresh queue. Only the visible
+tile encoder changes.
+
+The all-black hidden frame always uses the existing Canvas/original path in
+both variants.
+
+## Serial Test URLs
+
+Test only one URL at a time. Close or reload the Mini App before switching.
+
+### Canvas baseline
+
+```text
+http://100.127.255.11:4178/hud-canvas-fast?sdk=0.0.11&encoder=canvas&build=indexed-baseline-041
+```
+
+### Two-bit indexed candidate
+
+```text
+http://100.127.255.11:4178/hud-canvas-fast?sdk=0.0.11&encoder=indexed-2&build=indexed-2-041
+```
+
+### Known-good main reference
+
+```text
+http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&build=fast-default-040
+```
+
+The port 4177 server is not part of this experiment and must remain unchanged.
+
+## Preflight
+
+1. Charge the G2 sufficiently for the complete serial run.
+2. Confirm both eyes display the current Canvas baseline correctly.
+3. Open the WebView trace and clear it before each variant.
+4. Use the same phone, G2, physical location, locale, HUD data, and interaction
+   sequence for both variants.
+5. Perform one unrecorded warm-up refresh after loading each URL.
+
+## Interaction Sequence
+
+For each variant, in this order:
+
+1. Perform five four-tile detail or restore refreshes.
+2. Perform five two-tile dashboard page refreshes.
+3. Hide the HUD five times with a double tap.
+4. Restore the HUD five times with a double tap.
+5. Scroll through all HUD pages once.
+6. Open and close one detail view.
+7. Leave the WebView idle for at least two minute boundaries.
+
+Do not issue a second input while a refresh is active. Busy inputs are expected
+to be dropped rather than queued.
+
+## Required Visual Checks
+
+- Both eyes show the same complete frame.
+- All four quadrants are present and in the correct location.
+- Grayscale levels match the Canvas baseline.
+- Text edges, map labels, icons, and weather graphics remain legible.
+- No tile is blank, corrupt, stale, shifted, or partially decoded.
+- Page order, map zoom direction, detail scrolling, and double-tap hide/restore
+  remain unchanged.
+- Hidden pixels are fully black.
+- The WebView remains responsive after the idle period.
+
+## Measurement Table
+
+Record values from `ENCODE complete` and `REFRESH image refresh complete`.
+
+| Variant | Operation | Run | Bytes | Encode ms | Refresh ms | Result |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| Canvas | Four-tile visible | 1-5 | — | — | — | Not run |
+| Canvas | Two-tile visible | 1-5 | — | — | — | Not run |
+| Canvas | Hide | 1-5 | — | — | — | Not run |
+| Canvas | Restore | 1-5 | — | — | — | Not run |
+| Indexed | Four-tile visible | 1-5 | — | — | — | Not run |
+| Indexed | Two-tile visible | 1-5 | — | — | — | Not run |
+| Indexed | Hide | 1-5 | — | — | — | Not run |
+| Indexed | Restore | 1-5 | — | — | — | Not run |
+
+Calculate medians separately for each variant and operation. Do not combine
+two-tile, four-tile, hide, and restore samples.
+
+## Diagnostic Expectations
+
+The baseline startup must include:
+
+```text
+transport start · pipeline 4 · palette hud-4 · encoder canvas
+```
+
+The candidate startup must include:
+
+```text
+transport start · pipeline 4 · palette hud-4 · encoder indexed-2
+```
+
+Candidate visible refreshes must include `palette hud-4 · encoder indexed-2`.
+Every hide refresh must include `palette original · encoder canvas`.
+
+The run must not contain:
+
+- `sendFailed`
+- tile timeout
+- automatic retry
+- pending refresh replay
+- refresh queue growth
+- WebView stall
+
+## Decision Rules
+
+Accept the experiment as compatible only when every visual and stability check
+passes and indexed visible payload bytes are lower than the same Canvas frames.
+
+Consider default promotion only when the indexed median visible refresh or
+restore latency also improves enough to be operationally meaningful. Smaller
+files without a physical latency improvement remain useful evidence but do not
+justify promotion.
+
+Reject the experiment immediately if the G2 displays a blank, corrupt, mixed,
+or missing tile, or if any new send failure, timeout, input regression, or stall
+appears.
+
+## Rollback
+
+Reload without the encoder parameter or use:
+
+```text
+encoder=canvas
+```
+
+Canvas remains the code default throughout this test. No test result promotes
+the indexed encoder automatically.

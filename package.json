@@ -18,6 +18,8 @@
     "qr:pipeline3": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=3&build=pipeline-3-037\"",
     "qr:pipeline4": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=4&build=pipeline-4-038\"",
     "qr:palette4": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=4&levels=4&build=palette-4-039\"",
+    "qr:indexed-baseline": "evenhub qr --url \"http://100.127.255.11:4178/hud-canvas-fast?sdk=0.0.11&encoder=canvas&build=indexed-baseline-041\"",
+    "qr:indexed2": "evenhub qr --url \"http://100.127.255.11:4178/hud-canvas-fast?sdk=0.0.11&encoder=indexed-2&build=indexed-2-041\"",
     "pack": "npm run build && evenhub pack app.json dist/client -o sandevistan.ehpk"
   },
   "dependencies": {

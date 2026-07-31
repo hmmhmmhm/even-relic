@@ -19,6 +19,7 @@ import { logDiagnostic } from "./diagnostic-log";
 import { formatG2TileEncodingDiagnostic, type G2TilePaletteMode } from "./g2-tile-palette";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
 import type { G2PngEncoderMode } from "./g2-png-encoder-mode";
+import { waitForTileSend } from "./tile-send-timeout";
 import type {
   Bridge,
   DisplayToggle,
@@ -56,43 +57,6 @@ const diagnosticDuration = (startedAt: number) => (
 const diagnosticError = (error: unknown) => (
   error instanceof Error ? error.message : String(error)
 );
-
-const TILE_SEND_TIMEOUT_MS = 12_000;
-
-function waitForTileSend<T>(
-  promise: Promise<T>,
-  tileName: string,
-): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    let settled = false;
-    const timer = globalThis.setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      logDiagnostic(
-        "ERROR",
-        `${tileName} timeout · ${TILE_SEND_TIMEOUT_MS}ms`,
-      );
-      reject(new Error(
-        `${tileName} 전송 제한 시간 초과: ${TILE_SEND_TIMEOUT_MS}ms`,
-      ));
-    }, TILE_SEND_TIMEOUT_MS);
-
-    promise.then(
-      (value) => {
-        if (settled) return;
-        settled = true;
-        globalThis.clearTimeout(timer);
-        resolve(value);
-      },
-      (error: unknown) => {
-        if (settled) return;
-        settled = true;
-        globalThis.clearTimeout(timer);
-        reject(error);
-      },
-    );
-  });
-}
 
 export async function transmitCanvas(
   source: HTMLCanvasElement,

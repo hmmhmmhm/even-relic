@@ -252,7 +252,7 @@ palette is `original`. The hide call also passes both explicit overrides:
 await refreshImages(
   hiddenSource ??= displayToggle.createHiddenSource(),
   tiles,
-  "HUD 표시 숨김 완료",
+  "HUD \uD45C\uC2DC \uC228\uAE40 \uC644\uB8CC",
   undefined,
   "original",
   "canvas",

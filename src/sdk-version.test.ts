@@ -63,4 +63,17 @@ describe("Even Hub SDK compatibility", () => {
       "http://100.127.255.11:4177/",
     );
   });
+
+  it("exposes serial Canvas and indexed PNG experiment QR scripts", () => {
+    const scripts = packageManifest.scripts as Record<string, string>;
+
+    expect(scripts["qr:indexed-baseline"]).toContain(
+      "http://100.127.255.11:4178/hud-canvas-fast?"
+        + "sdk=0.0.11&encoder=canvas&build=indexed-baseline-041",
+    );
+    expect(scripts["qr:indexed2"]).toContain(
+      "http://100.127.255.11:4178/hud-canvas-fast?"
+        + "sdk=0.0.11&encoder=indexed-2&build=indexed-2-041",
+    );
+  });
 });
