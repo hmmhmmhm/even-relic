@@ -8,7 +8,7 @@
 - Candidate SDK: `@evenrealities/even_hub_sdk` `0.0.13`
 - Minimum Even App: `2.2.6`
 - Updated G2 firmware: confirmed by the owner
-- Automated candidate verification: in progress
+- Automated candidate verification: passed
 - Physical candidate verification: pending
 - Promotion decision: not requested
 
@@ -77,8 +77,18 @@ http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=1&levels=original
 - Focused post-change test: 2 files and 4 tests passed.
 - `ImageRawDataUpdate.toJson()` returns the original container fields and
   bytes plus `compressMode: 2` under SDK `0.0.13`.
-- Full application, build, package, and repository verification will be
-  recorded before physical testing.
+- `npm test`: 57 files and 511 tests passed.
+- `npm run typecheck`: passed.
+- `npm run build`: 152 modules transformed and the production build completed.
+- `npm run test:sites`: 4 tests passed.
+- `node --test --test-concurrency=1 tests/*.test.mjs`: 147 tests passed.
+- `npm run test:repo`: 5 tests and the repository copy check passed.
+- `npm run pack`: produced `sandevistan.ehpk` at 1,772,324 bytes.
+- EHPK SHA-256:
+  `d5a6ef3378086baa406a78bddd82ca6a5b1fe3ebe4f5a8a0b0e0e74da3e8cda2`.
+- Installed versions: Even Hub SDK `0.0.13` and Even Hub CLI `0.1.13`.
+- Client source and production bundle contain no embedded ORS credential
+  marker.
 
 ## Physical Test Sequence
 
