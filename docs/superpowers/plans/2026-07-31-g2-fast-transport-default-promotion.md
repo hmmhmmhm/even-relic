@@ -422,7 +422,7 @@ git add docs/hardware/2026-07-31-g2-fast-transport-default-promotion.md \
 git commit -m "docs: prepare fast G2 default hardware gate"
 ```
 
-- [ ] **Step 4: Verify the isolated server and push the branch**
+- [x] **Step 4: Verify the isolated server and push the branch**
 
 Confirm port `4177` is listening from this worktree. Verify both default and
 rollback URLs return HTTP 200. Push
