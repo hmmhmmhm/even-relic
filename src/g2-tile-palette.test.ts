@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatG2TileEncodingDiagnostic,
   HUD_FOUR_LEVEL_PALETTE,
   quantizeHudFourLevelPixels,
   resolveG2TilePaletteMode,
@@ -53,5 +54,18 @@ describe("G2 transmitted-tile palette", () => {
       245, 245, 245, 0,
       255, 0, 0, 255,
     ]);
+  });
+
+  it("formats actual encoded tile lengths in target order", () => {
+    const tiles = [
+      new Uint8Array(2),
+      new Uint8Array(3),
+      new Uint8Array(5),
+      new Uint8Array(7),
+    ];
+
+    expect(formatG2TileEncodingDiagnostic(tiles, "hud-4")).toBe(
+      "complete · 4 tiles · palette hud-4 · bytes 2/3/5/7 · total 17",
+    );
   });
 });

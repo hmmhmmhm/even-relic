@@ -16,7 +16,7 @@ import {
 import { runBounded } from "./bounded-task-pool";
 import { bytesEqual } from "./bytes-equal";
 import { logDiagnostic } from "./diagnostic-log";
-import type { G2TilePaletteMode } from "./g2-tile-palette";
+import { formatG2TileEncodingDiagnostic, type G2TilePaletteMode } from "./g2-tile-palette";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
 import type {
   Bridge,
@@ -155,18 +155,9 @@ export async function transmitCanvas(
         targetTiles,
         { paletteMode: tilePaletteMode },
       );
-      const encodedByteLengths = encodedTiles.map(
-        ({ byteLength }) => byteLength,
-      );
       logDiagnostic(
         "ENCODE",
-        `complete · ${targetTiles.length} tiles`
-          + ` · palette ${tilePaletteMode}`
-          + ` · bytes ${encodedByteLengths.join("/")}`
-          + ` · total ${encodedByteLengths.reduce(
-            (sum, value) => sum + value,
-            0,
-          )}`,
+        formatG2TileEncodingDiagnostic(encodedTiles, tilePaletteMode),
         diagnosticDuration(encodeStartedAt),
       );
     } catch (error) {

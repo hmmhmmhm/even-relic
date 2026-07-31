@@ -8,6 +8,16 @@ export function resolveG2TilePaletteMode(search: string): G2TilePaletteMode {
     : "original";
 }
 
+export function formatG2TileEncodingDiagnostic(
+  tiles: readonly Uint8Array[],
+  mode: G2TilePaletteMode,
+): string {
+  const lengths = tiles.map(({ byteLength }) => byteLength);
+  const total = lengths.reduce((sum, value) => sum + value, 0);
+  return `complete · ${tiles.length} tiles · palette ${mode}`
+    + ` · bytes ${lengths.join("/")} · total ${total}`;
+}
+
 function nearestPaletteValue(value: number): number {
   let nearest: number = HUD_FOUR_LEVEL_PALETTE[0];
   let distance = Math.abs(value - nearest);
