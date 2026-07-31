@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test:sites": "node --test --test-concurrency=1 tests/sites-worker.test.mjs",
     "verify:rss-live": "node scripts/verify-rss-feeds.mjs",
-    "qr": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&build=fast-default-040\"",
+    "qr": "evenhub qr --url \"http://100.127.255.11:4179/hud-canvas-fast?sdk=0.0.13&build=sdk-0013-repair-042\"",
     "qr:rollback": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=1&levels=original&build=rollback-serial-original-040\"",
     "qr:pipeline2": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=2&build=pipeline-2-036\"",
     "qr:pipeline3": "evenhub qr --url \"http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&pipeline=3&build=pipeline-3-037\"",
@@ -21,7 +21,7 @@
     "pack": "npm run build && evenhub pack app.json dist/client -o sandevistan.ehpk"
   },
   "dependencies": {
-    "@evenrealities/even_hub_sdk": "0.0.11",
+    "@evenrealities/even_hub_sdk": "0.0.13",
     "@iconify-icons/pixelarticons": "^1.2.5",
     "@iconify-icons/simple-icons": "^1.2.54",
     "@iconify/react": "^6.0.2",

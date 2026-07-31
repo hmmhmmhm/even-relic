@@ -4,17 +4,18 @@ import appManifest from "../app.json";
 import packageManifest from "../package.json";
 
 describe("Even Hub SDK compatibility", () => {
-  it("pins the hardware-compatible 0.0.11 SDK after the LZ4 gate failure", () => {
+  it("pins the isolated 0.0.13 SDK and its minimum Even App version", () => {
     const installed = packageManifest.dependencies["@evenrealities/even_hub_sdk"];
 
-    expect(installed).toBe("0.0.11");
+    expect(installed).toBe("0.0.13");
     expect(appManifest.min_sdk_version).toBe(installed);
+    expect(appManifest.min_app_version).toBe("2.2.6");
     expect(packageManifest.scripts.qr).toBe(
-      'evenhub qr --url "http://100.127.255.11:4177/hud-canvas-fast?sdk=0.0.11&build=fast-default-040"',
+      'evenhub qr --url "http://100.127.255.11:4179/hud-canvas-fast?sdk=0.0.13&build=sdk-0013-repair-042"',
     );
   });
 
-  it("serializes image bytes without the rejected LZ4 transport flag", () => {
+  it("serializes image bytes with the repaired LZ4 transport flag", () => {
     const payload = new ImageRawDataUpdate({
       containerID: 3,
       containerName: "frame",
@@ -22,6 +23,7 @@ describe("Even Hub SDK compatibility", () => {
     }).toJson();
 
     expect(payload).toEqual({
+      compressMode: 2,
       containerID: 3,
       containerName: "frame",
       imageData: [1, 2, 3],
@@ -62,5 +64,6 @@ describe("Even Hub SDK compatibility", () => {
     expect(scripts["qr:rollback"]).toContain(
       "http://100.127.255.11:4177/",
     );
+    expect(scripts["qr:rollback"]).toContain("sdk=0.0.11");
   });
 });
