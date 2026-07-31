@@ -278,7 +278,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(fastOptions().imageSendConcurrency).toBe(4);
   });
 
-  it("falls back to serial image transport for an invalid pipeline", async () => {
+  it("falls back to four-call image transport for an invalid pipeline", async () => {
     window.history.replaceState(
       {},
       "",
@@ -289,7 +289,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     render(<App />);
 
     await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
-    expect(fastOptions().imageSendConcurrency).toBe(1);
+    expect(fastOptions().imageSendConcurrency).toBe(4);
   });
 
   it("passes the opt-in four-level tile palette to the fast transport", async () => {
@@ -307,13 +307,28 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(fastOptions().tilePaletteMode).toBe("hud-4");
   });
 
-  it("keeps the original tile palette by default", async () => {
+  it("uses the four-level tile palette by default", async () => {
     window.history.replaceState({}, "", "/hud-canvas-fast?pipeline=4");
     mocks.transmitFast.mockResolvedValue(vi.fn());
 
     render(<App />);
 
     await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().tilePaletteMode).toBe("hud-4");
+  });
+
+  it("supports the explicit serial original-palette rollback route", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/hud-canvas-fast?pipeline=1&levels=original",
+    );
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().imageSendConcurrency).toBe(1);
     expect(fastOptions().tilePaletteMode).toBe("original");
   });
 

@@ -3,9 +3,9 @@ export type G2TilePaletteMode = "original" | "hud-4";
 export const HUD_FOUR_LEVEL_PALETTE = [0, 128, 208, 255] as const;
 
 export function resolveG2TilePaletteMode(search: string): G2TilePaletteMode {
-  return new URLSearchParams(search).get("levels") === "4"
-    ? "hud-4"
-    : "original";
+  return new URLSearchParams(search).get("levels") === "original"
+    ? "original"
+    : "hud-4";
 }
 
 export function formatG2TileEncodingDiagnostic(

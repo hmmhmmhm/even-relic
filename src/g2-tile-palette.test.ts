@@ -8,12 +8,13 @@ import {
 
 describe("G2 transmitted-tile palette", () => {
   it.each([
+    ["", "hud-4"],
     ["?levels=4", "hud-4"],
     ["?pipeline=4&levels=4", "hud-4"],
-    ["", "original"],
-    ["?levels=8", "original"],
-    ["?levels=04", "original"],
-    ["?levels=bad", "original"],
+    ["?levels=original", "original"],
+    ["?levels=8", "hud-4"],
+    ["?levels=04", "hud-4"],
+    ["?levels=bad", "hud-4"],
   ] as const)("resolves %s to %s", (search, expected) => {
     expect(resolveG2TilePaletteMode(search)).toBe(expected);
   });
