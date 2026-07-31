@@ -33,6 +33,7 @@ type FastRefreshHarnessConfig = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly beforeRestore?: () => void | Promise<void>;
   readonly imageSendConcurrency?: 1 | 2 | 3 | 4;
+  readonly tilePaletteMode?: "original" | "hud-4";
   readonly encode?: (
     ids: number[],
     attempt: number,
@@ -68,6 +69,7 @@ async function createFastRefreshHarness(
   const hudSource = { name: "hud" } as unknown as HTMLCanvasElement;
   const blackSource = { name: "black" } as unknown as HTMLCanvasElement;
   const encodedTileIds: number[][] = [];
+  const encodedPaletteModes: Array<"original" | "hud-4" | undefined> = [];
   const encodedSources: Array<"hud" | "black"> = [];
   const imageIds: number[] = [];
   const inputs: TestInput[] = [];
@@ -124,9 +126,11 @@ async function createFastRefreshHarness(
           source: HTMLCanvasElement,
           factory?: unknown,
           tiles?: readonly { id: number }[],
+          options?: { readonly paletteMode?: "original" | "hud-4" },
         ) => Promise<Uint8Array[]>;
       };
       imageSendConcurrency?: 1 | 2 | 3 | 4;
+      tilePaletteMode?: "original" | "hud-4";
       onRefreshReady: (
         request: (target: TestRefreshTarget) => void,
       ) => void;
@@ -152,10 +156,12 @@ async function createFastRefreshHarness(
           source,
           _factory,
           tiles = module.G2_TILES,
+          options,
         ) => {
           const ids = tiles.map(({ id }) => id);
           const sourceName = source === blackSource ? "black" : "hud";
           encodedTileIds.push(ids);
+          encodedPaletteModes.push(options?.paletteMode);
           encodedSources.push(sourceName);
           currentEncodeAttempt = encodedTileIds.length;
           return config.encode?.(
@@ -166,6 +172,7 @@ async function createFastRefreshHarness(
         },
       },
       imageSendConcurrency: config.imageSendConcurrency,
+      tilePaletteMode: config.tilePaletteMode,
       onInput: (input) => {
         inputs.push(input);
         return inputResult;
@@ -187,6 +194,7 @@ async function createFastRefreshHarness(
   return {
     cleanup,
     committedMinutes,
+    encodedPaletteModes,
     encodedTileIds,
     encodedSources,
     emit: (eventType: OsEventTypeList) => listener!({
@@ -1273,6 +1281,32 @@ describe("G2 raster transport", () => {
       "encode:black:3,5,2,4",
       "restore-redraw",
       "encode:hud:3,5,2,4",
+    ]);
+  });
+
+  it("bypasses HUD palette conversion for the black hidden frame", async () => {
+    const harness = await createFastRefreshHarness({
+      tilePaletteMode: "hud-4",
+    });
+
+    expect(harness.encodedPaletteModes).toEqual(["hud-4"]);
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.encodedSources).toEqual([
+      "hud",
+      "black",
+    ]));
+    expect(harness.encodedPaletteModes).toEqual(["hud-4", "original"]);
+
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.encodedSources).toEqual([
+      "hud",
+      "black",
+      "hud",
+    ]));
+    expect(harness.encodedPaletteModes).toEqual([
+      "hud-4",
+      "original",
+      "hud-4",
     ]);
   });
 

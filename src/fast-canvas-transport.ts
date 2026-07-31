@@ -139,6 +139,7 @@ export async function transmitCanvas(
     targetTiles: readonly Tile[],
     completionMessage: string,
     shouldContinue: () => boolean = () => true,
+    paletteMode: G2TilePaletteMode = tilePaletteMode,
   ) => {
     if (!shouldContinue()) {
       logDiagnostic("REFRESH", "image refresh skipped before encode");
@@ -153,11 +154,11 @@ export async function transmitCanvas(
         imageSource,
         undefined,
         targetTiles,
-        { paletteMode: tilePaletteMode },
+        { paletteMode },
       );
       logDiagnostic(
         "ENCODE",
-        formatG2TileEncodingDiagnostic(encodedTiles, tilePaletteMode),
+        formatG2TileEncodingDiagnostic(encodedTiles, paletteMode),
         diagnosticDuration(encodeStartedAt),
       );
     } catch (error) {
@@ -248,7 +249,6 @@ export async function transmitCanvas(
       );
     }
   };
-
   await refreshImages(source, tiles, "안경 전송 완료");
   let disposed = false;
   let hidden = false;
@@ -337,6 +337,7 @@ export async function transmitCanvas(
         hiddenSource ??= displayToggle.createHiddenSource(),
         tiles,
         "HUD 표시 숨김 완료",
+        undefined, "original",
       );
       hidden = true;
       logDiagnostic("REFRESH", "hide complete");
