@@ -163,6 +163,13 @@ because their encoded payload is already minimal. Use
 `?pipeline=1&levels=original` for the complete serial/original rollback.
 See the [pipeline hardware gate](docs/hardware/2026-07-30-g2-pipelined-image-transport.md)
 and [palette comparison](docs/hardware/2026-07-31-g2-hud-palette-compression.md).
+An opt-in 1-bit BMP path remained reliable but was 14.7% slower in the
+controlled full-frame comparison, so PNG remains the production default. See
+the [BMP hardware gate](docs/hardware/2026-07-31-g2-lz4-friendly-bmp-experiment.md).
+A Base64 string SDK bridge was also rejected: all four tile calls returned
+`sendFailed` within 3–4 ms before transfer began. The stable typed-byte path
+remains mandatory, and stale `bridge` query values are ignored. See the
+[Base64 bridge hardware gate](docs/hardware/2026-07-31-g2-base64-image-bridge-experiment.md).
 
 This policy replaced an earlier backlog design that could accumulate tens of
 thousands of stale minute and location operations and eventually freeze the
@@ -364,6 +371,8 @@ Useful hardware records:
 - [SDK 0.0.11 transport checkpoint](docs/hardware/2026-07-27-sdk-0011-transport-success.md)
 - [SDK 0.0.12 LZ4 experiment](docs/hardware/2026-07-28-sdk-0012-lz4-experiment.md)
 - [SDK 0.0.13 physical promotion gate](docs/hardware/2026-07-31-sdk-0013-image-transport.md)
+- [1-bit BMP versus PNG hardware gate](docs/hardware/2026-07-31-g2-lz4-friendly-bmp-experiment.md)
+- [Typed-array versus Base64 SDK bridge gate](docs/hardware/2026-07-31-g2-base64-image-bridge-experiment.md)
 - [Unchanged-tile skip experiment](docs/hardware/2026-07-28-g2-unchanged-tile-skip.md)
 - [Current project readiness audit](docs/hardware/2026-07-29-project-readiness-audit.md)
 - [Phone companion completion audit](docs/hardware/2026-07-29-phone-companion-completion-audit.md)

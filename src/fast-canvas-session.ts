@@ -104,6 +104,7 @@ export async function transmitFastCanvas(
     () => options.onDisplayCommitted?.(Math.floor(now() / 60_000)),
     options.imageSendConcurrency ?? 1,
     options.tilePaletteMode ?? "original",
+    options.tileImageFormat ?? "png",
   );
   let cleaned = false;
   let unsubscribeDeviceStatus: (() => void) | undefined;

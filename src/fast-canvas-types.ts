@@ -8,6 +8,7 @@ import type {
   RebuildPageContainer,
 } from "@evenrealities/even_hub_sdk";
 import type { encodeCanvasTiles, Tile } from "./g2-canvas";
+import type { G2TileImageFormat } from "./g2-tile-format";
 import type { G2TilePaletteMode } from "./g2-tile-palette";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
 
@@ -80,6 +81,7 @@ export type FastCanvasOptions = {
   readonly createHiddenSource?: () => HTMLCanvasElement;
   readonly dependencies?: TransportDependencies;
   readonly imageSendConcurrency?: ImageSendConcurrency;
+  readonly tileImageFormat?: G2TileImageFormat;
   readonly tilePaletteMode?: G2TilePaletteMode;
   readonly now?: () => number;
   readonly onBattery?: (

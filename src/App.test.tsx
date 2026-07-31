@@ -24,6 +24,7 @@ type FastInputResult = "unhandled" | "consume" | "redraw";
 type FastTestOptions = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly imageSendConcurrency?: 1 | 2 | 3 | 4;
+  readonly tileImageFormat?: "png" | "bmp-1";
   readonly tilePaletteMode?: "original" | "hud-4";
   readonly onBattery?: (battery: {
     readonly label: "G1" | "G2" | "R1";
@@ -315,6 +316,44 @@ describe("SANDEVISTAN peripheral HUD", () => {
 
     await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
     expect(fastOptions().tilePaletteMode).toBe("hud-4");
+  });
+
+  it("passes the opt-in one-bit BMP format to the fast transport", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/hud-canvas-fast?format=bmp1",
+    );
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().tileImageFormat).toBe("bmp-1");
+  });
+
+  it("uses PNG content tiles by default", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().tileImageFormat).toBe("png");
+  });
+
+  it("ignores the unsupported Base64 query and keeps the stable transport", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/hud-canvas-fast?bridge=base64",
+    );
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions()).not.toHaveProperty("imageBridgeMode");
   });
 
   it("supports the explicit serial original-palette rollback route", async () => {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { HUD_PAGES } from "./canvas-hud";
 import { useHudController } from "./fast-hud-controller";
+import { resolveG2TileImageFormat } from "./g2-tile-format";
 import { resolveG2TilePaletteMode } from "./g2-tile-palette";
 import type { HudControllerModes } from "./hud-controller-types";
 import { resolveImageSendConcurrency } from "./image-send-concurrency";
@@ -59,6 +60,7 @@ export function App({ autoStart = true }: AppProps) {
   const imageSendConcurrency = resolveImageSendConcurrency(
     window.location.search,
   );
+  const tileImageFormat = resolveG2TileImageFormat(window.location.search);
   const tilePaletteMode = resolveG2TilePaletteMode(window.location.search);
   const calibrationMode = window.location.pathname === "/calibration-max";
   const legacyCanvasHudMode = window.location.pathname === "/hud-canvas";
@@ -213,6 +215,7 @@ export function App({ autoStart = true }: AppProps) {
     displayRefreshRef,
     companionOrsKeyRef,
     imageSendConcurrency,
+    tileImageFormat,
     tilePaletteMode,
     modes,
     setStatus,

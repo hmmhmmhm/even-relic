@@ -17,6 +17,7 @@ import { runBounded } from "./bounded-task-pool";
 import { bytesEqual } from "./bytes-equal";
 import { logDiagnostic } from "./diagnostic-log";
 import { formatG2TileEncodingDiagnostic, type G2TilePaletteMode } from "./g2-tile-palette";
+import type { G2TileImageFormat } from "./g2-tile-format";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
 import type {
   Bridge,
@@ -48,13 +49,10 @@ const diagnosticNow = () => (
     : Date.now()
 );
 
-const diagnosticDuration = (startedAt: number) => (
-  diagnosticNow() - startedAt
-);
-
-const diagnosticError = (error: unknown) => (
-  error instanceof Error ? error.message : String(error)
-);
+const diagnosticDuration = (startedAt: number) => diagnosticNow() - startedAt;
+const diagnosticError = (error: unknown) => error instanceof Error
+  ? error.message
+  : String(error);
 
 const TILE_SEND_TIMEOUT_MS = 12_000;
 
@@ -112,6 +110,7 @@ export async function transmitCanvas(
   onDisplayCommitted?: () => void,
   imageSendConcurrency: ImageSendConcurrency = 1,
   tilePaletteMode: G2TilePaletteMode = "original",
+  tileImageFormat: G2TileImageFormat = "png",
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();
@@ -140,6 +139,7 @@ export async function transmitCanvas(
     completionMessage: string,
     shouldContinue: () => boolean = () => true,
     paletteMode: G2TilePaletteMode = tilePaletteMode,
+    imageFormat: G2TileImageFormat = tileImageFormat,
   ) => {
     if (!shouldContinue()) {
       logDiagnostic("REFRESH", "image refresh skipped before encode");
@@ -154,11 +154,11 @@ export async function transmitCanvas(
         imageSource,
         undefined,
         targetTiles,
-        { paletteMode },
+        { format: imageFormat, paletteMode },
       );
       logDiagnostic(
         "ENCODE",
-        formatG2TileEncodingDiagnostic(encodedTiles, paletteMode),
+        formatG2TileEncodingDiagnostic(encodedTiles, paletteMode, imageFormat),
         diagnosticDuration(encodeStartedAt),
       );
     } catch (error) {
@@ -337,7 +337,7 @@ export async function transmitCanvas(
         hiddenSource ??= displayToggle.createHiddenSource(),
         tiles,
         "HUD 표시 숨김 완료",
-        undefined, "original",
+        undefined, "original", "png",
       );
       hidden = true;
       logDiagnostic("REFRESH", "hide complete");

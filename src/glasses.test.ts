@@ -33,6 +33,7 @@ type FastRefreshHarnessConfig = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly beforeRestore?: () => void | Promise<void>;
   readonly imageSendConcurrency?: 1 | 2 | 3 | 4;
+  readonly tileImageFormat?: "png" | "bmp-1";
   readonly tilePaletteMode?: "original" | "hud-4";
   readonly encode?: (
     ids: number[],
@@ -69,6 +70,7 @@ async function createFastRefreshHarness(
   const hudSource = { name: "hud" } as unknown as HTMLCanvasElement;
   const blackSource = { name: "black" } as unknown as HTMLCanvasElement;
   const encodedTileIds: number[][] = [];
+  const encodedImageFormats: Array<"png" | "bmp-1" | undefined> = [];
   const encodedPaletteModes: Array<"original" | "hud-4" | undefined> = [];
   const encodedSources: Array<"hud" | "black"> = [];
   const imageIds: number[] = [];
@@ -126,10 +128,14 @@ async function createFastRefreshHarness(
           source: HTMLCanvasElement,
           factory?: unknown,
           tiles?: readonly { id: number }[],
-          options?: { readonly paletteMode?: "original" | "hud-4" },
+          options?: {
+            readonly format?: "png" | "bmp-1";
+            readonly paletteMode?: "original" | "hud-4";
+          },
         ) => Promise<Uint8Array[]>;
       };
       imageSendConcurrency?: 1 | 2 | 3 | 4;
+      tileImageFormat?: "png" | "bmp-1";
       tilePaletteMode?: "original" | "hud-4";
       onRefreshReady: (
         request: (target: TestRefreshTarget) => void,
@@ -161,6 +167,7 @@ async function createFastRefreshHarness(
           const ids = tiles.map(({ id }) => id);
           const sourceName = source === blackSource ? "black" : "hud";
           encodedTileIds.push(ids);
+          encodedImageFormats.push(options?.format);
           encodedPaletteModes.push(options?.paletteMode);
           encodedSources.push(sourceName);
           currentEncodeAttempt = encodedTileIds.length;
@@ -172,6 +179,7 @@ async function createFastRefreshHarness(
         },
       },
       imageSendConcurrency: config.imageSendConcurrency,
+      tileImageFormat: config.tileImageFormat,
       tilePaletteMode: config.tilePaletteMode,
       onInput: (input) => {
         inputs.push(input);
@@ -194,6 +202,7 @@ async function createFastRefreshHarness(
   return {
     cleanup,
     committedMinutes,
+    encodedImageFormats,
     encodedPaletteModes,
     encodedTileIds,
     encodedSources,
@@ -401,6 +410,43 @@ describe("G2 raster transport", () => {
     expect(tiles).toHaveLength(1);
     expect([...written[0]]).toEqual([128, 128, 128, 255]);
     expect(tilePixels).toEqual(tileSnapshot);
+  });
+
+  it("encodes one full G2 tile as a 1-bit BMP when selected", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+
+    const width = 288;
+    const height = 144;
+    const pixels = new Uint8ClampedArray(width * height * 4);
+    pixels.set([255, 255, 255, 255]);
+    const canvasFactory = () => ({
+      width: 0,
+      height: 0,
+      getContext: () => ({
+        drawImage: () => undefined,
+        getImageData: () => ({ data: pixels.slice() }),
+        putImageData: () => undefined,
+      }),
+      toBlob: () => {
+        throw new Error("BMP mode must not invoke PNG encoding");
+      },
+    }) as unknown as HTMLCanvasElement;
+
+    const [bmp] = await module.encodeCanvasTiles(
+      {} as HTMLCanvasElement,
+      canvasFactory,
+      [module.G2_TILES[0]],
+      { format: "bmp-1", paletteMode: "hud-4" },
+    );
+    const view = new DataView(bmp.buffer, bmp.byteOffset, bmp.byteLength);
+
+    expect(Array.from(bmp.slice(0, 2))).toEqual([0x42, 0x4d]);
+    expect(view.getUint32(10, true)).toBe(62);
+    expect(view.getInt32(18, true)).toBe(width);
+    expect(view.getInt32(22, true)).toBe(height);
+    expect(view.getUint16(28, true)).toBe(1);
+    expect(bmp.byteLength).toBe(62 + 36 * height);
   });
 
   it("creates a full-size black Canvas for hidden display pixels", async () => {
@@ -1310,6 +1356,33 @@ describe("G2 raster transport", () => {
     ]);
   });
 
+  it("keeps BMP for content but uses PNG for the black hidden frame", async () => {
+    const harness = await createFastRefreshHarness({
+      tileImageFormat: "bmp-1",
+      tilePaletteMode: "hud-4",
+    });
+
+    expect(harness.encodedImageFormats).toEqual(["bmp-1"]);
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.encodedSources).toEqual([
+      "hud",
+      "black",
+    ]));
+    expect(harness.encodedImageFormats).toEqual(["bmp-1", "png"]);
+
+    harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
+    await vi.waitFor(() => expect(harness.encodedSources).toEqual([
+      "hud",
+      "black",
+      "hud",
+    ]));
+    expect(harness.encodedImageFormats).toEqual([
+      "bmp-1",
+      "png",
+      "bmp-1",
+    ]);
+  });
+
   it("live refresh ignores captured requests after cleanup", async () => {
     const harness = await createFastRefreshHarness();
 
@@ -1486,7 +1559,7 @@ describe("G2 raster transport", () => {
     expect(trace).toContain("[ENCODE] start · 4 tiles");
     expect(trace).toContain(
       "[ENCODE] complete · 4 tiles · palette original"
-        + " · bytes 2/2/2/2 · total 8",
+        + " · format png · bytes 2/2/2/2 · total 8",
     );
     expect(trace).toContain("[TILE] sandevistanTR success");
     expect(trace).toContain("[REFRESH] hide complete");

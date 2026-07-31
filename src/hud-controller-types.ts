@@ -6,6 +6,7 @@ import type { LiveDashboardState } from "./live-state";
 import type { PhonePreferences } from "./phone-types";
 import type { RoutingStatus } from "./routing";
 import type { G2TilePaletteMode } from "./g2-tile-palette";
+import type { G2TileImageFormat } from "./g2-tile-format";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
 
 export type HudControllerModes = {
@@ -29,6 +30,7 @@ export type UseHudControllerOptions = {
   readonly displayRefreshRef: MutableRefObject<(() => void) | undefined>;
   readonly companionOrsKeyRef: MutableRefObject<string | undefined>;
   readonly imageSendConcurrency: ImageSendConcurrency;
+  readonly tileImageFormat: G2TileImageFormat;
   readonly tilePaletteMode: G2TilePaletteMode;
   readonly modes: HudControllerModes;
   readonly setStatus: (value: string) => void;
