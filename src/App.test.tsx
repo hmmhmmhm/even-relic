@@ -23,6 +23,7 @@ type FastInput =
 type FastInputResult = "unhandled" | "consume" | "redraw";
 type FastTestOptions = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
+  readonly displayHideStrategy?: "black-tiles" | "blank-rebuild";
   readonly imageSendConcurrency?: 1 | 2 | 3 | 4;
   readonly tileImageFormat?: "png" | "bmp-1";
   readonly tilePaletteMode?: "original" | "hud-4";
@@ -316,6 +317,26 @@ describe("SANDEVISTAN peripheral HUD", () => {
 
     await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
     expect(fastOptions().tilePaletteMode).toBe("hud-4");
+  });
+
+  it("enables blank rebuild only on the explicit candidate route", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast?hide=blank");
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().displayHideStrategy).toBe("blank-rebuild");
+  });
+
+  it("keeps black tiles as the query-free display toggle", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().displayHideStrategy).toBe("black-tiles");
   });
 
   it("passes the opt-in one-bit BMP format to the fast transport", async () => {

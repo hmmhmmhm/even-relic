@@ -19,6 +19,7 @@ import { logDiagnostic } from "./diagnostic-log";
 import { formatG2TileEncodingDiagnostic, type G2TilePaletteMode } from "./g2-tile-palette";
 import type { G2TileImageFormat } from "./g2-tile-format";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
+import type { G2DisplayHideStrategy } from "./g2-display-hide";
 import type {
   Bridge,
   DisplayToggle,
@@ -111,6 +112,7 @@ export async function transmitCanvas(
   imageSendConcurrency: ImageSendConcurrency = 1,
   tilePaletteMode: G2TilePaletteMode = "original",
   tileImageFormat: G2TileImageFormat = "png",
+  _displayHideStrategy: G2DisplayHideStrategy = "black-tiles",
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();

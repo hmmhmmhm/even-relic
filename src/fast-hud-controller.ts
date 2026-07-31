@@ -57,6 +57,7 @@ export function useHudController({
   phonePreferencesRef,
   displayRefreshRef,
   companionOrsKeyRef,
+  displayHideStrategy,
   imageSendConcurrency,
   tileImageFormat,
   tilePaletteMode,
@@ -211,7 +212,8 @@ export function useHudController({
           "APP",
           `transport start · pipeline ${imageSendConcurrency}`
             + ` · palette ${tilePaletteMode}`
-            + ` · format ${tileImageFormat}`,
+            + ` · format ${tileImageFormat}`
+            + ` · hide ${displayHideStrategy}`,
         );
         const transportCleanup = await transmitFastCanvas(
           canvas,
@@ -220,6 +222,7 @@ export function useHudController({
           {
             beforeExternalRefresh: drawCurrentPage,
             beforeRestore: drawCurrentPage,
+            displayHideStrategy,
             imageSendConcurrency,
             tileImageFormat,
             tilePaletteMode,
@@ -440,6 +443,7 @@ export function useHudController({
     autoStart,
     canvasRef,
     companionOrsKeyRef,
+    displayHideStrategy,
     displayRefreshRef,
     imageSendConcurrency,
     tileImageFormat,

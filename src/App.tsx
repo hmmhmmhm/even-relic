@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { HUD_PAGES } from "./canvas-hud";
 import { useHudController } from "./fast-hud-controller";
+import { resolveG2DisplayHideStrategy } from "./g2-display-hide";
 import { resolveG2TileImageFormat } from "./g2-tile-format";
 import { resolveG2TilePaletteMode } from "./g2-tile-palette";
 import type { HudControllerModes } from "./hud-controller-types";
@@ -57,6 +58,9 @@ function createBrowserStorage(): EvenStorage {
 }
 
 export function App({ autoStart = true }: AppProps) {
+  const displayHideStrategy = resolveG2DisplayHideStrategy(
+    window.location.search,
+  );
   const imageSendConcurrency = resolveImageSendConcurrency(
     window.location.search,
   );
@@ -214,6 +218,7 @@ export function App({ autoStart = true }: AppProps) {
     phonePreferencesRef,
     displayRefreshRef,
     companionOrsKeyRef,
+    displayHideStrategy,
     imageSendConcurrency,
     tileImageFormat,
     tilePaletteMode,

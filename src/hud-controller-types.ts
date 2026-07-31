@@ -8,6 +8,7 @@ import type { RoutingStatus } from "./routing";
 import type { G2TilePaletteMode } from "./g2-tile-palette";
 import type { G2TileImageFormat } from "./g2-tile-format";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
+import type { G2DisplayHideStrategy } from "./g2-display-hide";
 
 export type HudControllerModes = {
   readonly calibration: boolean;
@@ -29,6 +30,7 @@ export type UseHudControllerOptions = {
   readonly phonePreferencesRef: MutableRefObject<PhonePreferences>;
   readonly displayRefreshRef: MutableRefObject<(() => void) | undefined>;
   readonly companionOrsKeyRef: MutableRefObject<string | undefined>;
+  readonly displayHideStrategy: G2DisplayHideStrategy;
   readonly imageSendConcurrency: ImageSendConcurrency;
   readonly tileImageFormat: G2TileImageFormat;
   readonly tilePaletteMode: G2TilePaletteMode;
