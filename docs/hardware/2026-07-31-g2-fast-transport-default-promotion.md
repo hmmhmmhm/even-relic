@@ -2,7 +2,7 @@
 
 Date: 2026-07-31
 
-Status: Ready for default-route physical gate
+Status: PASS — approved for `main` fast-forward
 
 Branch: `experiment/g2-pipelined-transport`
 
@@ -62,8 +62,62 @@ Run only one route at a time. On the default route:
 
 The default route passes only if binocular output and content remain correct,
 hide and restore remain reliable, no queue accumulates, and post-idle input
-stays responsive. The hide-bypass path remains physically unpassed until this
-evidence is supplied.
+stays responsive.
+
+## Physical result
+
+The owner completed the default-route G2 check on 2026-07-31 and confirmed the
+requested interaction sequence. The supplied trace excerpt records four hides
+and three restores before ending during the fourth hidden state; the owner's
+completion confirmation covers the full physical run.
+
+### Default selection and startup
+
+- Startup resolved `pipeline 4 · palette hud-4` without performance query
+  parameters.
+- The initial four-tile content encode was 12,965 bytes and completed in
+  1,086 ms.
+- IDs `3`, `5`, `2`, and `4` all started with in-flight counts one through
+  four before the first completion.
+- All four tile calls succeeded.
+
+### Hidden-frame bypass
+
+| Metric | Recorded result |
+| --- | ---: |
+| Hidden payload | 4,704 bytes on every recorded hide |
+| Hidden encode | 24 ms median, n=4 |
+| Hidden complete refresh | 362 ms median, n=4 |
+| Hidden palette diagnostic | `palette original` |
+
+The bypass removed the earlier roughly 100 ms four-level encode pass while
+retaining the same minimal black PNG payload.
+
+### Content restore
+
+| Metric | Recorded result |
+| --- | ---: |
+| Restored payload | 22,737 bytes on every recorded restore |
+| Restore encode | 89 ms median, n=3 |
+| Restore complete refresh | 2,065 ms median, n=3 |
+| Restore palette diagnostic | `palette hud-4` |
+
+Every restored tile succeeded. No `sendFailed`, timeout, retry, deferred
+operation, or queued replay appears in the trace. Live requests received while
+the transport was busy were dropped immediately, and an identical right-side
+refresh skipped both unchanged tiles.
+
+### Visual and interaction confirmation
+
+The owner's completion response confirms the requested binocular, four-tile,
+hide/restore, and responsiveness check. No visual regression, missing tile, or
+input freeze was reported.
+
+## Decision
+
+The query-free default passes the physical gate. Promote the branch to `main`
+by fast-forward, rerun the complete serial verification suite on integrated
+`main`, and retain the experiment branch and explicit serial/original rollback.
 
 ## Automated gate
 
@@ -76,6 +130,5 @@ evidence is supplied.
 
 ## Integration rule
 
-Keep this change on `experiment/g2-pipelined-transport` until the query-free
-default route passes the physical gate. Fast-forward `main` only after that
-result is recorded.
+The physical gate is recorded above. `main` may now be fast-forwarded to this
+result after the experiment branch is pushed and its working tree is clean.
