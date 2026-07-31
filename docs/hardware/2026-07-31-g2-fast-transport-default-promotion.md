@@ -2,7 +2,7 @@
 
 Date: 2026-07-31
 
-Status: PASS — approved for `main` fast-forward
+Status: PASS — integrated into `main`
 
 Branch: `experiment/g2-pipelined-transport`
 
@@ -128,7 +128,28 @@ by fast-forward, rerun the complete serial verification suite on integrated
 - Sites worker tests: 4 passed serially.
 - Even Hub package: `sandevistan.ehpk`, SDK `0.0.11`.
 
+## Main integration
+
+`main` was fast-forwarded through physical-pass commit
+`dded1e734316e542eeb13afb8a3a1455297c0c01` on 2026-07-31. The integrated
+branch then passed:
+
+- 57 Vitest files and 511 tests with one worker and no file parallelism;
+- TypeScript;
+- 5 repository-policy tests and the repository copy check;
+- the production and Sites builds;
+- 4 Sites worker tests;
+- all 147 Node tests with concurrency one;
+- the client ORS secret scan; and
+- Even Hub packaging at 1,773,055 bytes.
+
+The integrated package SHA-256 is:
+
+```text
+69aaf65a85a49257575d57116737ebb1a7cb549f274e05ece35f9b4b26bafd8f
+```
+
 ## Integration rule
 
-The physical gate is recorded above. `main` may now be fast-forwarded to this
-result after the experiment branch is pushed and its working tree is clean.
+The physical gate and integrated `main` verification are recorded above. Keep
+the experiment branch and explicit rollback available as historical evidence.

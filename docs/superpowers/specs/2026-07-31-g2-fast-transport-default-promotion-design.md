@@ -2,7 +2,7 @@
 
 Date: 2026-07-31
 
-Status: Implemented; default-route physical gate passed
+Status: Implemented; physical gate passed and integrated into `main`
 
 Branch: `experiment/g2-pipelined-transport`
 

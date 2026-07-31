@@ -4,7 +4,8 @@ Date: 2026-07-29
 
 Target branch: `main`
 
-Audited commit: `669a7f6bbe392f862f8df31f7daf3de117ac2185`
+Audited transport integration commit:
+`dded1e734316e542eeb13afb8a3a1455297c0c01`
 
 SDK: `@evenrealities/even_hub_sdk` `0.0.11`
 
@@ -26,31 +27,33 @@ Work proceeds in this order:
 
 ## Current automated baseline
 
-The following checks passed serially on 2026-07-29:
+The following checks passed serially on integrated `main` on 2026-07-31:
 
 | Check | Result |
 | --- | --- |
-| Main Vitest suite | 37 files, 374 tests passed |
+| Main Vitest suite | 57 files, 511 tests passed |
 | Repository policy suite | 5 tests passed; repository copy check passed |
 | TypeScript | `tsc --noEmit` passed |
-| Production build | 67 modules transformed |
+| Production build | 152 modules transformed |
 | Sites worker suite | 4 tests passed |
-| Map, news, routing, and API router suite | 24 tests passed |
+| Complete Node suite | 147 tests passed serially |
 | Client ORS secret scan | No `ORS_API_KEY` reference in `src`, `app.json`, or `package.json` |
 | Whitespace check | `git diff --check` passed |
-| Even Hub package | `sandevistan.ehpk`, 1,694,414 bytes |
+| Even Hub package | `sandevistan.ehpk`, 1,773,055 bytes |
 
 Package SHA-256:
 
 ```text
-819878d68364b6b444717c9870c904e5b4d6310f9a0ecd49cf5043e0a460d68c
+69aaf65a85a49257575d57116737ebb1a7cb549f274e05ece35f9b4b26bafd8f
 ```
 
 ## Capability status
 
 | Capability | Software | Physical G2 | Remaining gate |
 | --- | --- | --- | --- |
-| Four-tile serial image transport on SDK `0.0.11` | PASS | PASS | None |
+| Four-tile bounded image transport on SDK `0.0.11` | PASS | PASS | None |
+| Four-level transmitted content palette | PASS | PASS | None |
+| Original-palette hidden-frame bypass | PASS | PASS | None |
 | Binocular 576×288 display | PASS | PASS | None |
 | Fail-fast transport with no deferred refresh queue | PASS | PASS | None |
 | Unchanged-tile skip | PASS | PASS, no regression | Exact identical-frame skip remains automated evidence only; not a release blocker |
@@ -140,3 +143,4 @@ pre-submission checklist.
 - [No-queue refresh hardening](../superpowers/specs/2026-07-28-g2-no-queue-refresh-design.md)
 - [Unchanged-tile transport experiment](2026-07-28-g2-unchanged-tile-skip.md)
 - [SDK 0.0.12 reproduction](2026-07-28-sdk-0012-lz4-experiment.md)
+- [Fast transport default promotion](2026-07-31-g2-fast-transport-default-promotion.md)
