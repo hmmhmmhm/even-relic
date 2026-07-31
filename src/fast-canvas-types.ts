@@ -10,6 +10,7 @@ import type {
 import type { encodeCanvasTiles, Tile } from "./g2-canvas";
 import type { G2TilePaletteMode } from "./g2-tile-palette";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
+import type { G2PngEncoderMode } from "./g2-png-encoder-mode";
 
 export type Bridge = {
   createStartUpPageContainer: (
@@ -80,6 +81,7 @@ export type FastCanvasOptions = {
   readonly createHiddenSource?: () => HTMLCanvasElement;
   readonly dependencies?: TransportDependencies;
   readonly imageSendConcurrency?: ImageSendConcurrency;
+  readonly tileEncoderMode?: G2PngEncoderMode;
   readonly tilePaletteMode?: G2TilePaletteMode;
   readonly now?: () => number;
   readonly onBattery?: (

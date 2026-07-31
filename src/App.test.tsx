@@ -24,6 +24,7 @@ type FastInputResult = "unhandled" | "consume" | "redraw";
 type FastTestOptions = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly imageSendConcurrency?: 1 | 2 | 3 | 4;
+  readonly tileEncoderMode?: "canvas" | "indexed-2";
   readonly tilePaletteMode?: "original" | "hud-4";
   readonly onBattery?: (battery: {
     readonly label: "G1" | "G2" | "R1";
@@ -315,6 +316,33 @@ describe("SANDEVISTAN peripheral HUD", () => {
 
     await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
     expect(fastOptions().tilePaletteMode).toBe("hud-4");
+  });
+
+  it("passes the opt-in indexed PNG encoder to the fast transport", async () => {
+    window.history.replaceState(
+      {},
+      "",
+      "/hud-canvas-fast?encoder=indexed-2",
+    );
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().tileEncoderMode).toBe("indexed-2");
+  });
+
+  it.each([
+    ["/hud-canvas-fast", "canvas"],
+    ["/hud-canvas-fast?encoder=bad", "canvas"],
+  ] as const)("uses the safe PNG encoder for %s", async (path, expected) => {
+    window.history.replaceState({}, "", path);
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().tileEncoderMode).toBe(expected);
   });
 
   it("supports the explicit serial original-palette rollback route", async () => {

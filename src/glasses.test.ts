@@ -33,6 +33,7 @@ type FastRefreshHarnessConfig = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly beforeRestore?: () => void | Promise<void>;
   readonly imageSendConcurrency?: 1 | 2 | 3 | 4;
+  readonly tileEncoderMode?: "canvas" | "indexed-2";
   readonly tilePaletteMode?: "original" | "hud-4";
   readonly encode?: (
     ids: number[],
@@ -69,6 +70,7 @@ async function createFastRefreshHarness(
   const hudSource = { name: "hud" } as unknown as HTMLCanvasElement;
   const blackSource = { name: "black" } as unknown as HTMLCanvasElement;
   const encodedTileIds: number[][] = [];
+  const encodedEncoderModes: Array<"canvas" | "indexed-2" | undefined> = [];
   const encodedPaletteModes: Array<"original" | "hud-4" | undefined> = [];
   const encodedSources: Array<"hud" | "black"> = [];
   const imageIds: number[] = [];
@@ -126,10 +128,14 @@ async function createFastRefreshHarness(
           source: HTMLCanvasElement,
           factory?: unknown,
           tiles?: readonly { id: number }[],
-          options?: { readonly paletteMode?: "original" | "hud-4" },
+          options?: {
+            readonly encoderMode?: "canvas" | "indexed-2";
+            readonly paletteMode?: "original" | "hud-4";
+          },
         ) => Promise<Uint8Array[]>;
       };
       imageSendConcurrency?: 1 | 2 | 3 | 4;
+      tileEncoderMode?: "canvas" | "indexed-2";
       tilePaletteMode?: "original" | "hud-4";
       onRefreshReady: (
         request: (target: TestRefreshTarget) => void,
@@ -161,6 +167,7 @@ async function createFastRefreshHarness(
           const ids = tiles.map(({ id }) => id);
           const sourceName = source === blackSource ? "black" : "hud";
           encodedTileIds.push(ids);
+          encodedEncoderModes.push(options?.encoderMode);
           encodedPaletteModes.push(options?.paletteMode);
           encodedSources.push(sourceName);
           currentEncodeAttempt = encodedTileIds.length;
@@ -172,6 +179,7 @@ async function createFastRefreshHarness(
         },
       },
       imageSendConcurrency: config.imageSendConcurrency,
+      tileEncoderMode: config.tileEncoderMode,
       tilePaletteMode: config.tilePaletteMode,
       onInput: (input) => {
         inputs.push(input);
@@ -194,6 +202,7 @@ async function createFastRefreshHarness(
   return {
     cleanup,
     committedMinutes,
+    encodedEncoderModes,
     encodedPaletteModes,
     encodedTileIds,
     encodedSources,
@@ -1337,17 +1346,25 @@ describe("G2 raster transport", () => {
   });
 
   it("bypasses HUD palette conversion for the black hidden frame", async () => {
+    diagnosticLogger.clear();
     const harness = await createFastRefreshHarness({
+      tileEncoderMode: "indexed-2",
       tilePaletteMode: "hud-4",
     });
 
     expect(harness.encodedPaletteModes).toEqual(["hud-4"]);
+    expect(harness.encodedEncoderModes).toEqual(["indexed-2"]);
+    expect(diagnosticLogger.text()).toContain(
+      "[ENCODE] complete · 4 tiles · palette hud-4"
+        + " · encoder indexed-2",
+    );
     harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
     await vi.waitFor(() => expect(harness.encodedSources).toEqual([
       "hud",
       "black",
     ]));
     expect(harness.encodedPaletteModes).toEqual(["hud-4", "original"]);
+    expect(harness.encodedEncoderModes).toEqual(["indexed-2", "canvas"]);
 
     harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
     await vi.waitFor(() => expect(harness.encodedSources).toEqual([
@@ -1360,6 +1377,25 @@ describe("G2 raster transport", () => {
       "original",
       "hud-4",
     ]);
+    expect(harness.encodedEncoderModes).toEqual([
+      "indexed-2",
+      "canvas",
+      "indexed-2",
+    ]);
+  });
+
+  it("forces Canvas encoding for every original-palette refresh", async () => {
+    diagnosticLogger.clear();
+    const harness = await createFastRefreshHarness({
+      tileEncoderMode: "indexed-2",
+      tilePaletteMode: "original",
+    });
+
+    expect(harness.encodedPaletteModes).toEqual(["original"]);
+    expect(harness.encodedEncoderModes).toEqual(["canvas"]);
+    expect(diagnosticLogger.text()).toContain(
+      "[ENCODE] complete · 4 tiles · palette original · encoder canvas",
+    );
   });
 
   it("live refresh ignores captured requests after cleanup", async () => {
