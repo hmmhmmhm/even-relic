@@ -4,6 +4,10 @@ import {
   TextContainerProperty,
 } from "@evenrealities/even_hub_sdk";
 import { HYBRID_TEXT_CONSOLE } from "./hybrid-hud";
+import {
+  quantizeHudFourLevelPixels,
+  type G2TilePaletteMode,
+} from "./g2-tile-palette";
 
 export type CanvasFactory = () => HTMLCanvasElement;
 export type ImageLoader = (url: string) => Promise<CanvasImageSource>;
@@ -16,6 +20,9 @@ export type Tile = {
   readonly height: number;
   readonly sourceX?: number;
   readonly sourceY?: number;
+};
+export type CanvasTileEncodingOptions = {
+  readonly paletteMode?: G2TilePaletteMode;
 };
 type ZOrderedContainer = {
   zOrderIndex?: number;
@@ -240,6 +247,7 @@ export async function encodeCanvasTiles(
   source: HTMLCanvasElement,
   canvasFactory: CanvasFactory = () => document.createElement("canvas"),
   tiles: readonly Tile[] = G2_TILES,
+  options: CanvasTileEncodingOptions = {},
 ) {
   return Promise.all(tiles.map(async (tile) => {
     const canvas = canvasFactory();
@@ -258,6 +266,11 @@ export async function encodeCanvasTiles(
       tile.width,
       tile.height,
     );
+    if (options.paletteMode === "hud-4") {
+      const image = context.getImageData(0, 0, tile.width, tile.height);
+      image.data.set(quantizeHudFourLevelPixels(image.data));
+      context.putImageData(image, 0, 0);
+    }
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
         (value) => value

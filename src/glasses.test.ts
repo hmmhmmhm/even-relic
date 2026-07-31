@@ -359,6 +359,42 @@ describe("G2 raster transport", () => {
     expect(tiles.every((tile) => tile.byteLength > 0)).toBe(true);
   });
 
+  it("quantizes only the temporary encoded tile when enabled", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+
+    const tilePixels = new Uint8ClampedArray([96, 96, 96, 80]);
+    const tileSnapshot = tilePixels.slice();
+    const written: Uint8ClampedArray[] = [];
+    const canvasFactory = () => ({
+      width: 0,
+      height: 0,
+      getContext: () => ({
+        drawImage: () => undefined,
+        getImageData: () => ({
+          data: tilePixels.slice(),
+        }),
+        putImageData: (image: { data: Uint8ClampedArray }) => {
+          written.push(image.data.slice());
+        },
+      }),
+      toBlob: (done: BlobCallback) => {
+        done(new Blob(["tile"], { type: "image/png" }));
+      },
+    }) as unknown as HTMLCanvasElement;
+
+    const tiles = await module.encodeCanvasTiles(
+      {} as HTMLCanvasElement,
+      canvasFactory,
+      [module.G2_TILES[0]],
+      { paletteMode: "hud-4" },
+    );
+
+    expect(tiles).toHaveLength(1);
+    expect([...written[0]]).toEqual([128, 128, 128, 255]);
+    expect(tilePixels).toEqual(tileSnapshot);
+  });
+
   it("creates a full-size black Canvas for hidden display pixels", async () => {
     const module = await loadGlasses();
     if (!module) return;
@@ -1407,6 +1443,10 @@ describe("G2 raster transport", () => {
     expect(trace).toContain("[INPUT] raw");
     expect(trace).toContain("[REFRESH] input tap accepted");
     expect(trace).toContain("[ENCODE] start · 4 tiles");
+    expect(trace).toContain(
+      "[ENCODE] complete · 4 tiles · palette original"
+        + " · bytes 2/2/2/2 · total 8",
+    );
     expect(trace).toContain("[TILE] sandevistanTR success");
     expect(trace).toContain("[REFRESH] hide complete");
     expect(harness.imageIds).toHaveLength(12);

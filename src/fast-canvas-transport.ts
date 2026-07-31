@@ -16,6 +16,7 @@ import {
 import { runBounded } from "./bounded-task-pool";
 import { bytesEqual } from "./bytes-equal";
 import { logDiagnostic } from "./diagnostic-log";
+import type { G2TilePaletteMode } from "./g2-tile-palette";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
 import type {
   Bridge,
@@ -110,6 +111,7 @@ export async function transmitCanvas(
   onRawEvent?: (event: FastCanvasRawEvent) => void,
   onDisplayCommitted?: () => void,
   imageSendConcurrency: ImageSendConcurrency = 1,
+  tilePaletteMode: G2TilePaletteMode = "original",
 ) {
   onProgress("Even 앱 브리지 연결 대기 중");
   const bridge = await dependencies.waitForBridge();
@@ -151,10 +153,20 @@ export async function transmitCanvas(
         imageSource,
         undefined,
         targetTiles,
+        { paletteMode: tilePaletteMode },
+      );
+      const encodedByteLengths = encodedTiles.map(
+        ({ byteLength }) => byteLength,
       );
       logDiagnostic(
         "ENCODE",
-        `complete · ${targetTiles.length} tiles`,
+        `complete · ${targetTiles.length} tiles`
+          + ` · palette ${tilePaletteMode}`
+          + ` · bytes ${encodedByteLengths.join("/")}`
+          + ` · total ${encodedByteLengths.reduce(
+            (sum, value) => sum + value,
+            0,
+          )}`,
         diagnosticDuration(encodeStartedAt),
       );
     } catch (error) {

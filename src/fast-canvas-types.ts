@@ -8,6 +8,7 @@ import type {
   RebuildPageContainer,
 } from "@evenrealities/even_hub_sdk";
 import type { encodeCanvasTiles, Tile } from "./g2-canvas";
+import type { G2TilePaletteMode } from "./g2-tile-palette";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
 
 export type Bridge = {
