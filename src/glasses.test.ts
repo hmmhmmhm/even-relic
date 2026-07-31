@@ -403,6 +403,58 @@ describe("G2 raster transport", () => {
     expect(tilePixels).toEqual(tileSnapshot);
   });
 
+  it("encodes a cropped HUD tile as a two-bit indexed PNG", async () => {
+    const module = await loadGlasses();
+    if (!module) return;
+
+    const tilePixels = new Uint8ClampedArray([
+      0, 0, 0, 255,
+      128, 128, 128, 255,
+      208, 208, 208, 255,
+      255, 255, 255, 255,
+    ]);
+    const snapshot = tilePixels.slice();
+    const crops: number[][] = [];
+    let blobCalls = 0;
+    const canvasFactory = () => ({
+      width: 0,
+      height: 0,
+      getContext: () => ({
+        drawImage: (...args: unknown[]) => {
+          crops.push(args.slice(1, 5) as number[]);
+        },
+        getImageData: () => ({ data: tilePixels }),
+      }),
+      toBlob: () => {
+        blobCalls += 1;
+      },
+    }) as unknown as HTMLCanvasElement;
+    const tile = {
+      id: 9,
+      name: "indexed",
+      x: 7,
+      y: 11,
+      width: 4,
+      height: 1,
+    };
+
+    const [png] = await module.encodeCanvasTiles(
+      {} as HTMLCanvasElement,
+      canvasFactory,
+      [tile],
+      { paletteMode: "hud-4", encoderMode: "indexed-2" },
+    );
+
+    expect([...png.subarray(0, 8)]).toEqual([
+      137, 80, 78, 71, 13, 10, 26, 10,
+    ]);
+    expect(png[24]).toBe(2);
+    expect(png[25]).toBe(3);
+    expect(crops).toEqual([[7, 11, 4, 1]]);
+    expect(blobCalls).toBe(0);
+    expect(tilePixels).toEqual(snapshot);
+  });
+
   it("creates a full-size black Canvas for hidden display pixels", async () => {
     const module = await loadGlasses();
     if (!module) return;
@@ -1485,7 +1537,7 @@ describe("G2 raster transport", () => {
     expect(trace).toContain("[REFRESH] input tap accepted");
     expect(trace).toContain("[ENCODE] start · 4 tiles");
     expect(trace).toContain(
-      "[ENCODE] complete · 4 tiles · palette original"
+      "[ENCODE] complete · 4 tiles · palette original · encoder canvas"
         + " · bytes 2/2/2/2 · total 8",
     );
     expect(trace).toContain("[TILE] sandevistanTR success");

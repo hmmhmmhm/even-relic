@@ -8,6 +8,8 @@ import {
   quantizeHudFourLevelPixels,
   type G2TilePaletteMode,
 } from "./g2-tile-palette";
+import { encodeG2IndexedPng } from "./g2-indexed-png";
+import type { G2PngEncoderMode } from "./g2-png-encoder-mode";
 
 export type CanvasFactory = () => HTMLCanvasElement;
 export type ImageLoader = (url: string) => Promise<CanvasImageSource>;
@@ -22,6 +24,7 @@ export type Tile = {
   readonly sourceY?: number;
 };
 export type CanvasTileEncodingOptions = {
+  readonly encoderMode?: G2PngEncoderMode;
   readonly paletteMode?: G2TilePaletteMode;
 };
 type ZOrderedContainer = {
@@ -266,6 +269,13 @@ export async function encodeCanvasTiles(
       tile.width,
       tile.height,
     );
+    if (
+      options.encoderMode === "indexed-2"
+      && options.paletteMode === "hud-4"
+    ) {
+      const image = context.getImageData(0, 0, tile.width, tile.height);
+      return encodeG2IndexedPng(tile.width, tile.height, image.data);
+    }
     if (options.paletteMode === "hud-4") {
       const image = context.getImageData(0, 0, tile.width, tile.height);
       image.data.set(quantizeHudFourLevelPixels(image.data));

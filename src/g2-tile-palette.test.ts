@@ -65,8 +65,13 @@ describe("G2 transmitted-tile palette", () => {
       new Uint8Array(7),
     ];
 
-    expect(formatG2TileEncodingDiagnostic(tiles, "hud-4")).toBe(
-      "complete · 4 tiles · palette hud-4 · bytes 2/3/5/7 · total 17",
+    expect(formatG2TileEncodingDiagnostic(
+      tiles,
+      "hud-4",
+      "indexed-2",
+    )).toBe(
+      "complete · 4 tiles · palette hud-4 · encoder indexed-2"
+        + " · bytes 2/3/5/7 · total 17",
     );
   });
 });

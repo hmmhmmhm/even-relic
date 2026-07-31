@@ -1,3 +1,5 @@
+import type { G2PngEncoderMode } from "./g2-png-encoder-mode";
+
 export type G2TilePaletteMode = "original" | "hud-4";
 
 export const HUD_FOUR_LEVEL_PALETTE = [0, 128, 208, 255] as const;
@@ -11,10 +13,12 @@ export function resolveG2TilePaletteMode(search: string): G2TilePaletteMode {
 export function formatG2TileEncodingDiagnostic(
   tiles: readonly Uint8Array[],
   mode: G2TilePaletteMode,
+  encoderMode: G2PngEncoderMode = "canvas",
 ): string {
   const lengths = tiles.map(({ byteLength }) => byteLength);
   const total = lengths.reduce((sum, value) => sum + value, 0);
   return `complete · ${tiles.length} tiles · palette ${mode}`
+    + ` · encoder ${encoderMode}`
     + ` · bytes ${lengths.join("/")} · total ${total}`;
 }
 
