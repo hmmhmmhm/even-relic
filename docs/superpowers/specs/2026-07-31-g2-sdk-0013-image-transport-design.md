@@ -1,7 +1,9 @@
 # G2 SDK 0.0.13 Image Transport Experiment Design
 
-**Date:** 2026-07-31  
-**Branch:** `experiment/g2-sdk-0013`  
+**Date:** 2026-07-31
+
+**Branch:** `experiment/g2-sdk-0013`
+
 **Status:** Approved for isolated implementation and physical G2 verification
 
 ## Summary
