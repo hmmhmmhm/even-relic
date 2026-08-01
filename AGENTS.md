@@ -170,3 +170,17 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - In HUD layout, pair every page label with a visible Pixelarticons checkbox
   state and keep the entire label-and-checkbox area as the enable/disable
   target. Keep the separate 44-pixel arrow controls for ordering.
+- Add Ask AI as an optional fast-HUD dashboard page. Its compact dashboard
+  panel previews short excerpts from the three most recent conversations and
+  the locally estimated current-week/current-month Realtime spend, but merely
+  viewing the panel must never start the microphone or an API session.
+- Start a new text-only OpenAI Realtime conversation only after the user taps
+  the Ask AI dashboard panel. Use the G2 glasses microphone by default, leave
+  turn detection to semantic VAD, render user transcription and streamed AI
+  text on the glasses, and stop the microphone and session immediately when
+  leaving the detail deck.
+- Treat the OpenAI key as BYOK. Accept it only in the phone companion, persist
+  it only in Even local storage, exchange it through a same-origin endpoint for
+  a short-lived Realtime client secret, and never bundle, log, or persist the
+  key on the server. Keep conversation excerpts and per-response usage/cost
+  records local to the device.
