@@ -211,7 +211,7 @@ git diff --check
 Expected: all tests and checks pass, `sandevistan.ehpk` is produced, and the
 changed implementation files remain at or below 450 lines.
 
-- [ ] **Step 5: Commit, fast-forward main, push, and restart the test server**
+- [x] **Step 5: Commit, fast-forward main, push, and restart the test server**
 
 Commit the tested implementation, fast-forward `main`, rerun the full test
 suite on merged `main`, push `origin/main`, restart port 4179 from `main`, and
