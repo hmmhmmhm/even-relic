@@ -39,8 +39,6 @@ describe("Ask AI runtime", () => {
       refresh: vi.fn(),
       createSession: vi.fn(() => ({
         start,
-        pause: vi.fn(),
-        resume: vi.fn(),
         stop,
         getState: () => protocol,
       })),
@@ -107,8 +105,6 @@ describe("Ask AI runtime", () => {
       refresh: vi.fn(),
       createSession: vi.fn(() => ({
         start: vi.fn(async () => undefined),
-        pause: vi.fn(),
-        resume: vi.fn(),
         stop: vi.fn(async () => protocol),
         getState: () => protocol,
       })),
@@ -150,8 +146,6 @@ describe("Ask AI runtime", () => {
         onState = options.onState;
         return {
           start: vi.fn(async () => undefined),
-          pause: vi.fn(),
-          resume: vi.fn(),
           stop: vi.fn(async () => protocol),
           getState: () => protocol,
         };
@@ -164,7 +158,9 @@ describe("Ask AI runtime", () => {
       phase: "thinking",
       assistantText: "첫",
     }, "response.output_text.delta");
-    await vi.advanceTimersByTimeAsync(100);
+    await vi.advanceTimersByTimeAsync(249);
+    expect(refresh).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(101);
     expect(refresh).toHaveBeenCalledOnce();
 
     onState?.({
@@ -173,6 +169,7 @@ describe("Ask AI runtime", () => {
       assistantText: "첫 답변",
     }, "response.done");
     expect(refresh).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(250);
     release?.();
     await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(2));
     expect(snapshot.assistantText).toBe("첫 답변");

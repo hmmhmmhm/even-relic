@@ -25,24 +25,26 @@ describe("native Ask AI text page", () => {
     });
   });
 
-  it("formats both roles, selected history state, and controls together", () => {
+  it("localizes roles, selected history state, listening status, and controls", () => {
     const snapshot = {
       ...createAiHudSnapshot(true),
-      phase: "thinking" as const,
+      phase: "listening" as const,
       transcriptPages: [
         "YOU // Earlier\nAI // Previous answer",
         "YOU // Now\nAI // Streaming answer",
       ],
     };
 
-    expect(createNativeAiTextContent(snapshot, 0, "en")).toBe([
-      "ASK AI // THINKING  ·  HISTORY 1/2",
+    expect(createNativeAiTextContent(snapshot, 0, "ko")).toBe([
+      "AI에게 묻기 // 듣는 중…  ·  대화 기록 1/2",
       "",
-      "YOU // Earlier",
+      "듣고 있습니다… 자연스럽게 말씀하세요.",
+      "",
+      "사용자 // Earlier",
       "AI // Previous answer",
       "",
-      "SCROLL // TRANSCRIPT",
-      "TAP // PAUSE  ·  DOUBLE TAP // BACK",
+      "스크롤 // 대화 기록",
+      "두 번 탭 // 뒤로",
     ].join("\n"));
   });
 
@@ -55,8 +57,9 @@ describe("native Ask AI text page", () => {
 
     const content = createNativeAiTextContent(snapshot, 0, "en");
     expect(content.length).toBeLessThanOrEqual(768);
-    expect(content).toContain("ASK AI // LISTENING");
+    expect(content).toContain("Ask AI // LISTENING…");
     expect(content).toContain("DOUBLE TAP // BACK");
+    expect(content).not.toContain("PAUSE");
   });
 });
 

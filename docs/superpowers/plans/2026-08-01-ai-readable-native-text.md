@@ -20,20 +20,20 @@
 - Modify: `src/fast-ai-hud.ts`
 - Modify: `src/fast-detail-hud.test.ts`
 
-- [ ] **Step 1: Write the failing locale coverage and Korean formatter tests**
+- [x] **Step 1: Write the failing locale coverage and Korean formatter tests**
 
 Add tests that iterate `SUPPORTED_LOCALES`, require one complete native Ask AI
-dictionary per locale, and assert Korean native output contains `듣는 중`,
-`대화 기록`, and `두 번 탭 · 뒤로` instead of the English controls.
+dictionary per locale, and assert Korean native output contains localized
+listening, transcript-history, and double-tap-back labels instead of English.
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run: `npm test -- --run src/ai-hud-i18n.test.ts src/native-ai-text.test.ts src/fast-detail-hud.test.ts`
 
 Expected: FAIL because the exhaustive native dictionary and localized
 formatters do not exist.
 
-- [ ] **Step 3: Implement the complete dictionary and shared formatter helpers**
+- [x] **Step 3: Implement the complete dictionary and shared formatter helpers**
 
 Create the following public API backed by a
 `Record<SupportedLocale, AiHudStrings>` containing all thirty locale entries:
@@ -75,7 +75,7 @@ Use `translatePhone(locale, "ai")` and `translatePhone(locale,
 the remaining English native and Canvas fallback labels through
 `translateAiHud`.
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run the Step 2 command and expect every test to pass.
 
@@ -89,19 +89,19 @@ Run the Step 2 command and expect every test to pass.
 - Modify: `src/ai-runtime.ts`
 - Modify: `src/ai-runtime.test.ts`
 
-- [ ] **Step 1: Write failing pacer tests**
+- [x] **Step 1: Write failing pacer tests**
 
 Cover six graphemes per 250 ms, no intermediate delta queue, immediate
 non-assistant status changes, a localized-ready snapshot after backlog drain,
 and disposal cancelling the timer.
 
-- [ ] **Step 2: Run pacer/runtime tests and verify RED**
+- [x] **Step 2: Run pacer/runtime tests and verify RED**
 
 Run: `npm test -- --run src/ai-presentation-pacer.test.ts src/ai-runtime.test.ts src/ai-hud-state.test.ts`
 
 Expected: FAIL because presentation pacing is not implemented.
 
-- [ ] **Step 3: Add completed turns to the snapshot and implement the pacer**
+- [x] **Step 3: Add completed turns to the snapshot and implement the pacer**
 
 Extend `AiHudSnapshot` with `turns` so partial assistant frames can rebuild
 their transcript pages. Implement:
@@ -122,13 +122,13 @@ Each tick reveals at most six `Array.from()` graphemes, rebuilds pages from the
 authoritative turns plus partial current text, and uses the `displaying` phase
 until caught up. It stores one newest target snapshot rather than delta events.
 
-- [ ] **Step 4: Route runtime presentation through the pacer**
+- [x] **Step 4: Route runtime presentation through the pacer**
 
 Keep protocol state and `stop()` persistence authoritative. Emit only paced
 snapshots to the HUD callback, preserve immediate key/error states, and call
 the existing final scheduler path when a presented target becomes settled.
 
-- [ ] **Step 5: Run focused tests and verify GREEN**
+- [x] **Step 5: Run focused tests and verify GREEN**
 
 Run the Step 2 command and expect every test to pass.
 
@@ -144,20 +144,20 @@ Run the Step 2 command and expect every test to pass.
 - Modify: `src/fast-hud-input-controller.ts`
 - Modify: `src/fast-hud-input-controller.test.ts`
 
-- [ ] **Step 1: Write failing input and teardown tests**
+- [x] **Step 1: Write failing input and teardown tests**
 
 Assert a single tap in AI detail returns `consume` with no effect, double tap
 stops once and restores Canvas once, and session stop resolves after closing
 the socket/subscription even when both microphone-close confirmations fail.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `npm test -- --run src/ai-realtime-session.test.ts src/ai-runtime.test.ts src/fast-hud-view.test.ts src/fast-hud-input-controller.test.ts`
 
 Expected: FAIL because tap still invokes pause and failed closure still rejects
 stop.
 
-- [ ] **Step 3: Remove pause/resume and make stop best effort**
+- [x] **Step 3: Remove pause/resume and make stop best effort**
 
 Remove `toggle()` from `AiRuntime`, remove `pause()` and `resume()` from the
 Realtime session interface, and make AI detail tap a consumed no-op. During
@@ -165,7 +165,7 @@ cleanup, unsubscribe audio and close the socket before attempting microphone
 closure twice. For a normal stop, publish idle and return the final protocol
 state even when confirmation remains false.
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run the Step 2 command and expect every test to pass.
 
@@ -177,25 +177,25 @@ Run the Step 2 command and expect every test to pass.
 - Modify: `AGENTS.md` only if implementation reveals a durable decision not
   already captured by the approved design.
 
-- [ ] **Step 1: Write the failing integration assertion**
+- [x] **Step 1: Write the failing integration assertion**
 
 Extend the transport/controller test to prove paced native updates contain
 localized listening copy, tap sends no SDK text or microphone command, and
 double tap restores the image page despite a false microphone-close result.
 
-- [ ] **Step 2: Run integration tests and verify RED**
+- [x] **Step 2: Run integration tests and verify RED**
 
 Run: `npm test -- --run src/glasses.test.ts src/fast-hud-input-controller.test.ts`
 
 Expected: FAIL before the controller uses paced/localized snapshots.
 
-- [ ] **Step 3: Wire the approved behavior and keep files under 450 lines**
+- [x] **Step 3: Wire the approved behavior and keep files under 450 lines**
 
 Use the paced snapshot for native Text and Canvas AI rendering, keep the phone
 companion's authoritative cost/history data intact, and preserve external image
 suppression while native mode is active.
 
-- [ ] **Step 4: Run all verification gates**
+- [x] **Step 4: Run all verification gates**
 
 Run:
 

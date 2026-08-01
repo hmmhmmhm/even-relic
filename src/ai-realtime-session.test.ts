@@ -214,7 +214,7 @@ describe("G2 Realtime session", () => {
     ));
   });
 
-  it("retries microphone cleanup when pausing cannot confirm closure", async () => {
+  it("retries microphone cleanup during stop and then resolves", async () => {
     let closeAttempts = 0;
     const audioControl = vi.fn(async (isOpen: boolean) => {
       if (isOpen) return true;
@@ -244,7 +244,7 @@ describe("G2 Realtime session", () => {
     socket?.open();
     await starting;
 
-    await expect(session.pause()).rejects.toThrow("microphone");
+    await expect(session.stop()).resolves.toMatchObject({ phase: "idle" });
     expect(closeAttempts).toBe(2);
   });
 
@@ -344,13 +344,18 @@ describe("G2 Realtime session", () => {
     expect(session.getState().phase).toBe("error");
   });
 
-  it("does not report a successful stop when the open microphone cannot close", async () => {
+  it("releases transport and returns idle even when microphone closure is unconfirmed", async () => {
     const audioControl = vi.fn(async (isOpen: boolean) => isOpen);
+    const order: string[] = [];
+    const unsubscribe = vi.fn(() => { order.push("unsubscribe"); });
     let socket: FakeSocket | undefined;
     const session = createAiRealtimeSession({
       bridge: {
-        audioControl,
-        onEvenHubEvent: () => vi.fn(),
+        audioControl: async (isOpen) => {
+          if (!isOpen) order.push("microphone");
+          return audioControl(isOpen);
+        },
+        onEvenHubEvent: () => unsubscribe,
       },
       key: "sk-test-1234567890abcdefghijklmnop",
       locale: "en",
@@ -361,6 +366,11 @@ describe("G2 Realtime session", () => {
       }),
       createSocket: (_url, protocols) => {
         socket = new FakeSocket(protocols);
+        const close = socket.close.bind(socket);
+        socket.close = () => {
+          order.push("socket");
+          close();
+        };
         return socket;
       },
     });
@@ -369,10 +379,17 @@ describe("G2 Realtime session", () => {
     socket?.open();
     await starting;
 
-    await expect(session.stop()).rejects.toThrow("microphone");
+    await expect(session.stop()).resolves.toMatchObject({
+      phase: "idle",
+      error: undefined,
+    });
+    expect(order.slice(0, 2)).toEqual(["unsubscribe", "socket"]);
+    expect(order.filter((value) => value === "microphone")).toHaveLength(2);
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    expect(socket?.readyState).toBe(3);
     expect(session.getState()).toMatchObject({
-      phase: "error",
-      error: "G2 microphone could not close",
+      phase: "idle",
+      error: undefined,
     });
   });
 });

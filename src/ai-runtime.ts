@@ -19,6 +19,7 @@ import {
 } from "./ai-hud-state";
 import { createAiRealtimeSession } from "./ai-realtime-session";
 import type { AiRealtimeProtocolState } from "./ai-realtime-protocol";
+import { createAiPresentationPacer } from "./ai-presentation-pacer";
 import { createAiRefreshScheduler } from "./ai-refresh-scheduler";
 import type { EvenStorage } from "./live-cache";
 import type { PhoneLocale } from "./phone-types";
@@ -30,7 +31,6 @@ type AiBridge = EvenStorage & {
 
 export type AiRuntime = {
   start(): Promise<boolean>;
-  toggle(): Promise<boolean>;
   stop(): Promise<void>;
   dispose(): void;
 };
@@ -54,6 +54,9 @@ export function createAiRuntime(options: {
     if (final) void scheduler.final();
     else scheduler.request();
   };
+  const pacer = createAiPresentationPacer({
+    onFrame: publish,
+  });
 
   const persist = async (
     protocol: AiRealtimeProtocolState,
@@ -111,15 +114,17 @@ export function createAiRuntime(options: {
         bridge: options.bridge,
         key,
         locale: options.getLocale(),
-        onState: (protocol, eventType) => {
+        onState: (protocol) => {
           const snapshot = updateAiHudProtocol(
             options.getSnapshot(),
             protocol,
           );
-          publish(
-            snapshot,
-            protocol.phase === "error" || eventType === "response.done",
-          );
+          if (protocol.phase === "error") {
+            pacer.reset();
+            publish(snapshot, true);
+          } else {
+            pacer.push(snapshot);
+          }
         },
       });
       try {
@@ -130,26 +135,17 @@ export function createAiRuntime(options: {
         return false;
       }
     },
-    async toggle() {
-      if (!session) return false;
-      const phase = session.getState().phase;
-      if (phase === "paused") await session.resume();
-      else if (phase === "listening" || phase === "thinking") {
-        await session.pause();
-      } else {
-        return false;
-      }
-      return true;
-    },
     async stop() {
       const active = session;
       session = undefined;
       if (!active) return;
       const protocol = await active.stop();
+      pacer.reset();
       await persist(protocol);
     },
     dispose() {
       disposed = true;
+      pacer.dispose();
       scheduler.dispose();
       const active = session;
       session = undefined;

@@ -115,7 +115,7 @@ function values(texts: readonly DrawnText[]) {
 }
 
 describe("drawFastDetailHud", () => {
-  it("draws the streaming Ask AI transcript and controls", () => {
+  it("draws the localized streaming Ask AI transcript and exit control", () => {
     const { canvas, texts } = createCanvas();
     const ai = {
       ...createAiHudSnapshot(true),
@@ -139,14 +139,14 @@ describe("drawFastDetailHud", () => {
     }, "ko");
 
     expect(values(texts)).toEqual(expect.arrayContaining([
-      "ASK AI // THINKING",
-      "LIVE 1/1",
-      "YOU // 오늘 날씨는 어때?",
+      "AI에게 묻기 // 생각하는 중…",
+      "실시간 1/1",
+      "사용자 // 오늘 날씨는 어때?",
       "AI // 현재 맑고 기온은 28도입니다.",
-      "SCROLL // TRANSCRIPT",
-      "TAP // PAUSE",
-      "DOUBLE TAP // BACK",
+      "스크롤 // 대화 기록",
+      "두 번 탭 // 뒤로",
     ]));
+    expect(values(texts)).not.toContain("TAP // PAUSE");
   });
 
   it("marks a manually selected older Ask AI page as history", () => {
@@ -172,8 +172,8 @@ describe("drawFastDetailHud", () => {
     }, "ko");
 
     expect(values(texts)).toEqual(expect.arrayContaining([
-      "HISTORY 1/2",
-      "YOU // 이전 질문",
+      "대화 기록 1/2",
+      "사용자 // 이전 질문",
       "AI // 이전 답변",
     ]));
   });

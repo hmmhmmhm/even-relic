@@ -4,6 +4,10 @@ import {
   TextContainerUpgrade,
 } from "@evenrealities/even_hub_sdk";
 import type { AiHudSnapshot } from "./ai-hud-state";
+import {
+  localizeAiTranscriptPage,
+  translateAiHud,
+} from "./ai-hud-i18n";
 import { translatePhone } from "./phone-i18n";
 import type { PhoneLocale } from "./phone-types";
 
@@ -24,15 +28,15 @@ export type NativeAiTextModeController = {
   dispose(): void;
 };
 
-function phaseLabel(snapshot: AiHudSnapshot): string {
-  if (!snapshot.configured) return "KEY REQUIRED";
+function phaseLabel(snapshot: AiHudSnapshot, locale: PhoneLocale): string {
+  if (!snapshot.configured) return translatePhone(locale, "aiKeyRequired");
   switch (snapshot.phase) {
-    case "connecting": return "CONNECTING";
-    case "listening": return "LISTENING";
-    case "thinking": return "THINKING";
-    case "paused": return "PAUSED";
-    case "error": return "ERROR";
-    default: return "READY";
+    case "connecting": return translateAiHud(locale, "connecting");
+    case "listening": return translateAiHud(locale, "listening");
+    case "thinking": return translateAiHud(locale, "thinking");
+    case "displaying": return translateAiHud(locale, "displaying");
+    case "error": return translateAiHud(locale, "error");
+    default: return translateAiHud(locale, "ready");
   }
 }
 
@@ -47,18 +51,22 @@ export function createNativeAiTextContent(
     Math.max(0, pages.length - 1),
   );
   const position = pages.length > 0
-    ? `${index === pages.length - 1 ? "LIVE" : "HISTORY"} ${index + 1}/${pages.length}`
-    : "LIVE";
-  const header = `ASK AI // ${phaseLabel(snapshot)}  ·  ${position}`;
+    ? `${translateAiHud(locale, index === pages.length - 1 ? "live" : "history")} ${index + 1}/${pages.length}`
+    : translateAiHud(locale, "live");
+  const header = `${translatePhone(locale, "ai")} // ${phaseLabel(snapshot, locale)}  ·  ${position}`;
+  const page = pages[index]?.trim();
+  const transcript = page ? localizeAiTranscriptPage(page, locale) : "";
+  const listening = snapshot.phase === "listening"
+    ? translateAiHud(locale, "listeningPrompt")
+    : "";
   const body = snapshot.error?.trim()
-    || pages[index]?.trim()
+    || [listening, transcript].filter(Boolean).join("\n\n")
     || (snapshot.configured
-      ? "Listening through the G2 microphone. Speak naturally."
+      ? translateAiHud(locale, "listeningPrompt")
       : translatePhone(locale, "aiKeyRequired"));
-  const action = snapshot.phase === "paused" ? "RESUME" : "PAUSE";
   const footer = [
-    "SCROLL // TRANSCRIPT",
-    `TAP // ${action}  ·  DOUBLE TAP // BACK`,
+    translateAiHud(locale, "scrollTranscript"),
+    translateAiHud(locale, "doubleTapBack"),
   ].join("\n");
   const fixedLength = header.length + footer.length + 4;
   const boundedBody = body.slice(

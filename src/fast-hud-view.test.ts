@@ -296,6 +296,18 @@ describe("fast HUD detail state", () => {
     });
   });
 
+  it("consumes a single tap in Ask AI without controlling the microphone", () => {
+    const state: FastHudViewState = {
+      ...createFastHudViewState(),
+      mode: "ai",
+    };
+
+    expect(reduceFastHudInput(state, "ai", "tap", CONTEXT)).toEqual({
+      state,
+      result: "consume",
+    });
+  });
+
   it("returns from every detail deck on double tap and retains indices", () => {
     for (const mode of [
       "map",

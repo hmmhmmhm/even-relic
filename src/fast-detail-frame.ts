@@ -69,6 +69,7 @@ export function drawDetailFooter(
   context: CanvasRenderingContext2D,
   first: string,
   second?: string,
+  back = "DOUBLE TAP // BACK",
 ) {
   context.fillStyle = COLOR.background;
   context.fillRect(0, 254, WIDTH, 34);
@@ -78,7 +79,17 @@ export function drawDetailFooter(
   if (second) {
     drawText(context, second, 196, 268, 10, COLOR.secondary, "bold");
   }
-  drawText(context, "DOUBLE TAP // BACK", 410, 268, 10, COLOR.primary, "bold");
+  context.font = 'bold 10px "SFMono-Regular", Consolas, monospace';
+  const backWidth = context.measureText(back).width;
+  drawText(
+    context,
+    back,
+    Math.max(196, 562 - backWidth),
+    268,
+    10,
+    COLOR.primary,
+    "bold",
+  );
 }
 
 export function drawDetailEmptyState(

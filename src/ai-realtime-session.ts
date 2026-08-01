@@ -39,8 +39,6 @@ type TokenResponse = {
 
 export type AiRealtimeSession = {
   start(): Promise<void>;
-  pause(): Promise<void>;
-  resume(): Promise<void>;
   stop(): Promise<AiRealtimeProtocolState>;
   getState(): AiRealtimeProtocolState;
 };
@@ -126,6 +124,11 @@ export function createAiRealtimeSession(
       startAbortController?.abort();
       startAbortController = undefined;
       const activation = microphoneActivation;
+      unsubscribeAudio?.();
+      unsubscribeAudio = undefined;
+      const activeSocket = socket;
+      socket = undefined;
+      activeSocket?.close();
       if (activation) {
         const opened = await activation.catch(() => false);
         if (microphoneActivation === activation) {
@@ -134,20 +137,10 @@ export function createAiRealtimeSession(
         if (opened) microphoneOpen = true;
       }
       const microphoneClosed = await closeMicrophone();
-      unsubscribeAudio?.();
-      unsubscribeAudio = undefined;
-      const activeSocket = socket;
-      socket = undefined;
-      activeSocket?.close();
+      microphoneOpen = false;
       starting = false;
-      if (!microphoneClosed) {
-        publish({
-          ...state,
-          phase: "error",
-          error: "G2 microphone could not close",
-        });
-      } else if (finalPhase === "idle") {
-        publish({ ...state, phase: "idle" });
+      if (finalPhase === "idle") {
+        publish({ ...state, phase: "idle", error: undefined });
       }
       return microphoneClosed;
     })().finally(() => {
@@ -311,37 +304,8 @@ export function createAiRealtimeSession(
         starting = false;
       }
     },
-    async pause() {
-      if (!microphoneOpen) return;
-      const closed = await closeMicrophone(1);
-      if (!closed) {
-        publish({
-          ...state,
-          phase: "error",
-          error: "G2 microphone could not close",
-        });
-        await cleanup("error");
-        throw new Error("G2 microphone could not close");
-      }
-      publish({ ...state, phase: "paused" });
-    },
-    async resume() {
-      if (microphoneOpen || !socket) return;
-      const operation = lifecycle;
-      const opened = await activateMicrophone();
-      microphoneOpen = opened;
-      if (operation !== lifecycle) {
-        await cleanup(state.phase === "error" ? "error" : "idle");
-        throw new Error("Realtime resume cancelled");
-      }
-      if (!opened) throw new Error("G2 microphone unavailable");
-      publish({ ...state, phase: "listening", error: undefined });
-    },
     async stop() {
-      const microphoneClosed = await cleanup();
-      if (!microphoneClosed) {
-        throw new Error("G2 microphone could not close");
-      }
+      await cleanup();
       return state;
     },
     getState() {

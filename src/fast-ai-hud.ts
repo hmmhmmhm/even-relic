@@ -1,5 +1,9 @@
 import type { AiHudSnapshot } from "./ai-hud-state";
 import {
+  localizeAiTranscriptPage,
+  translateAiHud,
+} from "./ai-hud-i18n";
+import {
   drawFastCanvasOpenFrame as drawFrame,
   drawFastCanvasText as drawText,
   FAST_CANVAS_COLOR as COLOR,
@@ -17,15 +21,15 @@ function usd(value: number): string {
   return `$${value < 0.01 ? value.toFixed(4) : value.toFixed(2)}`;
 }
 
-function phaseLabel(snapshot: AiHudSnapshot): string {
-  if (!snapshot.configured) return "KEY REQUIRED";
+function phaseLabel(snapshot: AiHudSnapshot, locale: PhoneLocale): string {
+  if (!snapshot.configured) return translatePhone(locale, "aiKeyRequired");
   switch (snapshot.phase) {
-    case "connecting": return "CONNECTING";
-    case "listening": return "LISTENING";
-    case "thinking": return "THINKING";
-    case "paused": return "PAUSED";
-    case "error": return "ERROR";
-    default: return "READY";
+    case "connecting": return translateAiHud(locale, "connecting");
+    case "listening": return translateAiHud(locale, "listening");
+    case "thinking": return translateAiHud(locale, "thinking");
+    case "displaying": return translateAiHud(locale, "displaying");
+    case "error": return translateAiHud(locale, "error");
+    default: return translateAiHud(locale, "ready");
   }
 }
 
@@ -36,7 +40,7 @@ export function drawFastAiPanel(
 ) {
   drawText(
     context,
-    `ASK AI // ${phaseLabel(snapshot)}`,
+    `${translatePhone(locale, "ai")} // ${phaseLabel(snapshot, locale)}`,
     308,
     82,
     11,
@@ -54,9 +58,16 @@ export function drawFastAiPanel(
       COLOR.primary,
       "bold",
     );
-    drawText(context, "SET KEY ON PHONE", 308, 142, 12, COLOR.dim, "bold");
   } else if (latest) {
-    drawText(context, "RECENT // YOU", 308, 104, 10, COLOR.secondary, "bold");
+    drawText(
+      context,
+      `${translateAiHud(locale, "history")} // ${translateAiHud(locale, "you")}`,
+      308,
+      104,
+      10,
+      COLOR.secondary,
+      "bold",
+    );
     drawText(
       context,
       wrapHudText(latest.user || "—", 28, 1)[0] ?? "—",
@@ -66,7 +77,15 @@ export function drawFastAiPanel(
       COLOR.primary,
       "bold",
     );
-    drawText(context, "RECENT // AI", 308, 154, 10, COLOR.secondary, "bold");
+    drawText(
+      context,
+      `${translateAiHud(locale, "history")} // ${translateAiHud(locale, "assistant")}`,
+      308,
+      154,
+      10,
+      COLOR.secondary,
+      "bold",
+    );
     drawText(
       context,
       wrapHudText(latest.assistant || "—", 28, 1)[0] ?? "—",
@@ -77,8 +96,24 @@ export function drawFastAiPanel(
       "bold",
     );
   } else {
-    drawText(context, "TAP TO START", 308, 112, 22, COLOR.primary, "bold");
-    drawText(context, "G2 MIC · TEXT RESPONSE", 308, 150, 11, COLOR.dim, "bold");
+    drawText(
+      context,
+      translatePhone(locale, "noConversations"),
+      308,
+      112,
+      18,
+      COLOR.primary,
+      "bold",
+    );
+    drawText(
+      context,
+      translateAiHud(locale, "ready"),
+      308,
+      150,
+      11,
+      COLOR.dim,
+      "bold",
+    );
   }
   drawText(
     context,
@@ -110,20 +145,22 @@ export function drawFastAiDetail(
   const index = Math.min(Math.max(0, selectedPage), Math.max(0, pages.length - 1));
   drawHeader(
     context,
-    `ASK AI // ${phaseLabel(snapshot)}`,
+    `${translatePhone(locale, "ai")} // ${phaseLabel(snapshot, locale)}`,
     pages.length > 0
-      ? `${index === pages.length - 1 ? "LIVE" : "HISTORY"} ${index + 1}/${pages.length}`
+      ? `${translateAiHud(locale, index === pages.length - 1 ? "live" : "history")} ${index + 1}/${pages.length}`
       : undefined,
   );
   drawFrame(context, 14, 44, 548, 204);
-  const page = pages[index];
+  const page = pages[index]
+    ? localizeAiTranscriptPage(pages[index], locale)
+    : undefined;
   const lines = snapshot.error
     ? wrapHudText(snapshot.error, 46, 6)
     : page
       ? page.split("\n").slice(0, 6)
       : wrapHudText(
           snapshot.configured
-            ? "Listening through the G2 microphone. Speak naturally."
+            ? translateAiHud(locale, "listeningPrompt")
             : translatePhone(locale, "aiKeyRequired"),
           46,
           6,
@@ -141,7 +178,8 @@ export function drawFastAiDetail(
   });
   drawFooter(
     context,
-    "SCROLL // TRANSCRIPT",
-    snapshot.phase === "paused" ? "TAP // RESUME" : "TAP // PAUSE",
+    translateAiHud(locale, "scrollTranscript"),
+    undefined,
+    translateAiHud(locale, "doubleTapBack"),
   );
 }

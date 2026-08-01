@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { createFastHudInputController } from "./fast-hud-input-controller";
-import { createFastHudViewState } from "./fast-hud-view";
+import {
+  createFastHudViewState,
+  type FastHudViewState,
+} from "./fast-hud-view";
 
 describe("fast HUD native Ask AI input flow", () => {
   it("enters one native page, updates it for history, and restores Canvas", async () => {
@@ -20,7 +23,6 @@ describe("fast HUD native Ask AI input flow", () => {
     };
     const ai = {
       start: vi.fn(async () => true),
-      toggle: vi.fn(async () => true),
       stop: vi.fn(async () => undefined),
       dispose: vi.fn(),
     };
@@ -54,6 +56,11 @@ describe("fast HUD native Ask AI input flow", () => {
     expect(view.aiPage).toBe(0);
     expect(native.update).toHaveBeenCalledWith("PAGE 0");
 
+    native.update.mockClear();
+    expect(await input("tap")).toBe("consume");
+    expect(native.update).not.toHaveBeenCalled();
+    expect(ai.stop).not.toHaveBeenCalled();
+
     expect(await input("double-tap")).toBe("consume");
     expect(view.mode).toBe("dashboard");
     expect(ai.stop).toHaveBeenCalledOnce();
@@ -79,7 +86,6 @@ describe("fast HUD native Ask AI input flow", () => {
       getLiveSession: () => undefined,
       getAiRuntime: () => ({
         start,
-        toggle: async () => false,
         stop: async () => undefined,
         dispose: () => undefined,
       }),
@@ -96,5 +102,45 @@ describe("fast HUD native Ask AI input flow", () => {
     expect(await input("tap")).toBe("consume");
     expect(view.mode).toBe("dashboard");
     expect(start).not.toHaveBeenCalled();
+  });
+
+  it("restores Canvas even when stopping Ask AI rejects unexpectedly", async () => {
+    let view: FastHudViewState = {
+      ...createFastHudViewState(),
+      mode: "ai",
+    };
+    const restore = vi.fn(async () => true);
+    const draw = vi.fn();
+    const input = createFastHudInputController({
+      getView: () => view,
+      setView: (next) => { view = next; },
+      getPage: () => "ai",
+      getContext: () => ({
+        newsCount: 0,
+        newsPageCounts: [],
+        todoCount: 0,
+        maneuverCount: 0,
+        activeManeuverIndex: 0,
+      }),
+      getLiveSession: () => undefined,
+      getAiRuntime: () => ({
+        start: async () => true,
+        stop: async () => { throw new Error("storage unavailable"); },
+        dispose: () => undefined,
+      }),
+      getNativeText: () => ({
+        active: () => true,
+        enter: async () => true,
+        update: async () => true,
+        restore,
+      }),
+      nativeContent: () => "ASK AI",
+      drawCurrentPage: draw,
+    });
+
+    await expect(input("double-tap")).resolves.toBe("consume");
+    expect(view.mode).toBe("dashboard");
+    expect(draw).toHaveBeenCalledOnce();
+    expect(restore).toHaveBeenCalledOnce();
   });
 });

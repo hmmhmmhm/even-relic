@@ -10,7 +10,6 @@ export type AiRealtimePhase =
   | "connecting"
   | "listening"
   | "thinking"
-  | "paused"
   | "error";
 
 export type AiConversationTurn = {

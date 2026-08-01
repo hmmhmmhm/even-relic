@@ -63,17 +63,14 @@ export function createFastHudInputController(options: {
         return "consume";
       }
       void aiRuntime?.start();
-    } else if (transition.effect?.type === "toggle-ai") {
-      const changed = await aiRuntime?.toggle() ?? false;
-      if (!changed) return "consume";
-      if (nativeText?.active()) {
-        await nativeText.update(options.nativeContent());
-        return "consume";
-      }
-      options.drawCurrentPage();
-      return "redraw";
     } else if (transition.effect?.type === "stop-ai") {
-      await aiRuntime?.stop();
+      try {
+        await aiRuntime?.stop();
+      } catch (error) {
+        options.log?.(
+          `Ask AI stop failed · ${error instanceof Error ? error.message : "unknown"}`,
+        );
+      }
       if (nativeText?.active()) {
         options.drawCurrentPage();
         if (!await nativeText.restore()) options.setView(previous);

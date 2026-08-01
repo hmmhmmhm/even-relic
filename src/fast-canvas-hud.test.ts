@@ -351,10 +351,10 @@ describe("fast split Canvas HUD", () => {
 
     expect(hud.values).toEqual(expect.arrayContaining([
       "05 / 05",
-      "ASK AI // READY",
-      "RECENT // YOU",
+      "AI에게 묻기 // 준비됨",
+      "대화 기록 // 사용자",
       "오늘 일정을 알려줘",
-      "RECENT // AI",
+      "대화 기록 // AI",
       "오후 세 시에 검토 일정이…",
       "이번 주 $0.0012",
       "이번 달 $0.0084",

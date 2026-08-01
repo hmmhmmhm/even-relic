@@ -37,6 +37,7 @@ describe("Ask AI HUD state", () => {
     };
     const state = updateAiHudProtocol(createAiHudSnapshot(true), protocol);
     expect(state.phase).toBe("thinking");
+    expect(state.turns).toEqual(protocol.turns);
     expect(state.transcriptPages.length).toBeGreaterThan(1);
     expect(state.transcriptPages.join("\n")).toContain("첫 번째 질문");
     expect(state.transcriptPages.join("\n")).toContain("오늘 일정");
