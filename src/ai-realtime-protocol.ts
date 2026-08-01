@@ -24,11 +24,17 @@ export type AiRealtimeProtocolState = {
   readonly userText: string;
   readonly assistantText: string;
   readonly usage: AiUsage;
+  readonly activeUserItemId?: string;
+  readonly activeResponseId?: string;
+  readonly retiredUserItemIds: readonly string[];
+  readonly retiredResponseIds: readonly string[];
   readonly error?: string;
 };
 
 type RealtimeServerEvent = {
   readonly type?: string;
+  readonly item_id?: string;
+  readonly response_id?: string;
   readonly transcript?: string;
   readonly delta?: string;
   readonly text?: string;
@@ -43,6 +49,7 @@ type RealtimeServerEvent = {
     readonly output_token_details?: { readonly text_tokens?: number };
   };
   readonly response?: {
+    readonly id?: string;
     readonly usage?: {
       readonly input_tokens?: number;
       readonly output_tokens?: number;
@@ -175,6 +182,8 @@ export function createRealtimeProtocolState(): AiRealtimeProtocolState {
     userText: "",
     assistantText: "",
     usage: EMPTY_AI_USAGE,
+    retiredUserItemIds: [],
+    retiredResponseIds: [],
   };
 }
 
@@ -260,6 +269,40 @@ function archiveCurrentTurn(
   return turns;
 }
 
+function retireId(
+  ids: readonly string[],
+  id: string | undefined,
+): readonly string[] {
+  if (!id || ids.includes(id)) return ids;
+  return [...ids, id].slice(-12);
+}
+
+function isRetired(ids: readonly string[], id: string | undefined): boolean {
+  return Boolean(id && ids.includes(id));
+}
+
+function acceptsUserItem(
+  state: AiRealtimeProtocolState,
+  itemId: string | undefined,
+): boolean {
+  if (!itemId) return true;
+  if (isRetired(state.retiredUserItemIds, itemId)) return false;
+  return !state.activeUserItemId || state.activeUserItemId === itemId;
+}
+
+function responseId(event: RealtimeServerEvent): string | undefined {
+  return event.response_id ?? event.response?.id;
+}
+
+function acceptsResponse(
+  state: AiRealtimeProtocolState,
+  id: string | undefined,
+): boolean {
+  if (!id) return true;
+  if (isRetired(state.retiredResponseIds, id)) return false;
+  return !state.activeResponseId || state.activeResponseId === id;
+}
+
 export function reduceRealtimeServerEvent(
   state: AiRealtimeProtocolState,
   event: RealtimeServerEvent,
@@ -275,40 +318,74 @@ export function reduceRealtimeServerEvent(
         turns: archiveCurrentTurn(state),
         userText: "",
         assistantText: "",
+        activeUserItemId: event.item_id,
+        activeResponseId: undefined,
+        retiredUserItemIds: retireId(
+          state.retiredUserItemIds,
+          state.activeUserItemId,
+        ),
+        retiredResponseIds: retireId(
+          state.retiredResponseIds,
+          state.activeResponseId,
+        ),
         error: undefined,
       };
     case "input_audio_buffer.speech_stopped":
-    case "response.created":
       return { ...state, phase: "thinking" };
-    case "conversation.item.input_audio_transcription.delta":
+    case "response.created": {
+      const id = responseId(event);
+      if (!acceptsResponse(state, id)) return state;
       return {
         ...state,
+        phase: "thinking",
+        activeResponseId: id ?? state.activeResponseId,
+      };
+    }
+    case "conversation.item.input_audio_transcription.delta":
+      if (!acceptsUserItem(state, event.item_id)) return state;
+      return {
+        ...state,
+        activeUserItemId: event.item_id ?? state.activeUserItemId,
         userText: boundedText(state.userText + (event.delta ?? "")),
       };
     case "conversation.item.input_audio_transcription.completed":
+      if (!acceptsUserItem(state, event.item_id)) return state;
       return {
         ...state,
+        activeUserItemId: event.item_id ?? state.activeUserItemId,
         userText: boundedText(event.transcript ?? state.userText),
         usage: addAiUsage(state.usage, usageFromTranscription(event)),
       };
     case "response.output_text.delta":
-    case "response.text.delta":
+    case "response.text.delta": {
+      const id = responseId(event);
+      if (!acceptsResponse(state, id)) return state;
       return {
         ...state,
         phase: "thinking",
+        activeResponseId: id ?? state.activeResponseId,
         assistantText: boundedText(state.assistantText + (event.delta ?? "")),
       };
-    case "response.output_text.done":
+    }
+    case "response.output_text.done": {
+      const id = responseId(event);
+      if (!acceptsResponse(state, id)) return state;
       return {
         ...state,
+        activeResponseId: id ?? state.activeResponseId,
         assistantText: boundedText(event.text ?? state.assistantText),
       };
-    case "response.done":
+    }
+    case "response.done": {
+      const id = responseId(event);
+      if (!acceptsResponse(state, id)) return state;
       return {
         ...state,
         phase: "listening",
+        activeResponseId: id ?? state.activeResponseId,
         usage: addAiUsage(state.usage, usageFromResponse(event)),
       };
+    }
     case "error":
       return {
         ...state,

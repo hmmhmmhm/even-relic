@@ -136,6 +136,103 @@ describe("Realtime protocol", () => {
     expect(state.assistantText).toBe("Second answer");
   });
 
+  it("ignores late transcription events from an archived audio item", () => {
+    let state = reduceRealtimeServerEvent(createRealtimeProtocolState(), {
+      type: "input_audio_buffer.speech_started",
+      item_id: "user-1",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "user-1",
+      transcript: "First question",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.created",
+      response: { id: "response-1" },
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.output_text.delta",
+      response_id: "response-1",
+      delta: "First answer",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "input_audio_buffer.speech_started",
+      item_id: "user-2",
+    });
+
+    state = reduceRealtimeServerEvent(state, {
+      type: "conversation.item.input_audio_transcription.delta",
+      item_id: "user-1",
+      delta: " late",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "user-1",
+      transcript: "First question late",
+    });
+    expect(state.userText).toBe("");
+    expect(state.turns).toEqual([{
+      user: "First question",
+      assistant: "First answer",
+    }]);
+
+    state = reduceRealtimeServerEvent(state, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "user-2",
+      transcript: "Second question",
+    });
+    expect(state.userText).toBe("Second question");
+  });
+
+  it("ignores late response events from an archived response", () => {
+    let state = reduceRealtimeServerEvent(createRealtimeProtocolState(), {
+      type: "input_audio_buffer.speech_started",
+      item_id: "user-1",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "user-1",
+      transcript: "First question",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.created",
+      response: { id: "response-1" },
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.output_text.delta",
+      response_id: "response-1",
+      delta: "First answer",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "input_audio_buffer.speech_started",
+      item_id: "user-2",
+    });
+
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.output_text.delta",
+      response_id: "response-1",
+      delta: " late",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.done",
+      response: { id: "response-1" },
+    });
+    expect(state.assistantText).toBe("");
+    expect(state.phase).toBe("listening");
+
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.created",
+      response: { id: "response-2" },
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.output_text.delta",
+      response_id: "response-2",
+      delta: "Second answer",
+    });
+    expect(state.assistantText).toBe("Second answer");
+    expect(state.phase).toBe("thinking");
+  });
+
   it("bounds archived exchanges by turn count and character count", () => {
     let state = createRealtimeProtocolState();
     for (let index = 0; index < 14; index += 1) {
