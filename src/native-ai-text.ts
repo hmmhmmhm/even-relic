@@ -10,7 +10,7 @@ import {
 } from "./ai-hud-i18n";
 import {
   AI_TRANSCRIPT_VISIBLE_LINES,
-  selectAiTranscriptViewport,
+  selectAiTranscriptDisplayRows,
 } from "./ai-transcript";
 import { translatePhone } from "./phone-i18n";
 import type { PhoneLocale } from "./phone-types";
@@ -41,7 +41,7 @@ export function createNativeAiTextContent(
   const latestSelected = lines.length === 0
     || Math.floor(selectedLine) >= lines.length - 1;
   const showListening = snapshot.phase === "listening" && latestSelected;
-  const visible = selectAiTranscriptViewport(
+  const visible = selectAiTranscriptDisplayRows(
     lines,
     selectedLine,
     AI_TRANSCRIPT_VISIBLE_LINES - (showListening ? 1 : 0),

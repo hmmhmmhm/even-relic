@@ -10,7 +10,7 @@ import {
 import { wrapHudText } from "./fast-detail-text";
 import {
   AI_TRANSCRIPT_VISIBLE_LINES,
-  selectAiTranscriptViewport,
+  selectAiTranscriptDisplayRows,
 } from "./ai-transcript";
 import { translatePhone } from "./phone-i18n";
 import type { PhoneLocale } from "./phone-types";
@@ -144,7 +144,7 @@ export function drawFastAiDetail(
     || Math.floor(selectedLine) >= snapshot.transcriptLines.length - 1;
   const showListening = snapshot.phase === "listening" && latestSelected;
   const lines = [...localizeAiTranscriptLines(
-    selectAiTranscriptViewport(
+    selectAiTranscriptDisplayRows(
       snapshot.transcriptLines,
       selectedLine,
       AI_TRANSCRIPT_VISIBLE_LINES - (showListening ? 1 : 0),
@@ -162,7 +162,7 @@ export function drawFastAiDetail(
     drawText(
       context,
       line,
-      18,
+      8,
       20 + lineIndex * 29,
       21,
       snapshot.phase === "error" ? COLOR.secondary : COLOR.primary,

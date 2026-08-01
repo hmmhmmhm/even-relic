@@ -146,6 +146,11 @@ describe("drawFastDetailHud", () => {
     expect(values(texts)).not.toContain("AI에게 묻기 // 생각하는 중…");
     expect(values(texts)).not.toContain("스크롤 // 대화 기록");
     expect(values(texts)).not.toContain("두 번 탭 // 뒤로");
+    const user = texts.find(({ value }) => value.startsWith("사용자 //"));
+    const assistant = texts.find(({ value }) => value.startsWith("AI //"));
+    expect(user?.x).toBe(8);
+    expect(assistant?.x).toBe(8);
+    expect((assistant?.y ?? 0) - (user?.y ?? 0)).toBe(58);
   });
 
   it("shows the localized listening line at the end of live transcript", () => {

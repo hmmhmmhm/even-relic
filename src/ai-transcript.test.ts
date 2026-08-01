@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createAiTranscriptLines } from "./ai-transcript";
+import {
+  createAiTranscriptLines,
+  selectAiTranscriptDisplayRows,
+} from "./ai-transcript";
 
 describe("Ask AI transcript lines", () => {
   it("returns one chronological stream of wrapped role lines", () => {
@@ -27,6 +30,47 @@ describe("Ask AI transcript lines", () => {
     expect(lines[1]).toContain("AI // streaming response");
     expect(lines.length).toBeGreaterThan(6);
     expect(lines.every((line) => !line.includes("\n"))).toBe(true);
+  });
+
+  it("uses the full text-container width before wrapping", () => {
+    const assistant = "x".repeat(48);
+    const lines = createAiTranscriptLines([], { user: "", assistant });
+
+    expect(lines).toEqual([`AI // ${assistant}`]);
+  });
+
+  it("adds one display-only row between speakers", () => {
+    const rows = selectAiTranscriptDisplayRows([
+      "YOU // question",
+      "AI // answer one",
+      "      answer two",
+      "YOU // follow-up",
+    ], 3, 6);
+
+    expect(rows).toEqual([
+      "YOU // question",
+      "",
+      "AI // answer one",
+      "      answer two",
+      "",
+      "YOU // follow-up",
+    ]);
+  });
+
+  it("keeps blank speaker gaps out of the scroll line count", () => {
+    const lines = [
+      "YOU // question",
+      "AI // answer one",
+      "      answer two",
+      "YOU // follow-up",
+    ];
+
+    expect(selectAiTranscriptDisplayRows(lines, 2, 4)).toEqual([
+      "YOU // question",
+      "",
+      "AI // answer one",
+      "      answer two",
+    ]);
   });
 
   it("ignores an empty live turn", () => {

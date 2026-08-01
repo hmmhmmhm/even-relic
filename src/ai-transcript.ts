@@ -1,7 +1,7 @@
 import type { AiConversationTurn } from "./ai-realtime-protocol";
 import { wrapHudText } from "./fast-detail-text";
 
-const MAXIMUM_LINE_UNITS = 46;
+const MAXIMUM_LINE_UNITS = 58;
 export const AI_TRANSCRIPT_VISIBLE_LINES = 9;
 
 function roleLines(label: "YOU" | "AI", text: string): readonly string[] {
@@ -30,16 +30,64 @@ export function createAiTranscriptLines(
   ]);
 }
 
-export function selectAiTranscriptViewport(
+type TranscriptSpeaker = "YOU" | "AI" | undefined;
+
+function transcriptSpeakers(
+  lines: readonly string[],
+): readonly TranscriptSpeaker[] {
+  let current: TranscriptSpeaker;
+  return lines.map((line) => {
+    if (line.startsWith("YOU // ")) current = "YOU";
+    else if (line.startsWith("AI // ")) current = "AI";
+    return current;
+  });
+}
+
+function displayRows(
+  lines: readonly string[],
+  speakers: readonly TranscriptSpeaker[],
+  startLine: number,
+  endLine: number,
+): readonly string[] {
+  const rows: string[] = [];
+  for (let index = startLine; index <= endLine; index += 1) {
+    if (
+      index > startLine
+      && speakers[index - 1] !== undefined
+      && speakers[index] !== undefined
+      && speakers[index - 1] !== speakers[index]
+    ) {
+      rows.push("");
+    }
+    rows.push(lines[index]);
+  }
+  return rows;
+}
+
+export function selectAiTranscriptDisplayRows(
   lines: readonly string[],
   selectedLine: number,
-  visibleLines = AI_TRANSCRIPT_VISIBLE_LINES,
+  visibleRows = AI_TRANSCRIPT_VISIBLE_LINES,
 ): readonly string[] {
-  if (lines.length === 0 || visibleLines <= 0) return [];
+  const maximumRows = Math.max(0, Math.floor(visibleRows));
+  if (lines.length === 0 || maximumRows <= 0) return [];
+
   const endLine = Math.min(
     Math.max(0, Math.floor(selectedLine)),
     lines.length - 1,
   );
-  const startLine = Math.max(0, endLine - Math.floor(visibleLines) + 1);
-  return lines.slice(startLine, endLine + 1);
+  const speakers = transcriptSpeakers(lines);
+  let startLine = endLine;
+  let rowCount = 1;
+  while (startLine > 0) {
+    const previousLine = startLine - 1;
+    const includesSpeakerGap = speakers[previousLine] !== undefined
+      && speakers[startLine] !== undefined
+      && speakers[previousLine] !== speakers[startLine];
+    const additionalRows = includesSpeakerGap ? 2 : 1;
+    if (rowCount + additionalRows > maximumRows) break;
+    rowCount += additionalRows;
+    startLine = previousLine;
+  }
+  return displayRows(lines, speakers, startLine, endLine);
 }

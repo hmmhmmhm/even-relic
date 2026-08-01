@@ -39,8 +39,11 @@ describe("native Ask AI text page", () => {
 
     expect(createNativeAiTextContent(snapshot, 3, "ko")).toBe([
       "사용자 // Earlier",
+      "",
       "AI // Previous answer",
+      "",
       "사용자 // Now",
+      "",
       "AI // Streaming answer",
       "듣는 중…",
     ].join("\n"));
