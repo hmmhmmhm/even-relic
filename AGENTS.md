@@ -190,15 +190,16 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Keep Ask AI microphone ownership session-scoped: a normal detail tap is a
   no-op, while double tap is the only exit and performs best-effort microphone
   cleanup without blocking Canvas restoration. Pace assistant presentation at
-  one Unicode grapheme every 100 ms, keep authoritative Realtime state and
+  one Unicode grapheme every 200 ms, keep authoritative Realtime state and
   persistence unthrottled, and localize every visible native detail string
   across all thirty locales.
 - Keep the Ask AI detail view deliberately plain: no title, frame, phase
   header, page counter, or footer instructions. Show only the rolling
   localized conversation and a short localized `Listening…` line when
   applicable. Use the full native text width for wrapping and add exactly one
-  blank display row whenever the speaker changes, without making that spacer
-  a scroll target. Follow the newest line by default and move exactly one
+  blank display row whenever the speaker changes and immediately before a
+  trailing `Listening…` status, without making either spacer a scroll target.
+  Follow the newest line by default and move exactly one
   conversation line per glasses scroll gesture; never reintroduce transcript
   pages.
 - Treat the OpenAI key as BYOK. Accept it only in the phone companion, persist

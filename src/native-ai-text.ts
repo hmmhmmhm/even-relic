@@ -41,13 +41,17 @@ export function createNativeAiTextContent(
   const latestSelected = lines.length === 0
     || Math.floor(selectedLine) >= lines.length - 1;
   const showListening = snapshot.phase === "listening" && latestSelected;
+  const listeningRows = showListening ? (lines.length > 0 ? 2 : 1) : 0;
   const visible = selectAiTranscriptDisplayRows(
     lines,
     selectedLine,
-    AI_TRANSCRIPT_VISIBLE_LINES - (showListening ? 1 : 0),
+    AI_TRANSCRIPT_VISIBLE_LINES - listeningRows,
   );
   const localized = [...localizeAiTranscriptLines(visible, locale)];
-  if (showListening) localized.push(translateAiHud(locale, "listening"));
+  if (showListening) {
+    if (localized.length > 0) localized.push("");
+    localized.push(translateAiHud(locale, "listening"));
+  }
   if (snapshot.error?.trim()) localized.push(snapshot.error.trim());
   if (localized.length === 0) {
     localized.push(snapshot.configured

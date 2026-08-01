@@ -12,7 +12,7 @@ export function createAiPresentationPacer(options: {
   readonly intervalMs?: number;
   readonly graphemesPerTick?: number;
 }): AiPresentationPacer {
-  const intervalMs = Math.max(1, options.intervalMs ?? 100);
+  const intervalMs = Math.max(1, options.intervalMs ?? 200);
   const step = Math.max(1, Math.floor(options.graphemesPerTick ?? 1));
   let target: AiHudSnapshot | undefined;
   let presented = "";

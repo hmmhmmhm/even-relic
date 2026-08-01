@@ -182,6 +182,8 @@ describe("drawFastDetailHud", () => {
       "AI // 이전 답변",
       "듣는 중…",
     ]));
+    const listeningIndex = values(texts).indexOf("듣는 중…");
+    expect(values(texts)[listeningIndex - 1]).toBe("");
     expect(values(texts).some((value) => value.includes("1/"))).toBe(false);
   });
 

@@ -45,6 +45,7 @@ describe("native Ask AI text page", () => {
       "사용자 // Now",
       "",
       "AI // Streaming answer",
+      "",
       "듣는 중…",
     ].join("\n"));
   });

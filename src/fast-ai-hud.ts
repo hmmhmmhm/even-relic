@@ -143,15 +143,21 @@ export function drawFastAiDetail(
   const latestSelected = snapshot.transcriptLines.length === 0
     || Math.floor(selectedLine) >= snapshot.transcriptLines.length - 1;
   const showListening = snapshot.phase === "listening" && latestSelected;
+  const listeningRows = showListening
+    ? (snapshot.transcriptLines.length > 0 ? 2 : 1)
+    : 0;
   const lines = [...localizeAiTranscriptLines(
     selectAiTranscriptDisplayRows(
       snapshot.transcriptLines,
       selectedLine,
-      AI_TRANSCRIPT_VISIBLE_LINES - (showListening ? 1 : 0),
+      AI_TRANSCRIPT_VISIBLE_LINES - listeningRows,
     ),
     locale,
   )];
-  if (showListening) lines.push(translateAiHud(locale, "listening"));
+  if (showListening) {
+    if (lines.length > 0) lines.push("");
+    lines.push(translateAiHud(locale, "listening"));
+  }
   if (snapshot.error?.trim()) lines.push(snapshot.error.trim());
   if (lines.length === 0) {
     lines.push(snapshot.configured
