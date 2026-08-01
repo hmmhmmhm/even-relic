@@ -34,6 +34,104 @@ class FakeSocket {
 }
 
 describe("G2 Realtime session", () => {
+  it("cancels the active response without closing the glasses microphone", async () => {
+    const audioControl = vi.fn(async () => true);
+    let socket: FakeSocket | undefined;
+    const session = createAiRealtimeSession({
+      bridge: {
+        audioControl,
+        onEvenHubEvent: () => vi.fn(),
+      },
+      key: "sk-test-1234567890abcdefghijklmnop",
+      locale: "ko",
+      fetchImpl: async () => Response.json({
+        value: "ek_test_ephemeral_123456",
+        expiresAt: 1_800_000_000,
+        model: "gpt-realtime",
+      }),
+      createSocket: (_url, protocols) => {
+        socket = new FakeSocket(protocols);
+        return socket;
+      },
+    });
+    const starting = session.start();
+    await vi.waitFor(() => expect(socket).toBeDefined());
+    socket?.open();
+    await starting;
+    socket?.server({ type: "response.created", response: { id: "r1" } });
+    socket?.server({
+      type: "response.output_text.delta",
+      response_id: "r1",
+      delta: "부분 답변",
+    });
+
+    expect(session.cancelResponse()).toMatchObject({
+      phase: "listening",
+      assistantText: "부분 답변",
+      retiredResponseIds: ["r1"],
+    });
+    expect(JSON.parse(socket?.sent.at(-1) ?? "{}")).toEqual({
+      type: "response.cancel",
+      response_id: "r1",
+    });
+    expect(audioControl).not.toHaveBeenCalledWith(false);
+
+    socket?.server({
+      type: "response.output_text.delta",
+      response_id: "r1",
+      delta: " 늦은 내용",
+    });
+    expect(session.getState().assistantText).toBe("부분 답변");
+    await session.stop();
+  });
+
+  it("suppresses a response that is created after an early cancellation", async () => {
+    let socket: FakeSocket | undefined;
+    const session = createAiRealtimeSession({
+      bridge: {
+        audioControl: vi.fn(async () => true),
+        onEvenHubEvent: () => vi.fn(),
+      },
+      key: "sk-test-1234567890abcdefghijklmnop",
+      locale: "ko",
+      fetchImpl: async () => Response.json({
+        value: "ek_test_ephemeral_123456",
+        expiresAt: 1_800_000_000,
+        model: "gpt-realtime",
+      }),
+      createSocket: (_url, protocols) => {
+        socket = new FakeSocket(protocols);
+        return socket;
+      },
+    });
+    const starting = session.start();
+    await vi.waitFor(() => expect(socket).toBeDefined());
+    socket?.open();
+    await starting;
+    socket?.server({ type: "input_audio_buffer.speech_stopped" });
+
+    const sentBeforeCancel = socket?.sent.length ?? 0;
+    expect(session.cancelResponse()).toMatchObject({ phase: "listening" });
+    expect(socket?.sent).toHaveLength(sentBeforeCancel);
+    socket?.server({ type: "response.created", response: { id: "late-r1" } });
+    expect(JSON.parse(socket?.sent.at(-1) ?? "{}")).toEqual({
+      type: "response.cancel",
+      response_id: "late-r1",
+    });
+    socket?.server({ type: "response.cancelled", response: { id: "late-r1" } });
+    socket?.server({
+      type: "response.output_text.delta",
+      response_id: "late-r1",
+      delta: "취소 뒤 늦은 답변",
+    });
+
+    expect(session.getState()).toMatchObject({
+      phase: "listening",
+      assistantText: "",
+    });
+    await session.stop();
+  });
+
   it("does not open a socket or microphone after stop wins a pending start", async () => {
     const audioControl = vi.fn(async () => true);
     let releaseToken: ((response: Response) => void) | undefined;

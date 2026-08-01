@@ -185,17 +185,20 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Render the Ask AI detail deck with one full-screen official Even Hub Text
   container. Rebuild once on entry, use `textContainerUpgrade` for combined
   user/listening updates at a queue-free 100 ms sampling cadence, acknowledge
-  each assistant-grapheme update before starting its next 500 ms delay,
+  each assistant-grapheme update before starting its next 250 ms delay,
   suppress image refreshes while the native page is active, and rebuild/send
   the established four-tile Canvas dashboard once on exit.
-- Keep Ask AI microphone ownership session-scoped: a normal detail tap is a
-  no-op, while double tap is the only exit and performs best-effort microphone
+- Keep Ask AI microphone ownership session-scoped: a normal detail tap flushes
+  an already-complete answer or cancels an active Realtime response, reveals
+  its received partial text, and resumes listening without closing the
+  microphone. Double tap is the only exit and performs best-effort microphone
   cleanup without blocking Canvas restoration. Pace assistant presentation at
-  one Unicode grapheme every 500 ms, keep authoritative Realtime state and
+  one Unicode grapheme every 250 ms, keep authoritative Realtime state and
   persistence unthrottled, preserve the visible grapheme cursor when Realtime
   archives a completed response into conversation history or expands that
-  archived response with late final text. Never advance the visible cursor
-  while an SDK text update is in flight, and localize every visible native
+  archived response with late final text. Serialize a tap flush behind any SDK
+  text update already in flight, emit only the newest complete target, ignore
+  late deltas from the cancelled response, and localize every visible native
   detail string across all thirty locales.
 - Keep the Ask AI detail view deliberately plain: no title, frame, phase
   header, page counter, or footer instructions. Show only the rolling

@@ -296,15 +296,27 @@ describe("fast HUD detail state", () => {
     });
   });
 
-  it("consumes a single tap in Ask AI without controlling the microphone", () => {
+  it("routes a single Ask AI tap to response interruption", () => {
     const state: FastHudViewState = {
       ...createFastHudViewState(),
       mode: "ai",
+      aiLine: 0,
+      aiFollowsLatest: false,
     };
 
-    expect(reduceFastHudInput(state, "ai", "tap", CONTEXT)).toEqual({
+    expect(reduceFastHudInput(
       state,
+      "ai",
+      "tap",
+      { ...CONTEXT, aiLineCount: 3 },
+    )).toEqual({
+      state: {
+        ...state,
+        aiLine: 2,
+        aiFollowsLatest: true,
+      },
       result: "consume",
+      effect: { type: "interrupt-ai" },
     });
   });
 

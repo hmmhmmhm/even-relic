@@ -31,6 +31,7 @@ type AiBridge = EvenStorage & {
 
 export type AiRuntime = {
   start(): Promise<boolean>;
+  interrupt(): Promise<void>;
   stop(): Promise<void>;
   dispose(): void;
 };
@@ -138,6 +139,16 @@ export function createAiRuntime(options: {
         session = undefined;
         return false;
       }
+    },
+    async interrupt() {
+      const active = session;
+      if (disposed || !active) return;
+      const current = active.getState();
+      const protocol = current.phase === "thinking"
+        ? active.cancelResponse()
+        : current;
+      pacer.push(updateAiHudProtocol(options.getSnapshot(), protocol));
+      await pacer.flush();
     },
     async stop() {
       const active = session;

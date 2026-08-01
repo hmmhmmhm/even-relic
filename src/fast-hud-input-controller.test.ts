@@ -23,6 +23,7 @@ describe("fast HUD native Ask AI input flow", () => {
     };
     const ai = {
       start: vi.fn(async () => true),
+      interrupt: vi.fn(async () => undefined),
       stop: vi.fn(async () => undefined),
       dispose: vi.fn(),
     };
@@ -59,6 +60,7 @@ describe("fast HUD native Ask AI input flow", () => {
     native.update.mockClear();
     expect(await input("tap")).toBe("consume");
     expect(native.update).not.toHaveBeenCalled();
+    expect(ai.interrupt).toHaveBeenCalledOnce();
     expect(ai.stop).not.toHaveBeenCalled();
 
     expect(await input("double-tap")).toBe("consume");
@@ -86,6 +88,7 @@ describe("fast HUD native Ask AI input flow", () => {
       getLiveSession: () => undefined,
       getAiRuntime: () => ({
         start,
+        interrupt: async () => undefined,
         stop: async () => undefined,
         dispose: () => undefined,
       }),
@@ -125,6 +128,7 @@ describe("fast HUD native Ask AI input flow", () => {
       getLiveSession: () => undefined,
       getAiRuntime: () => ({
         start: async () => true,
+        interrupt: async () => undefined,
         stop: async () => { throw new Error("storage unavailable"); },
         dispose: () => undefined,
       }),

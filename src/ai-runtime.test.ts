@@ -39,6 +39,7 @@ describe("Ask AI runtime", () => {
       refresh: vi.fn(),
       createSession: vi.fn(() => ({
         start,
+        cancelResponse: vi.fn(() => protocol),
         stop,
         getState: () => protocol,
       })),
@@ -105,6 +106,7 @@ describe("Ask AI runtime", () => {
       refresh: vi.fn(),
       createSession: vi.fn(() => ({
         start: vi.fn(async () => undefined),
+        cancelResponse: vi.fn(() => protocol),
         stop: vi.fn(async () => protocol),
         getState: () => protocol,
       })),
@@ -142,6 +144,7 @@ describe("Ask AI runtime", () => {
         onState = options.onState;
         return {
           start: vi.fn(async () => undefined),
+          cancelResponse: vi.fn(() => protocol),
           stop: vi.fn(async () => protocol),
           getState: () => protocol,
         };
@@ -154,7 +157,7 @@ describe("Ask AI runtime", () => {
       phase: "thinking",
       assistantText: "첫",
     }, "response.output_text.delta");
-    await vi.advanceTimersByTimeAsync(499);
+    await vi.advanceTimersByTimeAsync(249);
     expect(refresh).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
     expect(refresh).toHaveBeenCalledOnce();
@@ -166,7 +169,7 @@ describe("Ask AI runtime", () => {
       assistantText: "첫 답변",
     }, "response.done");
     expect(refresh).toHaveBeenCalledOnce();
-    await vi.advanceTimersByTimeAsync(1_500);
+    await vi.advanceTimersByTimeAsync(750);
     expect(refresh).toHaveBeenCalledTimes(4);
     expect(snapshot.assistantText).toBe("첫 답변");
 
@@ -203,6 +206,7 @@ describe("Ask AI runtime", () => {
         onState = options.onState;
         return {
           start: vi.fn(async () => undefined),
+          cancelResponse: vi.fn(() => protocol),
           stop: vi.fn(async () => protocol),
           getState: () => protocol,
         };
@@ -226,13 +230,109 @@ describe("Ask AI runtime", () => {
       assistantText: "가나다",
     });
     release?.();
-    await vi.advanceTimersByTimeAsync(499);
+    await vi.advanceTimersByTimeAsync(249);
     expect(transmitted).toEqual(["가"]);
     expect(refresh).toHaveBeenCalledOnce();
     await vi.advanceTimersByTimeAsync(1);
     expect(refresh).toHaveBeenCalledTimes(2);
     expect(snapshot.assistantText).toBe("가나");
 
+    runtime.dispose();
+    vi.useRealTimers();
+  });
+
+  it("flushes a completed response without cancelling the session", async () => {
+    vi.useFakeTimers();
+    const bridge = new TestBridge();
+    let snapshot = createAiHudSnapshot(true);
+    let onState: ((state: ReturnType<typeof createRealtimeProtocolState>) => void)
+      | undefined;
+    const protocol = {
+      ...createRealtimeProtocolState(),
+      phase: "listening" as const,
+      assistantText: "완료된 답변",
+    };
+    const cancelResponse = vi.fn(() => protocol);
+    const refresh = vi.fn(async () => undefined);
+    const runtime = createAiRuntime({
+      bridge,
+      getKey: () => "sk-test-1234567890abcdefghijklmnop",
+      getLocale: () => "ko",
+      getSnapshot: () => snapshot,
+      onSnapshot: (next) => { snapshot = next; },
+      refresh,
+      createSession: vi.fn((options) => {
+        onState = options.onState;
+        return {
+          start: vi.fn(async () => undefined),
+          cancelResponse,
+          stop: vi.fn(async () => protocol),
+          getState: () => protocol,
+        };
+      }),
+    });
+
+    await runtime.start();
+    onState?.(protocol);
+    await runtime.interrupt();
+
+    expect(cancelResponse).not.toHaveBeenCalled();
+    expect(snapshot).toMatchObject({
+      phase: "listening",
+      assistantText: "완료된 답변",
+    });
+    expect(refresh).toHaveBeenCalledOnce();
+    runtime.dispose();
+    vi.useRealTimers();
+  });
+
+  it("cancels generation, reveals the received partial, and resumes listening", async () => {
+    vi.useFakeTimers();
+    const bridge = new TestBridge();
+    let snapshot = createAiHudSnapshot(true);
+    let onState: ((state: ReturnType<typeof createRealtimeProtocolState>) => void)
+      | undefined;
+    const generating = {
+      ...createRealtimeProtocolState(),
+      phase: "thinking" as const,
+      activeResponseId: "response-1",
+      assistantText: "받은 부분",
+    };
+    const cancelled = {
+      ...generating,
+      phase: "listening" as const,
+      retiredResponseIds: ["response-1"],
+    };
+    const cancelResponse = vi.fn(() => cancelled);
+    const refresh = vi.fn(async () => undefined);
+    const runtime = createAiRuntime({
+      bridge,
+      getKey: () => "sk-test-1234567890abcdefghijklmnop",
+      getLocale: () => "ko",
+      getSnapshot: () => snapshot,
+      onSnapshot: (next) => { snapshot = next; },
+      refresh,
+      createSession: vi.fn((options) => {
+        onState = options.onState;
+        return {
+          start: vi.fn(async () => undefined),
+          cancelResponse,
+          stop: vi.fn(async () => cancelled),
+          getState: () => generating,
+        };
+      }),
+    });
+
+    await runtime.start();
+    onState?.(generating);
+    await runtime.interrupt();
+
+    expect(cancelResponse).toHaveBeenCalledOnce();
+    expect(snapshot).toMatchObject({
+      phase: "listening",
+      assistantText: "받은 부분",
+    });
+    expect(refresh).toHaveBeenCalledOnce();
     runtime.dispose();
     vi.useRealTimers();
   });

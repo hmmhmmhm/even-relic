@@ -39,7 +39,7 @@ export type FastHudViewContext = {
 
 export type FastHudEffect =
   | { readonly type: "toggle-todo"; readonly index: number }
-  | { readonly type: "start-ai" | "stop-ai" };
+  | { readonly type: "start-ai" | "interrupt-ai" | "stop-ai" };
 
 export type FastHudTransition = {
   readonly state: FastHudViewState;
@@ -273,7 +273,18 @@ export function reduceFastHudInput(
 
   if (state.mode === "ai") {
     if (input === "tap") {
-      return { state, result: "consume" };
+      return {
+        state: {
+          ...state,
+          aiLine: clampIndex(
+            (context.aiLineCount ?? 0) - 1,
+            context.aiLineCount ?? 0,
+          ),
+          aiFollowsLatest: true,
+        },
+        result: "consume",
+        effect: { type: "interrupt-ai" },
+      };
     }
     if (input !== "scroll-next" && input !== "scroll-previous") {
       return { state, result: "consume" };

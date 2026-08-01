@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  cancelActiveRealtimeResponse,
   createAudioAppendEvent,
   createRealtimeSessionUpdate,
   createRealtimeProtocolState,
@@ -8,6 +9,28 @@ import {
 } from "./ai-realtime-protocol";
 
 describe("Realtime protocol", () => {
+  it("retires a cancelled response while preserving its received partial text", () => {
+    const active = {
+      ...createRealtimeProtocolState(),
+      phase: "thinking" as const,
+      activeResponseId: "response-1",
+      assistantText: "받은 부분",
+    };
+
+    const cancelled = cancelActiveRealtimeResponse(active);
+    expect(cancelled).toMatchObject({
+      phase: "listening",
+      activeResponseId: "response-1",
+      assistantText: "받은 부분",
+      retiredResponseIds: ["response-1"],
+    });
+    expect(reduceRealtimeServerEvent(cancelled, {
+      type: "response.output_text.delta",
+      response_id: "response-1",
+      delta: " 늦은 내용",
+    }).assistantText).toBe("받은 부분");
+  });
+
   it("configures text-only semantic VAD for the glasses microphone", () => {
     const event = createRealtimeSessionUpdate("ko");
     expect(event.type).toBe("session.update");

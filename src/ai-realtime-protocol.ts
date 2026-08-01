@@ -316,6 +316,21 @@ function retireId(
   return [...ids, id].slice(-12);
 }
 
+export function cancelActiveRealtimeResponse(
+  state: AiRealtimeProtocolState,
+): AiRealtimeProtocolState {
+  if (state.phase !== "thinking") return state;
+  return {
+    ...state,
+    phase: "listening",
+    retiredResponseIds: retireId(
+      state.retiredResponseIds,
+      state.activeResponseId,
+    ),
+    error: undefined,
+  };
+}
+
 function isRetired(ids: readonly string[], id: string | undefined): boolean {
   return Boolean(id && ids.includes(id));
 }

@@ -4,6 +4,7 @@ import {
 } from "@evenrealities/even_hub_sdk";
 import { openAiKeyHeaders } from "./openai-key";
 import {
+  cancelActiveRealtimeResponse,
   createAudioAppendEvent,
   createRealtimeProtocolState,
   createRealtimeSessionUpdate,
@@ -39,6 +40,7 @@ type TokenResponse = {
 
 export type AiRealtimeSession = {
   start(): Promise<void>;
+  cancelResponse(): AiRealtimeProtocolState;
   stop(): Promise<AiRealtimeProtocolState>;
   getState(): AiRealtimeProtocolState;
 };
@@ -92,6 +94,8 @@ export function createAiRealtimeSession(
   let closing = false;
   let cleanupPromise: Promise<boolean> | undefined;
   let lifecycle = 0;
+  let pendingResponseCancel = false;
+  let suppressCancelledResponse = false;
   let startAbortController: AbortController | undefined;
 
   const publish = (next: AiRealtimeProtocolState, eventType?: string) => {
@@ -128,6 +132,8 @@ export function createAiRealtimeSession(
       unsubscribeAudio = undefined;
       const activeSocket = socket;
       socket = undefined;
+      pendingResponseCancel = false;
+      suppressCancelledResponse = false;
       activeSocket?.close();
       if (activation) {
         const opened = await activation.catch(() => false);
@@ -242,6 +248,54 @@ export function createAiRealtimeSession(
           && typeof parsed.type === "string"
           ? parsed.type
           : undefined;
+        const parsedRecord = typeof parsed === "object" && parsed !== null
+          ? parsed as Record<string, unknown>
+          : undefined;
+        const parsedResponse = typeof parsedRecord?.response === "object"
+          && parsedRecord.response !== null
+          ? parsedRecord.response as Record<string, unknown>
+          : undefined;
+        const parsedResponseId = typeof parsedRecord?.response_id === "string"
+          ? parsedRecord.response_id
+          : typeof parsedResponse?.id === "string"
+            ? parsedResponse.id
+            : undefined;
+        if (eventType === "input_audio_buffer.speech_started") {
+          pendingResponseCancel = false;
+          suppressCancelledResponse = false;
+        }
+        if (
+          suppressCancelledResponse
+          && pendingResponseCancel
+          && eventType?.startsWith("response.")
+          && parsedResponseId
+        ) {
+          send({
+            type: "response.cancel",
+            response_id: parsedResponseId,
+          });
+          publish(cancelActiveRealtimeResponse({
+            ...state,
+            phase: "thinking",
+            activeResponseId: parsedResponseId,
+          }), "response.cancel");
+          pendingResponseCancel = false;
+        }
+        if (
+          suppressCancelledResponse
+          && eventType?.startsWith("response.")
+          && eventType !== "response.done"
+          && eventType !== "response.cancelled"
+        ) {
+          return;
+        }
+        if (
+          eventType === "response.done"
+          || eventType === "response.cancelled"
+        ) {
+          pendingResponseCancel = false;
+          suppressCancelledResponse = false;
+        }
         const next = reduceRealtimeServerEvent(state, parsed as never);
         if (next !== state) publish(next, eventType);
         if (next.phase === "error") void cleanup("error");
@@ -303,6 +357,19 @@ export function createAiRealtimeSession(
         }
         starting = false;
       }
+    },
+    cancelResponse() {
+      if (state.phase !== "thinking") return state;
+      suppressCancelledResponse = true;
+      pendingResponseCancel = !state.activeResponseId;
+      if (state.activeResponseId) {
+        send({
+          type: "response.cancel",
+          response_id: state.activeResponseId,
+        });
+      }
+      publish(cancelActiveRealtimeResponse(state), "response.cancel");
+      return state;
     },
     async stop() {
       await cleanup();

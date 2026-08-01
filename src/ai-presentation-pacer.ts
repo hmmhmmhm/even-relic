@@ -3,6 +3,7 @@ import { createAiTranscriptLines } from "./ai-transcript";
 
 export type AiPresentationPacer = {
   push(snapshot: AiHudSnapshot): void;
+  flush(): Promise<void>;
   reset(): void;
   dispose(): void;
 };
@@ -16,7 +17,7 @@ export function createAiPresentationPacer(options: {
   readonly intervalMs?: number;
   readonly graphemesPerTick?: number;
 }): AiPresentationPacer {
-  const intervalMs = Math.max(1, options.intervalMs ?? 500);
+  const intervalMs = Math.max(1, options.intervalMs ?? 250);
   const step = Math.max(1, Math.floor(options.graphemesPerTick ?? 1));
   type ArchivedPresentation = {
     index: number;
@@ -28,6 +29,9 @@ export function createAiPresentationPacer(options: {
   const archivedPresentations: ArchivedPresentation[] = [];
   let timer: ReturnType<typeof setTimeout> | undefined;
   let presenting = false;
+  let flushRequested = false;
+  let flushPromise: Promise<void> | undefined;
+  let resolveFlush: (() => void) | undefined;
   let disposed = false;
   const segmenter = typeof Intl.Segmenter === "function"
     ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
@@ -84,8 +88,45 @@ export function createAiPresentationPacer(options: {
     );
   };
 
+  const completeVisibleTarget = () => {
+    if (!target) return;
+    for (const archived of archivedPresentations) {
+      archived.presented = archived.text;
+    }
+    presented = target.assistantText;
+  };
+
+  const settleFlush = () => {
+    const resolve = resolveFlush;
+    flushPromise = undefined;
+    resolveFlush = undefined;
+    resolve?.();
+  };
+
+  const runFlush = () => {
+    if (presenting) return;
+    if (disposed || !target) {
+      flushRequested = false;
+      settleFlush();
+      return;
+    }
+    clearTimer();
+    flushRequested = false;
+    presenting = true;
+    completeVisibleTarget();
+    void Promise.resolve().then(() => emit(true)).finally(() => {
+      presenting = false;
+      if (flushRequested) {
+        runFlush();
+        return;
+      }
+      settleFlush();
+      if (!disposed && target && !caughtUp()) schedule();
+    });
+  };
+
   const schedule = () => {
-    if (disposed || timer !== undefined || presenting) return;
+    if (disposed || timer !== undefined || presenting || flushRequested) return;
     timer = setTimeout(() => {
       timer = undefined;
       if (disposed || !target) return;
@@ -108,7 +149,11 @@ export function createAiPresentationPacer(options: {
       }
       void Promise.resolve(emit(true)).finally(() => {
         presenting = false;
-        if (!disposed && target && !caughtUp()) schedule();
+        if (flushRequested) {
+          runFlush();
+        } else if (!disposed && target && !caughtUp()) {
+          schedule();
+        }
       });
     }, intervalMs);
   };
@@ -176,8 +221,20 @@ export function createAiPresentationPacer(options: {
       }
       schedule();
     },
+    flush() {
+      if (disposed || !target) return Promise.resolve();
+      clearTimer();
+      flushRequested = true;
+      flushPromise ??= new Promise<void>((resolve) => {
+        resolveFlush = resolve;
+      });
+      if (!presenting) runFlush();
+      return flushPromise;
+    },
     reset() {
       clearTimer();
+      flushRequested = false;
+      settleFlush();
       target = undefined;
       presented = "";
       archivedPresentations.length = 0;
@@ -185,6 +242,8 @@ export function createAiPresentationPacer(options: {
     dispose() {
       disposed = true;
       clearTimer();
+      flushRequested = false;
+      settleFlush();
       target = undefined;
       presented = "";
       archivedPresentations.length = 0;

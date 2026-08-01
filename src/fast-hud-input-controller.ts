@@ -53,6 +53,10 @@ export function createFastHudInputController(options: {
 
     const nativeText = options.getNativeText();
     const aiRuntime = options.getAiRuntime();
+    if (transition.effect?.type === "interrupt-ai") {
+      await aiRuntime?.interrupt();
+      return "consume";
+    }
     if (transition.effect?.type === "start-ai") {
       if (nativeText) {
         if (!aiRuntime || !await nativeText.enter(options.nativeContent())) {
