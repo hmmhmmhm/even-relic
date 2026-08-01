@@ -253,6 +253,72 @@ describe("Realtime protocol", () => {
     expect(state.phase).toBe("thinking");
   });
 
+  it("retains a placeholder for a turn whose text arrives entirely late", () => {
+    let state = reduceRealtimeServerEvent(createRealtimeProtocolState(), {
+      type: "input_audio_buffer.speech_started",
+      item_id: "user-1",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.created",
+      response: { id: "response-1" },
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "input_audio_buffer.speech_started",
+      item_id: "user-2",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "user-1",
+      transcript: "Entirely late question",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.output_text.done",
+      response_id: "response-1",
+      text: "Entirely late answer",
+    });
+
+    expect(state.userText).toBe("");
+    expect(state.assistantText).toBe("");
+    expect(state.turns).toEqual([{
+      user: "Entirely late question",
+      assistant: "Entirely late answer",
+    }]);
+  });
+
+  it("reapplies the transcript limit after a late turn expands", () => {
+    let state = createRealtimeProtocolState();
+    for (const id of ["user-1", "user-2"] as const) {
+      state = reduceRealtimeServerEvent(state, {
+        type: "input_audio_buffer.speech_started",
+        item_id: id,
+      });
+      state = reduceRealtimeServerEvent(state, {
+        type: "conversation.item.input_audio_transcription.completed",
+        item_id: id,
+        transcript: id + "x".repeat(2_995),
+      });
+    }
+    state = reduceRealtimeServerEvent(state, {
+      type: "input_audio_buffer.speech_started",
+      item_id: "user-3",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "input_audio_buffer.speech_started",
+      item_id: "user-4",
+    });
+    state = reduceRealtimeServerEvent(state, {
+      type: "conversation.item.input_audio_transcription.completed",
+      item_id: "user-3",
+      transcript: "user-3" + "z".repeat(3_993),
+    });
+
+    expect(state.turns.reduce(
+      (total, turn) => total + turn.user.length + turn.assistant.length,
+      0,
+    )).toBeLessThanOrEqual(8_000);
+    expect(state.turns.at(-1)?.user).toContain("user-3");
+  });
+
   it("bounds archived exchanges by turn count and character count", () => {
     let state = createRealtimeProtocolState();
     for (let index = 0; index < 14; index += 1) {

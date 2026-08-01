@@ -254,30 +254,19 @@ function boundedText(value: string, maximum = 4_000): string {
   return value.replace(/\u0000/g, "").slice(-maximum);
 }
 
-function archiveCurrentTurn(
-  state: AiRealtimeProtocolState,
-): {
+type ConversationTimeline = {
   turns: readonly AiConversationTurn[];
   turnRefs: readonly AiConversationTurnRef[];
-} {
-  const user = boundedText(state.userText).trim();
-  const assistant = boundedText(state.assistantText).trim();
-  if (!user && !assistant) {
-    return { turns: state.turns, turnRefs: state.turnRefs };
-  }
-  const entries = [
-    ...state.turns.map((turn, index) => ({
-      turn,
-      ref: state.turnRefs[index] ?? {},
-    })),
-    {
-      turn: { user, assistant },
-      ref: {
-        userItemId: state.activeUserItemId,
-        responseId: state.activeResponseId,
-      },
-    },
-  ].slice(-12);
+};
+
+function boundTimeline(
+  turns: readonly AiConversationTurn[],
+  turnRefs: readonly AiConversationTurnRef[],
+): ConversationTimeline {
+  const entries = turns.map((turn, index) => ({
+    turn,
+    ref: turnRefs[index] ?? {},
+  })).slice(-12);
   let characters = entries.reduce(
     (total, entry) => total
       + entry.turn.user.length
@@ -293,6 +282,31 @@ function archiveCurrentTurn(
     turns: entries.map((entry) => entry.turn),
     turnRefs: entries.map((entry) => entry.ref),
   };
+}
+
+function archiveCurrentTurn(
+  state: AiRealtimeProtocolState,
+): ConversationTimeline {
+  const user = boundedText(state.userText).trim();
+  const assistant = boundedText(state.assistantText).trim();
+  if (
+    !user
+    && !assistant
+    && !state.activeUserItemId
+    && !state.activeResponseId
+  ) {
+    return { turns: state.turns, turnRefs: state.turnRefs };
+  }
+  return boundTimeline(
+    [...state.turns, { user, assistant }],
+    [
+      ...state.turnRefs,
+      {
+        userItemId: state.activeUserItemId,
+        responseId: state.activeResponseId,
+      },
+    ],
+  );
 }
 
 function retireId(
@@ -334,13 +348,16 @@ function updateArchivedTurn(
   key: keyof AiConversationTurnRef,
   id: string | undefined,
   update: (turn: AiConversationTurn) => AiConversationTurn,
-): readonly AiConversationTurn[] {
-  if (!id) return state.turns;
+): ConversationTimeline {
+  if (!id) return { turns: state.turns, turnRefs: state.turnRefs };
   const index = state.turnRefs.findIndex((ref) => ref[key] === id);
-  if (index < 0) return state.turns;
-  return state.turns.map((turn, turnIndex) => (
-    turnIndex === index ? update(turn) : turn
-  ));
+  if (index < 0) return { turns: state.turns, turnRefs: state.turnRefs };
+  return boundTimeline(
+    state.turns.map((turn, turnIndex) => (
+      turnIndex === index ? update(turn) : turn
+    )),
+    state.turnRefs,
+  );
 }
 
 export function reduceRealtimeServerEvent(
@@ -384,19 +401,20 @@ export function reduceRealtimeServerEvent(
         activeResponseId: id ?? state.activeResponseId,
       };
     }
-    case "conversation.item.input_audio_transcription.delta":
+    case "conversation.item.input_audio_transcription.delta": {
       if (isRetired(state.retiredUserItemIds, event.item_id)) {
+        const timeline = updateArchivedTurn(
+          state,
+          "userItemId",
+          event.item_id,
+          (turn) => ({
+            ...turn,
+            user: boundedText(turn.user + (event.delta ?? "")),
+          }),
+        );
         return {
           ...state,
-          turns: updateArchivedTurn(
-            state,
-            "userItemId",
-            event.item_id,
-            (turn) => ({
-              ...turn,
-              user: boundedText(turn.user + (event.delta ?? "")),
-            }),
-          ),
+          ...timeline,
         };
       }
       if (!acceptsUserItem(state, event.item_id)) return state;
@@ -405,19 +423,21 @@ export function reduceRealtimeServerEvent(
         activeUserItemId: event.item_id ?? state.activeUserItemId,
         userText: boundedText(state.userText + (event.delta ?? "")),
       };
-    case "conversation.item.input_audio_transcription.completed":
+    }
+    case "conversation.item.input_audio_transcription.completed": {
       if (isRetired(state.retiredUserItemIds, event.item_id)) {
+        const timeline = updateArchivedTurn(
+          state,
+          "userItemId",
+          event.item_id,
+          (turn) => ({
+            ...turn,
+            user: boundedText(event.transcript ?? turn.user),
+          }),
+        );
         return {
           ...state,
-          turns: updateArchivedTurn(
-            state,
-            "userItemId",
-            event.item_id,
-            (turn) => ({
-              ...turn,
-              user: boundedText(event.transcript ?? turn.user),
-            }),
-          ),
+          ...timeline,
           usage: addAiUsage(state.usage, usageFromTranscription(event)),
         };
       }
@@ -428,21 +448,23 @@ export function reduceRealtimeServerEvent(
         userText: boundedText(event.transcript ?? state.userText),
         usage: addAiUsage(state.usage, usageFromTranscription(event)),
       };
+    }
     case "response.output_text.delta":
     case "response.text.delta": {
       const id = responseId(event);
       if (isRetired(state.retiredResponseIds, id)) {
+        const timeline = updateArchivedTurn(
+          state,
+          "responseId",
+          id,
+          (turn) => ({
+            ...turn,
+            assistant: boundedText(turn.assistant + (event.delta ?? "")),
+          }),
+        );
         return {
           ...state,
-          turns: updateArchivedTurn(
-            state,
-            "responseId",
-            id,
-            (turn) => ({
-              ...turn,
-              assistant: boundedText(turn.assistant + (event.delta ?? "")),
-            }),
-          ),
+          ...timeline,
         };
       }
       if (!acceptsResponse(state, id)) return state;
@@ -456,17 +478,18 @@ export function reduceRealtimeServerEvent(
     case "response.output_text.done": {
       const id = responseId(event);
       if (isRetired(state.retiredResponseIds, id)) {
+        const timeline = updateArchivedTurn(
+          state,
+          "responseId",
+          id,
+          (turn) => ({
+            ...turn,
+            assistant: boundedText(event.text ?? turn.assistant),
+          }),
+        );
         return {
           ...state,
-          turns: updateArchivedTurn(
-            state,
-            "responseId",
-            id,
-            (turn) => ({
-              ...turn,
-              assistant: boundedText(event.text ?? turn.assistant),
-            }),
-          ),
+          ...timeline,
         };
       }
       if (!acceptsResponse(state, id)) return state;
