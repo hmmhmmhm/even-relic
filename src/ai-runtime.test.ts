@@ -121,7 +121,7 @@ describe("Ask AI runtime", () => {
     ]);
   });
 
-  it("flushes the final transcript after a sampled native text update", async () => {
+  it("keeps response.done text on the acknowledged grapheme cadence", async () => {
     vi.useFakeTimers();
     const bridge = new TestBridge();
     let snapshot = createAiHudSnapshot(true);
@@ -129,11 +129,7 @@ describe("Ask AI runtime", () => {
       state: ReturnType<typeof createRealtimeProtocolState>,
       eventType?: string,
     ) => void) | undefined;
-    let release: (() => void) | undefined;
-    const refresh = vi.fn(() => {
-      if (refresh.mock.calls.length > 1) return Promise.resolve();
-      return new Promise<void>((resolve) => { release = resolve; });
-    });
+    const refresh = vi.fn(async () => undefined);
     const protocol = createRealtimeProtocolState();
     const runtime = createAiRuntime({
       bridge,
@@ -158,10 +154,11 @@ describe("Ask AI runtime", () => {
       phase: "thinking",
       assistantText: "첫",
     }, "response.output_text.delta");
-    await vi.advanceTimersByTimeAsync(599);
+    await vi.advanceTimersByTimeAsync(499);
     expect(refresh).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
     expect(refresh).toHaveBeenCalledOnce();
+    expect(snapshot.assistantText).toBe("첫");
 
     onState?.({
       ...protocol,
@@ -170,9 +167,71 @@ describe("Ask AI runtime", () => {
     }, "response.done");
     expect(refresh).toHaveBeenCalledOnce();
     await vi.advanceTimersByTimeAsync(1_500);
-    release?.();
-    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(2));
+    expect(refresh).toHaveBeenCalledTimes(4);
     expect(snapshot.assistantText).toBe("첫 답변");
+
+    runtime.dispose();
+    vi.useRealTimers();
+  });
+
+  it("does not advance the visible cursor while a glasses update is in flight", async () => {
+    vi.useFakeTimers();
+    const bridge = new TestBridge();
+    let snapshot = createAiHudSnapshot(true);
+    let onState: ((state: ReturnType<typeof createRealtimeProtocolState>) => void)
+      | undefined;
+    let release: (() => void) | undefined;
+    const transmitted: string[] = [];
+    const refresh = vi.fn(() => {
+      const content = snapshot.assistantText;
+      return new Promise<void>((resolve) => {
+        release = () => {
+          transmitted.push(content);
+          resolve();
+        };
+      });
+    });
+    const protocol = createRealtimeProtocolState();
+    const runtime = createAiRuntime({
+      bridge,
+      getKey: () => "sk-test-1234567890abcdefghijklmnop",
+      getLocale: () => "ko",
+      getSnapshot: () => snapshot,
+      onSnapshot: (next) => { snapshot = next; },
+      refresh,
+      createSession: vi.fn((options) => {
+        onState = options.onState;
+        return {
+          start: vi.fn(async () => undefined),
+          stop: vi.fn(async () => protocol),
+          getState: () => protocol,
+        };
+      }),
+    });
+
+    await runtime.start();
+    onState?.({
+      ...protocol,
+      phase: "thinking",
+      assistantText: "가나다",
+    });
+    await vi.advanceTimersByTimeAsync(600);
+    expect(refresh).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(refresh).toHaveBeenCalledOnce();
+
+    onState?.({
+      ...protocol,
+      phase: "listening",
+      assistantText: "가나다",
+    });
+    release?.();
+    await vi.advanceTimersByTimeAsync(499);
+    expect(transmitted).toEqual(["가"]);
+    expect(refresh).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(refresh).toHaveBeenCalledTimes(2);
+    expect(snapshot.assistantText).toBe("가나");
 
     runtime.dispose();
     vi.useRealTimers();

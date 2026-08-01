@@ -48,11 +48,15 @@ export function createAiRuntime(options: {
   let disposed = false;
   const scheduler = createAiRefreshScheduler(options.refresh, 100);
 
-  const publish = (snapshot: AiHudSnapshot, final = false) => {
+  const publish = (
+    snapshot: AiHudSnapshot,
+    final = false,
+    waitForPresentation = false,
+  ) => {
     if (disposed) return;
     options.onSnapshot(snapshot);
-    if (final) void scheduler.final();
-    else scheduler.request();
+    if (final || waitForPresentation) return scheduler.final();
+    scheduler.request();
   };
   const pacer = createAiPresentationPacer({
     onFrame: publish,

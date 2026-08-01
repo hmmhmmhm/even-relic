@@ -184,7 +184,8 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   leaving the detail deck.
 - Render the Ask AI detail deck with one full-screen official Even Hub Text
   container. Rebuild once on entry, use `textContainerUpgrade` for combined
-  user/assistant transcript updates at a queue-free 100 ms sampling cadence,
+  user/listening updates at a queue-free 100 ms sampling cadence, acknowledge
+  each assistant-grapheme update before starting its next 500 ms delay,
   suppress image refreshes while the native page is active, and rebuild/send
   the established four-tile Canvas dashboard once on exit.
 - Keep Ask AI microphone ownership session-scoped: a normal detail tap is a
@@ -193,7 +194,8 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   one Unicode grapheme every 500 ms, keep authoritative Realtime state and
   persistence unthrottled, preserve the visible grapheme cursor when Realtime
   archives a completed response into conversation history or expands that
-  archived response with late final text, and localize every visible native
+  archived response with late final text. Never advance the visible cursor
+  while an SDK text update is in flight, and localize every visible native
   detail string across all thirty locales.
 - Keep the Ask AI detail view deliberately plain: no title, frame, phase
   header, page counter, or footer instructions. Show only the rolling

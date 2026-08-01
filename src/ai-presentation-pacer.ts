@@ -8,7 +8,11 @@ export type AiPresentationPacer = {
 };
 
 export function createAiPresentationPacer(options: {
-  readonly onFrame: (snapshot: AiHudSnapshot, settled: boolean) => void;
+  readonly onFrame: (
+    snapshot: AiHudSnapshot,
+    settled: boolean,
+    waitForPresentation?: boolean,
+  ) => unknown;
   readonly intervalMs?: number;
   readonly graphemesPerTick?: number;
 }): AiPresentationPacer {
@@ -23,6 +27,7 @@ export function createAiPresentationPacer(options: {
   let presented = "";
   const archivedPresentations: ArchivedPresentation[] = [];
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let presenting = false;
   let disposed = false;
   const segmenter = typeof Intl.Segmenter === "function"
     ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
@@ -50,7 +55,7 @@ export function createAiPresentationPacer(options: {
     && presented === target.assistantText,
   );
 
-  const emit = () => {
+  const emit = (waitForPresentation = false) => {
     if (!target) return;
     const archivedByIndex = new Map(
       archivedPresentations.map((entry) => [entry.index, entry]),
@@ -61,9 +66,7 @@ export function createAiPresentationPacer(options: {
         ? { ...turn, assistant: archived.presented }
         : turn;
     });
-    const visibleAssistant = archivedPresentations.length === 0
-      ? presented
-      : "";
+    const visibleAssistant = presented;
     const isCaughtUp = caughtUp();
     const frame: AiHudSnapshot = {
       ...target,
@@ -74,17 +77,19 @@ export function createAiPresentationPacer(options: {
         assistant: visibleAssistant,
       }),
     };
-    options.onFrame(
+    return options.onFrame(
       frame,
       isCaughtUp && target.phase === "listening",
+      waitForPresentation,
     );
   };
 
   const schedule = () => {
-    if (disposed || timer !== undefined) return;
+    if (disposed || timer !== undefined || presenting) return;
     timer = setTimeout(() => {
       timer = undefined;
       if (disposed || !target) return;
+      presenting = true;
       const archived = pendingArchived();
       if (archived) {
         const available = graphemes(archived.text);
@@ -101,8 +106,10 @@ export function createAiPresentationPacer(options: {
           : [];
         presented = available.slice(0, current.length + step).join("");
       }
-      emit();
-      if (!caughtUp()) schedule();
+      void Promise.resolve(emit(true)).finally(() => {
+        presenting = false;
+        if (!disposed && target && !caughtUp()) schedule();
+      });
     }, intervalMs);
   };
 

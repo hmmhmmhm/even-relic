@@ -230,6 +230,73 @@ describe("Ask AI presentation pacer", () => {
     vi.useRealTimers();
   });
 
+  it("waits for the glasses update before presenting the next grapheme", async () => {
+    vi.useFakeTimers();
+    const texts: string[] = [];
+    let release: (() => void) | undefined;
+    const pacer = createAiPresentationPacer({
+      onFrame: (snapshot) => {
+        texts.push(snapshot.assistantText);
+        return new Promise<void>((resolve) => { release = resolve; });
+      },
+    });
+    pacer.push({
+      ...createAiHudSnapshot(true),
+      phase: "thinking",
+      assistantText: "가나다",
+    });
+
+    await vi.advanceTimersByTimeAsync(500);
+    expect(texts).toEqual(["가"]);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(texts).toEqual(["가"]);
+
+    release?.();
+    await vi.advanceTimersByTimeAsync(499);
+    expect(texts).toEqual(["가"]);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(texts).toEqual(["가", "가나"]);
+    pacer.dispose();
+    vi.useRealTimers();
+  });
+
+  it("shows the current response after an earlier turn was archived", async () => {
+    vi.useFakeTimers();
+    const frames: Array<readonly string[]> = [];
+    const pacer = createAiPresentationPacer({
+      onFrame: (snapshot) => frames.push(snapshot.transcriptLines),
+    });
+    pacer.push({
+      ...createAiHudSnapshot(true),
+      phase: "thinking",
+      userText: "첫 질문",
+      assistantText: "첫 답",
+    });
+    await vi.advanceTimersByTimeAsync(1_500);
+    pacer.push({
+      ...createAiHudSnapshot(true),
+      phase: "listening",
+      turns: [{ user: "첫 질문", assistant: "첫 답" }],
+    });
+    pacer.push({
+      ...createAiHudSnapshot(true),
+      phase: "thinking",
+      turns: [{ user: "첫 질문", assistant: "첫 답" }],
+      userText: "둘째 질문",
+      assistantText: "둘째 답",
+    });
+
+    await vi.advanceTimersByTimeAsync(500);
+    expect(frames.at(-1)).toEqual([
+      "YOU // 첫 질문",
+      "AI // 첫 답",
+      "YOU // 둘째 질문",
+      "AI // 둘",
+    ]);
+    pacer.dispose();
+    vi.useRealTimers();
+  });
+
   it("cancels a pending presentation when disposed", async () => {
     vi.useFakeTimers();
     const onFrame = vi.fn();
