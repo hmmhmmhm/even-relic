@@ -52,6 +52,7 @@ export type {
   FastCanvasBattery,
   FastCanvasInput,
   FastCanvasInputResult,
+  FastCanvasNativeTextController,
   FastCanvasOptions,
   FastCanvasRawEvent,
   FastCanvasRefreshRequest,

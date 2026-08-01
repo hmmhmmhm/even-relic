@@ -15,6 +15,7 @@ import {
 } from "./g2-canvas";
 import { runBounded } from "./bounded-task-pool";
 import { bytesEqual } from "./bytes-equal";
+import { diagnosticDuration, diagnosticError, diagnosticNow } from "./diagnostic-timing";
 import { logDiagnostic } from "./diagnostic-log";
 import { formatG2TileEncodingDiagnostic, type G2TilePaletteMode } from "./g2-tile-palette";
 import type { G2TileImageFormat } from "./g2-tile-format";
@@ -25,6 +26,8 @@ import {
 } from "./g2-display-hide";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
 import { waitForTileSend } from "./image-send-timeout";
+import { createFastNativeAiTextController } from "./fast-native-ai-text-transport";
+import { fastRefreshDropReason } from "./fast-refresh-guard";
 import type {
   Bridge,
   DisplayToggle,
@@ -37,27 +40,17 @@ import type {
   PageDirection,
   TransportDependencies,
 } from "./fast-canvas-types";
-
 export type {
   FastCanvasBattery,
   FastCanvasInput,
   FastCanvasInputResult,
+  FastCanvasNativeTextController,
   FastCanvasOptions,
   FastCanvasRawEvent,
   FastCanvasRefreshRequest,
   FastCanvasRefreshTarget,
   PageDirection,
 } from "./fast-canvas-types";
-
-const diagnosticNow = () => typeof globalThis.performance?.now === "function"
-  ? globalThis.performance.now()
-  : Date.now();
-
-const diagnosticDuration = (startedAt: number) => diagnosticNow() - startedAt;
-const diagnosticError = (error: unknown) => (
-  error instanceof Error ? error.message : String(error)
-);
-
 export async function transmitCanvas(
   source: HTMLCanvasElement,
   onProgress: (message: string) => void,
@@ -222,6 +215,15 @@ export async function transmitCanvas(
   let hidden = false;
   let hiddenSource: HTMLCanvasElement | undefined;
   let busy = false;
+  const nativeText = createFastNativeAiTextController({
+    bridge,
+    tiles,
+    invalidateImages: () => lastSuccessfulTilePayload.clear(),
+    restoreImages: () => refreshImages(source, tiles, "Canvas HUD 복원 완료"),
+    onFailure: (operation) => {
+      logDiagnostic("ERROR", `native AI text ${operation} failed`);
+    },
+  });
   const startOperation = (
     label: string,
     operation: () => void | Promise<void>,
@@ -371,14 +373,11 @@ export async function transmitCanvas(
     });
   };
   const requestExternalRefresh: FastCanvasRefreshRequest = (target) => {
-    if (!externalRefresh || disposed || hidden || busy) {
-      const reason = !externalRefresh
-        ? "unavailable"
-        : disposed
-          ? "disposed"
-          : hidden
-            ? "hidden"
-            : "busy";
+    const reason = fastRefreshDropReason({
+      available: Boolean(externalRefresh), disposed, hidden,
+      nativeText: nativeText?.active() ?? false, busy,
+    });
+    if (reason) {
       logDiagnostic(
         "REFRESH",
         `external ${target} dropped · ${reason}`,
@@ -387,17 +386,16 @@ export async function transmitCanvas(
     }
     startOperation(`external ${target}`, async () => {
       onProgress("라이브 HUD 갱신 중");
-      await externalRefresh.beforeExternalRefresh?.();
+      await externalRefresh!.beforeExternalRefresh?.();
       if (hidden || disposed) return;
       await refreshImages(
         source,
-        externalRefresh.targetTiles[target],
+        externalRefresh!.targetTiles[target],
         "라이브 HUD 갱신 완료",
         () => !disposed && !hidden,
       );
     });
   };
-
   let eventCount = 0;
   const sdkUnsubscribe = bridge.onEvenHubEvent((event) => {
     if (disposed) return;
@@ -438,9 +436,11 @@ export async function transmitCanvas(
   const dispose = () => {
     if (disposed) return;
     disposed = true;
+    nativeText?.dispose();
     sdkUnsubscribe();
   };
   try {
+    if (nativeText) externalRefresh?.onNativeTextReady?.(nativeText);
     externalRefresh?.onRefreshReady?.(requestExternalRefresh);
   } catch (error) {
     dispose();

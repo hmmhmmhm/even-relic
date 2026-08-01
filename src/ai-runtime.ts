@@ -46,7 +46,7 @@ export function createAiRuntime(options: {
 }): AiRuntime {
   let session: ReturnType<typeof createAiRealtimeSession> | undefined;
   let disposed = false;
-  const scheduler = createAiRefreshScheduler(options.refresh, 300);
+  const scheduler = createAiRefreshScheduler(options.refresh, 100);
 
   const publish = (snapshot: AiHudSnapshot, final = false) => {
     if (disposed) return;
@@ -111,12 +111,15 @@ export function createAiRuntime(options: {
         bridge: options.bridge,
         key,
         locale: options.getLocale(),
-        onState: (protocol) => {
+        onState: (protocol, eventType) => {
           const snapshot = updateAiHudProtocol(
             options.getSnapshot(),
             protocol,
           );
-          publish(snapshot, protocol.phase === "error");
+          publish(
+            snapshot,
+            protocol.phase === "error" || eventType === "response.done",
+          );
         },
       });
       try {

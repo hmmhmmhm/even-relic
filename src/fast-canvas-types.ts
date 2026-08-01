@@ -6,6 +6,7 @@ import type {
   ImageRawDataUpdate,
   OsEventTypeList,
   RebuildPageContainer,
+  TextContainerUpgrade,
 } from "@evenrealities/even_hub_sdk";
 import type { encodeCanvasTiles, Tile } from "./g2-canvas";
 import type { G2TileImageFormat } from "./g2-tile-format";
@@ -22,6 +23,7 @@ export type Bridge = {
     listener: (status: DeviceStatus) => void,
   ) => () => void;
   rebuildPageContainer: (page: RebuildPageContainer) => Promise<boolean>;
+  textContainerUpgrade?: (update: TextContainerUpgrade) => Promise<boolean>;
   updateImageRawData: (update: ImageRawDataUpdate) => Promise<unknown>;
   onEvenHubEvent: (listener: (event: EvenHubEvent) => void) => () => void;
   shutDownPageContainer: (exitMode: number) => Promise<unknown>;
@@ -40,6 +42,9 @@ export type DisplayToggle = {
 export type ExternalRefresh = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly onRefreshReady?: (request: FastCanvasRefreshRequest) => void;
+  readonly onNativeTextReady?: (
+    controller: FastCanvasNativeTextController,
+  ) => void;
   readonly targetTiles: Readonly<
     Record<FastCanvasRefreshTarget, readonly Tile[]>
   >;
@@ -76,6 +81,13 @@ export type FastCanvasRefreshRequest = (
   target: FastCanvasRefreshTarget,
 ) => void;
 
+export type FastCanvasNativeTextController = {
+  active(): boolean;
+  enter(content: string): Promise<boolean>;
+  update(content: string): Promise<boolean>;
+  restore(): Promise<boolean>;
+};
+
 export type FastCanvasOptions = {
   readonly beforeExternalRefresh?: () => void | Promise<void>;
   readonly beforeRestore?: () => void | Promise<void>;
@@ -94,5 +106,8 @@ export type FastCanvasOptions = {
     input: FastCanvasInput,
   ) => FastCanvasInputResult | Promise<FastCanvasInputResult>;
   readonly onRawEvent?: (event: FastCanvasRawEvent) => void;
+  readonly onNativeTextReady?: (
+    controller: FastCanvasNativeTextController,
+  ) => void;
   readonly onRefreshReady?: (request: FastCanvasRefreshRequest) => void;
 };

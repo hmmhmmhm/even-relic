@@ -124,4 +124,60 @@ describe("Ask AI runtime", () => {
       }),
     ]);
   });
+
+  it("flushes the final transcript after a sampled native text update", async () => {
+    vi.useFakeTimers();
+    const bridge = new TestBridge();
+    let snapshot = createAiHudSnapshot(true);
+    let onState: ((
+      state: ReturnType<typeof createRealtimeProtocolState>,
+      eventType?: string,
+    ) => void) | undefined;
+    let release: (() => void) | undefined;
+    const refresh = vi.fn(() => {
+      if (refresh.mock.calls.length > 1) return Promise.resolve();
+      return new Promise<void>((resolve) => { release = resolve; });
+    });
+    const protocol = createRealtimeProtocolState();
+    const runtime = createAiRuntime({
+      bridge,
+      getKey: () => "sk-test-1234567890abcdefghijklmnop",
+      getLocale: () => "ko",
+      getSnapshot: () => snapshot,
+      onSnapshot: (next) => { snapshot = next; },
+      refresh,
+      createSession: vi.fn((options) => {
+        onState = options.onState;
+        return {
+          start: vi.fn(async () => undefined),
+          pause: vi.fn(),
+          resume: vi.fn(),
+          stop: vi.fn(async () => protocol),
+          getState: () => protocol,
+        };
+      }),
+    });
+
+    await runtime.start();
+    onState?.({
+      ...protocol,
+      phase: "thinking",
+      assistantText: "첫",
+    }, "response.output_text.delta");
+    await vi.advanceTimersByTimeAsync(100);
+    expect(refresh).toHaveBeenCalledOnce();
+
+    onState?.({
+      ...protocol,
+      phase: "listening",
+      assistantText: "첫 답변",
+    }, "response.done");
+    expect(refresh).toHaveBeenCalledOnce();
+    release?.();
+    await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(2));
+    expect(snapshot.assistantText).toBe("첫 답변");
+
+    runtime.dispose();
+    vi.useRealTimers();
+  });
 });

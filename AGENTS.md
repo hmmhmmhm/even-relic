@@ -182,6 +182,11 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   turn detection to semantic VAD, render user transcription and streamed AI
   text on the glasses, and stop the microphone and session immediately when
   leaving the detail deck.
+- Render the Ask AI detail deck with one full-screen official Even Hub Text
+  container. Rebuild once on entry, use `textContainerUpgrade` for combined
+  user/assistant transcript updates at a queue-free 100 ms sampling cadence,
+  suppress image refreshes while the native page is active, and rebuild/send
+  the established four-tile Canvas dashboard once on exit.
 - Treat the OpenAI key as BYOK. Accept it only in the phone companion, persist
   it only in Even local storage, exchange it through a same-origin endpoint for
   a short-lived Realtime client secret, and never bundle, log, or persist the

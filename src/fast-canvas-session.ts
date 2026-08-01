@@ -92,6 +92,7 @@ export async function transmitFastCanvas(
     {
       beforeExternalRefresh: options.beforeExternalRefresh,
       onRefreshReady: options.onRefreshReady,
+      onNativeTextReady: options.onNativeTextReady,
       targetTiles: {
         all: G2_FAST_TILES,
         left: G2_LEFT_TILES,

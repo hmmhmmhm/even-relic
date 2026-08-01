@@ -20,9 +20,9 @@ import {
 import {
   FAST_MAP_ZOOM_RADII,
   createFastHudViewState,
-  reduceFastHudInput,
   syncFastHudView,
 } from "./fast-hud-view";
+import { createFastHudInputController } from "./fast-hud-input-controller";
 import {
   drawFastHudSurface,
   resolveFastHudViewContext,
@@ -31,6 +31,7 @@ import {
 import {
   transmitFastCanvas,
   type FastCanvasBattery,
+  type FastCanvasNativeTextController,
   type FastCanvasRefreshRequest,
   type FastCanvasRefreshTarget,
 } from "./glasses";
@@ -48,6 +49,7 @@ import type { UseHudControllerOptions } from "./hud-controller-types";
 import { resolvePhoneLocale } from "./phone-i18n";
 import { getRoutingStatus } from "./routing";
 import { createAiRuntime, type AiRuntime } from "./ai-runtime";
+import { createNativeAiTextContent } from "./native-ai-text";
 type LiveSession = ReturnType<typeof createLiveDashboardSession>;
 export function useHudController({
   autoStart,
@@ -78,6 +80,7 @@ export function useHudController({
     let unsubscribe: (() => void) | undefined;
     let liveSession: LiveSession | undefined;
     let aiRuntime: AiRuntime | undefined;
+    let nativeAiText: FastCanvasNativeTextController | undefined;
     let page: FastHudPage = HUD_PAGES[0];
     let view = createFastHudViewState();
     let battery: FastCanvasBattery | undefined;
@@ -142,6 +145,23 @@ export function useHudController({
         drawDenseCanvasHud(canvas, new Date(), page as HudPage);
       }
     };
+    const nativeAiContent = () => createNativeAiTextContent(
+      aiSnapshotRef.current,
+      view.aiPage,
+      currentLocale(),
+    );
+    const handleFastInput = createFastHudInputController({
+      getView: () => view,
+      setView: (next) => { view = next; },
+      getPage: () => page,
+      getContext: viewContext,
+      getLiveSession: () => liveSession,
+      getAiRuntime: () => aiRuntime,
+      getNativeText: () => nativeAiText,
+      nativeContent: nativeAiContent,
+      drawCurrentPage,
+      log: (message) => logDiagnostic("INPUT", message),
+    });
     const requestVisibleRefresh = (target: FastCanvasRefreshTarget) => {
       requestLiveRefresh?.(target);
     };
@@ -206,45 +226,7 @@ export function useHudController({
                 `display committed · minute ${minute}`,
               );
             },
-            onInput: async (input) => {
-              const previousMode = view.mode;
-              const transition = reduceFastHudInput(
-                view,
-                page,
-                input,
-                viewContext(),
-              );
-              view = transition.state;
-              logDiagnostic(
-                "INPUT",
-                `app ${input} · ${transition.result}`
-                  + (transition.effect
-                    ? ` · effect ${transition.effect.type}`
-                    : ""),
-              );
-              if (transition.effect?.type === "toggle-todo") {
-                const changed = await liveSession?.toggleTodo(
-                  transition.effect.index,
-                ) ?? false;
-                if (!changed) return "consume";
-                drawCurrentPage();
-                return "redraw";
-              }
-              if (transition.effect?.type === "start-ai") {
-                void aiRuntime?.start();
-              } else if (transition.effect?.type === "toggle-ai") {
-                const changed = await aiRuntime?.toggle() ?? false;
-                if (changed) drawCurrentPage();
-                return changed ? "redraw" : "consume";
-              } else if (transition.effect?.type === "stop-ai") {
-                await aiRuntime?.stop();
-              }
-              if (transition.result === "redraw") drawCurrentPage();
-              if (previousMode === "news" && view.mode !== "news") {
-                liveSession?.refreshNewsIfDue?.();
-              }
-              return transition.result;
-            },
+            onInput: handleFastInput,
             onRawEvent: (event) => {
               if (!event.hidden) return;
               const field = (value: number | undefined) => value ?? "-";
@@ -255,10 +237,18 @@ export function useHudController({
                   + ` · SRC ${field(event.eventSource)}`,
               );
             },
+            onNativeTextReady: (controller) => {
+              nativeAiText = controller;
+              logDiagnostic("APP", "native AI text ready");
+            },
             onRefreshReady: (request) => {
               if (cancelled) return;
               requestLiveRefresh = request;
               displayRefreshRef.current = () => {
+                if (view.mode === "ai" && nativeAiText?.active()) {
+                  void nativeAiText.update(nativeAiContent());
+                  return;
+                }
                 drawCurrentPage();
                 requestVisibleRefresh("all");
               };
@@ -328,10 +318,14 @@ export function useHudController({
             setCompanionAiSnapshot(snapshot);
             view = syncFastHudView(view, viewContext());
           },
-          refresh: () => {
+          refresh: async () => {
             if (cancelled) return;
+            if (view.mode === "ai" && nativeAiText?.active()) {
+              await nativeAiText.update(nativeAiContent());
+              return;
+            }
             drawCurrentPage();
-            requestVisibleRefresh(view.mode === "ai" ? "all" : "right");
+            requestVisibleRefresh("right");
           },
         });
         liveSession = createLiveDashboardSession({

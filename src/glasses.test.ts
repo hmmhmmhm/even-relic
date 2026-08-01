@@ -22,6 +22,12 @@ type TestInput =
   | "scroll-next"
   | "scroll-previous";
 type TestInputResult = "unhandled" | "consume" | "redraw";
+type TestNativeTextController = {
+  active(): boolean;
+  enter(content: string): Promise<boolean>;
+  update(content: string): Promise<boolean>;
+  restore(): Promise<boolean>;
+};
 type TestRawEvent = {
   readonly count: number;
   readonly hidden: boolean;
@@ -83,11 +89,13 @@ async function createFastRefreshHarness(
   const progress: string[] = [];
   const rawEvents: TestRawEvent[] = [];
   const rebuiltPages: Record<string, unknown>[] = [];
+  const textContents: string[] = [];
   let activeImageSends = 0;
   let maximumActiveImageSends = 0;
   let currentEncodeAttempt = 0;
   let refreshRequest: ((target: TestRefreshTarget) => void) | undefined;
   let listener: ((event: EvenHubEvent) => void) | undefined;
+  let nativeTextController: TestNativeTextController | undefined;
   let sdkUnsubscribeCalls = 0;
   let inputResult = config.inputResult ?? "unhandled";
 
@@ -117,6 +125,12 @@ async function createFastRefreshHarness(
       } finally {
         activeImageSends -= 1;
       }
+    },
+    textContainerUpgrade: async (update: {
+      content?: string;
+    }) => {
+      textContents.push(update.content ?? "");
+      return true;
     },
     onEvenHubEvent: (next: (event: EvenHubEvent) => void) => {
       listener = next;
@@ -157,6 +171,7 @@ async function createFastRefreshHarness(
       now?: () => number;
       onDisplayCommitted?: (minute: number) => void;
       onRawEvent?: (event: TestRawEvent) => void;
+      onNativeTextReady?: (controller: TestNativeTextController) => void;
     },
   ) => Promise<() => void>;
   const committedMinutes: number[] = [];
@@ -202,6 +217,9 @@ async function createFastRefreshHarness(
       now: () => 1_234 * 60_000,
       onDisplayCommitted: (minute) => committedMinutes.push(minute),
       onRawEvent: (event) => rawEvents.push(event),
+      onNativeTextReady: (controller) => {
+        nativeTextController = controller;
+      },
       onRefreshReady: (request) => {
         refreshRequest = request;
       },
@@ -212,6 +230,10 @@ async function createFastRefreshHarness(
   expect(listener).toBeTypeOf("function");
   if (!refreshRequest || !listener) {
     throw new Error("fast refresh harness did not become ready");
+  }
+  expect(nativeTextController).toBeTypeOf("object");
+  if (!nativeTextController) {
+    throw new Error("native text controller did not become ready");
   }
   return {
     cleanup,
@@ -229,6 +251,7 @@ async function createFastRefreshHarness(
     },
     imageIds,
     inputs,
+    nativeText: nativeTextController,
     progress,
     rawEvents,
     rebuiltPages,
@@ -236,6 +259,7 @@ async function createFastRefreshHarness(
     setInputResult: (result: TestInputResult) => {
       inputResult = result;
     },
+    textContents,
     get sdkUnsubscribeCalls() {
       return sdkUnsubscribeCalls;
     },
@@ -245,6 +269,30 @@ async function createFastRefreshHarness(
 afterEach(() => vi.useRealTimers());
 
 describe("G2 raster transport", () => {
+  it("uses one native text page for AI updates and restores Canvas once", async () => {
+    const harness = await createFastRefreshHarness();
+    const initialEncodeCount = harness.encodedTileIds.length;
+    const initialImageCount = harness.imageIds.length;
+
+    expect(await harness.nativeText.enter("ASK AI // READY")).toBe(true);
+    expect(harness.nativeText.active()).toBe(true);
+    expect(await harness.nativeText.update("ASK AI // LISTENING")).toBe(true);
+    harness.request("right");
+    await Promise.resolve();
+
+    expect(harness.encodedTileIds).toHaveLength(initialEncodeCount);
+    expect(harness.imageIds).toHaveLength(initialImageCount);
+    expect(harness.textContents).toEqual(["ASK AI // LISTENING"]);
+
+    expect(await harness.nativeText.restore()).toBe(true);
+    expect(harness.nativeText.active()).toBe(false);
+    expect(harness.rebuiltPages).toHaveLength(2);
+    expect(harness.rebuiltPages[0]).toMatchObject({ containerTotalNum: 1 });
+    expect(harness.rebuiltPages[1]).toMatchObject({ containerTotalNum: 5 });
+    expect(harness.encodedTileIds).toHaveLength(initialEncodeCount + 1);
+    expect(harness.imageIds).toHaveLength(initialImageCount + 4);
+  });
+
   it("covers the 576 by 288 display with four ordered tiles", async () => {
     const module = await loadGlasses();
     if (!module) return;

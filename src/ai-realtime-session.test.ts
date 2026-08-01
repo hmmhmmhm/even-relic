@@ -90,6 +90,7 @@ describe("G2 Realtime session", () => {
     };
     let socket: FakeSocket | undefined;
     const states: string[] = [];
+    const eventTypes: (string | undefined)[] = [];
     const session = createAiRealtimeSession({
       bridge,
       key: "sk-test-1234567890abcdefghijklmnop",
@@ -108,7 +109,10 @@ describe("G2 Realtime session", () => {
         socket = new FakeSocket(protocols);
         return socket;
       },
-      onState: (state) => states.push(state.phase),
+      onState: (state, eventType) => {
+        states.push(state.phase);
+        eventTypes.push(eventType);
+      },
     });
 
     expect(audioControl).not.toHaveBeenCalled();
@@ -138,6 +142,9 @@ describe("G2 Realtime session", () => {
     expect(append.type).toBe("input_audio_buffer.append");
     expect(atob(append.audio ?? "")).toHaveLength(6);
     expect(states).toContain("listening");
+    socket?.server({ type: "input_audio_buffer.speech_started" });
+    socket?.server({ type: "response.done", response: { id: "r1" } });
+    expect(eventTypes).toContain("response.done");
 
     await session.stop();
     expect(audioControl).toHaveBeenLastCalledWith(false);

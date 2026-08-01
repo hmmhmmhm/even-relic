@@ -54,7 +54,10 @@ type SessionOptions = {
     url: string,
     protocols: string[],
   ) => RealtimeSocket;
-  readonly onState?: (state: AiRealtimeProtocolState) => void;
+  readonly onState?: (
+    state: AiRealtimeProtocolState,
+    eventType?: string,
+  ) => void;
 };
 
 const REALTIME_URL = "wss://api.openai.com/v1/realtime?model=gpt-realtime";
@@ -93,9 +96,9 @@ export function createAiRealtimeSession(
   let lifecycle = 0;
   let startAbortController: AbortController | undefined;
 
-  const publish = (next: AiRealtimeProtocolState) => {
+  const publish = (next: AiRealtimeProtocolState, eventType?: string) => {
     state = next;
-    options.onState?.(state);
+    options.onState?.(state, eventType);
   };
 
   const send = (event: unknown) => {
@@ -240,8 +243,14 @@ export function createAiRealtimeSession(
         } catch {
           return;
         }
+        const eventType = typeof parsed === "object"
+          && parsed !== null
+          && "type" in parsed
+          && typeof parsed.type === "string"
+          ? parsed.type
+          : undefined;
         const next = reduceRealtimeServerEvent(state, parsed as never);
-        if (next !== state) publish(next);
+        if (next !== state) publish(next, eventType);
         if (next.phase === "error") void cleanup("error");
       };
     },

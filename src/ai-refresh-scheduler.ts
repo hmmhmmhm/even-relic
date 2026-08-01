@@ -11,24 +11,32 @@ export function createAiRefreshScheduler(
   let timer: ReturnType<typeof setTimeout> | undefined;
   let busy = false;
   let disposed = false;
+  let active: Promise<boolean> | undefined;
 
-  const run = async (): Promise<boolean> => {
-    if (disposed || busy) return false;
+  const run = (): Promise<boolean> => {
+    if (disposed || busy) return Promise.resolve(false);
     busy = true;
-    try {
-      await attempt();
-      return true;
-    } catch {
-      return false;
-    } finally {
-      busy = false;
-    }
+    const operation = (async () => {
+      try {
+        await attempt();
+        return true;
+      } catch {
+        return false;
+      } finally {
+        busy = false;
+      }
+    })();
+    active = operation;
+    void operation.finally(() => {
+      if (active === operation) active = undefined;
+    });
+    return operation;
   };
 
   return {
     request() {
       if (disposed || busy) return;
-      if (timer !== undefined) clearTimeout(timer);
+      if (timer !== undefined) return;
       timer = setTimeout(() => {
         timer = undefined;
         void run();
@@ -39,6 +47,7 @@ export function createAiRefreshScheduler(
         clearTimeout(timer);
         timer = undefined;
       }
+      if (active) await active;
       return run();
     },
     dispose() {
