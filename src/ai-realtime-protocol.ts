@@ -18,6 +18,11 @@ export type AiConversationTurn = {
   readonly assistant: string;
 };
 
+type AiConversationTurnRef = {
+  readonly userItemId?: string;
+  readonly responseId?: string;
+};
+
 export type AiRealtimeProtocolState = {
   readonly phase: AiRealtimePhase;
   readonly turns: readonly AiConversationTurn[];
@@ -28,6 +33,7 @@ export type AiRealtimeProtocolState = {
   readonly activeResponseId?: string;
   readonly retiredUserItemIds: readonly string[];
   readonly retiredResponseIds: readonly string[];
+  readonly turnRefs: readonly AiConversationTurnRef[];
   readonly error?: string;
 };
 
@@ -184,6 +190,7 @@ export function createRealtimeProtocolState(): AiRealtimeProtocolState {
     usage: EMPTY_AI_USAGE,
     retiredUserItemIds: [],
     retiredResponseIds: [],
+    turnRefs: [],
   };
 }
 
@@ -249,24 +256,43 @@ function boundedText(value: string, maximum = 4_000): string {
 
 function archiveCurrentTurn(
   state: AiRealtimeProtocolState,
-): readonly AiConversationTurn[] {
+): {
+  turns: readonly AiConversationTurn[];
+  turnRefs: readonly AiConversationTurnRef[];
+} {
   const user = boundedText(state.userText).trim();
   const assistant = boundedText(state.assistantText).trim();
-  if (!user && !assistant) return state.turns;
-  const turns = [
-    ...state.turns,
-    { user, assistant },
+  if (!user && !assistant) {
+    return { turns: state.turns, turnRefs: state.turnRefs };
+  }
+  const entries = [
+    ...state.turns.map((turn, index) => ({
+      turn,
+      ref: state.turnRefs[index] ?? {},
+    })),
+    {
+      turn: { user, assistant },
+      ref: {
+        userItemId: state.activeUserItemId,
+        responseId: state.activeResponseId,
+      },
+    },
   ].slice(-12);
-  let characters = turns.reduce(
-    (total, turn) => total + turn.user.length + turn.assistant.length,
+  let characters = entries.reduce(
+    (total, entry) => total
+      + entry.turn.user.length
+      + entry.turn.assistant.length,
     0,
   );
-  while (turns.length > 1 && characters > 8_000) {
-    const removed = turns.shift();
-    characters -= (removed?.user.length ?? 0)
-      + (removed?.assistant.length ?? 0);
+  while (entries.length > 1 && characters > 8_000) {
+    const removed = entries.shift();
+    characters -= (removed?.turn.user.length ?? 0)
+      + (removed?.turn.assistant.length ?? 0);
   }
-  return turns;
+  return {
+    turns: entries.map((entry) => entry.turn),
+    turnRefs: entries.map((entry) => entry.ref),
+  };
 }
 
 function retireId(
@@ -303,6 +329,20 @@ function acceptsResponse(
   return !state.activeResponseId || state.activeResponseId === id;
 }
 
+function updateArchivedTurn(
+  state: AiRealtimeProtocolState,
+  key: keyof AiConversationTurnRef,
+  id: string | undefined,
+  update: (turn: AiConversationTurn) => AiConversationTurn,
+): readonly AiConversationTurn[] {
+  if (!id) return state.turns;
+  const index = state.turnRefs.findIndex((ref) => ref[key] === id);
+  if (index < 0) return state.turns;
+  return state.turns.map((turn, turnIndex) => (
+    turnIndex === index ? update(turn) : turn
+  ));
+}
+
 export function reduceRealtimeServerEvent(
   state: AiRealtimeProtocolState,
   event: RealtimeServerEvent,
@@ -311,11 +351,13 @@ export function reduceRealtimeServerEvent(
     case "session.created":
     case "session.updated":
       return { ...state, phase: "listening", error: undefined };
-    case "input_audio_buffer.speech_started":
+    case "input_audio_buffer.speech_started": {
+      const archived = archiveCurrentTurn(state);
       return {
         ...state,
         phase: "listening",
-        turns: archiveCurrentTurn(state),
+        turns: archived.turns,
+        turnRefs: archived.turnRefs,
         userText: "",
         assistantText: "",
         activeUserItemId: event.item_id,
@@ -330,6 +372,7 @@ export function reduceRealtimeServerEvent(
         ),
         error: undefined,
       };
+    }
     case "input_audio_buffer.speech_stopped":
       return { ...state, phase: "thinking" };
     case "response.created": {
@@ -342,6 +385,20 @@ export function reduceRealtimeServerEvent(
       };
     }
     case "conversation.item.input_audio_transcription.delta":
+      if (isRetired(state.retiredUserItemIds, event.item_id)) {
+        return {
+          ...state,
+          turns: updateArchivedTurn(
+            state,
+            "userItemId",
+            event.item_id,
+            (turn) => ({
+              ...turn,
+              user: boundedText(turn.user + (event.delta ?? "")),
+            }),
+          ),
+        };
+      }
       if (!acceptsUserItem(state, event.item_id)) return state;
       return {
         ...state,
@@ -349,6 +406,21 @@ export function reduceRealtimeServerEvent(
         userText: boundedText(state.userText + (event.delta ?? "")),
       };
     case "conversation.item.input_audio_transcription.completed":
+      if (isRetired(state.retiredUserItemIds, event.item_id)) {
+        return {
+          ...state,
+          turns: updateArchivedTurn(
+            state,
+            "userItemId",
+            event.item_id,
+            (turn) => ({
+              ...turn,
+              user: boundedText(event.transcript ?? turn.user),
+            }),
+          ),
+          usage: addAiUsage(state.usage, usageFromTranscription(event)),
+        };
+      }
       if (!acceptsUserItem(state, event.item_id)) return state;
       return {
         ...state,
@@ -359,6 +431,20 @@ export function reduceRealtimeServerEvent(
     case "response.output_text.delta":
     case "response.text.delta": {
       const id = responseId(event);
+      if (isRetired(state.retiredResponseIds, id)) {
+        return {
+          ...state,
+          turns: updateArchivedTurn(
+            state,
+            "responseId",
+            id,
+            (turn) => ({
+              ...turn,
+              assistant: boundedText(turn.assistant + (event.delta ?? "")),
+            }),
+          ),
+        };
+      }
       if (!acceptsResponse(state, id)) return state;
       return {
         ...state,
@@ -369,6 +455,20 @@ export function reduceRealtimeServerEvent(
     }
     case "response.output_text.done": {
       const id = responseId(event);
+      if (isRetired(state.retiredResponseIds, id)) {
+        return {
+          ...state,
+          turns: updateArchivedTurn(
+            state,
+            "responseId",
+            id,
+            (turn) => ({
+              ...turn,
+              assistant: boundedText(event.text ?? turn.assistant),
+            }),
+          ),
+        };
+      }
       if (!acceptsResponse(state, id)) return state;
       return {
         ...state,
@@ -378,6 +478,12 @@ export function reduceRealtimeServerEvent(
     }
     case "response.done": {
       const id = responseId(event);
+      if (isRetired(state.retiredResponseIds, id)) {
+        return {
+          ...state,
+          usage: addAiUsage(state.usage, usageFromResponse(event)),
+        };
+      }
       if (!acceptsResponse(state, id)) return state;
       return {
         ...state,

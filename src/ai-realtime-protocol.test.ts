@@ -136,7 +136,7 @@ describe("Realtime protocol", () => {
     expect(state.assistantText).toBe("Second answer");
   });
 
-  it("ignores late transcription events from an archived audio item", () => {
+  it("keeps late transcription events out of the active turn", () => {
     let state = reduceRealtimeServerEvent(createRealtimeProtocolState(), {
       type: "input_audio_buffer.speech_started",
       item_id: "user-1",
@@ -169,12 +169,20 @@ describe("Realtime protocol", () => {
       type: "conversation.item.input_audio_transcription.completed",
       item_id: "user-1",
       transcript: "First question late",
+      usage: {
+        input_token_details: { audio_tokens: 11 },
+        output_token_details: { text_tokens: 4 },
+      },
     });
     expect(state.userText).toBe("");
     expect(state.turns).toEqual([{
-      user: "First question",
+      user: "First question late",
       assistant: "First answer",
     }]);
+    expect(state.usage).toMatchObject({
+      transcriptionAudioInputTokens: 11,
+      transcriptionTextOutputTokens: 4,
+    });
 
     state = reduceRealtimeServerEvent(state, {
       type: "conversation.item.input_audio_transcription.completed",
@@ -184,7 +192,7 @@ describe("Realtime protocol", () => {
     expect(state.userText).toBe("Second question");
   });
 
-  it("ignores late response events from an archived response", () => {
+  it("keeps late response events out of the active turn", () => {
     let state = reduceRealtimeServerEvent(createRealtimeProtocolState(), {
       type: "input_audio_buffer.speech_started",
       item_id: "user-1",
@@ -215,10 +223,22 @@ describe("Realtime protocol", () => {
     });
     state = reduceRealtimeServerEvent(state, {
       type: "response.done",
-      response: { id: "response-1" },
+      response: {
+        id: "response-1",
+        usage: {
+          input_token_details: { text_tokens: 9, audio_tokens: 18 },
+          output_token_details: { text_tokens: 5 },
+        },
+      },
     });
     expect(state.assistantText).toBe("");
     expect(state.phase).toBe("listening");
+    expect(state.turns[0]?.assistant).toBe("First answer late");
+    expect(state.usage).toMatchObject({
+      textInputTokens: 9,
+      audioInputTokens: 18,
+      textOutputTokens: 5,
+    });
 
     state = reduceRealtimeServerEvent(state, {
       type: "response.created",
