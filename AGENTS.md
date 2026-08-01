@@ -187,6 +187,12 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   user/assistant transcript updates at a queue-free 100 ms sampling cadence,
   suppress image refreshes while the native page is active, and rebuild/send
   the established four-tile Canvas dashboard once on exit.
+- Keep Ask AI microphone ownership session-scoped: a normal detail tap is a
+  no-op, while double tap is the only exit and performs best-effort microphone
+  cleanup without blocking Canvas restoration. Pace assistant presentation at
+  no more than 24 Unicode graphemes per second, keep authoritative Realtime
+  state and persistence unthrottled, and localize every native detail status,
+  role, listening prompt, page label, and control across all thirty locales.
 - Treat the OpenAI key as BYOK. Accept it only in the phone companion, persist
   it only in Even local storage, exchange it through a same-origin endpoint for
   a short-lived Realtime client secret, and never bundle, log, or persist the
