@@ -26,6 +26,10 @@ describe("AI conversation excerpts", () => {
         endedAt: `2026-08-0${index + 1}T00:00:00.000Z`,
         user: ` User ${index} ${"u".repeat(300)} `,
         assistant: ` Answer ${index} ${"a".repeat(300)} `,
+        sources: [{
+          title: "Reference",
+          url: `https://example.com/${index}`,
+        }],
       });
     }
     expect(history.map(({ id }) => id)).toEqual([
@@ -35,6 +39,10 @@ describe("AI conversation excerpts", () => {
     ]);
     expect(history[0].user.length).toBeLessThanOrEqual(160);
     expect(history[0].assistant.length).toBeLessThanOrEqual(160);
+    expect(history[0].sources).toEqual([{
+      title: "Reference",
+      url: "https://example.com/4",
+    }]);
   });
 
   it("persists and clears local excerpts", async () => {
@@ -49,5 +57,20 @@ describe("AI conversation excerpts", () => {
     await expect(resolveAiConversationHistory(storage)).resolves.toEqual(history);
     await expect(clearAiConversationHistory(storage)).resolves.toBe(true);
     await expect(resolveAiConversationHistory(storage)).resolves.toEqual([]);
+  });
+
+  it("sanitizes cached citation URLs again when reading local history", async () => {
+    const storage = new TestStorage();
+    storage.values.set("sandevistan:ai-history:v1", JSON.stringify([{
+      id: "session-unsafe",
+      endedAt: "2026-08-01T00:00:00.000Z",
+      user: "Question",
+      assistant: "Answer",
+      sources: [{ title: "Unsafe", url: "javascript:alert(1)" }],
+    }]));
+
+    await expect(resolveAiConversationHistory(storage)).resolves.toEqual([
+      expect.objectContaining({ sources: [] }),
+    ]);
   });
 });

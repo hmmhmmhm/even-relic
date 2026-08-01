@@ -22,6 +22,8 @@ import type { AiRealtimeProtocolState } from "./ai-realtime-protocol";
 import { createAiPresentationPacer } from "./ai-presentation-pacer";
 import { createAiRefreshScheduler } from "./ai-refresh-scheduler";
 import type { EvenStorage } from "./live-cache";
+import type { DataState, LocationValue } from "./live-state";
+import { resolveMcpServers } from "./mcp-servers";
 import type { PhoneLocale } from "./phone-types";
 
 type AiBridge = EvenStorage & {
@@ -40,6 +42,7 @@ export function createAiRuntime(options: {
   readonly bridge: AiBridge;
   readonly getKey: () => string | undefined;
   readonly getLocale: () => PhoneLocale;
+  readonly getLocation?: () => DataState<LocationValue>;
   readonly getSnapshot: () => AiHudSnapshot;
   readonly onSnapshot: (snapshot: AiHudSnapshot) => void;
   readonly refresh: () => void | Promise<void>;
@@ -87,6 +90,7 @@ export function createAiRuntime(options: {
           endedAt: now.toISOString(),
           user: excerpt.user,
           assistant: excerpt.assistant,
+          sources: protocol.sources,
         })
       : history;
     const nextLedger = addDailyAiUsage(ledger, now, protocol.usage);
@@ -115,10 +119,14 @@ export function createAiRuntime(options: {
         }, true);
         return false;
       }
+      const mcpServers = await resolveMcpServers(options.bridge);
+      if (disposed || session) return false;
       session = (options.createSession ?? createAiRealtimeSession)({
         bridge: options.bridge,
         key,
         locale: options.getLocale(),
+        getLocation: options.getLocation,
+        mcpServers,
         onState: (protocol) => {
           const snapshot = updateAiHudProtocol(
             options.getSnapshot(),
@@ -127,6 +135,9 @@ export function createAiRuntime(options: {
           if (protocol.phase === "error") {
             pacer.reset();
             publish(snapshot, true);
+          } else if (protocol.pendingApproval) {
+            pacer.push(snapshot);
+            void pacer.flush();
           } else {
             pacer.push(snapshot);
           }
@@ -143,6 +154,7 @@ export function createAiRuntime(options: {
     async interrupt() {
       const active = session;
       if (disposed || !active) return;
+      if (active.approvePendingMcp?.()) return;
       const current = active.getState();
       const protocol = current.phase === "thinking"
         ? active.cancelResponse()

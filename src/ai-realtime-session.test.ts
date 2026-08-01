@@ -490,4 +490,137 @@ describe("G2 Realtime session", () => {
       error: undefined,
     });
   });
+
+  it("executes each built-in function call once and continues the response", async () => {
+    let socket: FakeSocket | undefined;
+    const searchWeb = vi.fn().mockResolvedValue({
+      answer: "Current result [1]",
+      sources: [{ title: "Source", url: "https://example.com/source" }],
+      usage: { inputTokens: 3, outputTokens: 4, webSearchCalls: 1 },
+    });
+    const session = createAiRealtimeSession({
+      bridge: {
+        audioControl: vi.fn(async () => true),
+        onEvenHubEvent: () => vi.fn(),
+      },
+      key: "sk-test-1234567890abcdefghijklmnop",
+      locale: "en",
+      getLocation: () => ({ status: "unavailable" }),
+      searchWeb,
+      fetchImpl: async () => Response.json({
+        value: "ek_test_ephemeral_123456",
+        expiresAt: 1_800_000_000,
+        model: "gpt-realtime",
+      }),
+      createSocket: (_url, protocols) => {
+        socket = new FakeSocket(protocols);
+        return socket;
+      },
+    });
+    const starting = session.start();
+    await vi.waitFor(() => expect(socket).toBeDefined());
+    socket?.open();
+    await starting;
+    const event = {
+      type: "response.done",
+      response: {
+        id: "r-tools",
+        output: [{
+          type: "function_call",
+          name: "search_web",
+          call_id: "call-1",
+          arguments: JSON.stringify({ query: "current result" }),
+        }],
+      },
+    };
+    socket?.server(event);
+    socket?.server(event);
+
+    await vi.waitFor(() => expect(searchWeb).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(socket?.sent.some((raw) => {
+      const sent = JSON.parse(raw);
+      return sent.type === "conversation.item.create"
+        && sent.item?.type === "function_call_output"
+        && sent.item?.call_id === "call-1";
+    })).toBe(true));
+    expect(socket?.sent.filter((raw) => JSON.parse(raw).type === "response.create"))
+      .toHaveLength(1);
+    expect(session.getState().sources).toEqual([
+      { title: "Source", url: "https://example.com/source" },
+    ]);
+    await session.stop();
+  });
+
+  it("requires a tap approval for MCP calls and rejects a pending call on stop", async () => {
+    let socket: FakeSocket | undefined;
+    const session = createAiRealtimeSession({
+      bridge: {
+        audioControl: vi.fn(async () => true),
+        onEvenHubEvent: () => vi.fn(),
+      },
+      key: "sk-test-1234567890abcdefghijklmnop",
+      locale: "ko",
+      mcpServers: [{
+        id: "docs",
+        name: "Docs MCP",
+        url: "https://mcp.example.com/sse",
+        allowedTools: [],
+        enabled: true,
+      }],
+      fetchImpl: async () => Response.json({
+        value: "ek_test_ephemeral_123456",
+        expiresAt: 1_800_000_000,
+        model: "gpt-realtime",
+      }),
+      createSocket: (_url, protocols) => {
+        socket = new FakeSocket(protocols);
+        return socket;
+      },
+    });
+    const starting = session.start();
+    await vi.waitFor(() => expect(socket).toBeDefined());
+    socket?.open();
+    await starting;
+    socket?.server({
+      type: "conversation.item.done",
+      item: {
+        type: "mcp_approval_request",
+        id: "approval-1",
+        server_label: "mcp_docs",
+        name: "search",
+        arguments: "{\"query\":\"private\"}",
+      },
+    });
+    expect(session.getState().pendingApproval).toMatchObject({
+      id: "approval-1",
+      serverName: "Docs MCP",
+      toolName: "search",
+    });
+    expect(session.approvePendingMcp?.()).toBe(true);
+    expect(JSON.parse(socket?.sent.at(-1) ?? "{}")).toEqual({
+      type: "conversation.item.create",
+      item: {
+        type: "mcp_approval_response",
+        approval_request_id: "approval-1",
+        approve: true,
+      },
+    });
+
+    socket?.server({
+      type: "conversation.item.done",
+      item: {
+        type: "mcp_approval_request",
+        id: "approval-2",
+        server_label: "mcp_docs",
+        name: "read",
+        arguments: "{}",
+      },
+    });
+    await session.stop();
+    expect(socket?.sent.some((raw) => {
+      const sent = JSON.parse(raw);
+      return sent.item?.approval_request_id === "approval-2"
+        && sent.item?.approve === false;
+    })).toBe(true);
+  });
 });

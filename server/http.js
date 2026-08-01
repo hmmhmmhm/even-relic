@@ -31,6 +31,16 @@ export async function readLimitedBytes(response, maxBytes) {
   return output;
 }
 
+export async function readLimitedRequestJson(request, maxBytes) {
+  const declared = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    throw new Error("REQUEST_TOO_LARGE");
+  }
+  const bytes = new Uint8Array(await request.arrayBuffer());
+  if (bytes.byteLength > maxBytes) throw new Error("REQUEST_TOO_LARGE");
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
 export function createTimeout(
   milliseconds,
   setTimeoutImpl = setTimeout,

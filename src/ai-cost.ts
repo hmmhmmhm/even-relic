@@ -13,6 +13,9 @@ export type AiUsage = {
   readonly textOutputTokens: number;
   readonly transcriptionAudioInputTokens: number;
   readonly transcriptionTextOutputTokens: number;
+  readonly searchTextInputTokens: number;
+  readonly searchTextOutputTokens: number;
+  readonly webSearchCalls: number;
 };
 
 export type AiDailyUsage = {
@@ -28,6 +31,9 @@ export const EMPTY_AI_USAGE: AiUsage = {
   textOutputTokens: 0,
   transcriptionAudioInputTokens: 0,
   transcriptionTextOutputTokens: 0,
+  searchTextInputTokens: 0,
+  searchTextOutputTokens: 0,
+  webSearchCalls: 0,
 };
 
 const PRICE_PER_MILLION = {
@@ -38,6 +44,9 @@ const PRICE_PER_MILLION = {
   textOutputTokens: 16,
   transcriptionAudioInputTokens: 1.25,
   transcriptionTextOutputTokens: 5,
+  searchTextInputTokens: 0.25,
+  searchTextOutputTokens: 2,
+  webSearchCalls: 10_000,
 } as const satisfies Record<keyof AiUsage, number>;
 
 function safeTokenCount(value: number): number {
@@ -117,10 +126,14 @@ export function usageForCurrentMonth(
   return usageInRange(ledger, start, now);
 }
 
+const LEGACY_USAGE_KEYS = Object.keys(EMPTY_AI_USAGE).filter((key) => (
+  !key.startsWith("search") && key !== "webSearchCalls"
+));
+
 function isUsage(value: unknown): value is AiUsage {
   if (typeof value !== "object" || value === null) return false;
   const item = value as Record<string, unknown>;
-  return (Object.keys(EMPTY_AI_USAGE) as Array<keyof AiUsage>).every(
+  return LEGACY_USAGE_KEYS.every(
     (key) => typeof item[key] === "number"
       && Number.isFinite(item[key])
       && (item[key] as number) >= 0,
@@ -142,7 +155,11 @@ function isUsageLedger(value: unknown): value is readonly AiDailyUsage[] {
 export async function resolveAiUsageLedger(
   storage: EvenStorage,
 ): Promise<readonly AiDailyUsage[]> {
-  return await readCache(storage, "ai-usage", isUsageLedger) ?? [];
+  const ledger = await readCache(storage, "ai-usage", isUsageLedger) ?? [];
+  return ledger.map((entry) => ({
+    ...entry,
+    usage: addAiUsage(EMPTY_AI_USAGE, entry.usage),
+  }));
 }
 
 export function writeAiUsageLedger(

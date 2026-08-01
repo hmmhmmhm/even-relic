@@ -12,6 +12,7 @@ import {
   writeOpenAiKey,
 } from "../openai-key";
 import type { PhoneStringKey } from "../phone-i18n";
+import { McpServersPanel } from "./McpServersPanel";
 
 function cost(value: number): string {
   return `$${value < 0.01 ? value.toFixed(4) : value.toFixed(2)}`;
@@ -156,9 +157,19 @@ export function AiScreen({
           <article key={item.id}>
             <strong>{item.user || "—"}</strong>
             <p>{item.assistant || "—"}</p>
+            {item.sources && item.sources.length > 0 && (
+              <ul className="phone-ai-sources">
+                {item.sources.map((source) => (
+                  <li key={source.url}>
+                    <a href={source.url} target="_blank" rel="noreferrer">{source.title}</a>
+                  </li>
+                ))}
+              </ul>
+            )}
           </article>
         ))}
       </section>
+      <McpServersPanel storage={storage} t={t} />
       <button
         type="button"
         className="phone-danger-button"

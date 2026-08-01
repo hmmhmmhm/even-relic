@@ -9,9 +9,15 @@ import {
   translateAiPhone,
   type AiPhoneStringKey,
 } from "./ai-i18n";
+import {
+  isMcpPhoneStringKey,
+  translateMcpPhone,
+  type McpPhoneStringKey,
+} from "./mcp-i18n";
 
 type CorePhoneStringKey = keyof typeof enLocale.phone;
-export type PhoneStringKey = CorePhoneStringKey | AiPhoneStringKey;
+export type PhoneStringKey = CorePhoneStringKey | AiPhoneStringKey
+  | McpPhoneStringKey;
 
 export const PHONE_STRINGS = Object.fromEntries(
   SUPPORTED_LOCALES.map((locale) => [
@@ -37,5 +43,7 @@ export function translatePhone(
 ): string {
   return key in PHONE_STRINGS[locale]
     ? PHONE_STRINGS[locale][key as CorePhoneStringKey]
-    : translateAiPhone(locale, key as AiPhoneStringKey);
+    : isMcpPhoneStringKey(key)
+      ? translateMcpPhone(locale, key)
+      : translateAiPhone(locale, key as AiPhoneStringKey);
 }

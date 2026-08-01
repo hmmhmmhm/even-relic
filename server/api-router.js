@@ -8,6 +8,7 @@ import {
   handleRoutingStatus,
 } from "./route.js";
 import { handleRealtimeTokenRequest } from "./realtime.js";
+import { handleAiWebSearchRequest } from "./ai-web-search.js";
 
 export async function handleApiRequest(request, env, dependencies = {}) {
   const url = new URL(request.url);
@@ -38,6 +39,12 @@ export async function handleApiRequest(request, env, dependencies = {}) {
     && request.method === "POST"
   ) {
     return handleRealtimeTokenRequest(request, env, dependencies);
+  }
+  if (
+    url.pathname === "/api/ai-web-search"
+    && request.method === "POST"
+  ) {
+    return handleAiWebSearchRequest(request, env, dependencies);
   }
 
   return jsonResponse(

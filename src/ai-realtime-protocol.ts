@@ -4,6 +4,13 @@ import {
   type AiUsage,
 } from "./ai-cost";
 import type { PhoneLocale } from "./phone-types";
+import { BUILTIN_AI_TOOLS } from "./ai-tools";
+import {
+  projectRealtimeMcpTools,
+  type McpServerConfig,
+} from "./mcp-servers";
+import type { AiCitationSource } from "./ai-tools";
+import type { AiMcpApproval } from "./ai-realtime-tools";
 
 export type AiRealtimePhase =
   | "idle"
@@ -33,6 +40,8 @@ export type AiRealtimeProtocolState = {
   readonly retiredUserItemIds: readonly string[];
   readonly retiredResponseIds: readonly string[];
   readonly turnRefs: readonly AiConversationTurnRef[];
+  readonly sources: readonly AiCitationSource[];
+  readonly pendingApproval?: AiMcpApproval;
   readonly error?: string;
 };
 
@@ -100,16 +109,24 @@ function transcriptionLanguage(locale: PhoneLocale): string {
   return locale;
 }
 
-export function createRealtimeSessionUpdate(locale: PhoneLocale) {
+export function createRealtimeSessionUpdate(
+  locale: PhoneLocale,
+  mcpServers: readonly McpServerConfig[] = [],
+) {
   return {
     type: "session.update" as const,
     session: {
       type: "realtime" as const,
       model: "gpt-realtime",
       output_modalities: ["text"] as const,
+      tools: [...BUILTIN_AI_TOOLS, ...projectRealtimeMcpTools(mcpServers)],
+      tool_choice: "auto" as const,
       instructions: "You are a concise, helpful assistant for smart glasses. "
         + `Reply in ${languageInstruction(locale)} unless the user asks otherwise. `
-        + "Use short paragraphs that are easy to read on a heads-up display.",
+        + "Use short paragraphs that are easy to read on a heads-up display. "
+        + "Never guess the current time or exact location: call the matching tool. "
+        + "Use web search for current information and cite its numbered sources. "
+        + "Call get_current_location only when location is relevant to the request.",
       audio: {
         input: {
           format: { type: "audio/pcm", rate: 24_000 },
@@ -190,6 +207,7 @@ export function createRealtimeProtocolState(): AiRealtimeProtocolState {
     retiredUserItemIds: [],
     retiredResponseIds: [],
     turnRefs: [],
+    sources: [],
   };
 }
 

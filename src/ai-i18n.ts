@@ -15,7 +15,7 @@ type AiStrings = Readonly<Record<AiPhoneStringKey, string>>;
 const english: AiStrings = {
   ai: "Ask AI",
   openAiKey: "OpenAI API key",
-  estimatedCost: "Estimated Realtime cost",
+  estimatedCost: "Estimated AI cost",
   thisWeek: "This week",
   thisMonth: "This month",
   recentConversations: "Recent conversations",

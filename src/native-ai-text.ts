@@ -6,6 +6,7 @@ import {
 import type { AiHudSnapshot } from "./ai-hud-state";
 import {
   localizeAiTranscriptLines,
+  translateAiApproval,
   translateAiHud,
 } from "./ai-hud-i18n";
 import {
@@ -37,6 +38,17 @@ export function createNativeAiTextContent(
   selectedLine: number,
   locale: PhoneLocale,
 ): string {
+  if (snapshot.pendingApproval) {
+    const approval = translateAiApproval(locale);
+    return [
+      approval.title,
+      `${snapshot.pendingApproval.serverName} // ${snapshot.pendingApproval.toolName}`,
+      snapshot.pendingApproval.argumentsSummary,
+      "",
+      approval.approve,
+      approval.reject,
+    ].join("\n").slice(0, MAXIMUM_CONTENT_LENGTH);
+  }
   const lines = snapshot.transcriptLines;
   const latestSelected = lines.length === 0
     || Math.floor(selectedLine) >= lines.length - 1;

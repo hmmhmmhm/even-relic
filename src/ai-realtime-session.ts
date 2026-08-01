@@ -3,6 +3,22 @@ import {
   type EvenHubEvent,
 } from "@evenrealities/even_hub_sdk";
 import { openAiKeyHeaders } from "./openai-key";
+import { requestAiWebSearch } from "./ai-web-search";
+import {
+  createAiRealtimeToolRunner,
+  mcpApprovalRequest,
+  mcpApprovalResponse,
+  responseFunctionCalls,
+} from "./ai-realtime-tools";
+import type { AiWebSearchResult } from "./ai-tools";
+import type { DataState, LocationValue } from "./live-state";
+import type { McpServerConfig } from "./mcp-servers";
+import {
+  createDefaultRealtimeSocket,
+  isRealtimeTokenResponse,
+  type RealtimeSocket,
+} from "./ai-realtime-transport";
+import { addAiUsage, EMPTY_AI_USAGE } from "./ai-cost";
 import {
   cancelActiveRealtimeResponse,
   createAudioAppendEvent,
@@ -22,24 +38,9 @@ type AudioBridge = {
   onEvenHubEvent(listener: (event: EvenHubEvent) => void): () => void;
 };
 
-type RealtimeSocket = {
-  readonly readyState: number;
-  onopen: (() => void) | null;
-  onmessage: ((event: MessageEvent<string>) => void) | null;
-  onerror: (() => void) | null;
-  onclose: (() => void) | null;
-  send(value: string): void;
-  close(): void;
-};
-
-type TokenResponse = {
-  readonly value: string;
-  readonly expiresAt: number;
-  readonly model: string;
-};
-
 export type AiRealtimeSession = {
   start(): Promise<void>;
+  approvePendingMcp?(): boolean;
   cancelResponse(): AiRealtimeProtocolState;
   stop(): Promise<AiRealtimeProtocolState>;
   getState(): AiRealtimeProtocolState;
@@ -49,6 +50,14 @@ type SessionOptions = {
   readonly bridge: AudioBridge;
   readonly key: string;
   readonly locale: PhoneLocale;
+  readonly getLocation?: () => DataState<LocationValue>;
+  readonly mcpServers?: readonly McpServerConfig[];
+  readonly now?: () => Date;
+  readonly searchWeb?: (
+    query: string,
+    locale: PhoneLocale,
+    signal: AbortSignal,
+  ) => Promise<AiWebSearchResult>;
   readonly fetchImpl?: typeof fetch;
   readonly createSocket?: (
     url: string,
@@ -64,27 +73,11 @@ const REALTIME_URL = "wss://api.openai.com/v1/realtime?model=gpt-realtime";
 const TOKEN_URL = "/api/realtime-token";
 const SOCKET_OPEN = 1;
 const MAX_PCM_CHUNK_BYTES = 65_536;
-
-function isTokenResponse(value: unknown): value is TokenResponse {
-  if (typeof value !== "object" || value === null) return false;
-  const item = value as Record<string, unknown>;
-  return typeof item.value === "string"
-    && item.value.length >= 10
-    && item.value.length <= 4_096
-    && typeof item.expiresAt === "number"
-    && Number.isFinite(item.expiresAt)
-    && item.model === "gpt-realtime";
-}
-
-function defaultSocket(url: string, protocols: string[]): RealtimeSocket {
-  return new WebSocket(url, protocols) as unknown as RealtimeSocket;
-}
-
 export function createAiRealtimeSession(
   options: SessionOptions,
 ): AiRealtimeSession {
   const fetchImpl = options.fetchImpl ?? fetch;
-  const createSocket = options.createSocket ?? defaultSocket;
+  const createSocket = options.createSocket ?? createDefaultRealtimeSocket;
   let state = createRealtimeProtocolState();
   let socket: RealtimeSocket | undefined;
   let unsubscribeAudio: (() => void) | undefined;
@@ -108,6 +101,41 @@ export function createAiRealtimeSession(
     socket.send(JSON.stringify(event));
   };
 
+  const mcpServers = options.mcpServers ?? [];
+  const toolRunner = createAiRealtimeToolRunner({
+    locale: options.locale,
+    now: options.now ?? (() => new Date()),
+    getLocation: options.getLocation ?? (() => ({ status: "unavailable" })),
+    searchWeb: options.searchWeb ?? ((query, locale, signal) => (
+      requestAiWebSearch({
+        key: options.key,
+        query,
+        locale,
+        signal,
+        fetchImpl,
+      })
+    )),
+    send,
+    onSources: (sources) => {
+      const merged = [...state.sources];
+      for (const source of sources) {
+        if (!merged.some(({ url }) => url === source.url)) merged.push(source);
+      }
+      publish({ ...state, sources: merged.slice(-6) }, "tool.sources");
+    },
+    onSearchUsage: (usage) => {
+      publish({
+        ...state,
+        usage: addAiUsage(state.usage, {
+          ...EMPTY_AI_USAGE,
+          searchTextInputTokens: usage.inputTokens,
+          searchTextOutputTokens: usage.outputTokens,
+          webSearchCalls: usage.webSearchCalls,
+        }),
+      }, "tool.usage");
+    },
+  });
+
   const closeMicrophone = async (attempts = 2): Promise<boolean> => {
     if (!microphoneOpen) return true;
     for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -125,6 +153,11 @@ export function createAiRealtimeSession(
     lifecycle += 1;
     cleanupPromise ??= (async () => {
       closing = true;
+      if (state.pendingApproval) {
+        send(mcpApprovalResponse(state.pendingApproval.id, false));
+        state = { ...state, pendingApproval: undefined };
+      }
+      toolRunner.cancel();
       startAbortController?.abort();
       startAbortController = undefined;
       const activation = microphoneActivation;
@@ -260,6 +293,19 @@ export function createAiRealtimeSession(
           : typeof parsedResponse?.id === "string"
             ? parsedResponse.id
             : undefined;
+        const approval = mcpApprovalRequest(parsed, mcpServers);
+        if (approval) {
+          if (state.pendingApproval) {
+            send(mcpApprovalResponse(approval.id, false));
+            return;
+          }
+          publish({
+            ...state,
+            phase: "thinking",
+            pendingApproval: approval,
+          }, "mcp_approval_request");
+          return;
+        }
         if (eventType === "input_audio_buffer.speech_started") {
           pendingResponseCancel = false;
           suppressCancelledResponse = false;
@@ -297,8 +343,18 @@ export function createAiRealtimeSession(
           suppressCancelledResponse = false;
         }
         const next = reduceRealtimeServerEvent(state, parsed as never);
-        if (next !== state) publish(next, eventType);
-        if (next.phase === "error") void cleanup("error");
+        const hasFunctionCalls = eventType === "response.done"
+          && responseFunctionCalls(parsed).length > 0;
+        if (hasFunctionCalls) toolRunner.handle(parsed);
+        const published = hasFunctionCalls
+          ? {
+              ...next,
+              phase: "thinking" as const,
+              activeResponseId: undefined,
+            }
+          : next;
+        if (published !== state) publish(published, eventType);
+        if (published.phase === "error") void cleanup("error");
       };
     },
   );
@@ -318,7 +374,7 @@ export function createAiRealtimeSession(
           signal: abortController.signal,
         });
         const data: unknown = await response.json();
-        if (!response.ok || !isTokenResponse(data)) {
+        if (!response.ok || !isRealtimeTokenResponse(data)) {
           throw new Error("Could not create Realtime session");
         }
         if (operation !== lifecycle) {
@@ -328,7 +384,7 @@ export function createAiRealtimeSession(
         if (operation !== lifecycle) {
           throw new Error("Realtime start cancelled");
         }
-        send(createRealtimeSessionUpdate(options.locale));
+        send(createRealtimeSessionUpdate(options.locale, mcpServers));
         subscribeAudio();
         const opened = await activateMicrophone();
         microphoneOpen = opened;
@@ -358,7 +414,19 @@ export function createAiRealtimeSession(
         starting = false;
       }
     },
+    approvePendingMcp() {
+      const approval = state.pendingApproval;
+      if (!approval) return false;
+      send(mcpApprovalResponse(approval.id, true));
+      publish({
+        ...state,
+        phase: "thinking",
+        pendingApproval: undefined,
+      }, "mcp_approval_response");
+      return true;
+    },
     cancelResponse() {
+      toolRunner.cancel();
       if (state.phase !== "thinking") return state;
       suppressCancelledResponse = true;
       pendingResponseCancel = !state.activeResponseId;

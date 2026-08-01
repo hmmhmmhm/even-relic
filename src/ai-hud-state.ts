@@ -5,6 +5,7 @@ import type {
   AiRealtimeProtocolState,
 } from "./ai-realtime-protocol";
 import { createAiTranscriptLines } from "./ai-transcript";
+import type { AiMcpApproval } from "./ai-realtime-tools";
 
 export type AiHudPhase = "unconfigured" | "displaying" | AiRealtimePhase;
 
@@ -18,6 +19,7 @@ export type AiHudSnapshot = {
   readonly history: readonly AiConversationExcerpt[];
   readonly weekUsd: number;
   readonly monthUsd: number;
+  readonly pendingApproval?: AiMcpApproval;
   readonly error?: string;
 };
 
@@ -57,6 +59,7 @@ export function updateAiHudProtocol(
         assistant: protocol.assistantText,
       },
     ),
+    pendingApproval: protocol.pendingApproval,
     error: protocol.error,
   };
 }

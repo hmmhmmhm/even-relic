@@ -4,6 +4,7 @@ import {
   writeCache,
   type EvenStorage,
 } from "./live-cache";
+import type { AiCitationSource } from "./ai-tools";
 
 const MAX_EXCERPTS = 3;
 const MAX_TEXT_LENGTH = 160;
@@ -13,7 +14,25 @@ export type AiConversationExcerpt = {
   readonly endedAt: string;
   readonly user: string;
   readonly assistant: string;
+  readonly sources?: readonly AiCitationSource[];
 };
+
+function normalizeSources(value: readonly AiCitationSource[] | undefined) {
+  if (!value) return undefined;
+  return value.flatMap((source) => {
+    try {
+      const url = new URL(source.url);
+      if (url.protocol !== "https:") return [];
+      return [{
+        title: source.title.replace(/\s+/g, " ").trim().slice(0, 160)
+          || url.hostname,
+        url: url.toString(),
+      }];
+    } catch {
+      return [];
+    }
+  }).slice(0, 6);
+}
 
 function cleanExcerptText(value: string): string {
   return value.replace(/\s+/g, " ").trim().slice(0, MAX_TEXT_LENGTH);
@@ -27,6 +46,7 @@ function normalizeExcerpt(
     endedAt: value.endedAt,
     user: cleanExcerptText(value.user),
     assistant: cleanExcerptText(value.assistant),
+    ...(value.sources ? { sources: normalizeSources(value.sources) } : {}),
   };
 }
 
@@ -37,7 +57,17 @@ function isExcerpt(value: unknown): value is AiConversationExcerpt {
     && typeof item.endedAt === "string"
     && !Number.isNaN(Date.parse(item.endedAt))
     && typeof item.user === "string"
-    && typeof item.assistant === "string";
+    && typeof item.assistant === "string"
+    && (item.sources === undefined || (
+      Array.isArray(item.sources)
+      && item.sources.length <= 6
+      && item.sources.every((source) => (
+        typeof source === "object"
+        && source !== null
+        && typeof source.title === "string"
+        && typeof source.url === "string"
+      ))
+    ));
 }
 
 function isHistory(value: unknown): value is readonly AiConversationExcerpt[] {
@@ -60,7 +90,8 @@ export function appendAiConversationExcerpt(
 export async function resolveAiConversationHistory(
   storage: EvenStorage,
 ): Promise<readonly AiConversationExcerpt[]> {
-  return await readCache(storage, "ai-history", isHistory) ?? [];
+  const history = await readCache(storage, "ai-history", isHistory) ?? [];
+  return history.map(normalizeExcerpt);
 }
 
 export function writeAiConversationHistory(

@@ -273,6 +273,74 @@
   line-height: 1.45;
 }
 
+.phone-ai-sources {
+  display: grid;
+  gap: 5px;
+  margin: 10px 0 0;
+  padding-left: 18px;
+}
+
+.phone-ai-sources a {
+  color: var(--phone-text);
+  font-size: 0.82rem;
+}
+
+.phone-mcp-panel,
+.phone-mcp-heading,
+.phone-mcp-list {
+  display: grid;
+  gap: 14px;
+}
+
+.phone-mcp-heading h2,
+.phone-mcp-heading p,
+.phone-mcp-list p {
+  margin: 0;
+}
+
+.phone-mcp-heading h2 { font-size: 1rem; }
+.phone-mcp-heading p,
+.phone-mcp-list p { color: var(--phone-muted); font-size: 0.86rem; }
+
+.phone-mcp-list article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: start;
+  padding-top: 12px;
+  border-top: 1px solid #ededed;
+}
+
+.phone-mcp-list article > div:nth-child(2) {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.phone-mcp-list article span,
+.phone-mcp-list article small {
+  overflow: hidden;
+  color: var(--phone-muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-mcp-toggle { display: grid; gap: 3px; justify-items: center; }
+.phone-mcp-actions { display: flex; gap: 4px; }
+.phone-mcp-actions button,
+.phone-mcp-form-actions .phone-text-button {
+  padding: 7px;
+  border: 0;
+  background: transparent;
+}
+
+.phone-mcp-form-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 .phone-companion .route-controls,
 .phone-companion .diagnostic-console {
   margin: 0;

@@ -16,6 +16,8 @@ const serverFiles = [
   "map.js",
   "route.js",
   "realtime.js",
+  "openai-auth.js",
+  "ai-web-search.js",
 ];
 
 for (const file of [

@@ -5,6 +5,7 @@ import { createAiHudSnapshot } from "./ai-hud-state";
 import { createRealtimeProtocolState } from "./ai-realtime-protocol";
 import { createAiRuntime } from "./ai-runtime";
 import type { EvenStorage } from "./live-cache";
+import { writeMcpServers } from "./mcp-servers";
 
 class TestBridge implements EvenStorage {
   readonly values = new Map<string, string>();
@@ -335,5 +336,57 @@ describe("Ask AI runtime", () => {
     expect(refresh).toHaveBeenCalledOnce();
     runtime.dispose();
     vi.useRealTimers();
+  });
+
+  it("loads MCP settings at session start and uses tap to approve a pending call", async () => {
+    const bridge = new TestBridge();
+    await writeMcpServers(bridge, [{
+      id: "docs",
+      name: "Docs",
+      url: "https://mcp.example.com/sse",
+      allowedTools: [],
+      enabled: true,
+    }]);
+    let snapshot = createAiHudSnapshot(true);
+    const protocol = {
+      ...createRealtimeProtocolState(),
+      phase: "thinking" as const,
+      pendingApproval: {
+        id: "approval-1",
+        serverLabel: "mcp_docs",
+        serverName: "Docs",
+        toolName: "search",
+        argumentsSummary: "{}",
+      },
+    };
+    const approvePendingMcp = vi.fn(() => true);
+    const cancelResponse = vi.fn(() => protocol);
+    const createSession = vi.fn((_options: unknown) => ({
+      start: vi.fn(async () => undefined),
+      approvePendingMcp,
+      cancelResponse,
+      stop: vi.fn(async () => protocol),
+      getState: () => protocol,
+    }));
+    const runtime = createAiRuntime({
+      bridge,
+      getKey: () => "sk-test-1234567890abcdefghijklmnop",
+      getLocale: () => "ko",
+      getLocation: () => ({ status: "unavailable" }),
+      getSnapshot: () => snapshot,
+      onSnapshot: (next) => { snapshot = next; },
+      refresh: vi.fn(),
+      createSession,
+    });
+
+    await runtime.start();
+    expect(createSession.mock.calls[0]?.[0]).toMatchObject({
+      mcpServers: [expect.objectContaining({ id: "docs" })],
+      getLocation: expect.any(Function),
+    });
+    await runtime.interrupt();
+    expect(approvePendingMcp).toHaveBeenCalledOnce();
+    expect(cancelResponse).not.toHaveBeenCalled();
+    runtime.dispose();
   });
 });

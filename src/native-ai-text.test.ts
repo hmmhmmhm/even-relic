@@ -59,6 +59,49 @@ describe("native Ask AI text page", () => {
     expect(createNativeAiTextContent(snapshot, 0, "en")).toBe("LISTENING…");
   });
 
+  it("shows a localized MCP approval prompt with tap and exit actions", () => {
+    const snapshot = {
+      ...createAiHudSnapshot(true),
+      phase: "thinking" as const,
+      pendingApproval: {
+        id: "approval-1",
+        serverLabel: "mcp_docs",
+        serverName: "문서 서버",
+        toolName: "search",
+        argumentsSummary: "{\"query\":\"현재 정보\"}",
+      },
+    };
+    const content = createNativeAiTextContent(snapshot, 0, "ko");
+    expect(content).toContain("MCP 도구 승인");
+    expect(content).toContain("문서 서버 // search");
+    expect(content).toContain("한 번 탭 // 승인");
+    expect(content).toContain("두 번 탭 // 거절하고 나가기");
+  });
+
+  it("keeps the approval controls visible when the transcript is already full", () => {
+    const snapshot = {
+      ...createAiHudSnapshot(true),
+      phase: "thinking" as const,
+      transcriptLines: Array.from(
+        { length: 9 },
+        (_, index) => `AI // ${index} ${"긴 대화 ".repeat(30)}`,
+      ),
+      pendingApproval: {
+        id: "approval-2",
+        serverLabel: "mcp_docs",
+        serverName: "문서 서버",
+        toolName: "search",
+        argumentsSummary: "{\"query\":\"현재 정보\"}",
+      },
+    };
+
+    const content = createNativeAiTextContent(snapshot, 8, "ko");
+    expect(content.length).toBeLessThanOrEqual(768);
+    expect(content).toContain("MCP 도구 승인");
+    expect(content).toContain("한 번 탭 // 승인");
+    expect(content).toContain("두 번 탭 // 거절하고 나가기");
+  });
+
   it("moves the rolling viewport by one selected end line", () => {
     const snapshot = {
       ...createAiHudSnapshot(true),

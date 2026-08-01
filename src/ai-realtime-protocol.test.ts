@@ -54,6 +54,27 @@ describe("Realtime protocol", () => {
       .transcription.language).toBe("tl");
   });
 
+  it("registers built-in functions and enabled MCP servers with approval", () => {
+    const event = createRealtimeSessionUpdate("en", [{
+      id: "docs",
+      name: "Docs MCP",
+      url: "https://mcp.example.com/sse",
+      authorization: "local-secret",
+      allowedTools: ["search"],
+      enabled: true,
+    }]);
+    expect(event.session.tool_choice).toBe("auto");
+    expect(event.session.tools.map((tool) => tool.type)).toEqual([
+      "function", "function", "function", "mcp",
+    ]);
+    expect(event.session.tools.at(-1)).toMatchObject({
+      server_label: "mcp_docs",
+      authorization: "local-secret",
+      require_approval: "always",
+      allowed_tools: ["search"],
+    });
+  });
+
   it("encodes PCM bytes without changing their contents", () => {
     expect(createAudioAppendEvent(new Uint8Array([0, 1, 254, 255])))
       .toEqual({ type: "input_audio_buffer.append", audio: "AAH+/w==" });

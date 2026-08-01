@@ -58,6 +58,49 @@ export function translateAiHud(
   return AI_HUD_TRANSLATIONS[locale][key];
 }
 
+type AiApprovalStrings = Readonly<{
+  title: string;
+  approve: string;
+  reject: string;
+}>;
+
+const AI_APPROVAL_TRANSLATIONS = {
+  en: { title: "APPROVE MCP TOOL", approve: "TAP // APPROVE", reject: "DOUBLE TAP // REJECT AND EXIT" },
+  ko: { title: "MCP 도구 승인", approve: "한 번 탭 // 승인", reject: "두 번 탭 // 거절하고 나가기" },
+  ja: { title: "MCPツールを承認", approve: "タップ // 承認", reject: "ダブルタップ // 拒否して終了" },
+  "zh-Hans": { title: "批准 MCP 工具", approve: "单击 // 批准", reject: "双击 // 拒绝并退出" },
+  "zh-Hant": { title: "核准 MCP 工具", approve: "點一下 // 核准", reject: "點兩下 // 拒絕並離開" },
+  es: { title: "APROBAR HERRAMIENTA MCP", approve: "TOQUE // APROBAR", reject: "DOBLE TOQUE // RECHAZAR Y SALIR" },
+  fr: { title: "APPROUVER L’OUTIL MCP", approve: "TAP // APPROUVER", reject: "DOUBLE TAP // REFUSER ET QUITTER" },
+  de: { title: "MCP-TOOL GENEHMIGEN", approve: "TIPP // GENEHMIGEN", reject: "DOPPELTIPP // ABLEHNEN UND BEENDEN" },
+  it: { title: "APPROVA STRUMENTO MCP", approve: "TOCCO // APPROVA", reject: "DOPPIO TOCCO // RIFIUTA ED ESCI" },
+  pt: { title: "APROVAR FERRAMENTA MCP", approve: "TOQUE // APROVAR", reject: "TOQUE DUPLO // RECUSAR E SAIR" },
+  nl: { title: "MCP-TOOL GOEDKEUREN", approve: "TIK // GOEDKEUREN", reject: "DUBBELTIK // WEIGEREN EN SLUITEN" },
+  pl: { title: "ZATWIERDŹ NARZĘDZIE MCP", approve: "DOTKNIJ // ZATWIERDŹ", reject: "PODWÓJNIE // ODRZUĆ I WYJDŹ" },
+  ru: { title: "РАЗРЕШИТЬ ИНСТРУМЕНТ MCP", approve: "КАСАНИЕ // РАЗРЕШИТЬ", reject: "ДВОЙНОЕ // ОТКЛОНИТЬ И ВЫЙТИ" },
+  uk: { title: "ДОЗВОЛИТИ ІНСТРУМЕНТ MCP", approve: "ДОТИК // ДОЗВОЛИТИ", reject: "ПОДВІЙНИЙ // ВІДХИЛИТИ Й ВИЙТИ" },
+  tr: { title: "MCP ARACINI ONAYLA", approve: "DOKUN // ONAYLA", reject: "ÇİFT DOKUN // REDDET VE ÇIK" },
+  ar: { title: "الموافقة على أداة MCP", approve: "نقرة // موافقة", reject: "نقرتان // رفض وخروج" },
+  he: { title: "אישור כלי MCP", approve: "הקשה // אישור", reject: "הקשה כפולה // דחייה ויציאה" },
+  hi: { title: "MCP टूल स्वीकृत करें", approve: "टैप // स्वीकृत", reject: "दो बार टैप // अस्वीकार और बाहर" },
+  bn: { title: "MCP টুল অনুমোদন", approve: "ট্যাপ // অনুমোদন", reject: "দুইবার ট্যাপ // বাতিল ও প্রস্থান" },
+  id: { title: "SETUJUI ALAT MCP", approve: "KETUK // SETUJUI", reject: "KETUK DUA KALI // TOLAK DAN KELUAR" },
+  vi: { title: "PHÊ DUYỆT CÔNG CỤ MCP", approve: "CHẠM // PHÊ DUYỆT", reject: "CHẠM ĐÔI // TỪ CHỐI VÀ THOÁT" },
+  th: { title: "อนุมัติเครื่องมือ MCP", approve: "แตะ // อนุมัติ", reject: "แตะสองครั้ง // ปฏิเสธและออก" },
+  ms: { title: "LULUSKAN ALAT MCP", approve: "KETIK // LULUSKAN", reject: "KETIK DUA KALI // TOLAK DAN KELUAR" },
+  fil: { title: "APRUBAHAN ANG MCP TOOL", approve: "TAP // APRUBAHAN", reject: "DOBLENG TAP // TANGGIHAN AT LUMABAS" },
+  sv: { title: "GODKÄNN MCP-VERKTYG", approve: "TRYCK // GODKÄNN", reject: "DUBBELTRYCK // NEKA OCH AVSLUTA" },
+  no: { title: "GODKJENN MCP-VERKTØY", approve: "TRYKK // GODKJENN", reject: "DOBBELTRYKK // AVVIS OG AVSLUTT" },
+  da: { title: "GODKEND MCP-VÆRKTØJ", approve: "TRYK // GODKEND", reject: "DOBBELTTRYK // AFVIS OG AFSLUT" },
+  fi: { title: "HYVÄKSY MCP-TYÖKALU", approve: "NAPAUTA // HYVÄKSY", reject: "KAKSOISNAPAUTUS // HYLKÄÄ JA POISTU" },
+  cs: { title: "SCHVÁLIT NÁSTROJ MCP", approve: "KLEPNOUT // SCHVÁLIT", reject: "DVOJITĚ // ODMÍTNOUT A ODEJÍT" },
+  ro: { title: "APROBĂ INSTRUMENTUL MCP", approve: "ATINGE // APROBĂ", reject: "ATINGE DUBLU // REFUZĂ ȘI IEȘI" },
+} as const satisfies Readonly<Record<SupportedLocale, AiApprovalStrings>>;
+
+export function translateAiApproval(locale: SupportedLocale): AiApprovalStrings {
+  return AI_APPROVAL_TRANSLATIONS[locale];
+}
+
 export function localizeAiTranscriptLines(
   lines: readonly string[],
   locale: SupportedLocale,

@@ -70,4 +70,35 @@ describe("AiScreen", () => {
     expect(screen.getAllByText(/Question [1-3]/)).toHaveLength(3);
     expect(screen.getAllByText(/Answer [1-3]/)).toHaveLength(3);
   });
+
+  it("adds an HTTPS MCP server locally with per-call glasses approval", async () => {
+    const storage = new TestStorage();
+    render(
+      <AiScreen
+        storage={storage}
+        snapshot={createAiHudSnapshot(true)}
+        t={(name) => translatePhone("en", name)}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText("Server name"), {
+      target: { value: "Docs MCP" },
+    });
+    fireEvent.change(screen.getByLabelText("HTTPS server URL"), {
+      target: { value: "https://mcp.example.com/sse" },
+    });
+    fireEvent.change(screen.getByLabelText("Bearer token (optional)"), {
+      target: { value: "Bearer private-token" },
+    });
+    fireEvent.change(screen.getByLabelText("Allowed tools (comma-separated)"), {
+      target: { value: "search, read_doc" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    await vi.waitFor(() => expect(screen.getByText("Docs MCP")).toBeTruthy());
+    const raw = storage.values.get("sandevistan:mcp-servers:v1") ?? "";
+    expect(raw).toContain("https://mcp.example.com/sse");
+    expect(raw).toContain("private-token");
+    expect(raw).not.toContain("Bearer private-token");
+    expect(screen.queryByText("private-token")).toBeNull();
+  });
 });

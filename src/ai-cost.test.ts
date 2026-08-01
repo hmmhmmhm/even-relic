@@ -30,7 +30,10 @@ describe("AI usage and estimated cost", () => {
       textOutputTokens: 1_000_000,
       transcriptionAudioInputTokens: 1_000_000,
       transcriptionTextOutputTokens: 1_000_000,
-    })).toBeCloseTo(59.05, 5);
+      searchTextInputTokens: 1_000_000,
+      searchTextOutputTokens: 1_000_000,
+      webSearchCalls: 1,
+    })).toBeCloseTo(61.31, 5);
   });
 
   it("aggregates usage by local date and bounds the ledger", () => {

@@ -312,6 +312,7 @@ export function useHudController({
           bridge,
           getKey: () => companionOpenAiKeyRef.current,
           getLocale: currentLocale,
+          getLocation: () => live.location,
           getSnapshot: () => aiSnapshotRef.current,
           onSnapshot: (snapshot) => {
             aiSnapshotRef.current = snapshot;
