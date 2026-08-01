@@ -214,3 +214,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   a short-lived Realtime client secret, and never bundle, log, or persist the
   key on the server. Keep conversation excerpts and per-response usage/cost
   records local to the device.
+- Let users add bounded HTTPS MCP servers from the phone Ask AI settings, with
+  optional locally stored bearer authentication and tool allowlists. Register
+  enabled servers directly with the Realtime session and require explicit
+  approval for every MCP call. While approval is pending, one glasses tap
+  approves; double tap rejects before leaving Ask AI. Never auto-approve,
+  proxy, log, or server-persist user MCP credentials or traffic.
