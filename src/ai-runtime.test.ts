@@ -83,4 +83,42 @@ describe("Ask AI runtime", () => {
       phase: "unconfigured",
     });
   });
+
+  it("persists the latest completed turn when the live turn is empty", async () => {
+    const bridge = new TestBridge();
+    let snapshot = createAiHudSnapshot(true);
+    const protocol = {
+      ...createRealtimeProtocolState(),
+      phase: "listening" as const,
+      turns: [{
+        user: "완료된 질문",
+        assistant: "완료된 답변",
+      }],
+    };
+    const runtime = createAiRuntime({
+      bridge,
+      getKey: () => "sk-test-1234567890abcdefghijklmnop",
+      getLocale: () => "ko",
+      getSnapshot: () => snapshot,
+      onSnapshot: (next) => { snapshot = next; },
+      refresh: vi.fn(),
+      createSession: vi.fn(() => ({
+        start: vi.fn(async () => undefined),
+        pause: vi.fn(),
+        resume: vi.fn(),
+        stop: vi.fn(async () => protocol),
+        getState: () => protocol,
+      })),
+    });
+
+    await runtime.start();
+    await runtime.stop();
+
+    await expect(resolveAiConversationHistory(bridge)).resolves.toEqual([
+      expect.objectContaining({
+        user: "완료된 질문",
+        assistant: "완료된 답변",
+      }),
+    ]);
+  });
 });

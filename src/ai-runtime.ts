@@ -59,16 +59,24 @@ export function createAiRuntime(options: {
     protocol: AiRealtimeProtocolState,
   ) => {
     const now = new Date();
+    const currentTurn = {
+      user: protocol.userText.trim(),
+      assistant: protocol.assistantText.trim(),
+    };
+    const latestCompleted = protocol.turns[protocol.turns.length - 1];
+    const excerpt = currentTurn.user || currentTurn.assistant
+      ? currentTurn
+      : latestCompleted;
     const [history, ledger] = await Promise.all([
       resolveAiConversationHistory(options.bridge),
       resolveAiUsageLedger(options.bridge),
     ]);
-    const nextHistory = protocol.userText || protocol.assistantText
+    const nextHistory = excerpt?.user || excerpt?.assistant
       ? appendAiConversationExcerpt(history, {
           id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
           endedAt: now.toISOString(),
-          user: protocol.userText,
-          assistant: protocol.assistantText,
+          user: excerpt.user,
+          assistant: excerpt.assistant,
         })
       : history;
     const nextLedger = addDailyAiUsage(ledger, now, protocol.usage);
