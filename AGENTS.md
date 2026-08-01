@@ -190,7 +190,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Keep Ask AI microphone ownership session-scoped: a normal detail tap is a
   no-op, while double tap is the only exit and performs best-effort microphone
   cleanup without blocking Canvas restoration. Pace assistant presentation at
-  one Unicode grapheme every 200 ms, keep authoritative Realtime state and
+  one Unicode grapheme every 500 ms, keep authoritative Realtime state and
   persistence unthrottled, and localize every visible native detail string
   across all thirty locales.
 - Keep the Ask AI detail view deliberately plain: no title, frame, phase

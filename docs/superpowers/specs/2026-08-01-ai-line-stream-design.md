@@ -16,7 +16,7 @@ move through history one wrapped line at a time.
   actionable.
 - Keep recognized user speech authoritative and immediate.
 - Buffer the assistant's authoritative Realtime text and expose one Unicode
-  grapheme every 200 ms. New upstream deltas replace the pending target rather
+  grapheme every 500 ms. New upstream deltas replace the pending target rather
   than forming a replay queue.
 - Wrap the chronological transcript into individual lines. The latest view
   follows the newest line automatically; each scroll gesture moves the
@@ -39,7 +39,7 @@ its own WebSocket, so importing the full Vercel AI SDK only for this transform
 would duplicate transport code and increase the WebView bundle. A small local
 grapheme pacer provides the same relevant behavior.
 
-The 200 ms clock is a presentation clock, not an SDK call queue. Native
+The 500 ms clock is a presentation clock, not an SDK call queue. Native
 `textContainerUpgrade` remains sampled/latest-wins so slow bridge calls cannot
 build a backlog or freeze the WebView. On hardware, one native update may
 therefore contain several already-paced graphemes, but the authoritative
@@ -57,7 +57,7 @@ conversation and visible ordering remain correct.
 
 ## Verification
 
-- Fake-timer tests prove one grapheme per 200 ms, including composed emoji.
+- Fake-timer tests prove one grapheme per 500 ms, including composed emoji.
 - Transcript tests prove chronological line output without six-line pages.
 - View reducer tests prove one-line scroll and latest-follow behavior.
 - Native and Canvas tests prove the decorative UI is absent and localized
