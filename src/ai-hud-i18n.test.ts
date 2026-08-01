@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AI_HUD_TRANSLATIONS,
-  localizeAiTranscriptPage,
+  localizeAiTranscriptLines,
   translateAiHud,
 } from "./ai-hud-i18n";
 import { SUPPORTED_LOCALES } from "./i18n/locale-registry";
@@ -21,9 +21,16 @@ describe("Ask AI HUD translations", () => {
 
   it("localizes phases and transcript roles without changing conversation text", () => {
     expect(translateAiHud("ko", "listening")).toBe("듣는 중…");
-    expect(localizeAiTranscriptPage(
-      "YOU // 안녕하세요\n      이어지는 말\nAI // 반갑습니다",
+    expect(localizeAiTranscriptLines([
+      "YOU // 안녕하세요",
+      "      이어지는 말",
+      "AI // 반갑습니다",
+    ],
       "ko",
-    )).toBe("사용자 // 안녕하세요\n      이어지는 말\nAI // 반갑습니다");
+    )).toEqual([
+      "사용자 // 안녕하세요",
+      "      이어지는 말",
+      "AI // 반갑습니다",
+    ]);
   });
 });

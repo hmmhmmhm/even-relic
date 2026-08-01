@@ -115,15 +115,16 @@ function values(texts: readonly DrawnText[]) {
 }
 
 describe("drawFastDetailHud", () => {
-  it("draws the localized streaming Ask AI transcript and exit control", () => {
+  it("draws only the localized streaming Ask AI transcript", () => {
     const { canvas, texts } = createCanvas();
     const ai = {
       ...createAiHudSnapshot(true),
       phase: "thinking" as const,
       userText: "오늘 날씨는 어때?",
       assistantText: "현재 맑고 기온은 28도입니다.",
-      transcriptPages: [
-        "YOU // 오늘 날씨는 어때?\nAI // 현재 맑고 기온은 28도입니다.",
+      transcriptLines: [
+        "YOU // 오늘 날씨는 어때?",
+        "AI // 현재 맑고 기온은 28도입니다.",
       ],
     };
 
@@ -135,28 +136,28 @@ describe("drawFastDetailHud", () => {
       todoIndex: 0,
       navigationIndex: 0,
       ai,
-      aiPage: 0,
+      aiLine: 1,
     }, "ko");
 
     expect(values(texts)).toEqual(expect.arrayContaining([
-      "AI에게 묻기 // 생각하는 중…",
-      "실시간 1/1",
       "사용자 // 오늘 날씨는 어때?",
       "AI // 현재 맑고 기온은 28도입니다.",
-      "스크롤 // 대화 기록",
-      "두 번 탭 // 뒤로",
     ]));
-    expect(values(texts)).not.toContain("TAP // PAUSE");
+    expect(values(texts)).not.toContain("AI에게 묻기 // 생각하는 중…");
+    expect(values(texts)).not.toContain("스크롤 // 대화 기록");
+    expect(values(texts)).not.toContain("두 번 탭 // 뒤로");
   });
 
-  it("marks a manually selected older Ask AI page as history", () => {
+  it("shows the localized listening line at the end of live transcript", () => {
     const { canvas, texts } = createCanvas();
     const ai = {
       ...createAiHudSnapshot(true),
       phase: "listening" as const,
-      transcriptPages: [
-        "YOU // 이전 질문\nAI // 이전 답변",
-        "YOU // 현재 질문\nAI // 현재 답변",
+      transcriptLines: [
+        "YOU // 이전 질문",
+        "AI // 이전 답변",
+        "YOU // 현재 질문",
+        "AI // 현재 답변",
       ],
     };
 
@@ -168,14 +169,15 @@ describe("drawFastDetailHud", () => {
       todoIndex: 0,
       navigationIndex: 0,
       ai,
-      aiPage: 0,
+      aiLine: 3,
     }, "ko");
 
     expect(values(texts)).toEqual(expect.arrayContaining([
-      "대화 기록 1/2",
       "사용자 // 이전 질문",
       "AI // 이전 답변",
+      "듣는 중…",
     ]));
+    expect(values(texts).some((value) => value.includes("1/"))).toBe(false);
   });
 
   it("renders English fixed copy while preserving source content", () => {

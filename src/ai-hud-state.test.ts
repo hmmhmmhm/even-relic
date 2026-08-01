@@ -6,10 +6,10 @@ describe("Ask AI HUD state", () => {
   it("is passive until an explicit session starts", () => {
     const state = createAiHudSnapshot(false);
     expect(state.phase).toBe("unconfigured");
-    expect(state.transcriptPages).toEqual([]);
+    expect(state.transcriptLines).toEqual([]);
   });
 
-  it("keeps a short user utterance and streaming answer on one page", () => {
+  it("keeps a short user utterance and streaming answer as chronological lines", () => {
     const protocol = {
       ...createRealtimeProtocolState(),
       phase: "thinking" as const,
@@ -19,12 +19,13 @@ describe("Ask AI HUD state", () => {
 
     const state = updateAiHudProtocol(createAiHudSnapshot(true), protocol);
 
-    expect(state.transcriptPages).toEqual([
-      "YOU // 안녕하세요.\nAI // 안녕하세요. 무엇을 도와드릴까요?",
+    expect(state.transcriptLines).toEqual([
+      "YOU // 안녕하세요.",
+      "AI // 안녕하세요. 무엇을 도와드릴까요?",
     ]);
   });
 
-  it("builds chronological six-line pages from completed and live turns", () => {
+  it("builds an unpaged chronological line stream", () => {
     const protocol = {
       ...createRealtimeProtocolState(),
       phase: "thinking" as const,
@@ -38,11 +39,10 @@ describe("Ask AI HUD state", () => {
     const state = updateAiHudProtocol(createAiHudSnapshot(true), protocol);
     expect(state.phase).toBe("thinking");
     expect(state.turns).toEqual(protocol.turns);
-    expect(state.transcriptPages.length).toBeGreaterThan(1);
-    expect(state.transcriptPages.join("\n")).toContain("첫 번째 질문");
-    expect(state.transcriptPages.join("\n")).toContain("오늘 일정");
-    for (const page of state.transcriptPages) {
-      expect(page.split("\n").length).toBeLessThanOrEqual(6);
-    }
+    expect(state.transcriptLines.length).toBeGreaterThan(6);
+    expect(state.transcriptLines.join("\n")).toContain("첫 번째 질문");
+    expect(state.transcriptLines.join("\n")).toContain("오늘 일정");
+    expect(state.transcriptLines.every((line) => !line.includes("\n")))
+      .toBe(true);
   });
 });

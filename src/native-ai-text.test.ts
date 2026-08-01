@@ -25,41 +25,67 @@ describe("native Ask AI text page", () => {
     });
   });
 
-  it("localizes roles, selected history state, listening status, and controls", () => {
+  it("renders only localized transcript lines and the live listening line", () => {
     const snapshot = {
       ...createAiHudSnapshot(true),
       phase: "listening" as const,
-      transcriptPages: [
-        "YOU // Earlier\nAI // Previous answer",
-        "YOU // Now\nAI // Streaming answer",
+      transcriptLines: [
+        "YOU // Earlier",
+        "AI // Previous answer",
+        "YOU // Now",
+        "AI // Streaming answer",
       ],
     };
 
-    expect(createNativeAiTextContent(snapshot, 0, "ko")).toBe([
-      "AI에게 묻기 // 듣는 중…  ·  대화 기록 1/2",
-      "",
-      "듣고 있습니다… 자연스럽게 말씀하세요.",
-      "",
+    expect(createNativeAiTextContent(snapshot, 3, "ko")).toBe([
       "사용자 // Earlier",
       "AI // Previous answer",
-      "",
-      "스크롤 // 대화 기록",
-      "두 번 탭 // 뒤로",
+      "사용자 // Now",
+      "AI // Streaming answer",
+      "듣는 중…",
     ].join("\n"));
   });
 
-  it("bounds unexpected transcript payloads", () => {
+  it("shows only Listening before the first utterance", () => {
     const snapshot = {
       ...createAiHudSnapshot(true),
       phase: "listening" as const,
-      transcriptPages: [`YOU // ${"x".repeat(5_000)}`],
+    };
+
+    expect(createNativeAiTextContent(snapshot, 0, "en")).toBe("LISTENING…");
+  });
+
+  it("moves the rolling viewport by one selected end line", () => {
+    const snapshot = {
+      ...createAiHudSnapshot(true),
+      phase: "thinking" as const,
+      transcriptLines: Array.from(
+        { length: 12 },
+        (_, index) => `AI // line ${index + 1}`,
+      ),
+    };
+
+    const latest = createNativeAiTextContent(snapshot, 11, "en").split("\n");
+    const oneLineOlder = createNativeAiTextContent(snapshot, 10, "en").split("\n");
+    expect(latest).toHaveLength(9);
+    expect(latest[0]).toBe("AI // line 4");
+    expect(latest.at(-1)).toBe("AI // line 12");
+    expect(oneLineOlder[0]).toBe("AI // line 3");
+    expect(oneLineOlder.at(-1)).toBe("AI // line 11");
+  });
+
+  it("bounds unexpected transcript payloads without restoring decoration", () => {
+    const snapshot = {
+      ...createAiHudSnapshot(true),
+      phase: "listening" as const,
+      transcriptLines: [`YOU // ${"x".repeat(5_000)}`],
     };
 
     const content = createNativeAiTextContent(snapshot, 0, "en");
     expect(content.length).toBeLessThanOrEqual(768);
-    expect(content).toContain("Ask AI // LISTENING…");
-    expect(content).toContain("DOUBLE TAP // BACK");
-    expect(content).not.toContain("PAUSE");
+    expect(content).not.toContain("Ask AI");
+    expect(content).not.toContain("BACK");
+    expect(content).not.toContain("1/1");
   });
 });
 

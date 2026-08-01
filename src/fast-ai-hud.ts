@@ -1,18 +1,17 @@
 import type { AiHudSnapshot } from "./ai-hud-state";
 import {
-  localizeAiTranscriptPage,
+  localizeAiTranscriptLines,
   translateAiHud,
 } from "./ai-hud-i18n";
 import {
-  drawFastCanvasOpenFrame as drawFrame,
   drawFastCanvasText as drawText,
   FAST_CANVAS_COLOR as COLOR,
 } from "./fast-canvas-style";
 import { wrapHudText } from "./fast-detail-text";
 import {
-  drawDetailFooter as drawFooter,
-  drawDetailHeader as drawHeader,
-} from "./fast-detail-frame";
+  AI_TRANSCRIPT_VISIBLE_LINES,
+  selectAiTranscriptViewport,
+} from "./ai-transcript";
 import { translatePhone } from "./phone-i18n";
 import type { PhoneLocale } from "./phone-types";
 
@@ -138,48 +137,36 @@ export function drawFastAiPanel(
 export function drawFastAiDetail(
   context: CanvasRenderingContext2D,
   snapshot: AiHudSnapshot,
-  selectedPage: number,
+  selectedLine: number,
   locale: PhoneLocale,
 ) {
-  const pages = snapshot.transcriptPages;
-  const index = Math.min(Math.max(0, selectedPage), Math.max(0, pages.length - 1));
-  drawHeader(
-    context,
-    `${translatePhone(locale, "ai")} // ${phaseLabel(snapshot, locale)}`,
-    pages.length > 0
-      ? `${translateAiHud(locale, index === pages.length - 1 ? "live" : "history")} ${index + 1}/${pages.length}`
-      : undefined,
-  );
-  drawFrame(context, 14, 44, 548, 204);
-  const page = pages[index]
-    ? localizeAiTranscriptPage(pages[index], locale)
-    : undefined;
-  const lines = snapshot.error
-    ? wrapHudText(snapshot.error, 46, 6)
-    : page
-      ? page.split("\n").slice(0, 6)
-      : wrapHudText(
-          snapshot.configured
-            ? translateAiHud(locale, "listeningPrompt")
-            : translatePhone(locale, "aiKeyRequired"),
-          46,
-          6,
-        );
+  const latestSelected = snapshot.transcriptLines.length === 0
+    || Math.floor(selectedLine) >= snapshot.transcriptLines.length - 1;
+  const showListening = snapshot.phase === "listening" && latestSelected;
+  const lines = [...localizeAiTranscriptLines(
+    selectAiTranscriptViewport(
+      snapshot.transcriptLines,
+      selectedLine,
+      AI_TRANSCRIPT_VISIBLE_LINES - (showListening ? 1 : 0),
+    ),
+    locale,
+  )];
+  if (showListening) lines.push(translateAiHud(locale, "listening"));
+  if (snapshot.error?.trim()) lines.push(snapshot.error.trim());
+  if (lines.length === 0) {
+    lines.push(snapshot.configured
+      ? translateAiHud(locale, "listening")
+      : translatePhone(locale, "aiKeyRequired"));
+  }
   lines.forEach((line, lineIndex) => {
     drawText(
       context,
       line,
-      32,
-      62 + lineIndex * 29,
+      18,
+      20 + lineIndex * 29,
       21,
       snapshot.phase === "error" ? COLOR.secondary : COLOR.primary,
       "bold",
     );
   });
-  drawFooter(
-    context,
-    translateAiHud(locale, "scrollTranscript"),
-    undefined,
-    translateAiHud(locale, "doubleTapBack"),
-  );
 }

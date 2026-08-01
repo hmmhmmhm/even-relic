@@ -4,7 +4,7 @@ import type {
   AiRealtimePhase,
   AiRealtimeProtocolState,
 } from "./ai-realtime-protocol";
-import { createAiTranscriptPages } from "./ai-transcript";
+import { createAiTranscriptLines } from "./ai-transcript";
 
 export type AiHudPhase = "unconfigured" | "displaying" | AiRealtimePhase;
 
@@ -14,7 +14,7 @@ export type AiHudSnapshot = {
   readonly userText: string;
   readonly assistantText: string;
   readonly turns: readonly AiConversationTurn[];
-  readonly transcriptPages: readonly string[];
+  readonly transcriptLines: readonly string[];
   readonly history: readonly AiConversationExcerpt[];
   readonly weekUsd: number;
   readonly monthUsd: number;
@@ -33,7 +33,7 @@ export function createAiHudSnapshot(
     userText: "",
     assistantText: "",
     turns: [],
-    transcriptPages: [],
+    transcriptLines: [],
     history: history.slice(0, 3),
     weekUsd,
     monthUsd,
@@ -50,7 +50,7 @@ export function updateAiHudProtocol(
     userText: protocol.userText,
     assistantText: protocol.assistantText,
     turns: protocol.turns,
-    transcriptPages: createAiTranscriptPages(
+    transcriptLines: createAiTranscriptLines(
       protocol.turns,
       {
         user: protocol.userText,

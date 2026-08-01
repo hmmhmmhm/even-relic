@@ -24,7 +24,7 @@ export type FastHudViewState = {
   readonly todoIndex: number;
   readonly navigationIndex: number;
   readonly navigationFollowsActive: boolean;
-  readonly aiPage: number;
+  readonly aiLine: number;
   readonly aiFollowsLatest: boolean;
 };
 
@@ -34,7 +34,7 @@ export type FastHudViewContext = {
   readonly todoCount: number;
   readonly maneuverCount: number;
   readonly activeManeuverIndex: number;
-  readonly aiPageCount?: number;
+  readonly aiLineCount?: number;
 };
 
 export type FastHudEffect =
@@ -72,7 +72,7 @@ function pageMode(page: FastHudPage): Exclude<FastHudViewMode, "dashboard"> {
 
 function moveIndex(
   state: FastHudViewState,
-  key: "newsIndex" | "todoIndex" | "navigationIndex" | "aiPage",
+  key: "newsIndex" | "todoIndex" | "navigationIndex" | "aiLine",
   input: FastCanvasInput,
   count: number,
   extra: Partial<FastHudViewState> = {},
@@ -102,7 +102,7 @@ export function createFastHudViewState(): FastHudViewState {
     todoIndex: 0,
     navigationIndex: 0,
     navigationFollowsActive: true,
-    aiPage: 0,
+    aiLine: 0,
     aiFollowsLatest: true,
   };
 }
@@ -128,9 +128,9 @@ export function syncFastHudView(
     navigationIndex: state.navigationFollowsActive
       ? activeIndex
       : clampIndex(state.navigationIndex, context.maneuverCount),
-    aiPage: state.aiFollowsLatest
-      ? clampIndex((context.aiPageCount ?? 0) - 1, context.aiPageCount ?? 0)
-      : clampIndex(state.aiPage, context.aiPageCount ?? 0),
+    aiLine: state.aiFollowsLatest
+      ? clampIndex((context.aiLineCount ?? 0) - 1, context.aiLineCount ?? 0)
+      : clampIndex(state.aiLine, context.aiLineCount ?? 0),
   };
 }
 
@@ -159,9 +159,9 @@ export function reduceFastHudInput(
           ? {
               ...state,
               mode,
-              aiPage: clampIndex(
-                (context.aiPageCount ?? 0) - 1,
-                context.aiPageCount ?? 0,
+              aiLine: clampIndex(
+                (context.aiLineCount ?? 0) - 1,
+                context.aiLineCount ?? 0,
               ),
               aiFollowsLatest: true,
             }
@@ -278,19 +278,19 @@ export function reduceFastHudInput(
     if (input !== "scroll-next" && input !== "scroll-previous") {
       return { state, result: "consume" };
     }
-    const count = context.aiPageCount ?? 0;
+    const count = context.aiLineCount ?? 0;
     if (count <= 0) return { state, result: "consume" };
     const delta = input === "scroll-next" ? 1 : -1;
-    const aiPage = clampIndex(state.aiPage + delta, count);
-    const aiFollowsLatest = aiPage === count - 1;
+    const aiLine = clampIndex(state.aiLine + delta, count);
+    const aiFollowsLatest = aiLine === count - 1;
     if (
-      aiPage === state.aiPage
+      aiLine === state.aiLine
       && aiFollowsLatest === state.aiFollowsLatest
     ) {
       return { state, result: "consume" };
     }
     return {
-      state: { ...state, aiPage, aiFollowsLatest },
+      state: { ...state, aiLine, aiFollowsLatest },
       result: "redraw",
     };
   }

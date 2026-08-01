@@ -37,24 +37,24 @@ describe("fast HUD native Ask AI input flow", () => {
         todoCount: 0,
         maneuverCount: 0,
         activeManeuverIndex: 0,
-        aiPageCount: 2,
+        aiLineCount: 2,
       }),
       getLiveSession: () => undefined,
       getAiRuntime: () => ai,
       getNativeText: () => native,
-      nativeContent: () => `PAGE ${view.aiPage}`,
+      nativeContent: () => `LINE ${view.aiLine}`,
       drawCurrentPage: draw,
     });
 
     expect(await input("tap")).toBe("consume");
     expect(view.mode).toBe("ai");
-    expect(native.enter).toHaveBeenCalledWith("PAGE 1");
+    expect(native.enter).toHaveBeenCalledWith("LINE 1");
     expect(ai.start).toHaveBeenCalledOnce();
     expect(draw).not.toHaveBeenCalled();
 
     expect(await input("scroll-previous")).toBe("consume");
-    expect(view.aiPage).toBe(0);
-    expect(native.update).toHaveBeenCalledWith("PAGE 0");
+    expect(view.aiLine).toBe(0);
+    expect(native.update).toHaveBeenCalledWith("LINE 0");
 
     native.update.mockClear();
     expect(await input("tap")).toBe("consume");
@@ -81,7 +81,7 @@ describe("fast HUD native Ask AI input flow", () => {
         todoCount: 0,
         maneuverCount: 0,
         activeManeuverIndex: 0,
-        aiPageCount: 1,
+        aiLineCount: 1,
       }),
       getLiveSession: () => undefined,
       getAiRuntime: () => ({

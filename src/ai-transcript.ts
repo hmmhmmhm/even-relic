@@ -2,7 +2,7 @@ import type { AiConversationTurn } from "./ai-realtime-protocol";
 import { wrapHudText } from "./fast-detail-text";
 
 const MAXIMUM_LINE_UNITS = 46;
-const LINES_PER_PAGE = 6;
+export const AI_TRANSCRIPT_VISIBLE_LINES = 9;
 
 function roleLines(label: "YOU" | "AI", text: string): readonly string[] {
   const normalized = text.replace(/\s+/g, " ").trim();
@@ -17,37 +17,29 @@ function roleLines(label: "YOU" | "AI", text: string): readonly string[] {
   ).map((line, index) => `${index === 0 ? prefix : continuation}${line}`);
 }
 
-export function createAiTranscriptPages(
+export function createAiTranscriptLines(
   completed: readonly AiConversationTurn[],
   current: AiConversationTurn,
 ): readonly string[] {
   const turns = current.user.trim() || current.assistant.trim()
     ? [...completed, current]
     : completed;
-  const pages: string[] = [];
-  let pending: string[] = [];
-  const flush = () => {
-    if (!pending.length) return;
-    pages.push(pending.join("\n"));
-    pending = [];
-  };
-  for (const turn of turns) {
-    const lines = [
-      ...roleLines("YOU", turn.user),
-      ...roleLines("AI", turn.assistant),
-    ];
-    if (!lines.length) continue;
-    if (lines.length <= LINES_PER_PAGE) {
-      if (pending.length + lines.length > LINES_PER_PAGE) flush();
-      pending.push(...lines);
-      if (pending.length === LINES_PER_PAGE) flush();
-      continue;
-    }
-    flush();
-    for (let index = 0; index < lines.length; index += LINES_PER_PAGE) {
-      pages.push(lines.slice(index, index + LINES_PER_PAGE).join("\n"));
-    }
-  }
-  flush();
-  return pages;
+  return turns.flatMap((turn) => [
+    ...roleLines("YOU", turn.user),
+    ...roleLines("AI", turn.assistant),
+  ]);
+}
+
+export function selectAiTranscriptViewport(
+  lines: readonly string[],
+  selectedLine: number,
+  visibleLines = AI_TRANSCRIPT_VISIBLE_LINES,
+): readonly string[] {
+  if (lines.length === 0 || visibleLines <= 0) return [];
+  const endLine = Math.min(
+    Math.max(0, Math.floor(selectedLine)),
+    lines.length - 1,
+  );
+  const startLine = Math.max(0, endLine - Math.floor(visibleLines) + 1);
+  return lines.slice(startLine, endLine + 1);
 }

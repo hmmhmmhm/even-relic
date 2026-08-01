@@ -44,7 +44,7 @@ export function resolveFastHudViewContext(
       todoCount: live.todos.value?.length ?? 0,
       maneuverCount: route?.maneuvers.length ?? 0,
       activeManeuverIndex: route?.activeManeuverIndex ?? 0,
-      aiPageCount: ai.transcriptPages.length,
+      aiLineCount: ai.transcriptLines.length,
     },
     cache: { key, counts },
   };
@@ -73,7 +73,7 @@ export function drawFastHudSurface(options: {
       newsPage: view.newsPage,
       todoIndex: view.todoIndex,
       navigationIndex: view.navigationIndex,
-      ...(view.mode === "ai" ? { ai, aiPage: view.aiPage } : {}),
+      ...(view.mode === "ai" ? { ai, aiLine: view.aiLine } : {}),
     }, locale);
     return;
   }

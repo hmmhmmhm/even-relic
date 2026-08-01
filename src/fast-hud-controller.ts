@@ -147,7 +147,7 @@ export function useHudController({
     };
     const nativeAiContent = () => createNativeAiTextContent(
       aiSnapshotRef.current,
-      view.aiPage,
+      view.aiLine,
       currentLocale(),
     );
     const handleFastInput = createFastHudInputController({

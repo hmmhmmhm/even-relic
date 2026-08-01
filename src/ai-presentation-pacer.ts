@@ -1,5 +1,5 @@
 import type { AiHudSnapshot } from "./ai-hud-state";
-import { createAiTranscriptPages } from "./ai-transcript";
+import { createAiTranscriptLines } from "./ai-transcript";
 
 export type AiPresentationPacer = {
   push(snapshot: AiHudSnapshot): void;
@@ -12,12 +12,22 @@ export function createAiPresentationPacer(options: {
   readonly intervalMs?: number;
   readonly graphemesPerTick?: number;
 }): AiPresentationPacer {
-  const intervalMs = Math.max(1, options.intervalMs ?? 250);
-  const step = Math.max(1, Math.floor(options.graphemesPerTick ?? 6));
+  const intervalMs = Math.max(1, options.intervalMs ?? 20);
+  const step = Math.max(1, Math.floor(options.graphemesPerTick ?? 1));
   let target: AiHudSnapshot | undefined;
   let presented = "";
   let timer: ReturnType<typeof setTimeout> | undefined;
   let disposed = false;
+  const segmenter = typeof Intl.Segmenter === "function"
+    ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
+    : undefined;
+
+  const graphemes = (value: string): readonly string[] => {
+    if (segmenter) {
+      return Array.from(segmenter.segment(value), ({ segment }) => segment);
+    }
+    return Array.from(value);
+  };
 
   const clearTimer = () => {
     if (timer !== undefined) clearTimeout(timer);
@@ -29,9 +39,9 @@ export function createAiPresentationPacer(options: {
     timer = setTimeout(() => {
       timer = undefined;
       if (disposed || !target) return;
-      const available = Array.from(target.assistantText);
+      const available = graphemes(target.assistantText);
       const current = target.assistantText.startsWith(presented)
-        ? Array.from(presented)
+        ? graphemes(presented)
         : [];
       presented = available.slice(0, current.length + step).join("");
       const caughtUp = presented === target.assistantText;
@@ -39,7 +49,7 @@ export function createAiPresentationPacer(options: {
         ...target,
         phase: caughtUp ? target.phase : "displaying",
         assistantText: presented,
-        transcriptPages: createAiTranscriptPages(target.turns, {
+        transcriptLines: createAiTranscriptLines(target.turns, {
           user: target.userText,
           assistant: presented,
         }),

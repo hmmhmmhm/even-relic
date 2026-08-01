@@ -39,7 +39,7 @@ export type FastDetailHudOptions = {
   readonly todoIndex: number;
   readonly navigationIndex: number;
   readonly ai?: AiHudSnapshot;
-  readonly aiPage?: number;
+  readonly aiLine?: number;
 };
 
 function newsLabel(state: DataState<readonly NewsItem[]>): string {
@@ -387,7 +387,7 @@ export function drawFastDetailHud(
     drawFastAiDetail(
       context,
       options.ai ?? createAiHudSnapshot(false),
-      options.aiPage ?? 0,
+      options.aiLine ?? 0,
       locale,
     );
   } else if (options.mode === "news") {

@@ -158,9 +158,9 @@ describe("Ask AI runtime", () => {
       phase: "thinking",
       assistantText: "첫",
     }, "response.output_text.delta");
-    await vi.advanceTimersByTimeAsync(249);
+    await vi.advanceTimersByTimeAsync(119);
     expect(refresh).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(101);
+    await vi.advanceTimersByTimeAsync(1);
     expect(refresh).toHaveBeenCalledOnce();
 
     onState?.({
@@ -169,7 +169,7 @@ describe("Ask AI runtime", () => {
       assistantText: "첫 답변",
     }, "response.done");
     expect(refresh).toHaveBeenCalledOnce();
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(80);
     release?.();
     await vi.waitFor(() => expect(refresh).toHaveBeenCalledTimes(2));
     expect(snapshot.assistantText).toBe("첫 답변");

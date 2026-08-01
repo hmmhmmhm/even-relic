@@ -191,7 +191,7 @@ describe("fast HUD detail state", () => {
       state: {
       navigationIndex: 2,
       navigationFollowsActive: false,
-      aiPage: 0,
+      aiLine: 0,
       },
       result: "redraw",
     });
@@ -236,51 +236,51 @@ describe("fast HUD detail state", () => {
     });
   });
 
-  it("enters Ask AI at the live page and follows newly streamed pages", () => {
+  it("enters Ask AI at the newest line and follows newly streamed lines", () => {
     const entered = reduceFastHudInput(
       createFastHudViewState(),
       "ai",
       "tap",
-      { ...CONTEXT, aiPageCount: 3 },
+      { ...CONTEXT, aiLineCount: 3 },
     ).state;
 
     expect(entered).toMatchObject({
       mode: "ai",
-      aiPage: 2,
+      aiLine: 2,
       aiFollowsLatest: true,
     });
     expect(syncFastHudView(
       entered,
-      { ...CONTEXT, aiPageCount: 5 },
+      { ...CONTEXT, aiLineCount: 5 },
     )).toMatchObject({
-      aiPage: 4,
+      aiLine: 4,
       aiFollowsLatest: true,
     });
   });
 
-  it("pins Ask AI history until scrolling back to the newest page", () => {
+  it("moves Ask AI history exactly one line and pins it until newest", () => {
     const live: FastHudViewState = {
       ...createFastHudViewState(),
       mode: "ai",
-      aiPage: 4,
+      aiLine: 4,
       aiFollowsLatest: true,
     };
     const history = reduceFastHudInput(
       live,
       "ai",
       "scroll-previous",
-      { ...CONTEXT, aiPageCount: 5 },
+      { ...CONTEXT, aiLineCount: 5 },
     ).state;
 
     expect(history).toMatchObject({
-      aiPage: 3,
+      aiLine: 3,
       aiFollowsLatest: false,
     });
     expect(syncFastHudView(
       history,
-      { ...CONTEXT, aiPageCount: 6 },
+      { ...CONTEXT, aiLineCount: 6 },
     )).toMatchObject({
-      aiPage: 3,
+      aiLine: 3,
       aiFollowsLatest: false,
     });
 
@@ -288,10 +288,10 @@ describe("fast HUD detail state", () => {
       history,
       "ai",
       "scroll-next",
-      { ...CONTEXT, aiPageCount: 5 },
+      { ...CONTEXT, aiLineCount: 5 },
     ).state;
     expect(newer).toMatchObject({
-      aiPage: 4,
+      aiLine: 4,
       aiFollowsLatest: true,
     });
   });
@@ -352,7 +352,7 @@ describe("fast HUD detail state", () => {
       todoIndex: 2,
       navigationIndex: 3,
       navigationFollowsActive: true,
-      aiPage: 0,
+      aiLine: 0,
       aiFollowsLatest: true,
     };
 
@@ -370,7 +370,7 @@ describe("fast HUD detail state", () => {
       todoIndex: 0,
       navigationIndex: 2,
       navigationFollowsActive: true,
-      aiPage: 0,
+      aiLine: 0,
       aiFollowsLatest: true,
     });
     expect(createFastHudViewState().zoomIndex)

@@ -58,12 +58,12 @@ export function translateAiHud(
   return AI_HUD_TRANSLATIONS[locale][key];
 }
 
-export function localizeAiTranscriptPage(
-  page: string,
+export function localizeAiTranscriptLines(
+  lines: readonly string[],
   locale: SupportedLocale,
-): string {
+): readonly string[] {
   const strings = AI_HUD_TRANSLATIONS[locale];
-  return page.split("\n").map((line) => {
+  return lines.map((line) => {
     if (line.startsWith("YOU // ")) {
       return `${strings.you} // ${line.slice("YOU // ".length)}`;
     }
@@ -71,5 +71,5 @@ export function localizeAiTranscriptPage(
       return `${strings.assistant} // ${line.slice("AI // ".length)}`;
     }
     return line;
-  }).join("\n");
+  });
 }
