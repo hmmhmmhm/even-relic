@@ -25,6 +25,7 @@ export type FastHudViewState = {
   readonly navigationIndex: number;
   readonly navigationFollowsActive: boolean;
   readonly aiPage: number;
+  readonly aiFollowsLatest: boolean;
 };
 
 export type FastHudViewContext = {
@@ -102,6 +103,7 @@ export function createFastHudViewState(): FastHudViewState {
     navigationIndex: 0,
     navigationFollowsActive: true,
     aiPage: 0,
+    aiFollowsLatest: true,
   };
 }
 
@@ -126,7 +128,9 @@ export function syncFastHudView(
     navigationIndex: state.navigationFollowsActive
       ? activeIndex
       : clampIndex(state.navigationIndex, context.maneuverCount),
-    aiPage: clampIndex(state.aiPage, context.aiPageCount ?? 0),
+    aiPage: state.aiFollowsLatest
+      ? clampIndex((context.aiPageCount ?? 0) - 1, context.aiPageCount ?? 0)
+      : clampIndex(state.aiPage, context.aiPageCount ?? 0),
   };
 }
 
@@ -151,6 +155,16 @@ export function reduceFastHudInput(
             ),
             navigationFollowsActive: true,
           }
+        : mode === "ai"
+          ? {
+              ...state,
+              mode,
+              aiPage: clampIndex(
+                (context.aiPageCount ?? 0) - 1,
+                context.aiPageCount ?? 0,
+              ),
+              aiFollowsLatest: true,
+            }
         : { ...state, mode },
       result: "redraw",
       effect: mode === "ai" ? { type: "start-ai" } : undefined,
@@ -265,12 +279,24 @@ export function reduceFastHudInput(
         effect: { type: "toggle-ai" },
       };
     }
-    return moveIndex(
-      state,
-      "aiPage",
-      input,
-      context.aiPageCount ?? 0,
-    );
+    if (input !== "scroll-next" && input !== "scroll-previous") {
+      return { state, result: "consume" };
+    }
+    const count = context.aiPageCount ?? 0;
+    if (count <= 0) return { state, result: "consume" };
+    const delta = input === "scroll-next" ? 1 : -1;
+    const aiPage = clampIndex(state.aiPage + delta, count);
+    const aiFollowsLatest = aiPage === count - 1;
+    if (
+      aiPage === state.aiPage
+      && aiFollowsLatest === state.aiFollowsLatest
+    ) {
+      return { state, result: "consume" };
+    }
+    return {
+      state: { ...state, aiPage, aiFollowsLatest },
+      result: "redraw",
+    };
   }
 
   if (state.mode === "todo") {

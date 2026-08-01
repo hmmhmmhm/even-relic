@@ -123,8 +123,7 @@ describe("drawFastDetailHud", () => {
       userText: "오늘 날씨는 어때?",
       assistantText: "현재 맑고 기온은 28도입니다.",
       transcriptPages: [
-        "YOU // 오늘 날씨는 어때?",
-        "AI // 현재 맑고 기온은 28도입니다.",
+        "YOU // 오늘 날씨는 어때?\nAI // 현재 맑고 기온은 28도입니다.",
       ],
     };
 
@@ -136,16 +135,46 @@ describe("drawFastDetailHud", () => {
       todoIndex: 0,
       navigationIndex: 0,
       ai,
-      aiPage: 1,
+      aiPage: 0,
     }, "ko");
 
     expect(values(texts)).toEqual(expect.arrayContaining([
       "ASK AI // THINKING",
-      "2/2",
+      "LIVE 1/1",
+      "YOU // 오늘 날씨는 어때?",
       "AI // 현재 맑고 기온은 28도입니다.",
       "SCROLL // TRANSCRIPT",
       "TAP // PAUSE",
       "DOUBLE TAP // BACK",
+    ]));
+  });
+
+  it("marks a manually selected older Ask AI page as history", () => {
+    const { canvas, texts } = createCanvas();
+    const ai = {
+      ...createAiHudSnapshot(true),
+      phase: "listening" as const,
+      transcriptPages: [
+        "YOU // 이전 질문\nAI // 이전 답변",
+        "YOU // 현재 질문\nAI // 현재 답변",
+      ],
+    };
+
+    drawFastDetailHud(canvas, {
+      mode: "ai",
+      live: liveState(),
+      newsIndex: 0,
+      newsPage: 0,
+      todoIndex: 0,
+      navigationIndex: 0,
+      ai,
+      aiPage: 0,
+    }, "ko");
+
+    expect(values(texts)).toEqual(expect.arrayContaining([
+      "HISTORY 1/2",
+      "YOU // 이전 질문",
+      "AI // 이전 답변",
     ]));
   });
 

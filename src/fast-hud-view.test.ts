@@ -236,6 +236,66 @@ describe("fast HUD detail state", () => {
     });
   });
 
+  it("enters Ask AI at the live page and follows newly streamed pages", () => {
+    const entered = reduceFastHudInput(
+      createFastHudViewState(),
+      "ai",
+      "tap",
+      { ...CONTEXT, aiPageCount: 3 },
+    ).state;
+
+    expect(entered).toMatchObject({
+      mode: "ai",
+      aiPage: 2,
+      aiFollowsLatest: true,
+    });
+    expect(syncFastHudView(
+      entered,
+      { ...CONTEXT, aiPageCount: 5 },
+    )).toMatchObject({
+      aiPage: 4,
+      aiFollowsLatest: true,
+    });
+  });
+
+  it("pins Ask AI history until scrolling back to the newest page", () => {
+    const live: FastHudViewState = {
+      ...createFastHudViewState(),
+      mode: "ai",
+      aiPage: 4,
+      aiFollowsLatest: true,
+    };
+    const history = reduceFastHudInput(
+      live,
+      "ai",
+      "scroll-previous",
+      { ...CONTEXT, aiPageCount: 5 },
+    ).state;
+
+    expect(history).toMatchObject({
+      aiPage: 3,
+      aiFollowsLatest: false,
+    });
+    expect(syncFastHudView(
+      history,
+      { ...CONTEXT, aiPageCount: 6 },
+    )).toMatchObject({
+      aiPage: 3,
+      aiFollowsLatest: false,
+    });
+
+    const newer = reduceFastHudInput(
+      history,
+      "ai",
+      "scroll-next",
+      { ...CONTEXT, aiPageCount: 5 },
+    ).state;
+    expect(newer).toMatchObject({
+      aiPage: 4,
+      aiFollowsLatest: true,
+    });
+  });
+
   it("returns from every detail deck on double tap and retains indices", () => {
     for (const mode of [
       "map",
@@ -281,6 +341,7 @@ describe("fast HUD detail state", () => {
       navigationIndex: 3,
       navigationFollowsActive: true,
       aiPage: 0,
+      aiFollowsLatest: true,
     };
 
     expect(syncFastHudView(state, {
@@ -298,6 +359,7 @@ describe("fast HUD detail state", () => {
       navigationIndex: 2,
       navigationFollowsActive: true,
       aiPage: 0,
+      aiFollowsLatest: true,
     });
     expect(createFastHudViewState().zoomIndex)
       .toBe(FAST_MAP_DEFAULT_ZOOM_INDEX);

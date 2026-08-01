@@ -111,21 +111,30 @@ export function drawFastAiDetail(
   drawHeader(
     context,
     `ASK AI // ${phaseLabel(snapshot)}`,
-    pages.length > 0 ? `${index + 1}/${pages.length}` : undefined,
+    pages.length > 0
+      ? `${index === pages.length - 1 ? "LIVE" : "HISTORY"} ${index + 1}/${pages.length}`
+      : undefined,
   );
   drawFrame(context, 14, 44, 548, 204);
-  const content = snapshot.error
-    ?? pages[index]
-    ?? (snapshot.configured
-      ? "Listening through the G2 microphone. Speak naturally."
-      : translatePhone(locale, "aiKeyRequired"));
-  wrapHudText(content, 46, 6).forEach((line, lineIndex) => {
+  const page = pages[index];
+  const lines = snapshot.error
+    ? wrapHudText(snapshot.error, 46, 6)
+    : page
+      ? page.split("\n").slice(0, 6)
+      : wrapHudText(
+          snapshot.configured
+            ? "Listening through the G2 microphone. Speak naturally."
+            : translatePhone(locale, "aiKeyRequired"),
+          46,
+          6,
+        );
+  lines.forEach((line, lineIndex) => {
     drawText(
       context,
       line,
       32,
       62 + lineIndex * 29,
-      lineIndex === 0 ? 23 : 21,
+      21,
       snapshot.phase === "error" ? COLOR.secondary : COLOR.primary,
       "bold",
     );
