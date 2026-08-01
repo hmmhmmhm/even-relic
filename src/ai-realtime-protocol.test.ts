@@ -105,7 +105,7 @@ describe("Realtime protocol", () => {
     });
   });
 
-  it("starts each semantic-VAD turn with a fresh HUD transcript", () => {
+  it("archives the completed exchange before a fresh semantic-VAD turn", () => {
     let state = reduceRealtimeServerEvent(createRealtimeProtocolState(), {
       type: "conversation.item.input_audio_transcription.completed",
       transcript: "First question",
@@ -117,6 +117,12 @@ describe("Realtime protocol", () => {
     state = reduceRealtimeServerEvent(state, {
       type: "input_audio_buffer.speech_started",
     });
+    expect(state.turns).toEqual([{
+      user: "First question",
+      assistant: "First answer",
+    }]);
+    expect(state.userText).toBe("");
+    expect(state.assistantText).toBe("");
     state = reduceRealtimeServerEvent(state, {
       type: "conversation.item.input_audio_transcription.completed",
       transcript: "Second question",
@@ -128,6 +134,30 @@ describe("Realtime protocol", () => {
 
     expect(state.userText).toBe("Second question");
     expect(state.assistantText).toBe("Second answer");
+  });
+
+  it("bounds archived exchanges by turn count and character count", () => {
+    let state = createRealtimeProtocolState();
+    for (let index = 0; index < 14; index += 1) {
+      state = reduceRealtimeServerEvent(state, {
+        type: "conversation.item.input_audio_transcription.completed",
+        transcript: `q${index}${"x".repeat(1_000)}`,
+      });
+      state = reduceRealtimeServerEvent(state, {
+        type: "response.output_text.delta",
+        delta: `a${index}${"y".repeat(1_000)}`,
+      });
+      state = reduceRealtimeServerEvent(state, {
+        type: "input_audio_buffer.speech_started",
+      });
+    }
+
+    expect(state.turns.length).toBeLessThanOrEqual(12);
+    expect(state.turns.reduce(
+      (total, turn) => total + turn.user.length + turn.assistant.length,
+      0,
+    )).toBeLessThanOrEqual(8_000);
+    expect(state.turns.at(-1)?.user).toContain("q13");
   });
 
   it("turns server errors into a bounded local error", () => {

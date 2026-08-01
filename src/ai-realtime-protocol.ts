@@ -13,8 +13,14 @@ export type AiRealtimePhase =
   | "paused"
   | "error";
 
+export type AiConversationTurn = {
+  readonly user: string;
+  readonly assistant: string;
+};
+
 export type AiRealtimeProtocolState = {
   readonly phase: AiRealtimePhase;
+  readonly turns: readonly AiConversationTurn[];
   readonly userText: string;
   readonly assistantText: string;
   readonly usage: AiUsage;
@@ -165,6 +171,7 @@ export function resamplePcm16Le16To24(bytes: Uint8Array): Uint8Array {
 export function createRealtimeProtocolState(): AiRealtimeProtocolState {
   return {
     phase: "idle",
+    turns: [],
     userText: "",
     assistantText: "",
     usage: EMPTY_AI_USAGE,
@@ -231,6 +238,28 @@ function boundedText(value: string, maximum = 4_000): string {
   return value.replace(/\u0000/g, "").slice(-maximum);
 }
 
+function archiveCurrentTurn(
+  state: AiRealtimeProtocolState,
+): readonly AiConversationTurn[] {
+  const user = boundedText(state.userText).trim();
+  const assistant = boundedText(state.assistantText).trim();
+  if (!user && !assistant) return state.turns;
+  const turns = [
+    ...state.turns,
+    { user, assistant },
+  ].slice(-12);
+  let characters = turns.reduce(
+    (total, turn) => total + turn.user.length + turn.assistant.length,
+    0,
+  );
+  while (turns.length > 1 && characters > 8_000) {
+    const removed = turns.shift();
+    characters -= (removed?.user.length ?? 0)
+      + (removed?.assistant.length ?? 0);
+  }
+  return turns;
+}
+
 export function reduceRealtimeServerEvent(
   state: AiRealtimeProtocolState,
   event: RealtimeServerEvent,
@@ -243,6 +272,7 @@ export function reduceRealtimeServerEvent(
       return {
         ...state,
         phase: "listening",
+        turns: archiveCurrentTurn(state),
         userText: "",
         assistantText: "",
         error: undefined,
