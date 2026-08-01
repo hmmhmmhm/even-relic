@@ -12,6 +12,7 @@ import devicesIcon from "@iconify-icons/pixelarticons/devices";
 import editIcon from "@iconify-icons/pixelarticons/edit";
 import gridIcon from "@iconify-icons/pixelarticons/grid";
 import mapIcon from "@iconify-icons/pixelarticons/map";
+import messageIcon from "@iconify-icons/pixelarticons/message-processing";
 import plusIcon from "@iconify-icons/pixelarticons/plus";
 import reloadIcon from "@iconify-icons/pixelarticons/reload";
 import textIcon from "@iconify-icons/pixelarticons/art-text";
@@ -32,6 +33,7 @@ const ICONS = {
   edit: editIcon,
   layout: gridIcon,
   navigation: mapIcon,
+  ai: messageIcon,
   plus: plusIcon,
   reload: reloadIcon,
   language: textIcon,

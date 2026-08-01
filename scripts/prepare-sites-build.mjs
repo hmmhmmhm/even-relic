@@ -15,6 +15,7 @@ const serverFiles = [
   "news-feeds.js",
   "map.js",
   "route.js",
+  "realtime.js",
 ];
 
 for (const file of [

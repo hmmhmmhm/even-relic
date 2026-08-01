@@ -123,3 +123,22 @@ export function startDiagnosticHeartbeat(
     logger.append("TIMER", "heartbeat stopped");
   };
 }
+
+function errorKind(error: unknown): string {
+  return error instanceof Error ? error.name : typeof error;
+}
+
+export function startWindowErrorDiagnostics(): () => void {
+  const onError = (event: ErrorEvent) => {
+    logDiagnostic("ERROR", `window error · ${errorKind(event.error)}`);
+  };
+  const onRejection = (event: PromiseRejectionEvent) => {
+    logDiagnostic("ERROR", `unhandled rejection · ${errorKind(event.reason)}`);
+  };
+  window.addEventListener("error", onError);
+  window.addEventListener("unhandledrejection", onRejection);
+  return () => {
+    window.removeEventListener("error", onError);
+    window.removeEventListener("unhandledrejection", onRejection);
+  };
+}

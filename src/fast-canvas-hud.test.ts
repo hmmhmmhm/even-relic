@@ -4,9 +4,16 @@ import {
   createInitialLiveDashboardState,
   type LiveDashboardState,
 } from "./live-state";
+import { createAiHudSnapshot, type AiHudSnapshot } from "./ai-hud-state";
 import type { PhoneLocale } from "./phone-types";
 
-type FastHudPage = "overview" | "navigation" | "news" | "todo" | "weather";
+type FastHudPage =
+  | "overview"
+  | "navigation"
+  | "news"
+  | "todo"
+  | "weather"
+  | "ai";
 type FastCanvasBattery = {
   label: "G1" | "G2" | "R1";
   level?: number;
@@ -16,6 +23,7 @@ type FastCanvasHudData = {
   readonly battery?: FastCanvasBattery;
   readonly live: LiveDashboardState;
   readonly mapRadiusMeters?: number;
+  readonly ai?: AiHudSnapshot;
 };
 type Rectangle = {
   style: string;
@@ -232,7 +240,7 @@ describe("fast split Canvas HUD", () => {
         "14:37",
         "2026.07.27 월요일",
         "WEATHER --",
-        `0${index + 1} / 04`,
+        `0${index + 1} / 05`,
         "LOC // NO GPS · NO DATA",
         "NO GPS DATA",
         "© OSM CONTRIBUTORS",
@@ -304,7 +312,7 @@ describe("fast split Canvas HUD", () => {
       "습도 63%",
       "강수 20%",
       "바람 8km/h",
-      "04 / 04",
+      "04 / 05",
     ]));
     expect(weather.values).not.toContain("BATTERY --");
     expect(weather.values).not.toContain("경로 키 필요");
@@ -328,7 +336,32 @@ describe("fast split Canvas HUD", () => {
     )).toHaveLength(0);
   });
 
-  it("adds Navigation fifth only when routing is enabled", async () => {
+  it("renders Ask AI fifth with recent context and local cost", async () => {
+    const module = await loadFastHud();
+    if (!module?.drawFastCanvasHud) return;
+    const ai = {
+      ...createAiHudSnapshot(true, [{
+        id: "recent",
+        endedAt: "2026-08-01T12:00:00.000Z",
+        user: "오늘 일정을 알려줘",
+        assistant: "오후 세 시에 검토 일정이 있습니다.",
+      }], 0.0012, 0.0084),
+    };
+    const hud = renderFastHud(module, "ai", { ai });
+
+    expect(hud.values).toEqual(expect.arrayContaining([
+      "05 / 05",
+      "ASK AI // READY",
+      "RECENT // YOU",
+      "오늘 일정을 알려줘",
+      "RECENT // AI",
+      "오후 세 시에 검토 일정이…",
+      "이번 주 $0.0012",
+      "이번 달 $0.0084",
+    ]));
+  });
+
+  it("adds Navigation sixth only when routing is enabled", async () => {
     const module = await loadFastHud();
     if (!module?.drawFastCanvasHud) return;
     const initial = createInitialLiveDashboardState();
@@ -339,7 +372,7 @@ describe("fast split Canvas HUD", () => {
     const navigation = renderFastHud(module, "navigation", { live });
 
     expect(navigation.values).toEqual(expect.arrayContaining([
-      "05 / 05",
+      "06 / 06",
       "NAV // READY",
       "목적지를 선택하세요",
     ]));
@@ -352,7 +385,7 @@ describe("fast split Canvas HUD", () => {
     const navigation = renderFastHud(module, "navigation");
 
     expect(navigation.values).toEqual(expect.arrayContaining([
-      "04 / 04",
+      "04 / 05",
       "WEATHER // LOADING",
     ]));
     expect(navigation.values).not.toContain("NAV // DISABLED");

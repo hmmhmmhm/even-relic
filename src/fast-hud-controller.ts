@@ -9,24 +9,25 @@ import {
 import {
   logDiagnostic,
   startDiagnosticHeartbeat,
+  startWindowErrorDiagnostics,
 } from "./diagnostic-log";
-import { drawFastCanvasHud } from "./fast-canvas-hud";
-import { drawFastDetailHud } from "./fast-detail-hud";
 import { detailRefreshTarget } from "./fast-detail-refresh";
 import {
   getAdjacentFastHudPage,
   normalizeFastHudPage,
   type FastHudPage,
 } from "./fast-hud-pages";
-import { drawFastFullscreenMap } from "./fast-map";
 import {
   FAST_MAP_ZOOM_RADII,
   createFastHudViewState,
   reduceFastHudInput,
   syncFastHudView,
-  type FastHudViewContext,
 } from "./fast-hud-view";
-import { paginateFastNewsSummary } from "./fast-news-pages";
+import {
+  drawFastHudSurface,
+  resolveFastHudViewContext,
+  type FastHudNewsPageCache,
+} from "./fast-hud-render";
 import {
   transmitFastCanvas,
   type FastCanvasBattery,
@@ -46,10 +47,8 @@ import { startMinuteRefresh } from "./minute-refresh";
 import type { UseHudControllerOptions } from "./hud-controller-types";
 import { resolvePhoneLocale } from "./phone-i18n";
 import { getRoutingStatus } from "./routing";
+import { createAiRuntime, type AiRuntime } from "./ai-runtime";
 type LiveSession = ReturnType<typeof createLiveDashboardSession>;
-const diagnosticErrorKind = (error: unknown) => (
-  error instanceof Error ? error.name : typeof error
-);
 export function useHudController({
   autoStart,
   canvasRef,
@@ -57,6 +56,8 @@ export function useHudController({
   phonePreferencesRef,
   displayRefreshRef,
   companionOrsKeyRef,
+  companionOpenAiKeyRef,
+  aiSnapshotRef,
   displayHideStrategy,
   imageSendConcurrency,
   tileImageFormat,
@@ -68,6 +69,7 @@ export function useHudController({
   setCompanionLive,
   setCompanionBattery,
   setCompanionStorage,
+  setCompanionAiSnapshot,
 }: UseHudControllerOptions) {
   useEffect(() => {
     if (!autoStart || !canvasRef.current) return;
@@ -75,6 +77,7 @@ export function useHudController({
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
     let liveSession: LiveSession | undefined;
+    let aiRuntime: AiRuntime | undefined;
     let page: FastHudPage = HUD_PAGES[0];
     let view = createFastHudViewState();
     let battery: FastCanvasBattery | undefined;
@@ -84,64 +87,29 @@ export function useHudController({
     let lastSuccessfulDisplayMinute: number | undefined;
     let lastMinuteAttempt: number | undefined;
     let stopDiagnosticHeartbeat: (() => void) | undefined;
-    let newsPageCacheKey = "";
-    let newsPageCounts: readonly number[] = [];
+    let stopWindowErrorDiagnostics: (() => void) | undefined;
+    let newsPageCache: FastHudNewsPageCache = { key: "", counts: [] };
     const canvas = canvasRef.current;
-    const onWindowError = (event: ErrorEvent) => {
-      logDiagnostic(
-        "ERROR",
-        `window error · ${diagnosticErrorKind(event.error)}`,
-      );
-    };
-    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
-      logDiagnostic(
-        "ERROR",
-        `unhandled rejection · ${diagnosticErrorKind(event.reason)}`,
-      );
-    };
     if (modes.fastCanvas) {
       logDiagnostic("APP", "fast HUD effect start");
       stopDiagnosticHeartbeat = startDiagnosticHeartbeat();
-      window.addEventListener("error", onWindowError);
-      window.addEventListener("unhandledrejection", onUnhandledRejection);
+      stopWindowErrorDiagnostics = startWindowErrorDiagnostics();
     }
     const report = (message: string) => { if (!cancelled) setStatus(message); };
     const currentLocale = () => resolvePhoneLocale(
       phonePreferencesRef.current.locale,
       typeof navigator === "undefined" ? "en" : navigator.language,
     );
-    const viewContext = (): FastHudViewContext => {
-      const route = live.route.value;
-      const news = live.news.value ?? [];
-      const nextNewsPageCacheKey = [
-        live.news.status,
-        live.news.fetchedAt ?? "",
-        news.length,
-      ].join(":");
-      if (nextNewsPageCacheKey !== newsPageCacheKey) {
-        if (news.length === 0) {
-          newsPageCounts = [];
-        } else {
-          const context = canvas.getContext("2d");
-          newsPageCounts = context
-            ? news.map((item) =>
-                paginateFastNewsSummary(
-                  context,
-                  item.summary,
-                  currentLocale(),
-                ).length
-              )
-            : news.map(() => 1);
-        }
-        newsPageCacheKey = nextNewsPageCacheKey;
-      }
-      return {
-        newsCount: news.length,
-        newsPageCounts,
-        todoCount: live.todos.value?.length ?? 0,
-        maneuverCount: route?.maneuvers.length ?? 0,
-        activeManeuverIndex: route?.activeManeuverIndex ?? 0,
-      };
+    const viewContext = () => {
+      const resolved = resolveFastHudViewContext(
+        canvas,
+        live,
+        currentLocale(),
+        aiSnapshotRef.current,
+        newsPageCache,
+      );
+      newsPageCache = resolved.cache;
+      return resolved.context;
     };
     const currentMapRadius = () => FAST_MAP_ZOOM_RADII[view.zoomIndex];
     const drawCurrentPage = () => {
@@ -159,33 +127,17 @@ export function useHudController({
         }
       }
       view = syncFastHudView(view, viewContext());
-      const mode = view.mode;
-      const locale = currentLocale();
-      if (modes.fastCanvas && mode === "map") {
-        drawFastFullscreenMap(canvas, live, currentMapRadius(), locale);
-      } else if (
-        modes.fastCanvas
-        && (
-          mode === "news"
-          || mode === "todo"
-          || mode === "weather"
-          || mode === "navigation"
-        )
-      ) {
-        drawFastDetailHud(canvas, {
-          mode,
+      if (modes.fastCanvas) {
+        drawFastHudSurface({
+          canvas,
+          page,
+          view,
           live,
-          newsIndex: view.newsIndex,
-          newsPage: view.newsPage,
-          todoIndex: view.todoIndex,
-          navigationIndex: view.navigationIndex,
-        }, locale);
-      } else if (modes.fastCanvas) {
-        drawFastCanvasHud(canvas, new Date(), page, {
           battery,
-          live,
           mapRadiusMeters: currentMapRadius(),
-        }, locale);
+          ai: aiSnapshotRef.current,
+          locale: currentLocale(),
+        });
       } else {
         drawDenseCanvasHud(canvas, new Date(), page as HudPage);
       }
@@ -278,6 +230,15 @@ export function useHudController({
                 drawCurrentPage();
                 return "redraw";
               }
+              if (transition.effect?.type === "start-ai") {
+                void aiRuntime?.start();
+              } else if (transition.effect?.type === "toggle-ai") {
+                const changed = await aiRuntime?.toggle() ?? false;
+                if (changed) drawCurrentPage();
+                return changed ? "redraw" : "consume";
+              } else if (transition.effect?.type === "stop-ai") {
+                await aiRuntime?.stop();
+              }
               if (transition.result === "redraw") drawCurrentPage();
               if (previousMode === "news" && view.mode !== "news") {
                 liveSession?.refreshNewsIfDue?.();
@@ -357,6 +318,22 @@ export function useHudController({
         ) {
           setCompanionStorage(bridge);
         }
+        aiRuntime = createAiRuntime({
+          bridge,
+          getKey: () => companionOpenAiKeyRef.current,
+          getLocale: currentLocale,
+          getSnapshot: () => aiSnapshotRef.current,
+          onSnapshot: (snapshot) => {
+            aiSnapshotRef.current = snapshot;
+            setCompanionAiSnapshot(snapshot);
+            view = syncFastHudView(view, viewContext());
+          },
+          refresh: () => {
+            if (cancelled) return;
+            drawCurrentPage();
+            requestVisibleRefresh(view.mode === "ai" ? "all" : "right");
+          },
+        });
         liveSession = createLiveDashboardSession({
           bridge,
           routingStatus: nextRoutingStatus,
@@ -412,7 +389,9 @@ export function useHudController({
       if (modes.fastCanvas) {
         logDiagnostic(
           "ERROR",
-          `app startup failed · ${diagnosticErrorKind(error)}`,
+          `app startup failed · ${
+            error instanceof Error ? error.name : typeof error
+          }`,
         );
       }
       report(error instanceof Error ? error.message : String(error));
@@ -426,16 +405,13 @@ export function useHudController({
       stopMinuteRefresh?.();
       displayRefreshRef.current = undefined;
       liveSession?.dispose();
+      aiRuntime?.dispose();
       if (liveSessionRef.current === liveSession) {
         liveSessionRef.current = undefined;
       }
       unsubscribe?.();
       if (modes.fastCanvas) {
-        window.removeEventListener("error", onWindowError);
-        window.removeEventListener(
-          "unhandledrejection",
-          onUnhandledRejection,
-        );
+        stopWindowErrorDiagnostics?.();
         stopDiagnosticHeartbeat?.();
       }
     };
@@ -443,6 +419,8 @@ export function useHudController({
     autoStart,
     canvasRef,
     companionOrsKeyRef,
+    companionOpenAiKeyRef,
+    aiSnapshotRef,
     displayHideStrategy,
     displayRefreshRef,
     imageSendConcurrency,
@@ -462,6 +440,7 @@ export function useHudController({
     setCompanionLive,
     setCompanionRoute,
     setCompanionStorage,
+    setCompanionAiSnapshot,
     setRoutingStatus,
     setStatus,
   ]);

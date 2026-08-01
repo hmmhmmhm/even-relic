@@ -32,6 +32,11 @@ import { PhoneHeader } from "./PhoneHeader";
 import { PhoneHome } from "./PhoneHome";
 import { TodoScreen } from "./TodoScreen";
 import { WeatherScreen } from "./WeatherScreen";
+import { AiScreen } from "./AiScreen";
+import {
+  createAiHudSnapshot,
+  type AiHudSnapshot,
+} from "../ai-hud-state";
 import "./phone-shell.css";
 import "./phone-home.css";
 import "./phone-detail.css";
@@ -52,6 +57,10 @@ type PhoneCompanionProps = {
   readonly onRssSourcesChange?: (sources: readonly RssSource[]) => void;
   readonly onOrsKeyChange?: (key: string | undefined) => void;
   readonly onDeleteRoute?: () => void | Promise<void>;
+  readonly openAiKey?: string;
+  readonly aiSnapshot?: AiHudSnapshot;
+  readonly onOpenAiKeyChange?: (key: string | undefined) => void;
+  readonly onAiSnapshotChange?: (snapshot: AiHudSnapshot) => void;
 };
 
 const SCREEN_TITLE: Record<Exclude<PhoneScreen, "home">, PhoneStringKey> = {
@@ -60,6 +69,7 @@ const SCREEN_TITLE: Record<Exclude<PhoneScreen, "home">, PhoneStringKey> = {
   news: "news",
   todo: "todo",
   weather: "weather",
+  ai: "ai",
   navigation: "navigation",
   language: "language",
   developer: "developer",
@@ -91,6 +101,10 @@ export function PhoneCompanion({
   onRssSourcesChange,
   onOrsKeyChange,
   onDeleteRoute,
+  openAiKey,
+  aiSnapshot = createAiHudSnapshot(false),
+  onOpenAiKeyChange,
+  onAiSnapshotChange,
 }: PhoneCompanionProps) {
   const [screen, setScreen] = useState<PhoneScreen>("home");
   const locale = resolvePhoneLocale(
@@ -163,6 +177,12 @@ export function PhoneCompanion({
           : LOCALE_REGISTRY[preferences.locale].nativeName,
       },
       {
+        screen: "ai",
+        icon: "ai",
+        titleKey: "ai",
+        status: openAiKey ? t("ready") : t("aiKeyRequired"),
+      },
+      {
         screen: "developer",
         icon: "debug",
         titleKey: "developer",
@@ -177,6 +197,7 @@ export function PhoneCompanion({
     rssSources,
     localizedStatus,
     locale,
+    openAiKey,
   ]);
 
   const savePreferences = async (next: PhonePreferences): Promise<boolean> => {
@@ -252,6 +273,17 @@ export function PhoneCompanion({
               ...preferences,
               locale: value,
             })}
+          />
+        );
+      case "ai":
+        return (
+          <AiScreen
+            storage={storage}
+            openAiKey={openAiKey}
+            snapshot={aiSnapshot}
+            t={t}
+            onKeyChange={onOpenAiKeyChange}
+            onSnapshotChange={onAiSnapshotChange}
           />
         );
       case "developer":

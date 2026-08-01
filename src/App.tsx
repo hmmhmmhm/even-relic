@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createBrowserStorage } from "./browser-storage";
 import { HUD_PAGES } from "./canvas-hud";
 import { useHudController } from "./fast-hud-controller";
 import { resolveG2DisplayHideStrategy } from "./g2-display-hide";
@@ -36,26 +37,20 @@ import type {
   RouteProfile,
   RoutingStatus,
 } from "./routing";
+import {
+  createAiHudSnapshot,
+  type AiHudSnapshot,
+} from "./ai-hud-state";
+import {
+  estimateAiUsageUsd,
+  resolveAiUsageLedger,
+  usageForCurrentMonth,
+  usageForCurrentWeek,
+} from "./ai-cost";
+import { resolveAiConversationHistory } from "./ai-history";
+import { resolveOpenAiKey } from "./openai-key";
 
-type AppProps = {
-  autoStart?: boolean;
-};
-
-function createBrowserStorage(): EvenStorage {
-  return {
-    async getLocalStorage(key) {
-      return typeof localStorage === "undefined"
-        ? ""
-        : localStorage.getItem(key) ?? "";
-    },
-    async setLocalStorage(key, value) {
-      if (typeof localStorage === "undefined") return false;
-      if (value) localStorage.setItem(key, value);
-      else localStorage.removeItem(key);
-      return true;
-    },
-  };
-}
+type AppProps = { autoStart?: boolean };
 
 export function App({ autoStart = true }: AppProps) {
   const displayHideStrategy = resolveG2DisplayHideStrategy(
@@ -131,6 +126,12 @@ export function App({ autoStart = true }: AppProps) {
   );
   const [companionOrsKey, setCompanionOrsKeyState] = useState<string>();
   const companionOrsKeyRef = useRef<string | undefined>(undefined);
+  const [companionOpenAiKey, setCompanionOpenAiKeyState] = useState<string>();
+  const companionOpenAiKeyRef = useRef<string | undefined>(undefined);
+  const [companionAiSnapshot, setCompanionAiSnapshotState] = useState(
+    () => createAiHudSnapshot(false),
+  );
+  const aiSnapshotRef = useRef<AiHudSnapshot>(createAiHudSnapshot(false));
   const [companionRssSources, setCompanionRssSources] = useState<
     readonly RssSource[]
   >(defaultRssSources("ko"));
@@ -168,6 +169,14 @@ export function App({ autoStart = true }: AppProps) {
     setCompanionOrsKeyState(value);
     liveSessionRef.current?.setRoutingKey?.(value);
   };
+  const setCompanionOpenAiKey = (value: string | undefined) => {
+    companionOpenAiKeyRef.current = value;
+    setCompanionOpenAiKeyState(value);
+  };
+  const setCompanionAiSnapshot = useCallback((value: AiHudSnapshot) => {
+    aiSnapshotRef.current = value;
+    setCompanionAiSnapshotState(value);
+  }, []);
   const phoneLocale = resolvePhoneLocale(
     phonePreferences.locale,
     typeof navigator === "undefined" ? "en" : navigator.language,
@@ -211,6 +220,28 @@ export function App({ autoStart = true }: AppProps) {
     };
   }, [companionStorage, fastCanvasHudMode, phoneLocale]);
 
+  useEffect(() => {
+    if (!fastCanvasHudMode) return;
+    let active = true;
+    void Promise.all([
+      resolveOpenAiKey(companionStorage),
+      resolveAiConversationHistory(companionStorage),
+      resolveAiUsageLedger(companionStorage),
+    ]).then(([key, history, ledger]) => {
+      if (!active) return;
+      setCompanionOpenAiKey(key);
+      setCompanionAiSnapshot(createAiHudSnapshot(
+        Boolean(key),
+        history,
+        estimateAiUsageUsd(usageForCurrentWeek(ledger)),
+        estimateAiUsageUsd(usageForCurrentMonth(ledger)),
+      ));
+    });
+    return () => {
+      active = false;
+    };
+  }, [companionStorage, fastCanvasHudMode]);
+
   useHudController({
     autoStart,
     canvasRef,
@@ -218,6 +249,8 @@ export function App({ autoStart = true }: AppProps) {
     phonePreferencesRef,
     displayRefreshRef,
     companionOrsKeyRef,
+    companionOpenAiKeyRef,
+    aiSnapshotRef,
     displayHideStrategy,
     imageSendConcurrency,
     tileImageFormat,
@@ -229,6 +262,7 @@ export function App({ autoStart = true }: AppProps) {
     setCompanionLive,
     setCompanionBattery,
     setCompanionStorage,
+    setCompanionAiSnapshot,
   });
 
   const startCompanionRoute = async (
@@ -332,6 +366,23 @@ export function App({ autoStart = true }: AppProps) {
           void liveSessionRef.current?.refreshNewsSources?.();
         }}
         onOrsKeyChange={setCompanionOrsKey}
+        openAiKey={companionOpenAiKey}
+        aiSnapshot={companionAiSnapshot}
+        onOpenAiKeyChange={(key) => {
+          setCompanionOpenAiKey(key);
+          const next = {
+            ...aiSnapshotRef.current,
+            configured: Boolean(key),
+            phase: key ? "idle" as const : "unconfigured" as const,
+            error: undefined,
+          };
+          setCompanionAiSnapshot(next);
+          displayRefreshRef.current?.();
+        }}
+        onAiSnapshotChange={(snapshot) => {
+          setCompanionAiSnapshot(snapshot);
+          displayRefreshRef.current?.();
+        }}
         onDeleteRoute={endCompanionRoute}
         routeControls={(
           <RouteControls

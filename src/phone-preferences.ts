@@ -11,6 +11,7 @@ const KEYLESS_PAGES = [
   "news",
   "todo",
   "weather",
+  "ai",
 ] as const satisfies readonly HudPageId[];
 
 const ALL_PAGES = [
@@ -81,7 +82,20 @@ export function normalizePhonePreferences(
   value: PhonePreferences,
   navigationAvailable: boolean,
 ): PhonePreferences {
-  if (!isValidLayout(value, navigationAvailable)) {
+  const migrated: PhonePreferences = !value.order.includes("ai")
+    ? {
+        ...value,
+        order: value.order.includes("navigation")
+          ? [
+              ...value.order.filter((page) => page !== "navigation"),
+              "ai" as const,
+              "navigation" as const,
+            ]
+          : [...value.order, "ai" as const],
+        enabled: [...value.enabled, "ai" as const],
+      }
+    : value;
+  if (!isValidLayout(migrated, navigationAvailable)) {
     return {
       ...DEFAULT_PHONE_PREFERENCES,
       locale: isLocaleSetting(value.locale) ? value.locale : "system",
@@ -92,10 +106,10 @@ export function normalizePhonePreferences(
     };
   }
   return {
-    ...clonePreferences(value),
-    order: navigationAvailable && !value.order.includes("navigation")
-      ? [...value.order, "navigation"]
-      : [...value.order],
+    ...clonePreferences(migrated),
+    order: navigationAvailable && !migrated.order.includes("navigation")
+      ? [...migrated.order, "navigation"]
+      : [...migrated.order],
   };
 }
 

@@ -24,17 +24,22 @@ import type {
   RouteValue,
   TodoItem,
 } from "./live-state";
+import type { AiHudSnapshot } from "./ai-hud-state";
+import { createAiHudSnapshot } from "./ai-hud-state";
+import { drawFastAiDetail } from "./fast-ai-hud";
 
 const WIDTH = 576;
 const HEIGHT = 288;
 
 export type FastDetailHudOptions = {
-  readonly mode: "news" | "todo" | "weather" | "navigation";
+  readonly mode: "news" | "todo" | "weather" | "navigation" | "ai";
   readonly live: LiveDashboardState;
   readonly newsIndex: number;
   readonly newsPage: number;
   readonly todoIndex: number;
   readonly navigationIndex: number;
+  readonly ai?: AiHudSnapshot;
+  readonly aiPage?: number;
 };
 
 function newsLabel(state: DataState<readonly NewsItem[]>): string {
@@ -378,7 +383,14 @@ export function drawFastDetailHud(
   context.fillStyle = COLOR.background;
   context.fillRect(0, 0, WIDTH, HEIGHT);
 
-  if (options.mode === "news") {
+  if (options.mode === "ai") {
+    drawFastAiDetail(
+      context,
+      options.ai ?? createAiHudSnapshot(false),
+      options.aiPage ?? 0,
+      locale,
+    );
+  } else if (options.mode === "news") {
     drawNews(
       context,
       options.live.news,

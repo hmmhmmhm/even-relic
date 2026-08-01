@@ -1,0 +1,86 @@
+import type { AiHudSnapshot } from "./ai-hud-state";
+import { drawFastCanvasHud } from "./fast-canvas-hud";
+import { drawFastDetailHud } from "./fast-detail-hud";
+import type { FastHudPage } from "./fast-hud-pages";
+import { drawFastFullscreenMap } from "./fast-map";
+import { paginateFastNewsSummary } from "./fast-news-pages";
+import type { FastHudViewContext, FastHudViewState } from "./fast-hud-view";
+import type { FastCanvasBattery } from "./glasses";
+import type { LiveDashboardState } from "./live-state";
+import type { PhoneLocale } from "./phone-types";
+
+export type FastHudNewsPageCache = {
+  readonly key: string;
+  readonly counts: readonly number[];
+};
+
+export function resolveFastHudViewContext(
+  canvas: HTMLCanvasElement,
+  live: LiveDashboardState,
+  locale: PhoneLocale,
+  ai: AiHudSnapshot,
+  cache: FastHudNewsPageCache,
+): { readonly context: FastHudViewContext; readonly cache: FastHudNewsPageCache } {
+  const route = live.route.value;
+  const news = live.news.value ?? [];
+  const key = [live.news.status, live.news.fetchedAt ?? "", news.length].join(":");
+  let counts = cache.counts;
+  if (key !== cache.key) {
+    const context = canvas.getContext("2d");
+    counts = news.length === 0
+      ? []
+      : context
+        ? news.map((item) => paginateFastNewsSummary(
+            context,
+            item.summary,
+            locale,
+          ).length)
+        : news.map(() => 1);
+  }
+  return {
+    context: {
+      newsCount: news.length,
+      newsPageCounts: counts,
+      todoCount: live.todos.value?.length ?? 0,
+      maneuverCount: route?.maneuvers.length ?? 0,
+      activeManeuverIndex: route?.activeManeuverIndex ?? 0,
+      aiPageCount: ai.transcriptPages.length,
+    },
+    cache: { key, counts },
+  };
+}
+
+export function drawFastHudSurface(options: {
+  readonly canvas: HTMLCanvasElement;
+  readonly page: FastHudPage;
+  readonly view: FastHudViewState;
+  readonly live: LiveDashboardState;
+  readonly battery?: FastCanvasBattery;
+  readonly mapRadiusMeters: number;
+  readonly ai: AiHudSnapshot;
+  readonly locale: PhoneLocale;
+}) {
+  const { canvas, page, view, live, battery, mapRadiusMeters, ai, locale } = options;
+  if (view.mode === "map") {
+    drawFastFullscreenMap(canvas, live, mapRadiusMeters, locale);
+    return;
+  }
+  if (view.mode !== "dashboard") {
+    drawFastDetailHud(canvas, {
+      mode: view.mode,
+      live,
+      newsIndex: view.newsIndex,
+      newsPage: view.newsPage,
+      todoIndex: view.todoIndex,
+      navigationIndex: view.navigationIndex,
+      ...(view.mode === "ai" ? { ai, aiPage: view.aiPage } : {}),
+    }, locale);
+    return;
+  }
+  drawFastCanvasHud(canvas, new Date(), page, {
+    battery,
+    live,
+    mapRadiusMeters,
+    ...(page === "ai" ? { ai } : {}),
+  }, locale);
+}

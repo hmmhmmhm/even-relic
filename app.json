@@ -13,9 +13,17 @@
     },
     {
       "name": "network",
-      "desc": "Loads weather, map, news, and optional routing data.",
-      "whitelist": ["https://api.open-meteo.com"]
+      "desc": "Loads weather, map, news, optional routing, and BYOK Realtime AI data.",
+      "whitelist": [
+        "https://api.open-meteo.com",
+        "https://api.openai.com",
+        "wss://api.openai.com"
+      ]
+    },
+    {
+      "name": "g2-microphone",
+      "desc": "Uses the G2 microphone only while an Ask AI conversation is active."
     }
   ],
-  "supported_languages": ["en", "ko"]
+  "supported_languages": ["en", "de", "fr", "es", "it", "zh", "ja", "ko"]
 }

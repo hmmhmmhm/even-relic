@@ -11,6 +11,7 @@ export type HudPageId =
   | "news"
   | "todo"
   | "weather"
+  | "ai"
   | "navigation";
 
 export type PhoneLocale = SupportedLocale;
@@ -23,6 +24,7 @@ export type PhoneScreen =
   | "news"
   | "todo"
   | "weather"
+  | "ai"
   | "navigation"
   | "language"
   | "developer";

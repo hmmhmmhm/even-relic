@@ -5,8 +5,13 @@ import {
 } from "./i18n/locale-registry";
 import type { enLocale } from "./i18n/locales/en";
 import type { PhoneLocale, PhoneLocaleSetting } from "./phone-types";
+import {
+  translateAiPhone,
+  type AiPhoneStringKey,
+} from "./ai-i18n";
 
-export type PhoneStringKey = keyof typeof enLocale.phone;
+type CorePhoneStringKey = keyof typeof enLocale.phone;
+export type PhoneStringKey = CorePhoneStringKey | AiPhoneStringKey;
 
 export const PHONE_STRINGS = Object.fromEntries(
   SUPPORTED_LOCALES.map((locale) => [
@@ -15,7 +20,7 @@ export const PHONE_STRINGS = Object.fromEntries(
   ]),
 ) as {
   readonly [Locale in PhoneLocale]: Readonly<
-    Record<PhoneStringKey, string>
+    Record<CorePhoneStringKey, string>
   >;
 };
 
@@ -30,5 +35,7 @@ export function translatePhone(
   locale: PhoneLocale,
   key: PhoneStringKey,
 ): string {
-  return PHONE_STRINGS[locale][key];
+  return key in PHONE_STRINGS[locale]
+    ? PHONE_STRINGS[locale][key as CorePhoneStringKey]
+    : translateAiPhone(locale, key as AiPhoneStringKey);
 }

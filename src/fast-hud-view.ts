@@ -13,6 +13,7 @@ export type FastHudViewMode =
   | "news"
   | "todo"
   | "weather"
+  | "ai"
   | "navigation";
 
 export type FastHudViewState = {
@@ -23,6 +24,7 @@ export type FastHudViewState = {
   readonly todoIndex: number;
   readonly navigationIndex: number;
   readonly navigationFollowsActive: boolean;
+  readonly aiPage: number;
 };
 
 export type FastHudViewContext = {
@@ -31,12 +33,12 @@ export type FastHudViewContext = {
   readonly todoCount: number;
   readonly maneuverCount: number;
   readonly activeManeuverIndex: number;
+  readonly aiPageCount?: number;
 };
 
-export type FastHudEffect = {
-  readonly type: "toggle-todo";
-  readonly index: number;
-};
+export type FastHudEffect =
+  | { readonly type: "toggle-todo"; readonly index: number }
+  | { readonly type: "start-ai" | "toggle-ai" | "stop-ai" };
 
 export type FastHudTransition = {
   readonly state: FastHudViewState;
@@ -69,7 +71,7 @@ function pageMode(page: FastHudPage): Exclude<FastHudViewMode, "dashboard"> {
 
 function moveIndex(
   state: FastHudViewState,
-  key: "newsIndex" | "todoIndex" | "navigationIndex",
+  key: "newsIndex" | "todoIndex" | "navigationIndex" | "aiPage",
   input: FastCanvasInput,
   count: number,
   extra: Partial<FastHudViewState> = {},
@@ -99,6 +101,7 @@ export function createFastHudViewState(): FastHudViewState {
     todoIndex: 0,
     navigationIndex: 0,
     navigationFollowsActive: true,
+    aiPage: 0,
   };
 }
 
@@ -123,6 +126,7 @@ export function syncFastHudView(
     navigationIndex: state.navigationFollowsActive
       ? activeIndex
       : clampIndex(state.navigationIndex, context.maneuverCount),
+    aiPage: clampIndex(state.aiPage, context.aiPageCount ?? 0),
   };
 }
 
@@ -149,6 +153,7 @@ export function reduceFastHudInput(
           }
         : { ...state, mode },
       result: "redraw",
+      effect: mode === "ai" ? { type: "start-ai" } : undefined,
     };
   }
 
@@ -190,6 +195,7 @@ export function reduceFastHudInput(
     return {
       state: { ...state, mode: "dashboard" },
       result: "redraw",
+      effect: state.mode === "ai" ? { type: "stop-ai" } : undefined,
     };
   }
 
@@ -249,6 +255,22 @@ export function reduceFastHudInput(
 
   if (state.mode === "weather") {
     return { state, result: "consume" };
+  }
+
+  if (state.mode === "ai") {
+    if (input === "tap") {
+      return {
+        state,
+        result: "consume",
+        effect: { type: "toggle-ai" },
+      };
+    }
+    return moveIndex(
+      state,
+      "aiPage",
+      input,
+      context.aiPageCount ?? 0,
+    );
   }
 
   if (state.mode === "todo") {

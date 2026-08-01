@@ -30,6 +30,25 @@ describe("Even Hub SDK compatibility", () => {
     });
   });
 
+  it("declares the scoped G2 microphone and OpenAI network permissions", () => {
+    const permissions = appManifest.permissions as Array<{
+      name: string;
+      whitelist?: string[];
+    }>;
+    expect(permissions.some(({ name }) => name === "g2-microphone")).toBe(true);
+    expect(permissions.find(({ name }) => name === "network")?.whitelist)
+      .toEqual(expect.arrayContaining([
+        "https://api.openai.com",
+        "wss://api.openai.com",
+      ]));
+  });
+
+  it("uses only language codes accepted by the Even Hub manifest", () => {
+    expect(appManifest.supported_languages).toEqual([
+      "en", "de", "fr", "es", "it", "zh", "ja", "ko",
+    ]);
+  });
+
   it("keeps every main hardware QR script on the promoted SDK", () => {
     const scripts = packageManifest.scripts as Record<string, string>;
 

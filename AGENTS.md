@@ -119,9 +119,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Style the phone WebView after the owner-supplied Even app references: very
   light gray page background, white cards, restrained gray borders, black
   Pixelarticons, generous whitespace, and no glow or green treatment.
-- Keep one live grayscale HUD preview above a two-column card grid. Use eight
+- Keep one live grayscale HUD preview above a two-column card grid. Use nine
   cards: Devices, HUD layout, News, TODO, Weather, Navigation, Language, and
-  Developer.
+  Ask AI, and Developer.
 - Match the Even card proportions rather than perfect squares: approximately
   `1.28 / 1` width-to-height, subtle eight-pixel-equivalent corner rounding,
   a small icon near the top, and the title and status near the bottom.
@@ -137,6 +137,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   TODO text, RSS article content, destination names, or route instructions.
 - Ship thirty complete locale packs. Arabic and Hebrew set the phone companion
   root to RTL, while the nested 576×288 tactical HUD and Canvas remain LTR.
+- Even Hub's current manifest schema accepts only `en`, `de`, `fr`, `es`, `it`,
+  `zh`, `ja`, and `ko`. Keep all thirty app-internal locale packs available in
+  the phone picker, but declare only that accepted subset in `app.json`.
 - Add a language only through one complete `src/i18n/locales/<code>.ts` pack,
   including `direction`, one registry entry, and three entries in
   `server/news-feeds.js`. Do not add

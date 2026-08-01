@@ -20,11 +20,15 @@ import {
 } from "./hud-i18n";
 import type { PhoneLocale } from "./phone-types";
 import { weatherCodeLabel } from "./weather";
+import type { AiHudSnapshot } from "./ai-hud-state";
+import { createAiHudSnapshot } from "./ai-hud-state";
+import { drawFastAiPanel } from "./fast-ai-hud";
 
 export type FastCanvasHudData = {
   readonly battery?: FastCanvasBattery;
   readonly live: LiveDashboardState;
   readonly mapRadiusMeters?: number;
+  readonly ai?: AiHudSnapshot;
 };
 
 function formatTime(now: Date) {
@@ -396,4 +400,7 @@ export function drawFastDynamicPage(
   if (page === "news") drawNews(context, data.live);
   if (page === "todo") drawTodo(context, data.live, locale);
   if (page === "weather") drawWeather(context, data.live, locale);
+  if (page === "ai") {
+    drawFastAiPanel(context, data.ai ?? createAiHudSnapshot(false), locale);
+  }
 }

@@ -93,5 +93,6 @@ test("emits the files required by Sites packaging", async () => {
   await access(new URL("../dist/server/news-feeds.js", import.meta.url));
   await access(new URL("../dist/server/map.js", import.meta.url));
   await access(new URL("../dist/server/route.js", import.meta.url));
+  await access(new URL("../dist/server/realtime.js", import.meta.url));
   await access(new URL("../dist/.openai/hosting.json", import.meta.url));
 });

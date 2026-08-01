@@ -73,7 +73,7 @@ describe("PhoneCompanion", () => {
     expect(companion.getAttribute("dir")).toBe("ltr");
   });
 
-  it("renders the approved eight full-card destinations and footer", () => {
+  it("renders the approved nine full-card destinations and footer", () => {
     renderCompanion();
 
     expect(screen.queryByText("SANDEVISTAN / DASHBOARD")).toBeNull();
@@ -87,6 +87,7 @@ describe("PhoneCompanion", () => {
       "News",
       "TODO",
       "Weather",
+      "Ask AI",
       "Navigation",
       "Language",
       "Developer",
@@ -164,6 +165,7 @@ describe("PhoneCompanion", () => {
       "News",
       "TODO",
       "Weather",
+      "Ask AI",
       "Navigation",
       "Language",
       "Developer",

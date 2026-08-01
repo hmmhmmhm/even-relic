@@ -921,7 +921,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     view.unmount();
   });
 
-  it("cycles keyless Weather fourth and keeps Navigation opt-in when routed", async () => {
+  it("cycles keyless Weather fourth and Ask AI fifth while Navigation stays opt-in", async () => {
     window.history.replaceState({}, "", "/hud-canvas-fast");
     const requestRefresh = vi.fn();
     let navigate:
@@ -965,6 +965,14 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(mocks.drawFast).toHaveBeenLastCalledWith(
       expect.any(HTMLCanvasElement),
       expect.any(Date),
+      "ai",
+      expect.objectContaining({ ai: expect.any(Object) }),
+    );
+
+    await navigate?.("next");
+    expect(mocks.drawFast).toHaveBeenLastCalledWith(
+      expect.any(HTMLCanvasElement),
+      expect.any(Date),
       "overview",
       expect.any(Object),
     );
@@ -974,6 +982,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
       route: { status: "fresh" },
     };
     sessionOptions().onUpdate({ state: routed, target: "right" });
+    await navigate?.("next");
     await navigate?.("next");
     await navigate?.("next");
     await navigate?.("next");

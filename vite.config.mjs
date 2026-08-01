@@ -18,6 +18,7 @@ export default defineConfig({
     },
   },
   test: {
+    exclude: ["**/.worktrees/**", "**/node_modules/**", "**/dist/**"],
     fileParallelism: false,
     maxWorkers: 1,
   },

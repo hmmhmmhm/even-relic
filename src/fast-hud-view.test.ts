@@ -29,6 +29,10 @@ describe("fast HUD detail state", () => {
       .toBe("todo");
     expect(reduceFastHudInput(initial, "weather", "tap", CONTEXT).state.mode)
       .toBe("weather");
+    expect(reduceFastHudInput(initial, "ai", "tap", CONTEXT)).toMatchObject({
+      state: { mode: "ai" },
+      effect: { type: "start-ai" },
+    });
     expect(
       reduceFastHudInput(initial, "navigation", "tap", CONTEXT).state,
     ).toMatchObject({
@@ -185,8 +189,9 @@ describe("fast HUD detail state", () => {
 
     expect(browsed).toMatchObject({
       state: {
-        navigationIndex: 2,
-        navigationFollowsActive: false,
+      navigationIndex: 2,
+      navigationFollowsActive: false,
+      aiPage: 0,
       },
       result: "redraw",
     });
@@ -275,6 +280,7 @@ describe("fast HUD detail state", () => {
       todoIndex: 2,
       navigationIndex: 3,
       navigationFollowsActive: true,
+      aiPage: 0,
     };
 
     expect(syncFastHudView(state, {
@@ -291,6 +297,7 @@ describe("fast HUD detail state", () => {
       todoIndex: 0,
       navigationIndex: 2,
       navigationFollowsActive: true,
+      aiPage: 0,
     });
     expect(createFastHudViewState().zoomIndex)
       .toBe(FAST_MAP_DEFAULT_ZOOM_INDEX);

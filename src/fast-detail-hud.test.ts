@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import { drawFastDetailHud } from "./fast-detail-hud";
+import { createAiHudSnapshot } from "./ai-hud-state";
 import {
   createInitialLiveDashboardState,
   type LiveDashboardState,
@@ -114,6 +115,40 @@ function values(texts: readonly DrawnText[]) {
 }
 
 describe("drawFastDetailHud", () => {
+  it("draws the streaming Ask AI transcript and controls", () => {
+    const { canvas, texts } = createCanvas();
+    const ai = {
+      ...createAiHudSnapshot(true),
+      phase: "thinking" as const,
+      userText: "오늘 날씨는 어때?",
+      assistantText: "현재 맑고 기온은 28도입니다.",
+      transcriptPages: [
+        "YOU // 오늘 날씨는 어때?",
+        "AI // 현재 맑고 기온은 28도입니다.",
+      ],
+    };
+
+    drawFastDetailHud(canvas, {
+      mode: "ai",
+      live: liveState(),
+      newsIndex: 0,
+      newsPage: 0,
+      todoIndex: 0,
+      navigationIndex: 0,
+      ai,
+      aiPage: 1,
+    }, "ko");
+
+    expect(values(texts)).toEqual(expect.arrayContaining([
+      "ASK AI // THINKING",
+      "2/2",
+      "AI // 현재 맑고 기온은 28도입니다.",
+      "SCROLL // TRANSCRIPT",
+      "TAP // PAUSE",
+      "DOUBLE TAP // BACK",
+    ]));
+  });
+
   it("renders English fixed copy while preserving source content", () => {
     const weather = createCanvas();
     drawFastDetailHud(weather.canvas, {

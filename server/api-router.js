@@ -7,6 +7,7 @@ import {
   handleRoutingKeyTest,
   handleRoutingStatus,
 } from "./route.js";
+import { handleRealtimeTokenRequest } from "./realtime.js";
 
 export async function handleApiRequest(request, env, dependencies = {}) {
   const url = new URL(request.url);
@@ -31,6 +32,12 @@ export async function handleApiRequest(request, env, dependencies = {}) {
   }
   if (url.pathname === "/api/route" && request.method === "POST") {
     return handleRouteRequest(request, env, dependencies);
+  }
+  if (
+    url.pathname === "/api/realtime-token"
+    && request.method === "POST"
+  ) {
+    return handleRealtimeTokenRequest(request, env, dependencies);
   }
 
   return jsonResponse(

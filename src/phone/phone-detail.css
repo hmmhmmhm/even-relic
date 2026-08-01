@@ -233,6 +233,46 @@
   font-size: 0.8rem;
 }
 
+.phone-ai-cost,
+.phone-ai-history {
+  display: grid;
+  gap: 14px;
+}
+
+.phone-ai-cost h2,
+.phone-ai-history h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.phone-ai-cost > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--phone-muted);
+}
+
+.phone-ai-cost strong {
+  color: var(--phone-text);
+  font-size: 1.15rem;
+}
+
+.phone-ai-history article {
+  padding-top: 12px;
+  border-top: 1px solid #ededed;
+}
+
+.phone-ai-history article:first-of-type {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.phone-ai-history p {
+  margin: 5px 0 0;
+  color: var(--phone-muted);
+  line-height: 1.45;
+}
+
 .phone-companion .route-controls,
 .phone-companion .diagnostic-console {
   margin: 0;

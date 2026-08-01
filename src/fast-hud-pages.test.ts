@@ -6,15 +6,16 @@ import {
 } from "./fast-hud-pages";
 
 describe("Fast Canvas page model", () => {
-  it("uses Weather as the fourth and final keyless page", () => {
+  it("adds Ask AI as the final keyless page", () => {
     expect(getFastHudPages("disabled")).toEqual([
       "overview",
       "news",
       "todo",
       "weather",
+      "ai",
     ]);
     expect(getAdjacentFastHudPage(
-      "weather",
+      "ai",
       "next",
       "disabled",
     )).toBe("overview");
@@ -22,7 +23,7 @@ describe("Fast Canvas page model", () => {
       "overview",
       "previous",
       "disabled",
-    )).toBe("weather");
+    )).toBe("ai");
   });
 
   it("adds Navigation last whenever routing is enabled", () => {
@@ -31,10 +32,16 @@ describe("Fast Canvas page model", () => {
       "news",
       "todo",
       "weather",
+      "ai",
       "navigation",
     ]);
     expect(getAdjacentFastHudPage(
       "weather",
+      "next",
+      "fresh",
+    )).toBe("ai");
+    expect(getAdjacentFastHudPage(
+      "ai",
       "next",
       "fresh",
     )).toBe("navigation");
@@ -47,14 +54,15 @@ describe("Fast Canvas page model", () => {
 
   it("uses a saved order and skips disabled pages", () => {
     const layout = {
-      order: ["overview", "weather", "news", "todo"],
-      enabled: ["overview", "weather", "todo"],
+      order: ["overview", "weather", "news", "todo", "ai"],
+      enabled: ["overview", "weather", "todo", "ai"],
     } as const;
 
     expect(getFastHudPages("disabled", layout)).toEqual([
       "overview",
       "weather",
       "todo",
+      "ai",
     ]);
     expect(getAdjacentFastHudPage(
       "overview",
@@ -66,7 +74,7 @@ describe("Fast Canvas page model", () => {
 
   it("does not expose Navigation while routing is disabled", () => {
     const layout = {
-      order: ["overview", "navigation", "news", "todo", "weather"],
+      order: ["overview", "navigation", "news", "todo", "weather", "ai"],
       enabled: ["overview", "navigation", "news"],
     } as const;
 
