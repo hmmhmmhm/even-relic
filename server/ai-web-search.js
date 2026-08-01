@@ -10,15 +10,37 @@ import {
   validOpenAiKey,
 } from "./openai-auth.js";
 
-export const OPENAI_SEARCH_MODEL = "gpt-5-mini";
+export const OPENAI_SEARCH_MODEL = "gpt-5.5";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const MAX_REQUEST_BYTES = 4_096;
 const MAX_UPSTREAM_BYTES = 262_144;
+const MAX_UPSTREAM_ERROR_BYTES = 8_192;
 const MAX_QUERY_LENGTH = 500;
 const MAX_ANSWER_LENGTH = 8_000;
 const MAX_SOURCES = 6;
-const SEARCH_TIMEOUT_MS = 15_000;
+const SEARCH_TIMEOUT_MS = 30_000;
 const LOCALE = /^[A-Za-z]{2,3}(?:-[A-Za-z]{2,8})?$/;
+const SAFE_UPSTREAM_ERROR_PART = /^[A-Za-z0-9_.-]{1,80}$/;
+
+function safeUpstreamErrorPart(value) {
+  return typeof value === "string" && SAFE_UPSTREAM_ERROR_PART.test(value)
+    ? value
+    : "unknown";
+}
+
+async function upstreamErrorMetadata(response) {
+  let value;
+  try {
+    const bytes = await readLimitedBytes(response, MAX_UPSTREAM_ERROR_BYTES);
+    value = JSON.parse(new TextDecoder().decode(bytes));
+  } catch {
+    value = undefined;
+  }
+  return {
+    type: safeUpstreamErrorPart(value?.error?.type),
+    code: safeUpstreamErrorPart(value?.error?.code),
+  };
+}
 
 function safeSource(value) {
   if (typeof value !== "object" || value === null) return undefined;
@@ -110,8 +132,9 @@ export async function handleAiWebSearchRequest(
         model: OPENAI_SEARCH_MODEL,
         input: query,
         instructions: `Answer concisely in ${locale}. Cite every factual claim.`,
-        tools: [{ type: "web_search" }],
-        tool_choice: "auto",
+        reasoning: { effort: "low" },
+        tools: [{ type: "web_search", search_context_size: "medium" }],
+        tool_choice: "required",
       }),
       signal: timeout.signal,
     });
@@ -125,7 +148,11 @@ export async function handleAiWebSearchRequest(
     timeout.dispose();
   }
   if (!upstream.ok) {
-    await upstream.body?.cancel().catch(() => undefined);
+    const metadata = await upstreamErrorMetadata(upstream);
+    (dependencies.logWarn ?? console.warn)(
+      `[AI SEARCH] upstream rejected · status ${upstream.status}`
+      + ` · type ${metadata.type} · code ${metadata.code}`,
+    );
     return openAiError("WEB_SEARCH_REJECTED", "OpenAI rejected web search", 502);
   }
   let parsed;

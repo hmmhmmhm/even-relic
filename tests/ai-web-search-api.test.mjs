@@ -62,20 +62,37 @@ test("returns bounded grounded text, HTTPS citations, and usage", async () => {
   assert.equal(upstreamRequest.url, "https://api.openai.com/v1/responses");
   assert.equal(upstreamRequest.init.headers.Authorization, `Bearer ${KEY}`);
   const body = JSON.parse(upstreamRequest.init.body);
-  assert.equal(body.model, "gpt-5-mini");
-  assert.deepEqual(body.tools, [{ type: "web_search" }]);
+  assert.equal(body.model, "gpt-5.5");
+  assert.deepEqual(body.reasoning, { effort: "low" });
+  assert.deepEqual(body.tools, [{
+    type: "web_search",
+    search_context_size: "medium",
+  }]);
+  assert.equal(body.tool_choice, "required");
   assert.equal(body.input, "latest G2 firmware");
 });
 
-test("hides upstream failures and never retries", async () => {
+test("logs only bounded upstream error metadata and never retries", async () => {
   let calls = 0;
+  const warnings = [];
   const response = await handleAiWebSearchRequest(request(), {}, {
     fetchImpl: async () => {
       calls += 1;
-      return Response.json({ error: { message: KEY } }, { status: 429 });
+      return Response.json({
+        error: {
+          type: "rate_limit_error",
+          code: "rate_limit_exceeded",
+          message: KEY,
+        },
+      }, { status: 429 });
     },
+    logWarn: (message) => warnings.push(message),
   });
   assert.equal(calls, 1);
   assert.equal(response.status, 502);
   assert.equal((await response.text()).includes(KEY), false);
+  assert.deepEqual(warnings, [
+    "[AI SEARCH] upstream rejected · status 429 · type rate_limit_error · code rate_limit_exceeded",
+  ]);
+  assert.equal(warnings.join(" ").includes(KEY), false);
 });
