@@ -28,4 +28,18 @@ describe("Ask AI transcript pages", () => {
       expect(page.split("\n").length).toBeLessThanOrEqual(6);
     }
   });
+
+  it("starts a short new turn on a fresh page rather than splitting its roles", () => {
+    const pages = createAiTranscriptPages(
+      [{
+        user: "Earlier question",
+        assistant: "earlier answer ".repeat(9),
+      }],
+      { user: "Current question", assistant: "Current answer" },
+    );
+    const currentPage = pages.find((page) => page.includes("Current question"));
+
+    expect(currentPage).toContain("YOU // Current question");
+    expect(currentPage).toContain("AI // Current answer");
+  });
 });
