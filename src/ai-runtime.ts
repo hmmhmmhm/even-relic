@@ -63,7 +63,9 @@ export function createAiRuntime(options: {
       user: protocol.userText.trim(),
       assistant: protocol.assistantText.trim(),
     };
-    const latestCompleted = protocol.turns[protocol.turns.length - 1];
+    const latestCompleted = [...protocol.turns].reverse().find(
+      (turn) => turn.user.trim() || turn.assistant.trim(),
+    );
     const excerpt = currentTurn.user || currentTurn.assistant
       ? currentTurn
       : latestCompleted;

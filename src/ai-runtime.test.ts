@@ -84,7 +84,7 @@ describe("Ask AI runtime", () => {
     });
   });
 
-  it("persists the latest completed turn when the live turn is empty", async () => {
+  it("persists the latest non-empty turn before a delayed placeholder", async () => {
     const bridge = new TestBridge();
     let snapshot = createAiHudSnapshot(true);
     const protocol = {
@@ -93,6 +93,9 @@ describe("Ask AI runtime", () => {
       turns: [{
         user: "완료된 질문",
         assistant: "완료된 답변",
+      }, {
+        user: "",
+        assistant: "",
       }],
     };
     const runtime = createAiRuntime({
