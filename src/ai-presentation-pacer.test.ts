@@ -185,6 +185,51 @@ describe("Ask AI presentation pacer", () => {
     vi.useRealTimers();
   });
 
+  it("paces late text that expands an already archived turn", async () => {
+    vi.useFakeTimers();
+    const frames: Array<readonly string[]> = [];
+    const pacer = createAiPresentationPacer({
+      onFrame: (snapshot) => frames.push(snapshot.transcriptLines),
+    });
+    pacer.push({
+      ...createAiHudSnapshot(true),
+      phase: "thinking",
+      userText: "질문",
+      assistantText: "가",
+    });
+    await vi.advanceTimersByTimeAsync(500);
+
+    pacer.push({
+      ...createAiHudSnapshot(true),
+      phase: "listening",
+      turns: [{ user: "질문", assistant: "가" }],
+      transcriptLines: ["YOU // 질문", "AI // 가"],
+    });
+    pacer.push({
+      ...createAiHudSnapshot(true),
+      phase: "listening",
+      turns: [{ user: "질문", assistant: "가나다" }],
+      transcriptLines: ["YOU // 질문", "AI // 가나다"],
+    });
+
+    expect(frames.at(-1)).toEqual([
+      "YOU // 질문",
+      "AI // 가",
+    ]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(frames.at(-1)).toEqual([
+      "YOU // 질문",
+      "AI // 가나",
+    ]);
+    await vi.advanceTimersByTimeAsync(500);
+    expect(frames.at(-1)).toEqual([
+      "YOU // 질문",
+      "AI // 가나다",
+    ]);
+    pacer.dispose();
+    vi.useRealTimers();
+  });
+
   it("cancels a pending presentation when disposed", async () => {
     vi.useFakeTimers();
     const onFrame = vi.fn();

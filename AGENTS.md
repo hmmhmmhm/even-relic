@@ -192,8 +192,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   cleanup without blocking Canvas restoration. Pace assistant presentation at
   one Unicode grapheme every 500 ms, keep authoritative Realtime state and
   persistence unthrottled, preserve the visible grapheme cursor when Realtime
-  archives a completed response into conversation history, and localize every
-  visible native detail string across all thirty locales.
+  archives a completed response into conversation history or expands that
+  archived response with late final text, and localize every visible native
+  detail string across all thirty locales.
 - Keep the Ask AI detail view deliberately plain: no title, frame, phase
   header, page counter, or footer instructions. Show only the rolling
   localized conversation and a short localized `Listening…` line when

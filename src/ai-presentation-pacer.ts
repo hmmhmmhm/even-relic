@@ -40,9 +40,13 @@ export function createAiPresentationPacer(options: {
     timer = undefined;
   };
 
+  const pendingArchived = () => archivedPresentations.find(
+    (entry) => entry.presented !== entry.text,
+  );
+
   const caughtUp = () => Boolean(
     target
-    && archivedPresentations.length === 0
+    && !pendingArchived()
     && presented === target.assistantText,
   );
 
@@ -81,7 +85,7 @@ export function createAiPresentationPacer(options: {
     timer = setTimeout(() => {
       timer = undefined;
       if (disposed || !target) return;
-      const archived = archivedPresentations[0];
+      const archived = pendingArchived();
       if (archived) {
         const available = graphemes(archived.text);
         const current = archived.text.startsWith(archived.presented)
@@ -90,9 +94,6 @@ export function createAiPresentationPacer(options: {
         archived.presented = available
           .slice(0, current.length + step)
           .join("");
-        if (archived.presented === archived.text) {
-          archivedPresentations.shift();
-        }
       } else {
         const available = graphemes(target.assistantText);
         const current = target.assistantText.startsWith(presented)
@@ -128,7 +129,7 @@ export function createAiPresentationPacer(options: {
           const initial = movedCurrentTurn && turn.assistant.startsWith(presented)
             ? presented
             : "";
-          if (initial !== turn.assistant) {
+          if (movedCurrentTurn || initial !== turn.assistant) {
             archivedPresentations.push({
               index,
               text: turn.assistant,
@@ -143,7 +144,7 @@ export function createAiPresentationPacer(options: {
         if (latest?.startsWith(archived.presented)) archived.text = latest;
       }
 
-      if (archivedPresentations.length > 0) {
+      if (pendingArchived()) {
         if (
           !previous
           || snapshot.turns.length !== previousTurns
