@@ -1,5 +1,9 @@
 # Ask AI Bottom Status and Binocular Restore Settle Implementation Plan
 
+Status: `IMPLEMENTED AND INTEGRATED`
+
+Implementation commit: `d3d3663` (`fix: settle Ask AI binocular restore`)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Move Thinking and tool activity below the native Ask AI transcript and add a bounded post-rebuild barrier before restoring all four HUD tiles.

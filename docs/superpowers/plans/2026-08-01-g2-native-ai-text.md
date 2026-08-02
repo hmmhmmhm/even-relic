@@ -1,5 +1,9 @@
 # Native Ask AI Text Implementation Plan
 
+Status: `IMPLEMENTED AND INTEGRATED`
+
+Implementation commit: `bbe792e` (`feat: stream Ask AI with native text`)
+
 **Goal:** Stream Ask AI detail text through one official Even Hub text
 container instead of retransmitting four Canvas tiles.
 

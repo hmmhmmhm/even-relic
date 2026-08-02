@@ -1,5 +1,9 @@
 # Ask AI Tap Interrupt Implementation Plan
 
+Status: `IMPLEMENTED AND INTEGRATED`
+
+Implementation commit: `cf05477` (`feat: interrupt Ask AI responses on tap`)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let one Ask AI detail tap instantly finish a completed paced answer or cancel an active answer, reveal its received partial text, and resume listening with 250 ms grapheme pacing.

@@ -1,5 +1,12 @@
 # G2 Ask AI Realtime Implementation Plan
 
+Status: `IMPLEMENTED AND INTEGRATED`
+
+Initial implementation commit: `4d3ccaa` (`feat: add realtime Ask AI HUD`)
+
+The presentation and tool layers were subsequently evolved by the native Text,
+line-stream, tap-interrupt, tool, pacing, and binocular-settle plans below.
+
 > Execute this plan with test-first changes. Never place a real API key in a
 > command, fixture, source file, build artifact, diagnostic, or commit.
 

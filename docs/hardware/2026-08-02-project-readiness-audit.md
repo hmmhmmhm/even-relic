@@ -44,6 +44,7 @@ The following checks passed serially on the audited `main` code on 2026-08-02:
 | Sites and AI endpoint suite | 12 tests passed |
 | Whitespace check | `git diff --check` passed |
 | Even Hub package | `sandevistan.ehpk`, 1,807,072 bytes |
+| Maintainer QR target | Current Tailscale preview on port `4179` |
 
 Package SHA-256:
 

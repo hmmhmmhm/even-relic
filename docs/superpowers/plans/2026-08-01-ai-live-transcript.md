@@ -1,5 +1,12 @@
 # Ask AI Live Transcript Implementation Plan
 
+Status: `IMPLEMENTED, THEN SUPERSEDED AT THE PRESENTATION LAYER`
+
+Implementation commits: `3ca7218`, `707d918`, and `b04fe0c`
+
+The retained-turn protocol remains active. The Canvas page presentation was
+later replaced by the native Text line stream.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Render the current user utterance and streaming AI answer in one automatically following chat viewport, while keeping manual scrolling pinned to older conversation pages.

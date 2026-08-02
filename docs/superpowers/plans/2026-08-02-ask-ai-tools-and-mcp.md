@@ -1,5 +1,9 @@
 # Ask AI Built-in Tools and MCP Implementation Plan
 
+Status: `IMPLEMENTED AND INTEGRATED`
+
+Implementation commit: `d715c6e`; Web-search preview fix: `fb7dfb9`
+
 > **Goal:** Extend the glasses-native Ask AI session with exact local time, explicitly requested exact G2 location, grounded web search, and user-managed remote MCP servers while preserving the existing no-queue, tap-interrupt interaction model.
 
 ## Constraints

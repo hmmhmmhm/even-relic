@@ -340,6 +340,10 @@ npm run qr:hide-black
 npm run qr:rollback
 ```
 
+These convenience scripts target the maintainer's current Tailscale hardware
+preview on port `4179`. Other developers should replace the host with their own
+phone-reachable address and the development-server port selected above.
+
 Run the production `qr` and diagnostic `qr:hide-black` routes one at a time.
 Close the first Even Hub WebView before opening the second so their transport
 sessions cannot overlap.

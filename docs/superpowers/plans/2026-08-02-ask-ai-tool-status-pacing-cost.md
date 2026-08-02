@@ -1,5 +1,10 @@
 # Ask AI Tool Status, Pacing, and Cost Implementation Plan
 
+Status: `IMPLEMENTED AND INTEGRATED`
+
+Implementation commits: `ffa7a57`, `b7547be`, `09bdbe0`, `153bf87`, and
+`efd4414`
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add localized Ask AI tool activity, user-controlled 200 ms grapheme pacing with a tap-to-reveal hint, and model-aware event-time Realtime/search cost estimates.

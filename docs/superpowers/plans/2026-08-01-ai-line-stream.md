@@ -1,5 +1,12 @@
 # Ask AI Line Stream Implementation Plan
 
+Status: `IMPLEMENTED, THEN EVOLVED`
+
+Initial implementation commit: `f75dd1a`
+
+The rolling line stream remains active. Its original fixed 20 ms reveal was
+replaced by acknowledgement-paced, user-configurable response presentation.
+
 > Implement in the isolated `feature/ask-ai-line-stream` worktree with TDD.
 
 **Goal:** Replace page-based Ask AI presentation with a minimal rolling
@@ -76,4 +83,3 @@ fallback, Vite.
 4. Review the diff for accidental page UI, secrets, or unrelated changes.
 5. Commit, merge into `main`, push, rebuild the EHPK, restart the Tailscale
    test server, and verify the reachable URL.
-
