@@ -1,5 +1,10 @@
 # Sandevistan Phone Companion Completion Audit
 
+> [!NOTE]
+> This audit remains the screenshot-backed baseline for the original phone
+> companion. Current SDK, Ask AI, and post-audit regression status are tracked
+> in the [2026-08-02 readiness audit](2026-08-02-project-readiness-audit.md).
+
 Date: 2026-07-29
 
 Target branch: `main`

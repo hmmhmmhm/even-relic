@@ -1,5 +1,12 @@
 # Default Serial Image Transport Implementation Plan
 
+Status: `IMPLEMENTED AND INTEGRATED`
+
+Implementation commit: `ad23ccc` (`fix: default image transport to serial`)
+
+The current `main` verification baseline is recorded in the
+[2026-08-02 project readiness audit](../../hardware/2026-08-02-project-readiness-audit.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the query-free fast HUD send image tiles one at a time while retaining explicit pipeline values `2`, `3`, and `4` for controlled experiments.
@@ -16,15 +23,15 @@
 - Modify: `src/image-send-concurrency.test.ts`
 - Modify: `src/App.test.tsx`
 
-- [ ] **Step 1: Change resolver expectations for missing and invalid values**
+- [x] **Step 1: Change resolver expectations for missing and invalid values**
 
 Update the table in `src/image-send-concurrency.test.ts` so the missing value and invalid values `0`, `5`, and `two` expect `1`. Keep explicit values `1` through `4` unchanged.
 
-- [ ] **Step 2: Add App integration coverage for the production route**
+- [x] **Step 2: Add App integration coverage for the production route**
 
 Add a test that opens `/hud-canvas-fast`, starts `App`, waits for `transmitFast`, and asserts `fastOptions().imageSendConcurrency` is `1`. Rename the invalid-pipeline test to describe serial fallback and change its expected value from `4` to `1`. Keep the explicit pipeline `2` and `4` tests unchanged.
 
-- [ ] **Step 3: Run focused tests and verify the old implementation fails**
+- [x] **Step 3: Run focused tests and verify the old implementation fails**
 
 Run:
 
@@ -39,11 +46,11 @@ Expected: FAIL because the current resolver returns `4` for missing and invalid 
 **Files:**
 - Modify: `src/image-send-concurrency.ts`
 
-- [ ] **Step 1: Change the fallback concurrency**
+- [x] **Step 1: Change the fallback concurrency**
 
 Keep the explicit branches for `1`, `2`, and `3`, then change the final fallback from `return 4` to `return value === "4" ? 4 : 1`. This preserves explicit `pipeline=4` and makes every missing or invalid value serial.
 
-- [ ] **Step 2: Run focused tests and verify they pass**
+- [x] **Step 2: Run focused tests and verify they pass**
 
 Run:
 
@@ -53,7 +60,7 @@ npm test -- --run src/image-send-concurrency.test.ts src/App.test.tsx
 
 Expected: PASS with the production route at concurrency `1` and explicit experimental values preserved.
 
-- [ ] **Step 3: Run bounded transport regression coverage**
+- [x] **Step 3: Run bounded transport regression coverage**
 
 Run:
 
@@ -69,11 +76,11 @@ Expected: PASS, proving concurrency `1` remains serial without changing send ord
 - Modify: `AGENTS.md`
 - Modify: `README.md`
 
-- [ ] **Step 1: Update the repository guardrail**
+- [x] **Step 1: Update the repository guardrail**
 
 State that the query-free route defaults to one in-flight SDK image call with the `hud-4` palette, explicit `pipeline=2`, `3`, and `4` remain diagnostic experiments, and `levels=original` remains the palette rollback.
 
-- [ ] **Step 2: Update the README transport description**
+- [x] **Step 2: Update the README transport description**
 
 Describe the four 288×144 tiles as passing through a bounded serial SDK transport by default. State that missing or invalid pipeline values resolve to one, explicit values `1` through `4` remain available, and the full serial/original comparison path is `?pipeline=1&levels=original`.
 
@@ -82,7 +89,7 @@ Describe the four 288×144 tiles as passing through a bounded serial SDK transpo
 **Files:**
 - Verify: all modified files
 
-- [ ] **Step 1: Run the complete verification gates**
+- [x] **Step 1: Run the complete verification gates**
 
 Run:
 
@@ -97,7 +104,7 @@ git diff --check
 
 Expected: every command exits `0`; the existing Vite chunk-size warning is informational.
 
-- [ ] **Step 2: Commit the implementation**
+- [x] **Step 2: Commit the implementation**
 
 Run:
 
@@ -106,11 +113,11 @@ git add src/image-send-concurrency.ts src/image-send-concurrency.test.ts src/App
 git commit -m "fix: default image transport to serial"
 ```
 
-- [ ] **Step 3: Integrate into `main` and verify the merged tree**
+- [x] **Step 3: Integrate into `main` and verify the merged tree**
 
 Fast-forward `main` to the implementation branch, rerun the full test suite on `main`, and remove the temporary worktree and branch after verification.
 
-- [ ] **Step 4: Push and refresh the hardware preview**
+- [x] **Step 4: Push and refresh the hardware preview**
 
 Push `main` to `origin`, rebuild the app, restart the exact preview listener on port `4179`, and verify both URLs return HTTP `200`:
 

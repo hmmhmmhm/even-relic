@@ -425,7 +425,7 @@ Useful hardware records:
 - [Typed-array versus Base64 SDK bridge gate](docs/hardware/2026-07-31-g2-base64-image-bridge-experiment.md)
 - [Fast blank display hardware gate](docs/hardware/2026-07-31-g2-fast-blank-display-experiment.md)
 - [Unchanged-tile skip experiment](docs/hardware/2026-07-28-g2-unchanged-tile-skip.md)
-- [Current project readiness audit](docs/hardware/2026-07-29-project-readiness-audit.md)
+- [Current project readiness audit](docs/hardware/2026-08-02-project-readiness-audit.md)
 - [Phone companion completion audit](docs/hardware/2026-07-29-phone-companion-completion-audit.md)
 
 ## Privacy, attribution, and limitations

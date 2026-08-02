@@ -1,5 +1,10 @@
 # Sandevistan Project Readiness Audit
 
+> [!NOTE]
+> This historical SDK `0.0.11` audit is superseded by the
+> [2026-08-02 current readiness audit](2026-08-02-project-readiness-audit.md).
+> It remains unchanged below as evidence of the earlier release gate.
+
 Date: 2026-07-29
 
 Target branch: `main`
