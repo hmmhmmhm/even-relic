@@ -7,9 +7,18 @@ const HANGUL_PATTERN = /[가-힣]/u;
 const LEGACY_BRAND_PATTERN =
   /\beven-relic\b|com\.hmmhmmhm\.evenrelic|\bRELIC\b|\bRelic\b|\brelic(?=[:A-Z])/u;
 const LEGACY_EVIDENCE_PATTERN = /\blegacy evidence\b/iu;
+const IMPLEMENTATION_PATH_PATTERN = /\.(?:css|ts|tsx)$/u;
+const TEST_PATH_PATTERN = /\.(?:spec|test)\.(?:ts|tsx)$/u;
+const MAX_IMPLEMENTATION_LINES = 450;
 
 function linesOf(content) {
   return content.split(/\r?\n/u);
+}
+
+function lineCount(content) {
+  if (!content) return 0;
+  const count = linesOf(content).length;
+  return /\r?\n$/u.test(content) ? count - 1 : count;
 }
 
 export function findHangulViolations(entries) {
@@ -51,6 +60,28 @@ export function findCurrentBrandViolations(entries) {
   }
 
   return violations;
+}
+
+export function findOversizedImplementationFiles(
+  entries,
+  maximumLines = MAX_IMPLEMENTATION_LINES,
+) {
+  return entries.flatMap((entry) => {
+    if (
+      !IMPLEMENTATION_PATH_PATTERN.test(entry.path)
+      || TEST_PATH_PATTERN.test(entry.path)
+    ) {
+      return [];
+    }
+    const lines = lineCount(entry.content);
+    if (lines <= maximumLines) return [];
+    return [{
+      path: entry.path,
+      line: lines,
+      message: `Implementation file exceeds ${maximumLines} lines`,
+      excerpt: `${lines} lines`,
+    }];
+  });
 }
 
 export function validateRepositoryMetadata({ packageManifest, appManifest }) {
@@ -129,6 +160,10 @@ export function checkRepository(repositoryRoot = process.cwd()) {
     "server/**",
     "src/**",
   ]);
+  const implementationPaths = currentSourcePaths.filter((filePath) => (
+    filePath.startsWith("src/")
+    && IMPLEMENTATION_PATH_PATTERN.test(filePath)
+  ));
   const packageManifest = JSON.parse(
     readFileSync(path.join(repositoryRoot, "package.json"), "utf8"),
   );
@@ -140,6 +175,9 @@ export function checkRepository(repositoryRoot = process.cwd()) {
     ...findHangulViolations(readEntries(repositoryRoot, markdownPaths)),
     ...findCurrentBrandViolations(
       readEntries(repositoryRoot, currentSourcePaths),
+    ),
+    ...findOversizedImplementationFiles(
+      readEntries(repositoryRoot, implementationPaths),
     ),
     ...validateRepositoryMetadata({ packageManifest, appManifest }),
   ];

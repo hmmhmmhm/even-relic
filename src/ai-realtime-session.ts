@@ -1,8 +1,4 @@
-import {
-  AudioInputSource,
-  type EvenHubEvent,
-} from "@evenrealities/even_hub_sdk";
-import { openAiKeyHeaders } from "./openai-key";
+import { AudioInputSource } from "@evenrealities/even_hub_sdk";
 import { requestAiWebSearch } from "./ai-web-search";
 import {
   createAiRealtimeToolRunner,
@@ -11,16 +7,19 @@ import {
   mcpApprovalResponse,
   responseFunctionCalls,
 } from "./ai-realtime-tools";
-import type { AiWebSearchResult } from "./ai-tools";
-import type { DataState, LocationValue } from "./live-state";
-import type { McpServerConfig } from "./mcp-servers";
 import {
   createDefaultRealtimeSocket,
-  isRealtimeTokenResponse,
   type RealtimeSocket,
 } from "./ai-realtime-transport";
-import { addAiUsage, EMPTY_AI_USAGE } from "./ai-cost";
-import { mergeAiUsageCharge, priceSearchUsage } from "./ai-pricing";
+import {
+  addAiSearchUsage,
+  mergeAiCitationSources,
+} from "./ai-realtime-search-usage";
+import { requestRealtimeClientSecret } from "./ai-realtime-token";
+import type {
+  AiRealtimeSession,
+  AiRealtimeSessionOptions,
+} from "./ai-realtime-session-types";
 import {
   cancelActiveRealtimeResponse,
   createAudioAppendEvent,
@@ -30,53 +29,14 @@ import {
   reduceRealtimeServerEvent,
   type AiRealtimeProtocolState,
 } from "./ai-realtime-protocol";
-import type { PhoneLocale } from "./phone-types";
 
-type AudioBridge = {
-  audioControl(
-    isOpen: boolean,
-    source?: AudioInputSource,
-  ): Promise<boolean>;
-  onEvenHubEvent(listener: (event: EvenHubEvent) => void): () => void;
-};
-
-export type AiRealtimeSession = {
-  start(): Promise<void>;
-  approvePendingMcp?(): boolean;
-  cancelResponse(): AiRealtimeProtocolState;
-  stop(): Promise<AiRealtimeProtocolState>;
-  getState(): AiRealtimeProtocolState;
-};
-
-type SessionOptions = {
-  readonly bridge: AudioBridge;
-  readonly key: string;
-  readonly locale: PhoneLocale;
-  readonly getLocation?: () => DataState<LocationValue>;
-  readonly mcpServers?: readonly McpServerConfig[];
-  readonly now?: () => Date;
-  readonly searchWeb?: (
-    query: string,
-    locale: PhoneLocale,
-    signal: AbortSignal,
-  ) => Promise<AiWebSearchResult>;
-  readonly fetchImpl?: typeof fetch;
-  readonly createSocket?: (
-    url: string,
-    protocols: string[],
-  ) => RealtimeSocket;
-  readonly onState?: (
-    state: AiRealtimeProtocolState,
-    eventType?: string,
-  ) => void;
-};
+export type { AiRealtimeSession } from "./ai-realtime-session-types";
 
 const REALTIME_URL = "wss://api.openai.com/v1/realtime?model=gpt-realtime";
-const TOKEN_URL = "/api/realtime-token";
 const SOCKET_OPEN = 1;
 const MAX_PCM_CHUNK_BYTES = 65_536;
 export function createAiRealtimeSession(
-  options: SessionOptions,
+  options: AiRealtimeSessionOptions,
 ): AiRealtimeSession {
   const fetchImpl = options.fetchImpl ?? fetch;
   const createSocket = options.createSocket ?? createDefaultRealtimeSocket;
@@ -119,31 +79,10 @@ export function createAiRealtimeSession(
     )),
     send,
     onSources: (sources) => {
-      const merged = [...state.sources];
-      for (const source of sources) {
-        if (!merged.some(({ url }) => url === source.url)) merged.push(source);
-      }
-      publish({ ...state, sources: merged.slice(-6) }, "tool.sources");
+      publish(mergeAiCitationSources(state, sources), "tool.sources");
     },
     onSearchUsage: (usage) => {
-      const cachedInputTokens = Math.min(
-        usage.inputTokens,
-        usage.cachedInputTokens,
-      );
-      publish({
-        ...state,
-        usage: addAiUsage(state.usage, {
-          ...EMPTY_AI_USAGE,
-          searchTextInputTokens: Math.max(
-            0,
-            usage.inputTokens - cachedInputTokens,
-          ),
-          cachedSearchTextInputTokens: cachedInputTokens,
-          searchTextOutputTokens: usage.outputTokens,
-          webSearchCalls: usage.webSearchCalls,
-        }),
-        charge: mergeAiUsageCharge(state.charge, priceSearchUsage(usage)),
-      }, "tool.usage");
+      publish(addAiSearchUsage(state, usage), "tool.usage");
     },
     onActiveTool: (activeTool) => {
       if (activeTool) {
@@ -412,24 +351,15 @@ export function createAiRealtimeSession(
       startAbortController = abortController;
       publish({ ...createRealtimeProtocolState(), phase: "connecting" });
       try {
-        const response = await fetchImpl(TOKEN_URL, {
-          method: "POST",
-          headers: openAiKeyHeaders(options.key),
+        const secret = await requestRealtimeClientSecret({
+          fetchImpl,
+          key: options.key,
           signal: abortController.signal,
         });
-        let data: unknown;
-        try {
-          data = await response.json();
-        } catch {
-          throw new Error("Could not create Realtime session");
-        }
-        if (!response.ok || !isRealtimeTokenResponse(data)) {
-          throw new Error("Could not create Realtime session");
-        }
         if (operation !== lifecycle) {
           throw new Error("Realtime start cancelled");
         }
-        await openSocket(data.value);
+        await openSocket(secret);
         if (operation !== lifecycle) {
           throw new Error("Realtime start cancelled");
         }

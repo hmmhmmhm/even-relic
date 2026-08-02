@@ -5,7 +5,7 @@ import { useHudController } from "./fast-hud-controller";
 import { resolveG2DisplayHideStrategy } from "./g2-display-hide";
 import { resolveG2TileImageFormat } from "./g2-tile-format";
 import { resolveG2TilePaletteMode } from "./g2-tile-palette";
-import type { HudControllerModes } from "./hud-controller-types";
+import { resolveHudModeResolution } from "./hud-mode-resolution";
 import { resolveImageSendConcurrency } from "./image-send-concurrency";
 import type { FastCanvasBattery } from "./glasses";
 import { createLiveDashboardSession } from "./live-dashboard";
@@ -59,26 +59,19 @@ export function App({ autoStart = true }: AppProps) {
   );
   const tileImageFormat = resolveG2TileImageFormat(window.location.search);
   const tilePaletteMode = resolveG2TilePaletteMode(window.location.search);
-  const calibrationMode = window.location.pathname === "/calibration-max";
-  const legacyCanvasHudMode = window.location.pathname === "/hud-canvas";
-  const fastCanvasHudMode = window.location.pathname === "/hud-canvas-fast";
-  const canvasHudMode = legacyCanvasHudMode || fastCanvasHudMode;
-  const legacyHybridHudMode = window.location.pathname === "/hud-hybrid";
-  const layeredHybridHudMode = window.location.pathname === "/hud-hybrid-z";
-  const hybridHudMode = legacyHybridHudMode || layeredHybridHudMode;
-  const hardwareBmpMode = window.location.pathname === "/diagnostic-v10";
-  const diagnosticMode = window.location.pathname.startsWith("/diagnostic-v")
-    || new URLSearchParams(window.location.search).get("mode") === "diagnostic";
-  const modes: HudControllerModes = {
-    calibration: calibrationMode,
-    canvas: canvasHudMode,
-    diagnostic: diagnosticMode,
-    fastCanvas: fastCanvasHudMode,
-    hardwareBmp: hardwareBmpMode,
-    hybrid: hybridHudMode,
-    layeredHybrid: layeredHybridHudMode,
-    legacyCanvas: legacyCanvasHudMode,
-  };
+  const {
+    calibrationMode,
+    canvasHudMode,
+    diagnosticMode,
+    fastCanvasHudMode,
+    hardwareBmpMode,
+    hybridHudMode,
+    layeredHybridHudMode,
+    modes,
+  } = resolveHudModeResolution(
+    window.location.pathname,
+    window.location.search,
+  );
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const liveSessionRef = useRef<
     ReturnType<typeof createLiveDashboardSession> | undefined

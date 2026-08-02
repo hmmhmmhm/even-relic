@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   findCurrentBrandViolations,
   findHangulViolations,
+  findOversizedImplementationFiles,
   validateRepositoryMetadata,
 } from "../scripts/check-repository-copy.mjs";
 
@@ -75,4 +76,24 @@ test("the npm test script limits Vitest discovery to the main src directory", ()
   );
 
   assert.match(packageManifest.scripts.test, /\bvitest run --dir src\b/u);
+});
+
+test("findOversizedImplementationFiles enforces the 450-line source limit", () => {
+  const oversized = Array.from({ length: 451 }, (_, index) => (
+    `export const value${index} = ${index};`
+  )).join("\n");
+
+  assert.deepEqual(
+    findOversizedImplementationFiles([
+      { path: "src/feature.ts", content: oversized },
+      { path: "src/feature.test.ts", content: oversized },
+      { path: "src/styles.css", content: "body {}\n" },
+    ]),
+    [{
+      path: "src/feature.ts",
+      line: 451,
+      message: "Implementation file exceeds 450 lines",
+      excerpt: "451 lines",
+    }],
+  );
 });
