@@ -35,6 +35,32 @@ class FakeSocket {
 }
 
 describe("G2 Realtime session", () => {
+  it("normalizes a non-JSON token response instead of leaking a parser error", async () => {
+    const session = createAiRealtimeSession({
+      bridge: {
+        audioControl: vi.fn(async () => true),
+        onEvenHubEvent: () => vi.fn(),
+      },
+      key: "sk-test-1234567890abcdefghijklmnop",
+      locale: "ko",
+      fetchImpl: async () => new Response("<!doctype html>", {
+        status: 404,
+        headers: { "content-type": "text/html" },
+      }),
+      createSocket: () => {
+        throw new Error("must not open a socket");
+      },
+    });
+
+    await expect(session.start()).rejects.toThrow(
+      "Could not create Realtime session",
+    );
+    expect(session.getState()).toMatchObject({
+      phase: "error",
+      error: "Could not create Realtime session",
+    });
+  });
+
   it("cancels the active response without closing the glasses microphone", async () => {
     const audioControl = vi.fn(async () => true);
     let socket: FakeSocket | undefined;

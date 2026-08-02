@@ -417,7 +417,12 @@ export function createAiRealtimeSession(
           headers: openAiKeyHeaders(options.key),
           signal: abortController.signal,
         });
-        const data: unknown = await response.json();
+        let data: unknown;
+        try {
+          data = await response.json();
+        } catch {
+          throw new Error("Could not create Realtime session");
+        }
         if (!response.ok || !isRealtimeTokenResponse(data)) {
           throw new Error("Could not create Realtime session");
         }

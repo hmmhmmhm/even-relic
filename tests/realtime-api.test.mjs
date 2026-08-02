@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { sandevistanDevApi } from "../server/dev-api.js";
 import { handleRealtimeTokenRequest } from "../server/realtime.js";
 
 const HEADER = "x-sandevistan-openai-key";
@@ -11,6 +12,24 @@ function request(key = KEY) {
     headers: key === null ? {} : { [HEADER]: key },
   });
 }
+
+test("mounts the local API middleware in Vite preview as well as dev", () => {
+  const plugin = sandevistanDevApi();
+  const middlewareFor = (hook) => {
+    let registered;
+    plugin[hook]?.({
+      middlewares: {
+        use(middleware) {
+          registered = middleware;
+        },
+      },
+    });
+    return registered;
+  };
+
+  assert.equal(typeof middlewareFor("configureServer"), "function");
+  assert.equal(typeof middlewareFor("configurePreviewServer"), "function");
+});
 
 test("realtime token endpoint requires a plausible BYOK key", async () => {
   const missing = await handleRealtimeTokenRequest(request(null), {}, {

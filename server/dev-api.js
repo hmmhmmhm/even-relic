@@ -19,50 +19,53 @@ function requestHeaders(incoming) {
   return headers;
 }
 
+function configureLocalApi(server) {
+  server.middlewares.use(async (incoming, outgoing, next) => {
+    const method = incoming.method ?? "GET";
+    const host = incoming.headers.host ?? "127.0.0.1";
+    const body = method === "GET" || method === "HEAD"
+      ? undefined
+      : await readRequestBody(incoming);
+    const request = new Request(
+      new URL(incoming.url ?? "/", `http://${host}`),
+      {
+        method,
+        headers: requestHeaders(incoming),
+        body,
+      },
+    );
+
+    let response;
+    try {
+      response = await handleApiRequest(request, process.env);
+    } catch {
+      response = jsonResponse(
+        {
+          error: {
+            code: "INTERNAL_ERROR",
+            message: "SANDEVISTAN API failed",
+          },
+        },
+        { status: 500 },
+      );
+    }
+    if (!response) {
+      next();
+      return;
+    }
+
+    outgoing.statusCode = response.status;
+    response.headers.forEach((value, name) => {
+      outgoing.setHeader(name, value);
+    });
+    outgoing.end(Buffer.from(await response.arrayBuffer()));
+  });
+}
+
 export function sandevistanDevApi() {
   return {
     name: "sandevistan-dev-api",
-    configureServer(server) {
-      server.middlewares.use(async (incoming, outgoing, next) => {
-        const method = incoming.method ?? "GET";
-        const host = incoming.headers.host ?? "127.0.0.1";
-        const body = method === "GET" || method === "HEAD"
-          ? undefined
-          : await readRequestBody(incoming);
-        const request = new Request(
-          new URL(incoming.url ?? "/", `http://${host}`),
-          {
-            method,
-            headers: requestHeaders(incoming),
-            body,
-          },
-        );
-
-        let response;
-        try {
-          response = await handleApiRequest(request, process.env);
-        } catch {
-          response = jsonResponse(
-            {
-              error: {
-                code: "INTERNAL_ERROR",
-                message: "SANDEVISTAN API failed",
-              },
-            },
-            { status: 500 },
-          );
-        }
-        if (!response) {
-          next();
-          return;
-        }
-
-        outgoing.statusCode = response.status;
-        response.headers.forEach((value, name) => {
-          outgoing.setHeader(name, value);
-        });
-        outgoing.end(Buffer.from(await response.arrayBuffer()));
-      });
-    },
+    configureServer: configureLocalApi,
+    configurePreviewServer: configureLocalApi,
   };
 }
