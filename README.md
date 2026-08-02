@@ -40,6 +40,7 @@ firmware.
 - [Transport design](#transport-design)
 - [Live data](#live-data)
 - [Localization](#localization)
+- [Ask AI](#ask-ai)
 - [Optional navigation](#optional-navigation)
 - [Local development](#local-development)
 - [Build, test, and package](#build-test-and-package)
@@ -58,7 +59,7 @@ around that fact:
 - Dense overview information distributed across four focused pages.
 - Full-screen detail decks for maps, news, tasks, weather, and navigation.
 - Canvas-first rendering for visual consistency and fast page changes.
-- Four-call, fail-fast image transport with no deferred refresh queue.
+- Serial, fail-fast image transport with no deferred refresh queue.
 - Keyless location, weather, news, and map data.
 - Optional OpenRouteService routing with a device-local key or development fallback.
 - An Even-style phone companion for configuration and live status.
@@ -71,7 +72,7 @@ companion UI around the persistent G2 Canvas. Its home screen follows the Even
 app's compact two-column card rhythm and keeps the live HUD preview mounted
 while settings screens are open.
 
-Eight cards open their settings directly, without an intermediate management
+Nine cards open their settings directly, without an intermediate management
 menu:
 
 | Card | Phone capability |
@@ -83,6 +84,7 @@ menu:
 | Weather | Inspect current conditions and request one immediate refresh |
 | Navigation | Validate and store a user-owned ORS key on the device |
 | Language | Follow the system language or select one of 30 bundled languages |
+| Ask AI | Configure OpenAI BYOK, response pacing, local usage, and MCP servers |
 | Developer | Inspect, copy, and clear the WebView trace |
 
 The footer identifies the project, app-manifest version, development status,
@@ -100,6 +102,7 @@ information panel on the right.
 | `NEWS` | Current headlines from the enabled local RSS source list |
 | `TODO` | Three persistent checklist items and today's completion progress |
 | `WEATHER` | Current conditions, apparent temperature, humidity, precipitation, and wind |
+| `ASK AI` | Recent conversation excerpts and locally estimated weekly/monthly spend |
 | `NAVIGATION` *(active route only)* | Route state, remaining distance, next maneuver, and destination |
 
 A single tap opens the active page's four-tile detail deck:
@@ -108,6 +111,7 @@ A single tap opens the active page's four-tile detail deck:
 - `NEWS` opens one real RSS story at a time with paginated body text.
 - `TODO` opens the full checklist and selected item.
 - `WEATHER` opens current conditions, hourly context, and a large tactical weather icon.
+- `ASK AI` starts a new text-only Realtime conversation using the G2 microphone.
 - `NAVIGATION` opens the current maneuver and route progress.
 
 ## Interaction model
@@ -117,9 +121,9 @@ The same gestures work from the G2 temple and the R1 ring:
 - **Scroll:** move between dashboard pages.
 - **Single tap:** open the active detail deck or activate its selected item.
 - **Fast double tap:** return from a detail deck to its dashboard page.
-- **Dashboard double tap:** on the production route, replace all tiles with
-  black images while leaving the app and event listeners alive; double tap
-  again to restore the latest view.
+- **Dashboard double tap:** on the production route, replace the image page
+  with one blank event-capture container without sending images; double tap
+  again to rebuild the image page and restore the latest view.
 
 Within full-screen details:
 
@@ -233,6 +237,35 @@ server catalog. The catalog contains ninety unique HTTPS URLs and can be
 checked live, one request at a time, with `npm run verify:rss-live`. See
 [Adding a Sandevistan language](docs/i18n/adding-a-language.md) for the
 type-safe extension workflow.
+
+## Ask AI
+
+Ask AI is an optional, text-only OpenAI Realtime surface designed for the G2's
+microphone-only hardware. Its dashboard page shows excerpts from the three
+most recent conversations and device-local estimates for this week's and this
+month's usage. Merely viewing that page never opens the microphone or creates
+an API session; tapping the page starts a new conversation.
+
+The detail view uses one official Even Hub Text container rather than image
+tiles. OpenAI semantic VAD owns turn detection, user transcription appears in
+the same rolling transcript as the response, and assistant text is presented
+one Unicode grapheme at a time. The default interval is 200 ms and can be
+adjusted from 100–1,000 ms in 50 ms steps on the phone. A single tap reveals an
+already received answer immediately or cancels an active response; a double
+tap exits, closes microphone ownership, and restores the Canvas dashboard.
+
+Built-in tools provide current time, current live location, and bounded web
+search. Users may also add bounded HTTPS MCP servers with optional bearer
+authentication and tool allowlists. Every MCP call requires explicit approval
+on the glasses. Active tool state appears in the transcript's trailing status
+line instead of replacing conversation text.
+
+OpenAI access is BYOK. The key is stored only through the Even local-storage
+bridge and is submitted to a same-origin endpoint solely to mint a short-lived
+Realtime client secret. Conversation excerpts, citations, usage, and cost
+records remain device-local. Weekly and monthly estimates include Realtime
+token/audio usage and recorded web-search calls using the versioned local
+pricing snapshot; they are estimates rather than OpenAI billing records.
 
 ## Optional navigation
 
@@ -399,8 +432,12 @@ Useful hardware records:
 
 - Location, task, route, and cache data are stored through the Even local-storage
   bridge on the user's device.
-- Requests to Open-Meteo, SBS RSS, OpenStreetMap/Overpass, and optional
-  OpenRouteService necessarily disclose request data to those services.
+- Requests to Open-Meteo, configured RSS providers, OpenStreetMap/Overpass,
+  optional OpenRouteService, OpenAI, and approved MCP servers necessarily
+  disclose request data to those services.
+- OpenAI and ORS keys remain in Even local storage and scoped request headers;
+  they are never bundled into the WebView, committed, logged, or persisted by
+  Sandevistan's server routes.
 - OpenStreetMap data is © OpenStreetMap contributors and available under the
   [ODbL](https://www.openstreetmap.org/copyright).
 - Public endpoints are used conservatively for a personal, non-commercial
@@ -415,7 +452,8 @@ Issues and focused pull requests are welcome. Before opening a change:
 
 1. Keep image transport bounded and fail-fast.
 2. Do not add a deferred refresh queue.
-3. Keep credentials on the server.
+3. Never bundle, commit, or log credentials; preserve device-local BYOK and
+   server-environment fallback boundaries.
 4. Preserve the 576×288 and 288×144 transport boundaries.
 5. Run the complete serial verification suite above.
 6. Keep tracked Markdown in English.

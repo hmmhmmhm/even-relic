@@ -61,9 +61,11 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Keep six general-article samples on news, the three-item checklist plus daily
   progress on TODO, and the approved turn instruction on navigation.
 - On `/hud-canvas-fast` only, replace double-tap shutdown with a serialized
-  display toggle: send black IDs 3/5/2/4 to hide, ignore scroll while hidden,
-  and resend the current IDs 3/5/2/4 to restore. Keep the event layer and app
-  alive, update visibility only after successful transmission, and preserve
+  display toggle: rebuild to one blank full-screen event-capture container to
+  hide without encoding or sending images, ignore scroll while hidden, and
+  rebuild the image page before resending current IDs 3/5/2/4 to restore. Keep
+  the app alive, update visibility only after a successful rebuild/transfer,
+  preserve `?hide=black` as the former four-black-tile diagnostic, and preserve
   legacy shutdown behavior on every other route.
 - Present the WebView preview in the phone companion's washed grayscale Even
   app treatment. Keep that phone preview independent from transmitted-tile
@@ -186,7 +188,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Render the Ask AI detail deck with one full-screen official Even Hub Text
   container. Rebuild once on entry, use `textContainerUpgrade` for combined
   user/listening updates at a queue-free 100 ms sampling cadence, acknowledge
-  each assistant-grapheme update before starting its next 250 ms delay,
+  each assistant-grapheme update before starting its next 200 ms default delay,
   suppress image refreshes while the native page is active, and rebuild/send
   the established four-tile Canvas dashboard once on exit. Before that image
   rebuild, neutralize the frequently updated AI Text page with the proven
@@ -200,7 +202,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   its received partial text, and resumes listening without closing the
   microphone. Double tap is the only exit and performs best-effort microphone
   cleanup without blocking Canvas restoration. Pace assistant presentation at
-  one Unicode grapheme every 250 ms, keep authoritative Realtime state and
+  one Unicode grapheme every 200 ms by default, keep authoritative Realtime state and
   persistence unthrottled, preserve the visible grapheme cursor when Realtime
   archives a completed response into conversation history or expands that
   archived response with late final text. Serialize a tap flush behind any SDK
