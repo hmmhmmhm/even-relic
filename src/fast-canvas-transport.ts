@@ -216,8 +216,8 @@ export async function transmitCanvas(
   let hiddenSource: HTMLCanvasElement | undefined;
   let busy = false;
   const nativeText = createFastNativeAiTextController({
-    bridge,
-    tiles,
+    bridge, tiles,
+    waitForImagePageReady: dependencies.waitForPageReady,
     invalidateImages: () => lastSuccessfulTilePayload.clear(),
     restoreImages: () => refreshImages(source, tiles, "Canvas HUD 복원 완료"),
     onFailure: (operation) => {

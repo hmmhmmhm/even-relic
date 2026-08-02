@@ -50,15 +50,18 @@ export function createNativeAiTextContent(
       approval.reject,
     ].join("\n").slice(0, MAXIMUM_CONTENT_LENGTH);
   }
-  const trailingListening = snapshot.phase === "listening"
-    && !snapshot.activeTool;
-  const leadingStatus = snapshot.activeTool
-    || (snapshot.phase !== "listening" && snapshot.phase !== "displaying")
+  const trailingStatus = snapshot.activeTool || snapshot.phase === "thinking"
+    ? aiHudStatusLabel(snapshot, locale)
+    : snapshot.phase === "listening"
+      ? translateAiHud(locale, "listening")
+      : undefined;
+  const leadingStatus = !trailingStatus
+    && snapshot.phase !== "displaying"
     ? aiHudStatusLabel(snapshot, locale)
     : undefined;
   const lines = snapshot.transcriptLines;
   const revealRows = snapshot.canRevealFullResponse ? 2 : 0;
-  const statusRows = leadingStatus || trailingListening ? 2 : 0;
+  const statusRows = leadingStatus || trailingStatus ? 2 : 0;
   const transcriptRows = Math.max(
     1,
     AI_TRANSCRIPT_VISIBLE_LINES - statusRows - revealRows,
@@ -81,9 +84,9 @@ export function createNativeAiTextContent(
   if (snapshot.canRevealFullResponse) {
     localized.push("", translateAiHud(locale, "tapReveal"));
   }
-  if (trailingListening) {
+  if (trailingStatus) {
     if (localized.length > 0) localized.push("");
-    localized.push(translateAiHud(locale, "listening"));
+    localized.push(trailingStatus);
   }
   return localized.join("\n").slice(0, MAXIMUM_CONTENT_LENGTH);
 }

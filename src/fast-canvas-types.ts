@@ -31,6 +31,7 @@ export type Bridge = {
 
 export type TransportDependencies = {
   waitForBridge: () => Promise<Bridge>;
+  waitForPageReady?: (milliseconds: number) => Promise<void>;
   encode: typeof encodeCanvasTiles;
 };
 

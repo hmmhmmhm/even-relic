@@ -189,8 +189,11 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   suppress image refreshes while the native page is active, and rebuild/send
   the established four-tile Canvas dashboard once on exit. Before that image
   rebuild, neutralize the frequently updated AI Text page with the proven
-  blank event page, and drop late Text upgrades for the entire restore instead
-  of letting them race the bilateral image containers.
+  blank event page. After rebuilding the five-container image page, wait a
+  fixed 200 ms before encoding and sending IDs 3/5/2/4 so both lenses can
+  install every quadrant. Apply this barrier only to Ask AI exit, keep dropping
+  late Text upgrades throughout it, and do not add retries, queued refreshes,
+  or forced tile resends.
 - Keep Ask AI microphone ownership session-scoped: a normal detail tap flushes
   an already-complete answer or cancels an active Realtime response, reveals
   its received partial text, and resumes listening without closing the
@@ -207,8 +210,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   header, page counter, or footer instructions. Show only the rolling
   localized conversation and a short localized `Listening…` line when
   applicable. Never show the response-pacing `Displaying response…` phase;
-  append `Listening…` after the conversation instead of above it. Use the full
-  native text width for wrapping and add exactly one
+  append `Thinking…`, active tool status such as `Web search…`, and
+  `Listening…` after the conversation instead of above it. Use one trailing
+  activity slot, the full native text width for wrapping, and add exactly one
   blank display row whenever the speaker changes and immediately before a
   trailing `Listening…` status, without making either spacer a scroll target.
   Follow the newest line by default and move exactly one

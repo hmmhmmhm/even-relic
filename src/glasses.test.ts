@@ -60,6 +60,9 @@ type FastRefreshHarnessConfig = {
     page: Record<string, unknown>,
     call: number,
   ) => boolean | Promise<boolean>;
+  readonly waitForPageReady?: (
+    milliseconds: number,
+  ) => void | Promise<void>;
 };
 
 function deferred() {
@@ -90,6 +93,7 @@ async function createFastRefreshHarness(
   const rawEvents: TestRawEvent[] = [];
   const rebuiltPages: Record<string, unknown>[] = [];
   const textContents: string[] = [];
+  const transitionEvents: string[] = [];
   let activeImageSends = 0;
   let maximumActiveImageSends = 0;
   let currentEncodeAttempt = 0;
@@ -104,13 +108,24 @@ async function createFastRefreshHarness(
     rebuildPageContainer: async (page: {
       toJson?: () => Record<string, unknown>;
     }) => {
-      const serialized = page.toJson?.() ?? page;
+      const serialized: Record<string, unknown> = page.toJson?.()
+        ?? page as Record<string, unknown>;
       rebuiltPages.push(serialized);
+      if (serialized.containerTotalNum === 5) {
+        transitionEvents.push("rebuild:image");
+      } else if (
+        serialized.containerTotalNum === 1
+        && Array.isArray(serialized.textObject)
+        && serialized.textObject[0]?.containerName === "eventLayer"
+      ) {
+        transitionEvents.push("rebuild:neutral");
+      }
       return await (config.rebuild?.(serialized, rebuiltPages.length) ?? true);
     },
     updateImageRawData: async (update: { containerID?: number }) => {
       const id = update.containerID!;
       imageIds.push(id);
+      transitionEvents.push(`image:${id}`);
       activeImageSends += 1;
       maximumActiveImageSends = Math.max(
         maximumActiveImageSends,
@@ -150,6 +165,7 @@ async function createFastRefreshHarness(
       createHiddenSource: () => HTMLCanvasElement;
       dependencies: {
         waitForBridge: () => Promise<typeof bridge>;
+        waitForPageReady?: (milliseconds: number) => Promise<void>;
         encode: (
           source: HTMLCanvasElement,
           factory?: unknown,
@@ -186,6 +202,10 @@ async function createFastRefreshHarness(
       createHiddenSource: () => blackSource,
       dependencies: {
         waitForBridge: async () => bridge,
+        waitForPageReady: async (milliseconds) => {
+          transitionEvents.push(`wait:${milliseconds}`);
+          await config.waitForPageReady?.(milliseconds);
+        },
         encode: async (
           source,
           _factory,
@@ -193,6 +213,7 @@ async function createFastRefreshHarness(
           options,
         ) => {
           const ids = tiles.map(({ id }) => id);
+          transitionEvents.push(`encode:${ids.join(",")}`);
           const sourceName = source === blackSource ? "black" : "hud";
           encodedTileIds.push(ids);
           encodedImageFormats.push(options?.format);
@@ -260,6 +281,7 @@ async function createFastRefreshHarness(
       inputResult = result;
     },
     textContents,
+    transitionEvents,
     get sdkUnsubscribeCalls() {
       return sdkUnsubscribeCalls;
     },
@@ -284,6 +306,7 @@ describe("G2 raster transport", () => {
     expect(harness.imageIds).toHaveLength(initialImageCount);
     expect(harness.textContents).toEqual(["ASK AI // LISTENING"]);
 
+    const transitionStart = harness.transitionEvents.length;
     expect(await harness.nativeText.restore()).toBe(true);
     expect(harness.nativeText.active()).toBe(false);
     expect(harness.rebuiltPages).toHaveLength(3);
@@ -298,6 +321,16 @@ describe("G2 raster transport", () => {
     expect(harness.rebuiltPages[2]).toMatchObject({ containerTotalNum: 5 });
     expect(harness.encodedTileIds).toHaveLength(initialEncodeCount + 1);
     expect(harness.imageIds).toHaveLength(initialImageCount + 4);
+    expect(harness.transitionEvents.slice(transitionStart)).toEqual([
+      "rebuild:neutral",
+      "rebuild:image",
+      "wait:200",
+      "encode:3,5,2,4",
+      "image:3",
+      "image:5",
+      "image:2",
+      "image:4",
+    ]);
   });
 
   it("keeps native AI active when its neutral page rebuild fails", async () => {
@@ -333,23 +366,25 @@ describe("G2 raster transport", () => {
   });
 
   it("drops late native text updates throughout the binocular restore", async () => {
-    const neutralRebuild = deferred();
+    const pageReady = deferred();
     const harness = await createFastRefreshHarness({
-      rebuild: async (_page, call) => {
-        if (call === 2) await neutralRebuild.promise;
-        return true;
+      waitForPageReady: async (milliseconds) => {
+        expect(milliseconds).toBe(200);
+        await pageReady.promise;
       },
     });
 
     expect(await harness.nativeText.enter("ASK AI // READY")).toBe(true);
     const restoring = harness.nativeText.restore();
-    await vi.waitFor(() => expect(harness.rebuiltPages).toHaveLength(2));
+    await vi.waitFor(() => (
+      expect(harness.transitionEvents).toContain("wait:200")
+    ));
     const initialTextCount = harness.textContents.length;
 
     expect(await harness.nativeText.update("LATE AI FRAME")).toBe(false);
     expect(harness.textContents).toHaveLength(initialTextCount);
 
-    neutralRebuild.resolve();
+    pageReady.resolve();
     expect(await restoring).toBe(true);
   });
 

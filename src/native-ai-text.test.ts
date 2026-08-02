@@ -66,8 +66,10 @@ describe("native Ask AI text page", () => {
       activeTool: { id: "search-1", kind: "web-search" as const },
       transcriptLines: ["YOU // private question"],
     };
-    expect(createNativeAiTextContent(tool, 0, "ko").split("\n")[0])
-      .toBe("웹 검색 중…");
+    const toolLines = createNativeAiTextContent(tool, 0, "ko").split("\n");
+    expect(toolLines[0]).toBe("사용자 // private question");
+    expect(toolLines.at(-2)).toBe("");
+    expect(toolLines.at(-1)).toBe("웹 검색 중…");
 
     const delayed = {
       ...tool,
@@ -138,13 +140,14 @@ describe("native Ask AI text page", () => {
     const latest = createNativeAiTextContent(snapshot, 11, "en").split("\n");
     const oneLineOlder = createNativeAiTextContent(snapshot, 10, "en").split("\n");
     expect(latest).toHaveLength(9);
-    expect(latest[0]).toBe("THINKING…");
-    expect(latest[1]).toBe("");
-    expect(latest[2]).toBe("AI // line 6");
-    expect(latest.at(-1)).toBe("AI // line 12");
-    expect(oneLineOlder[0]).toBe("THINKING…");
-    expect(oneLineOlder[2]).toBe("AI // line 5");
-    expect(oneLineOlder.at(-1)).toBe("AI // line 11");
+    expect(latest[0]).toBe("AI // line 6");
+    expect(latest.at(-3)).toBe("AI // line 12");
+    expect(latest.at(-2)).toBe("");
+    expect(latest.at(-1)).toBe("THINKING…");
+    expect(oneLineOlder[0]).toBe("AI // line 5");
+    expect(oneLineOlder.at(-3)).toBe("AI // line 11");
+    expect(oneLineOlder.at(-2)).toBe("");
+    expect(oneLineOlder.at(-1)).toBe("THINKING…");
   });
 
   it("bounds unexpected transcript payloads without restoring decoration", () => {

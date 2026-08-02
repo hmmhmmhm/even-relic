@@ -23,10 +23,10 @@ and the localized Web search status last. Change the rolling-viewport assertion
 to require Thinking after the final transcript row:
 
 ```ts
-const lines = createNativeAiTextContent(tool, 0, "ko").split("\n");
-expect(lines[0]).toBe("사용자 // private question");
+const lines = createNativeAiTextContent(tool, 0, "en").split("\n");
+expect(lines[0]).toBe("YOU // private question");
 expect(lines.at(-2)).toBe("");
-expect(lines.at(-1)).toBe("웹 검색 중…");
+expect(lines.at(-1)).toBe("WEB SEARCH…");
 
 expect(latest[0]).toBe("AI // line 6");
 expect(latest.at(-2)).toBe("");
