@@ -314,6 +314,9 @@ export function useHudController({
           getLocale: currentLocale,
           getLocation: () => live.location,
           getSnapshot: () => aiSnapshotRef.current,
+          getPresentationIntervalMs: () => (
+            phonePreferencesRef.current.aiTextIntervalMs
+          ),
           onSnapshot: (snapshot) => {
             aiSnapshotRef.current = snapshot;
             setCompanionAiSnapshot(snapshot);

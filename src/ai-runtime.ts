@@ -1,10 +1,8 @@
 import type { AudioInputSource, EvenHubEvent } from "@evenrealities/even_hub_sdk";
 import {
   addDailyAiUsage,
-  estimateAiUsageUsd,
+  costSummaryForCurrentPeriod,
   resolveAiUsageLedger,
-  usageForCurrentMonth,
-  usageForCurrentWeek,
   writeAiUsageLedger,
 } from "./ai-cost";
 import {
@@ -95,7 +93,13 @@ export function createAiRuntime(options: {
           sources: protocol.sources,
         })
       : history;
-    const nextLedger = addDailyAiUsage(ledger, now, protocol.usage);
+    const nextLedger = addDailyAiUsage(
+      ledger,
+      now,
+      protocol.usage,
+      protocol.charge,
+    );
+    const costs = costSummaryForCurrentPeriod(nextLedger, now);
     await Promise.all([
       writeAiConversationHistory(options.bridge, nextHistory),
       writeAiUsageLedger(options.bridge, nextLedger),
@@ -103,8 +107,9 @@ export function createAiRuntime(options: {
     publish(createAiHudSnapshot(
       Boolean(options.getKey()),
       nextHistory,
-      estimateAiUsageUsd(usageForCurrentWeek(nextLedger, now)),
-      estimateAiUsageUsd(usageForCurrentMonth(nextLedger, now)),
+      costs.weekUsd,
+      costs.monthUsd,
+      costs.hasUnpricedUsage,
     ), true);
   };
 

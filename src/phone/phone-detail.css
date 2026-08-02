@@ -223,6 +223,27 @@
   gap: 16px;
 }
 
+.phone-ai-speed label {
+  display: grid;
+  gap: 12px;
+}
+
+.phone-ai-speed label > span,
+.phone-ai-cost-warning {
+  color: var(--phone-muted);
+}
+
+.phone-ai-speed input[type="range"] {
+  width: 100%;
+  accent-color: #202020;
+}
+
+.phone-ai-cost-warning {
+  margin: 10px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .phone-key-status > div {
   display: grid;
   gap: 5px;

@@ -28,6 +28,7 @@ describe("phone preferences", () => {
       locale: "system",
       order: ["overview", "news", "todo", "weather", "ai"],
       enabled: ["overview", "news", "todo", "weather", "ai"],
+      aiTextIntervalMs: 200,
     });
   });
 
@@ -40,6 +41,7 @@ describe("phone preferences", () => {
       locale: "ko",
       order: ["overview", "news", "todo", "weather", "ai"],
       enabled: ["overview", "news", "todo", "weather", "ai"],
+      aiTextIntervalMs: 200,
     });
   });
 
@@ -48,6 +50,7 @@ describe("phone preferences", () => {
       locale: "system",
       order: ["overview", "news", "todo", "weather", "ai", "navigation"],
       enabled: ["overview", "news", "todo", "weather", "ai"],
+      aiTextIntervalMs: 200,
     });
   });
 
@@ -58,6 +61,7 @@ describe("phone preferences", () => {
       locale: "system",
       order: ["overview", "news", "todo", "weather", "ai", "navigation"],
       enabled: ["overview", "news", "todo", "weather", "ai"],
+      aiTextIntervalMs: 200,
     });
   });
 
@@ -77,9 +81,24 @@ describe("phone preferences", () => {
       ...saved,
       order: [...saved.order, "ai"],
       enabled: [...saved.enabled, "ai"],
+      aiTextIntervalMs: 200,
     });
-    await expect(writePhonePreferences(storage, saved)).resolves.toBe(true);
+    await expect(writePhonePreferences(storage, {
+      ...saved,
+      aiTextIntervalMs: 200,
+    })).resolves.toBe(true);
     expect(storage.writes.at(-1)?.[0])
       .toBe("sandevistan:phone-preferences:v1");
+  });
+
+  it("normalizes the Ask AI text interval to safe 50ms steps", () => {
+    expect(normalizePhonePreferences({
+      ...DEFAULT_PHONE_PREFERENCES,
+      aiTextIntervalMs: 376,
+    }, false).aiTextIntervalMs).toBe(400);
+    expect(normalizePhonePreferences({
+      ...DEFAULT_PHONE_PREFERENCES,
+      aiTextIntervalMs: 5000,
+    }, false).aiTextIntervalMs).toBe(1000);
   });
 });

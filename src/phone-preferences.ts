@@ -1,5 +1,6 @@
 import { readCache, writeCache, type EvenStorage } from "./live-cache";
 import { isSupportedLocale } from "./i18n/locale-registry";
+import { normalizeAiPresentationInterval } from "./ai-presentation-pacer";
 import type {
   HudPageId,
   PhoneLocaleSetting,
@@ -29,6 +30,11 @@ export const DEFAULT_PHONE_PREFERENCES: PhonePreferences = {
   locale: "system",
   order: KEYLESS_PAGES,
   enabled: KEYLESS_PAGES,
+  aiTextIntervalMs: 200,
+};
+
+type StoredPhonePreferences = Omit<PhonePreferences, "aiTextIntervalMs"> & {
+  readonly aiTextIntervalMs?: number;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -40,12 +46,14 @@ function isPageArray(value: unknown): value is readonly HudPageId[] {
     && value.every((item) => typeof item === "string" && PAGE_IDS.has(item as HudPageId));
 }
 
-function isPhonePreferences(value: unknown): value is PhonePreferences {
+function isPhonePreferences(value: unknown): value is StoredPhonePreferences {
   return isRecord(value)
     && typeof value.locale === "string"
     && isLocaleSetting(value.locale)
     && isPageArray(value.order)
-    && isPageArray(value.enabled);
+    && isPageArray(value.enabled)
+    && (value.aiTextIntervalMs === undefined
+      || typeof value.aiTextIntervalMs === "number");
 }
 
 function clonePreferences(value: PhonePreferences): PhonePreferences {
@@ -53,6 +61,7 @@ function clonePreferences(value: PhonePreferences): PhonePreferences {
     locale: value.locale,
     order: [...value.order],
     enabled: [...value.enabled],
+    aiTextIntervalMs: normalizeAiPresentationInterval(value.aiTextIntervalMs),
   };
 }
 
@@ -79,22 +88,28 @@ function isValidLayout(
 }
 
 export function normalizePhonePreferences(
-  value: PhonePreferences,
+  value: StoredPhonePreferences,
   navigationAvailable: boolean,
 ): PhonePreferences {
-  const migrated: PhonePreferences = !value.order.includes("ai")
+  const withInterval: PhonePreferences = {
+    ...value,
+    aiTextIntervalMs: normalizeAiPresentationInterval(
+      value.aiTextIntervalMs,
+    ),
+  };
+  const migrated: PhonePreferences = !withInterval.order.includes("ai")
     ? {
-        ...value,
-        order: value.order.includes("navigation")
+        ...withInterval,
+        order: withInterval.order.includes("navigation")
           ? [
-              ...value.order.filter((page) => page !== "navigation"),
+              ...withInterval.order.filter((page) => page !== "navigation"),
               "ai" as const,
               "navigation" as const,
             ]
-          : [...value.order, "ai" as const],
-        enabled: [...value.enabled, "ai" as const],
+          : [...withInterval.order, "ai" as const],
+        enabled: [...withInterval.enabled, "ai" as const],
       }
-    : value;
+    : withInterval;
   if (!isValidLayout(migrated, navigationAvailable)) {
     return {
       ...DEFAULT_PHONE_PREFERENCES,
@@ -103,6 +118,7 @@ export function normalizePhonePreferences(
         ? [...DEFAULT_PHONE_PREFERENCES.order, "navigation"]
         : [...DEFAULT_PHONE_PREFERENCES.order],
       enabled: [...DEFAULT_PHONE_PREFERENCES.enabled],
+      aiTextIntervalMs: withInterval.aiTextIntervalMs,
     };
   }
   return {

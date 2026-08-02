@@ -42,10 +42,8 @@ import {
   type AiHudSnapshot,
 } from "./ai-hud-state";
 import {
-  estimateAiUsageUsd,
+  costSummaryForCurrentPeriod,
   resolveAiUsageLedger,
-  usageForCurrentMonth,
-  usageForCurrentWeek,
 } from "./ai-cost";
 import { resolveAiConversationHistory } from "./ai-history";
 import { resolveOpenAiKey } from "./openai-key";
@@ -229,12 +227,14 @@ export function App({ autoStart = true }: AppProps) {
       resolveAiUsageLedger(companionStorage),
     ]).then(([key, history, ledger]) => {
       if (!active) return;
+      const costs = costSummaryForCurrentPeriod(ledger);
       setCompanionOpenAiKey(key);
       setCompanionAiSnapshot(createAiHudSnapshot(
         Boolean(key),
         history,
-        estimateAiUsageUsd(usageForCurrentWeek(ledger)),
-        estimateAiUsageUsd(usageForCurrentMonth(ledger)),
+        costs.weekUsd,
+        costs.monthUsd,
+        costs.hasUnpricedUsage,
       ));
     });
     return () => {

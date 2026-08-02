@@ -6,6 +6,7 @@ import { createRealtimeProtocolState } from "./ai-realtime-protocol";
 import { createAiRuntime } from "./ai-runtime";
 import type { EvenStorage } from "./live-cache";
 import { writeMcpServers } from "./mcp-servers";
+import { priceRealtimeUsage } from "./ai-pricing";
 
 class TestBridge implements EvenStorage {
   readonly values = new Map<string, string>();
@@ -22,12 +23,25 @@ describe("Ask AI runtime", () => {
   it("starts only with BYOK and persists one local excerpt and usage on exit", async () => {
     const bridge = new TestBridge();
     let snapshot = createAiHudSnapshot(true);
+    const usage = {
+      ...EMPTY_AI_USAGE,
+      audioInputTokens: 100,
+      textOutputTokens: 20,
+    };
     const protocol = {
       ...createRealtimeProtocolState(),
       phase: "listening" as const,
       userText: "오늘 일정을 알려줘",
       assistantText: "오후 세 시에 검토 일정이 있습니다.",
-      usage: { ...EMPTY_AI_USAGE, audioInputTokens: 100, textOutputTokens: 20 },
+      usage,
+      charge: priceRealtimeUsage({
+        model: "gpt-realtime",
+        textInputTokens: usage.textInputTokens,
+        cachedTextInputTokens: usage.cachedTextInputTokens,
+        audioInputTokens: usage.audioInputTokens,
+        cachedAudioInputTokens: usage.cachedAudioInputTokens,
+        textOutputTokens: usage.textOutputTokens,
+      }),
     };
     const start = vi.fn(async () => undefined);
     const stop = vi.fn(async () => protocol);

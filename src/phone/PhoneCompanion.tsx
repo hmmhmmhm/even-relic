@@ -207,6 +207,12 @@ export function PhoneCompanion({
     return saved;
   };
 
+  const updateAiTextInterval = (aiTextIntervalMs: number) => {
+    const next = { ...preferences, aiTextIntervalMs };
+    onPreferencesChange(next);
+    if (storage) void writePhonePreferences(storage, next);
+  };
+
   const content = () => {
     switch (screen) {
       case "devices":
@@ -284,6 +290,8 @@ export function PhoneCompanion({
             t={t}
             onKeyChange={onOpenAiKeyChange}
             onSnapshotChange={onAiSnapshotChange}
+            textIntervalMs={preferences.aiTextIntervalMs}
+            onTextIntervalChange={updateAiTextInterval}
           />
         );
       case "developer":

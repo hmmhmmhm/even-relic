@@ -7,6 +7,7 @@ import {
   translateAiHud,
 } from "./ai-hud-i18n";
 import { SUPPORTED_LOCALES } from "./i18n/locale-registry";
+import { createAiHudSnapshot } from "./ai-hud-state";
 
 describe("Ask AI HUD translations", () => {
   it("provides a complete non-empty dictionary for every supported locale", () => {
@@ -41,17 +42,8 @@ describe("Ask AI HUD translations", () => {
 
   it("prioritizes safe tool status over delayed and normal phases", () => {
     const base = {
-      configured: true,
+      ...createAiHudSnapshot(true),
       phase: "displaying" as const,
-      userText: "",
-      assistantText: "",
-      turns: [],
-      transcriptLines: [],
-      history: [],
-      weekUsd: 0,
-      monthUsd: 0,
-      responseComplete: false,
-      canRevealFullResponse: false,
     };
     expect(aiHudStatusLabel({
       ...base,

@@ -1,6 +1,6 @@
 import type { SupportedLocale } from "./i18n/locale-registry";
 
-export type AiPhoneStringKey =
+type AiPhoneBaseStringKey =
   | "ai"
   | "openAiKey"
   | "estimatedCost"
@@ -11,7 +11,16 @@ export type AiPhoneStringKey =
   | "clearAiData"
   | "aiKeyRequired";
 
-type AiStrings = Readonly<Record<AiPhoneStringKey, string>>;
+export type AiPhoneControlStrings = Readonly<{
+  responseSpeed: string;
+  millisecondsPerCharacter: string;
+  unpricedUsage: string;
+}>;
+
+export type AiPhoneStringKey = AiPhoneBaseStringKey
+  | keyof AiPhoneControlStrings;
+
+type AiStrings = Readonly<Record<AiPhoneBaseStringKey, string>>;
 const english: AiStrings = {
   ai: "Ask AI",
   openAiKey: "OpenAI API key",
@@ -68,9 +77,48 @@ const localized: Partial<Record<SupportedLocale, Partial<AiStrings>>> = {
   "zh-Hant": { ai: "詢問 AI", openAiKey: "OpenAI API 金鑰", estimatedCost: "預估 Realtime 費用", thisWeek: "本週", thisMonth: "本月", recentConversations: "最近對話", noConversations: "尚無對話", clearAiData: "清除 AI 歷史與用量", aiKeyRequired: "需要 OpenAI 金鑰" },
 };
 
+export const AI_PHONE_CONTROL_TRANSLATIONS = {
+  en: { responseSpeed: "Response display speed", millisecondsPerCharacter: "ms per character", unpricedUsage: "Some usage could not be priced." },
+  ko: { responseSpeed: "답변 표시 속도", millisecondsPerCharacter: "ms / 글자", unpricedUsage: "가격을 계산할 수 없는 사용량이 있습니다." },
+  ja: { responseSpeed: "回答の表示速度", millisecondsPerCharacter: "ミリ秒 / 文字", unpricedUsage: "料金を計算できない利用があります。" },
+  "zh-Hans": { responseSpeed: "回答显示速度", millisecondsPerCharacter: "毫秒/字", unpricedUsage: "部分用量无法估价。" },
+  "zh-Hant": { responseSpeed: "回答顯示速度", millisecondsPerCharacter: "毫秒/字", unpricedUsage: "部分用量無法估價。" },
+  es: { responseSpeed: "Velocidad de visualización", millisecondsPerCharacter: "ms por carácter", unpricedUsage: "No se pudo calcular parte del uso." },
+  fr: { responseSpeed: "Vitesse d’affichage", millisecondsPerCharacter: "ms par caractère", unpricedUsage: "Une partie de l’utilisation n’a pas pu être tarifée." },
+  de: { responseSpeed: "Anzeigegeschwindigkeit", millisecondsPerCharacter: "ms pro Zeichen", unpricedUsage: "Ein Teil der Nutzung konnte nicht bepreist werden." },
+  it: { responseSpeed: "Velocità di visualizzazione", millisecondsPerCharacter: "ms per carattere", unpricedUsage: "Non è stato possibile calcolare parte dell’utilizzo." },
+  pt: { responseSpeed: "Velocidade de exibição", millisecondsPerCharacter: "ms por caractere", unpricedUsage: "Não foi possível calcular parte do uso." },
+  nl: { responseSpeed: "Weergavesnelheid", millisecondsPerCharacter: "ms per teken", unpricedUsage: "Een deel van het gebruik kon niet worden geprijsd." },
+  pl: { responseSpeed: "Szybkość wyświetlania", millisecondsPerCharacter: "ms na znak", unpricedUsage: "Nie udało się wycenić części użycia." },
+  ru: { responseSpeed: "Скорость показа ответа", millisecondsPerCharacter: "мс на символ", unpricedUsage: "Часть использования не удалось оценить." },
+  uk: { responseSpeed: "Швидкість показу відповіді", millisecondsPerCharacter: "мс на символ", unpricedUsage: "Частину використання не вдалося оцінити." },
+  tr: { responseSpeed: "Yanıt gösterim hızı", millisecondsPerCharacter: "karakter başına ms", unpricedUsage: "Bazı kullanımlar fiyatlandırılamadı." },
+  ar: { responseSpeed: "سرعة عرض الرد", millisecondsPerCharacter: "مللي ثانية لكل حرف", unpricedUsage: "تعذر تسعير بعض الاستخدام." },
+  he: { responseSpeed: "מהירות הצגת התשובה", millisecondsPerCharacter: "מ״ש לתו", unpricedUsage: "לא ניתן היה לתמחר חלק מהשימוש." },
+  hi: { responseSpeed: "उत्तर दिखाने की गति", millisecondsPerCharacter: "मि.से. प्रति अक्षर", unpricedUsage: "कुछ उपयोग की कीमत नहीं निकाली जा सकी।" },
+  bn: { responseSpeed: "উত্তর দেখানোর গতি", millisecondsPerCharacter: "মিলিসেকেন্ড প্রতি অক্ষর", unpricedUsage: "কিছু ব্যবহারের মূল্য নির্ধারণ করা যায়নি।" },
+  id: { responseSpeed: "Kecepatan tampilan jawaban", millisecondsPerCharacter: "md per karakter", unpricedUsage: "Sebagian penggunaan tidak dapat dihitung biayanya." },
+  vi: { responseSpeed: "Tốc độ hiển thị câu trả lời", millisecondsPerCharacter: "ms mỗi ký tự", unpricedUsage: "Không thể tính giá một phần mức dùng." },
+  th: { responseSpeed: "ความเร็วการแสดงคำตอบ", millisecondsPerCharacter: "มิลลิวินาทีต่อตัวอักษร", unpricedUsage: "ไม่สามารถคำนวณราคาการใช้งานบางส่วนได้" },
+  ms: { responseSpeed: "Kelajuan paparan jawapan", millisecondsPerCharacter: "ms setiap aksara", unpricedUsage: "Sebahagian penggunaan tidak dapat ditentukan harganya." },
+  fil: { responseSpeed: "Bilis ng pagpapakita ng sagot", millisecondsPerCharacter: "ms bawat character", unpricedUsage: "Hindi nakuwenta ang presyo ng ilang paggamit." },
+  sv: { responseSpeed: "Svarens visningshastighet", millisecondsPerCharacter: "ms per tecken", unpricedUsage: "En del användning kunde inte prissättas." },
+  no: { responseSpeed: "Visningshastighet for svar", millisecondsPerCharacter: "ms per tegn", unpricedUsage: "Noe bruk kunne ikke prises." },
+  da: { responseSpeed: "Svarvisningshastighed", millisecondsPerCharacter: "ms pr. tegn", unpricedUsage: "Noget brug kunne ikke prissættes." },
+  fi: { responseSpeed: "Vastauksen näyttönopeus", millisecondsPerCharacter: "ms merkkiä kohti", unpricedUsage: "Osaa käytöstä ei voitu hinnoitella." },
+  cs: { responseSpeed: "Rychlost zobrazení odpovědi", millisecondsPerCharacter: "ms na znak", unpricedUsage: "Část využití nebylo možné ocenit." },
+  ro: { responseSpeed: "Viteza de afișare a răspunsului", millisecondsPerCharacter: "ms per caracter", unpricedUsage: "O parte din utilizare nu a putut fi evaluată." },
+} as const satisfies Readonly<Record<SupportedLocale, AiPhoneControlStrings>>;
+
 export function translateAiPhone(
   locale: SupportedLocale,
   key: AiPhoneStringKey,
 ): string {
-  return localized[locale]?.[key] ?? english[key];
+  if (key in AI_PHONE_CONTROL_TRANSLATIONS[locale]) {
+    return AI_PHONE_CONTROL_TRANSLATIONS[locale][
+      key as keyof AiPhoneControlStrings
+    ];
+  }
+  const baseKey = key as keyof AiStrings;
+  return localized[locale]?.[baseKey] ?? english[baseKey];
 }

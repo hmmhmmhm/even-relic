@@ -20,6 +20,7 @@ export type AiHudSnapshot = {
   readonly history: readonly AiConversationExcerpt[];
   readonly weekUsd: number;
   readonly monthUsd: number;
+  readonly hasUnpricedUsage: boolean;
   readonly responseComplete: boolean;
   readonly canRevealFullResponse: boolean;
   readonly activeTool?: AiActiveTool;
@@ -32,6 +33,7 @@ export function createAiHudSnapshot(
   history: readonly AiConversationExcerpt[] = [],
   weekUsd = 0,
   monthUsd = 0,
+  hasUnpricedUsage = false,
 ): AiHudSnapshot {
   return {
     configured,
@@ -43,6 +45,7 @@ export function createAiHudSnapshot(
     history: history.slice(0, 3),
     weekUsd,
     monthUsd,
+    hasUnpricedUsage,
     responseComplete: false,
     canRevealFullResponse: false,
   };

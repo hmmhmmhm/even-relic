@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import type { AiHudSnapshot } from "../ai-hud-state";
 import {
   clearAiConversationHistory,
@@ -13,6 +13,7 @@ import {
 } from "../openai-key";
 import type { PhoneStringKey } from "../phone-i18n";
 import { McpServersPanel } from "./McpServersPanel";
+import { normalizeAiPresentationInterval } from "../ai-presentation-pacer";
 
 function cost(value: number): string {
   return `$${value < 0.01 ? value.toFixed(4) : value.toFixed(2)}`;
@@ -25,6 +26,8 @@ export function AiScreen({
   t,
   onKeyChange,
   onSnapshotChange,
+  textIntervalMs = 200,
+  onTextIntervalChange,
 }: {
   readonly storage?: EvenStorage;
   readonly openAiKey?: string;
@@ -32,10 +35,19 @@ export function AiScreen({
   readonly t: (key: PhoneStringKey) => string;
   readonly onKeyChange?: (key: string | undefined) => void;
   readonly onSnapshotChange?: (snapshot: AiHudSnapshot) => void;
+  readonly textIntervalMs?: number;
+  readonly onTextIntervalChange?: (value: number) => void;
 }) {
   const [candidate, setCandidate] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [intervalDraft, setIntervalDraft] = useState(
+    normalizeAiPresentationInterval(textIntervalMs),
+  );
+
+  useEffect(() => {
+    setIntervalDraft(normalizeAiPresentationInterval(textIntervalMs));
+  }, [textIntervalMs]);
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
@@ -98,6 +110,7 @@ export function AiScreen({
       history: [],
       weekUsd: 0,
       monthUsd: 0,
+      hasUnpricedUsage: false,
     });
     setError(undefined);
   };
@@ -144,10 +157,34 @@ export function AiScreen({
           </button>
         </form>
       )}
+      <section className="phone-panel phone-ai-speed">
+        <label>
+          <span>{t("responseSpeed")}</span>
+          <strong>{intervalDraft} {t("millisecondsPerCharacter")}</strong>
+          <input
+            type="range"
+            aria-label={t("responseSpeed")}
+            min="100"
+            max="1000"
+            step="50"
+            value={intervalDraft}
+            onChange={(event) => {
+              const next = normalizeAiPresentationInterval(
+                Number(event.target.value),
+              );
+              setIntervalDraft(next);
+              onTextIntervalChange?.(next);
+            }}
+          />
+        </label>
+      </section>
       <section className="phone-panel phone-ai-cost">
         <h2>{t("estimatedCost")}</h2>
         <div><span>{t("thisWeek")}</span><strong>{cost(snapshot.weekUsd)}</strong></div>
         <div><span>{t("thisMonth")}</span><strong>{cost(snapshot.monthUsd)}</strong></div>
+        {snapshot.hasUnpricedUsage && (
+          <p className="phone-ai-cost-warning">{t("unpricedUsage")}</p>
+        )}
       </section>
       <section className="phone-panel phone-ai-history">
         <h2>{t("recentConversations")}</h2>

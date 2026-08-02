@@ -71,6 +71,30 @@ describe("AiScreen", () => {
     expect(screen.getAllByText(/Answer [1-3]/)).toHaveLength(3);
   });
 
+  it("changes the live response interval and warns about unpriced usage", () => {
+    const onTextIntervalChange = vi.fn();
+    render(
+      <AiScreen
+        snapshot={{
+          ...createAiHudSnapshot(true, [], 0.01, 0.03),
+          hasUnpricedUsage: true,
+        }}
+        textIntervalMs={200}
+        t={(name) => translatePhone("en", name)}
+        onTextIntervalChange={onTextIntervalChange}
+      />,
+    );
+
+    const slider = screen.getByLabelText("Response display speed");
+    expect(slider.getAttribute("min")).toBe("100");
+    expect(slider.getAttribute("max")).toBe("1000");
+    expect(slider.getAttribute("step")).toBe("50");
+    fireEvent.change(slider, { target: { value: "350" } });
+    expect(onTextIntervalChange).toHaveBeenCalledWith(350);
+    expect(screen.getByText("350 ms per character")).toBeTruthy();
+    expect(screen.getByText("Some usage could not be priced.")).toBeTruthy();
+  });
+
   it("adds an HTTPS MCP server locally with per-call glasses approval", async () => {
     const storage = new TestStorage();
     render(

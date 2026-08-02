@@ -33,6 +33,7 @@ export type PhonePreferences = {
   readonly locale: PhoneLocaleSetting;
   readonly order: readonly HudPageId[];
   readonly enabled: readonly HudPageId[];
+  readonly aiTextIntervalMs: number;
 };
 
 export type PhoneControllerSnapshot = {
