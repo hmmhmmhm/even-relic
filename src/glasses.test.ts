@@ -269,7 +269,7 @@ async function createFastRefreshHarness(
 afterEach(() => vi.useRealTimers());
 
 describe("G2 raster transport", () => {
-  it("uses one native text page for AI updates and restores Canvas once", async () => {
+  it("neutralizes native AI text before restoring the binocular Canvas page", async () => {
     const harness = await createFastRefreshHarness();
     const initialEncodeCount = harness.encodedTileIds.length;
     const initialImageCount = harness.imageIds.length;
@@ -286,11 +286,71 @@ describe("G2 raster transport", () => {
 
     expect(await harness.nativeText.restore()).toBe(true);
     expect(harness.nativeText.active()).toBe(false);
-    expect(harness.rebuiltPages).toHaveLength(2);
+    expect(harness.rebuiltPages).toHaveLength(3);
     expect(harness.rebuiltPages[0]).toMatchObject({ containerTotalNum: 1 });
-    expect(harness.rebuiltPages[1]).toMatchObject({ containerTotalNum: 5 });
+    expect(harness.rebuiltPages[1]).toMatchObject({
+      containerTotalNum: 1,
+      textObject: [expect.objectContaining({
+        containerName: "eventLayer",
+        content: " ",
+      })],
+    });
+    expect(harness.rebuiltPages[2]).toMatchObject({ containerTotalNum: 5 });
     expect(harness.encodedTileIds).toHaveLength(initialEncodeCount + 1);
     expect(harness.imageIds).toHaveLength(initialImageCount + 4);
+  });
+
+  it("keeps native AI active when its neutral page rebuild fails", async () => {
+    const harness = await createFastRefreshHarness({
+      rebuild: async (_page, call) => call !== 2,
+    });
+    const initialEncodeCount = harness.encodedTileIds.length;
+    const initialImageCount = harness.imageIds.length;
+
+    expect(await harness.nativeText.enter("ASK AI // READY")).toBe(true);
+    expect(await harness.nativeText.restore()).toBe(false);
+
+    expect(harness.nativeText.active()).toBe(true);
+    expect(harness.rebuiltPages).toHaveLength(2);
+    expect(harness.encodedTileIds).toHaveLength(initialEncodeCount);
+    expect(harness.imageIds).toHaveLength(initialImageCount);
+  });
+
+  it("does not send tiles when the image page rebuild fails after neutralizing AI", async () => {
+    const harness = await createFastRefreshHarness({
+      rebuild: async (_page, call) => call !== 3,
+    });
+    const initialEncodeCount = harness.encodedTileIds.length;
+    const initialImageCount = harness.imageIds.length;
+
+    expect(await harness.nativeText.enter("ASK AI // READY")).toBe(true);
+    expect(await harness.nativeText.restore()).toBe(false);
+
+    expect(harness.nativeText.active()).toBe(true);
+    expect(harness.rebuiltPages).toHaveLength(3);
+    expect(harness.encodedTileIds).toHaveLength(initialEncodeCount);
+    expect(harness.imageIds).toHaveLength(initialImageCount);
+  });
+
+  it("drops late native text updates throughout the binocular restore", async () => {
+    const neutralRebuild = deferred();
+    const harness = await createFastRefreshHarness({
+      rebuild: async (_page, call) => {
+        if (call === 2) await neutralRebuild.promise;
+        return true;
+      },
+    });
+
+    expect(await harness.nativeText.enter("ASK AI // READY")).toBe(true);
+    const restoring = harness.nativeText.restore();
+    await vi.waitFor(() => expect(harness.rebuiltPages).toHaveLength(2));
+    const initialTextCount = harness.textContents.length;
+
+    expect(await harness.nativeText.update("LATE AI FRAME")).toBe(false);
+    expect(harness.textContents).toHaveLength(initialTextCount);
+
+    neutralRebuild.resolve();
+    expect(await restoring).toBe(true);
   });
 
   it("covers the 576 by 288 display with four ordered tiles", async () => {

@@ -187,7 +187,10 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   user/listening updates at a queue-free 100 ms sampling cadence, acknowledge
   each assistant-grapheme update before starting its next 250 ms delay,
   suppress image refreshes while the native page is active, and rebuild/send
-  the established four-tile Canvas dashboard once on exit.
+  the established four-tile Canvas dashboard once on exit. Before that image
+  rebuild, neutralize the frequently updated AI Text page with the proven
+  blank event page, and drop late Text upgrades for the entire restore instead
+  of letting them race the bilateral image containers.
 - Keep Ask AI microphone ownership session-scoped: a normal detail tap flushes
   an already-complete answer or cancels an active Realtime response, reveals
   its received partial text, and resumes listening without closing the

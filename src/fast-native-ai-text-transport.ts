@@ -1,4 +1,7 @@
-import { createImageDisplayPage } from "./g2-display-hide";
+import {
+  createBlankDisplayPage,
+  createImageDisplayPage,
+} from "./g2-display-hide";
 import type { Tile } from "./g2-canvas";
 import { diagnosticDuration, diagnosticNow } from "./diagnostic-timing";
 import { logDiagnostic } from "./diagnostic-log";
@@ -31,6 +34,7 @@ export function createFastNativeAiTextController(options: {
     createImagePage: () => createImageDisplayPage(options.tiles),
     onFailure: options.onFailure,
   });
+  let restoringImages = false;
   const trace = async (
     operation: string,
     action: () => Promise<boolean>,
@@ -48,17 +52,39 @@ export function createFastNativeAiTextController(options: {
   return {
     active: mode.active,
     async enter(content) {
+      if (restoringImages) return false;
       const entered = await trace("native AI enter", () => mode.enter(content));
       if (entered) options.invalidateImages();
       return entered;
     },
-    update: (content) => trace("native AI update", () => mode.update(content)),
+    update: (content) => restoringImages
+      ? Promise.resolve(false)
+      : trace("native AI update", () => mode.update(content)),
     async restore() {
-      const left = await trace("native AI leave", mode.leave);
-      if (!left) return false;
-      options.invalidateImages();
-      await options.restoreImages();
-      return true;
+      if (!mode.active() || restoringImages) return false;
+      restoringImages = true;
+      try {
+        const neutralized = await trace("native AI neutralize", async () => {
+          try {
+            const rebuilt = await options.bridge.rebuildPageContainer(
+              createBlankDisplayPage(),
+            );
+            if (!rebuilt) options.onFailure("neutralize");
+            return rebuilt;
+          } catch {
+            options.onFailure("neutralize");
+            return false;
+          }
+        });
+        if (!neutralized) return false;
+        const left = await trace("native AI leave", mode.leave);
+        if (!left) return false;
+        options.invalidateImages();
+        await options.restoreImages();
+        return true;
+      } finally {
+        restoringImages = false;
+      }
     },
     dispose: mode.dispose,
   };
