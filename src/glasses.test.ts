@@ -338,6 +338,7 @@ describe("G2 raster transport", () => {
       "rebuild:neutral",
       "wait:200",
       "rebuild:image",
+      "wait:200",
       "encode:3,5,2,4",
       "image:3",
       "image:5",

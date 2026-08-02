@@ -88,7 +88,8 @@ The package is private and is not published to npm or Even Hub.
   sends all current quadrants again.
 - Ask AI uses the official full-screen native Text container. Exiting first
   neutralizes native Text, waits 200 ms for bilateral neutral-page propagation,
-  rebuilds the image page, and then restores all four image quadrants.
+  rebuilds the image page, waits another 200 ms for bilateral container
+  installation, and then restores all four image quadrants.
 
 ## Physical evidence carried forward
 
@@ -105,9 +106,10 @@ The owner has confirmed the following on updated G2 hardware and Even App:
 - the earlier complete one-eye loss after Ask AI exit improved, but intermittent
   partial or one-sided restoration remains under active physical validation.
 
-The inter-rebuild Ask AI settle barrier and the restored query-free four-call
-default have complete automated coverage but still require a fresh physical
-spot check. They remain narrow hardware candidates, not a confirmed final fix.
+The paired Ask AI page-installation barriers and the restored query-free
+four-call default have complete automated coverage but still require a fresh
+physical spot check. They remain narrow hardware candidates, not a confirmed
+final fix.
 
 ## Visual comparison status
 

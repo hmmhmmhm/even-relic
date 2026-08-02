@@ -199,10 +199,10 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   the established four-tile Canvas dashboard once on exit. Before that image
   rebuild, neutralize the frequently updated AI Text page with the proven
   blank event page. Wait a fixed 200 ms for that neutral page before rebuilding
-  the five-container image page, then encode and send IDs 3/5/2/4. Apply this
-  inter-rebuild barrier only to Ask AI exit, keep dropping late Text upgrades
-  throughout it, and do not add retries, queued refreshes, or forced tile
-  resends.
+  the five-container image page, then wait another fixed 200 ms before encoding
+  and sending IDs 3/5/2/4. Apply these two page-installation barriers only to
+  Ask AI exit, keep dropping late Text upgrades throughout them, and do not add
+  retries, queued refreshes, or forced tile resends.
 - Keep Ask AI microphone ownership session-scoped: a normal detail tap flushes
   an already-complete answer or cancels an active Realtime response, reveals
   its received partial text, and resumes listening without closing the

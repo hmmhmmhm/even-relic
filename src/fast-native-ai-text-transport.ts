@@ -16,6 +16,7 @@ export type DisposableNativeTextController = FastCanvasNativeTextController & {
 };
 
 export const NATIVE_AI_NEUTRAL_PAGE_SETTLE_MS = 200;
+export const NATIVE_AI_IMAGE_PAGE_SETTLE_MS = 200;
 
 export function createFastNativeAiTextController(options: {
   readonly bridge: Bridge;
@@ -91,6 +92,11 @@ export function createFastNativeAiTextController(options: {
         );
         const left = await trace("native AI leave", mode.leave);
         if (!left) return false;
+        await waitForImagePageReady(NATIVE_AI_IMAGE_PAGE_SETTLE_MS);
+        logDiagnostic(
+          "REFRESH",
+          `native AI image page ready · ${NATIVE_AI_IMAGE_PAGE_SETTLE_MS}ms`,
+        );
         options.invalidateImages();
         await options.restoreImages();
         return true;

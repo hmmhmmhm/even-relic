@@ -30,15 +30,16 @@ The accepted AI exit path remains:
 2. rebuild the proven blank event page to neutralize native Text updates;
 3. wait 200 ms for both lenses to install that neutral page;
 4. rebuild the established five-container Canvas page;
-5. invalidate the successful-image cache and send IDs 3, 5, 2, and 4 through
+5. wait 200 ms for both lenses to install the Canvas containers;
+6. invalidate the successful-image cache and send IDs 3, 5, 2, and 4 through
    the existing four-call pipeline.
 
 The wait is scoped only to native Ask AI restoration. Startup, paging, normal
 external refresh, and blank display hide/restore keep their existing timing and
-concurrency. The SDK exposes no page-ready event. Physical testing rejected a
-wait after the image-page rebuild; the barrier instead separates the two
-consecutive rebuilds unique to Ask AI exit so the image page cannot immediately
-supersede a still-propagating neutral page.
+concurrency. The SDK exposes no page-ready event. Physical testing showed that
+the inter-rebuild barrier improves restoration but does not eliminate the
+remaining intermittent partial display. A second bounded barrier therefore
+protects the now-isolated image-page-to-image-update boundary.
 
 Late native Text updates remain dropped for the complete neutralize, rebuild,
 settle, and image-send transition. A failed neutral or image-page rebuild sends
@@ -47,14 +48,16 @@ a later independent exit input can try again.
 
 ## Diagnostics and verification
 
-Add one diagnostic between the neutral-page and image-page rebuilds:
+Add diagnostics after each page-installation boundary:
 
 ```text
 [REFRESH] native AI neutral page ready · 200ms
+[REFRESH] native AI image page ready · 200ms
 ```
 
 Formatter tests cover Thinking and Web search below the transcript. Transport
-tests prove the settle callback occurs after the neutral-page rebuild and before
-the image-page rebuild, and that Text updates remain dropped while waiting.
+tests prove settle callbacks occur between the two rebuilds and between the
+image-page rebuild and first image update, and that Text updates remain dropped
+while waiting.
 Run the complete test, type, repository, Sites, build, and package gates before
 deployment to the existing port 4179 hardware preview.
