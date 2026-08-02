@@ -38,6 +38,8 @@ describe("native Ask AI text page", () => {
     };
 
     expect(createNativeAiTextContent(snapshot, 3, "ko")).toBe([
+      "듣는 중…",
+      "",
       "사용자 // Earlier",
       "",
       "AI // Previous answer",
@@ -45,8 +47,6 @@ describe("native Ask AI text page", () => {
       "사용자 // Now",
       "",
       "AI // Streaming answer",
-      "",
-      "듣는 중…",
     ].join("\n"));
   });
 
@@ -57,6 +57,28 @@ describe("native Ask AI text page", () => {
     };
 
     expect(createNativeAiTextContent(snapshot, 0, "en")).toBe("LISTENING…");
+  });
+
+  it("shows transient tool status and a completed-response reveal hint outside the transcript", () => {
+    const tool = {
+      ...createAiHudSnapshot(true),
+      phase: "thinking" as const,
+      activeTool: { id: "search-1", kind: "web-search" as const },
+      transcriptLines: ["YOU // private question"],
+    };
+    expect(createNativeAiTextContent(tool, 0, "ko").split("\n")[0])
+      .toBe("웹 검색 중…");
+
+    const delayed = {
+      ...tool,
+      activeTool: undefined,
+      phase: "displaying" as const,
+      responseComplete: true,
+      canRevealFullResponse: true,
+    };
+    const content = createNativeAiTextContent(delayed, 0, "ko");
+    expect(content).toContain("탭하여 전체 답변 바로 보기");
+    expect(delayed.transcriptLines).toEqual(["YOU // private question"]);
   });
 
   it("shows a localized MCP approval prompt with tap and exit actions", () => {
@@ -115,9 +137,12 @@ describe("native Ask AI text page", () => {
     const latest = createNativeAiTextContent(snapshot, 11, "en").split("\n");
     const oneLineOlder = createNativeAiTextContent(snapshot, 10, "en").split("\n");
     expect(latest).toHaveLength(9);
-    expect(latest[0]).toBe("AI // line 4");
+    expect(latest[0]).toBe("THINKING…");
+    expect(latest[1]).toBe("");
+    expect(latest[2]).toBe("AI // line 6");
     expect(latest.at(-1)).toBe("AI // line 12");
-    expect(oneLineOlder[0]).toBe("AI // line 3");
+    expect(oneLineOlder[0]).toBe("THINKING…");
+    expect(oneLineOlder[2]).toBe("AI // line 5");
     expect(oneLineOlder.at(-1)).toBe("AI // line 11");
   });
 

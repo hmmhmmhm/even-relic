@@ -153,7 +153,7 @@ describe("drawFastDetailHud", () => {
     expect((assistant?.y ?? 0) - (user?.y ?? 0)).toBe(58);
   });
 
-  it("shows the localized listening line at the end of live transcript", () => {
+  it("shows localized listening status above the live transcript", () => {
     const { canvas, texts } = createCanvas();
     const ai = {
       ...createAiHudSnapshot(true),
@@ -182,8 +182,10 @@ describe("drawFastDetailHud", () => {
       "AI // 이전 답변",
       "듣는 중…",
     ]));
-    const listeningIndex = values(texts).indexOf("듣는 중…");
-    expect(values(texts)[listeningIndex - 1]).toBe("");
+    const listening = texts.find(({ value }) => value === "듣는 중…");
+    const user = texts.find(({ value }) => value === "사용자 // 이전 질문");
+    expect(listening?.y).toBe(14);
+    expect((user?.y ?? 0) - (listening?.y ?? 0)).toBeGreaterThanOrEqual(29);
     expect(values(texts).some((value) => value.includes("1/"))).toBe(false);
   });
 

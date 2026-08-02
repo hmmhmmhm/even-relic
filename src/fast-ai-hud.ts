@@ -1,5 +1,6 @@
 import type { AiHudSnapshot } from "./ai-hud-state";
 import {
+  aiHudStatusLabel,
   localizeAiTranscriptLines,
   translateAiHud,
 } from "./ai-hud-i18n";
@@ -20,18 +21,6 @@ function usd(value: number): string {
   return `$${value < 0.01 ? value.toFixed(4) : value.toFixed(2)}`;
 }
 
-function phaseLabel(snapshot: AiHudSnapshot, locale: PhoneLocale): string {
-  if (!snapshot.configured) return translatePhone(locale, "aiKeyRequired");
-  switch (snapshot.phase) {
-    case "connecting": return translateAiHud(locale, "connecting");
-    case "listening": return translateAiHud(locale, "listening");
-    case "thinking": return translateAiHud(locale, "thinking");
-    case "displaying": return translateAiHud(locale, "displaying");
-    case "error": return translateAiHud(locale, "error");
-    default: return translateAiHud(locale, "ready");
-  }
-}
-
 export function drawFastAiPanel(
   context: CanvasRenderingContext2D,
   snapshot: AiHudSnapshot,
@@ -39,7 +28,7 @@ export function drawFastAiPanel(
 ) {
   drawText(
     context,
-    `${translatePhone(locale, "ai")} // ${phaseLabel(snapshot, locale)}`,
+    `${translatePhone(locale, "ai")} // ${aiHudStatusLabel(snapshot, locale)}`,
     308,
     82,
     11,
@@ -140,26 +129,26 @@ export function drawFastAiDetail(
   selectedLine: number,
   locale: PhoneLocale,
 ) {
-  const latestSelected = snapshot.transcriptLines.length === 0
-    || Math.floor(selectedLine) >= snapshot.transcriptLines.length - 1;
-  const showListening = snapshot.phase === "listening" && latestSelected;
-  const listeningRows = showListening
-    ? (snapshot.transcriptLines.length > 0 ? 2 : 1)
-    : 0;
+  drawText(
+    context,
+    aiHudStatusLabel(snapshot, locale),
+    8,
+    14,
+    14,
+    COLOR.secondary,
+    "bold",
+  );
+  const revealRows = snapshot.canRevealFullResponse ? 2 : 0;
   const lines = [...localizeAiTranscriptLines(
     selectAiTranscriptDisplayRows(
       snapshot.transcriptLines,
       selectedLine,
-      AI_TRANSCRIPT_VISIBLE_LINES - listeningRows,
+      Math.max(1, AI_TRANSCRIPT_VISIBLE_LINES - 2 - revealRows),
     ),
     locale,
   )];
-  if (showListening) {
-    if (lines.length > 0) lines.push("");
-    lines.push(translateAiHud(locale, "listening"));
-  }
   if (snapshot.error?.trim()) lines.push(snapshot.error.trim());
-  if (lines.length === 0) {
+  if (lines.length === 0 && !snapshot.configured) {
     lines.push(snapshot.configured
       ? translateAiHud(locale, "listening")
       : translatePhone(locale, "aiKeyRequired"));
@@ -169,10 +158,21 @@ export function drawFastAiDetail(
       context,
       line,
       8,
-      20 + lineIndex * 29,
+      52 + lineIndex * 29,
       21,
       snapshot.phase === "error" ? COLOR.secondary : COLOR.primary,
       "bold",
     );
   });
+  if (snapshot.canRevealFullResponse) {
+    drawText(
+      context,
+      translateAiHud(locale, "tapReveal"),
+      8,
+      274,
+      13,
+      COLOR.secondary,
+      "bold",
+    );
+  }
 }

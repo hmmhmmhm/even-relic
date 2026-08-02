@@ -1,4 +1,5 @@
 import type { SupportedLocale } from "./i18n/locale-registry";
+import type { AiHudSnapshot } from "./ai-hud-state";
 
 export type AiHudStrings = Readonly<{
   you: string;
@@ -16,7 +17,16 @@ export type AiHudStrings = Readonly<{
   doubleTapBack: string;
 }>;
 
-export type AiHudStringKey = keyof AiHudStrings;
+export type AiHudActivityStrings = Readonly<{
+  toolTime: string;
+  toolLocation: string;
+  toolWebSearch: string;
+  toolMcp: string;
+  toolGeneric: string;
+  tapReveal: string;
+}>;
+
+export type AiHudStringKey = keyof AiHudStrings | keyof AiHudActivityStrings;
 
 export const AI_HUD_TRANSLATIONS = {
   en: { you: "YOU", assistant: "AI", ready: "READY", connecting: "CONNECTING…", listening: "LISTENING…", thinking: "THINKING…", displaying: "DISPLAYING RESPONSE…", error: "ERROR", live: "LIVE", history: "HISTORY", listeningPrompt: "Listening… Speak naturally.", scrollTranscript: "SCROLL // TRANSCRIPT", doubleTapBack: "DOUBLE TAP // BACK" },
@@ -51,11 +61,73 @@ export const AI_HUD_TRANSLATIONS = {
   ro: { you: "TU", assistant: "AI", ready: "PREGĂTIT", connecting: "CONECTARE…", listening: "ASCULT…", thinking: "GÂNDESC…", displaying: "AFIȘEZ RĂSPUNSUL…", error: "EROARE", live: "LIVE", history: "ISTORIC", listeningPrompt: "Ascult… Vorbiți natural.", scrollTranscript: "DERULARE // CONVERSAȚIE", doubleTapBack: "ATINGERE DUBLĂ // ÎNAPOI" },
 } as const satisfies Readonly<Record<SupportedLocale, AiHudStrings>>;
 
+export const AI_HUD_ACTIVITY_TRANSLATIONS = {
+  en: { toolTime: "CHECKING TIME…", toolLocation: "CHECKING LOCATION…", toolWebSearch: "SEARCHING WEB…", toolMcp: "USING MCP", toolGeneric: "USING TOOL…", tapReveal: "TAP TO REVEAL FULL ANSWER" },
+  ko: { toolTime: "현재 시간 확인 중…", toolLocation: "현재 위치 확인 중…", toolWebSearch: "웹 검색 중…", toolMcp: "MCP 사용 중", toolGeneric: "도구 사용 중…", tapReveal: "탭하여 전체 답변 바로 보기" },
+  ja: { toolTime: "時刻を確認中…", toolLocation: "現在地を確認中…", toolWebSearch: "ウェブを検索中…", toolMcp: "MCPを使用中", toolGeneric: "ツールを使用中…", tapReveal: "タップして回答をすべて表示" },
+  "zh-Hans": { toolTime: "正在查询时间…", toolLocation: "正在查询位置…", toolWebSearch: "正在搜索网页…", toolMcp: "正在使用 MCP", toolGeneric: "正在使用工具…", tapReveal: "点击立即显示完整回答" },
+  "zh-Hant": { toolTime: "正在查詢時間…", toolLocation: "正在查詢位置…", toolWebSearch: "正在搜尋網頁…", toolMcp: "正在使用 MCP", toolGeneric: "正在使用工具…", tapReveal: "點一下立即顯示完整回答" },
+  es: { toolTime: "CONSULTANDO HORA…", toolLocation: "CONSULTANDO UBICACIÓN…", toolWebSearch: "BUSCANDO EN LA WEB…", toolMcp: "USANDO MCP", toolGeneric: "USANDO HERRAMIENTA…", tapReveal: "TOCA PARA VER LA RESPUESTA COMPLETA" },
+  fr: { toolTime: "VÉRIFICATION DE L’HEURE…", toolLocation: "VÉRIFICATION DU LIEU…", toolWebSearch: "RECHERCHE SUR LE WEB…", toolMcp: "UTILISATION DE MCP", toolGeneric: "UTILISATION D’UN OUTIL…", tapReveal: "TOUCHEZ POUR AFFICHER TOUTE LA RÉPONSE" },
+  de: { toolTime: "UHRZEIT WIRD GEPRÜFT…", toolLocation: "STANDORT WIRD GEPRÜFT…", toolWebSearch: "WEB-SUCHE…", toolMcp: "MCP WIRD VERWENDET", toolGeneric: "TOOL WIRD VERWENDET…", tapReveal: "TIPPEN FÜR DIE VOLLSTÄNDIGE ANTWORT" },
+  it: { toolTime: "CONTROLLO DELL’ORA…", toolLocation: "CONTROLLO POSIZIONE…", toolWebSearch: "RICERCA SUL WEB…", toolMcp: "UTILIZZO DI MCP", toolGeneric: "UTILIZZO STRUMENTO…", tapReveal: "TOCCA PER MOSTRARE LA RISPOSTA COMPLETA" },
+  pt: { toolTime: "VERIFICANDO A HORA…", toolLocation: "VERIFICANDO LOCALIZAÇÃO…", toolWebSearch: "PESQUISANDO NA WEB…", toolMcp: "USANDO MCP", toolGeneric: "USANDO FERRAMENTA…", tapReveal: "TOQUE PARA EXIBIR A RESPOSTA COMPLETA" },
+  nl: { toolTime: "TIJD CONTROLEREN…", toolLocation: "LOCATIE CONTROLEREN…", toolWebSearch: "ZOEKEN OP HET WEB…", toolMcp: "MCP GEBRUIKEN", toolGeneric: "HULPMIDDEL GEBRUIKEN…", tapReveal: "TIK OM HET VOLLEDIGE ANTWOORD TE TONEN" },
+  pl: { toolTime: "SPRAWDZANIE CZASU…", toolLocation: "SPRAWDZANIE LOKALIZACJI…", toolWebSearch: "WYSZUKIWANIE W SIECI…", toolMcp: "UŻYWANIE MCP", toolGeneric: "UŻYWANIE NARZĘDZIA…", tapReveal: "DOTKNIJ, ABY POKAZAĆ CAŁĄ ODPOWIEDŹ" },
+  ru: { toolTime: "ПРОВЕРКА ВРЕМЕНИ…", toolLocation: "ПРОВЕРКА МЕСТОПОЛОЖЕНИЯ…", toolWebSearch: "ПОИСК В ИНТЕРНЕТЕ…", toolMcp: "ИСПОЛЬЗУЕТСЯ MCP", toolGeneric: "ИСПОЛЬЗУЕТСЯ ИНСТРУМЕНТ…", tapReveal: "КОСНИТЕСЬ, ЧТОБЫ ПОКАЗАТЬ ВЕСЬ ОТВЕТ" },
+  uk: { toolTime: "ПЕРЕВІРКА ЧАСУ…", toolLocation: "ПЕРЕВІРКА МІСЦЯ…", toolWebSearch: "ПОШУК В ІНТЕРНЕТІ…", toolMcp: "ВИКОРИСТАННЯ MCP", toolGeneric: "ВИКОРИСТАННЯ ІНСТРУМЕНТА…", tapReveal: "ТОРКНІТЬСЯ, ЩОБ ПОКАЗАТИ ВСЮ ВІДПОВІДЬ" },
+  tr: { toolTime: "SAAT KONTROL EDİLİYOR…", toolLocation: "KONUM KONTROL EDİLİYOR…", toolWebSearch: "WEB’DE ARANIYOR…", toolMcp: "MCP KULLANILIYOR", toolGeneric: "ARAÇ KULLANILIYOR…", tapReveal: "TÜM YANITI GÖRMEK İÇİN DOKUN" },
+  ar: { toolTime: "جارٍ التحقق من الوقت…", toolLocation: "جارٍ التحقق من الموقع…", toolWebSearch: "جارٍ البحث في الويب…", toolMcp: "جارٍ استخدام MCP", toolGeneric: "جارٍ استخدام أداة…", tapReveal: "انقر لإظهار الرد الكامل" },
+  he: { toolTime: "בודק את השעה…", toolLocation: "בודק את המיקום…", toolWebSearch: "מחפש באינטרנט…", toolMcp: "משתמש ב-MCP", toolGeneric: "משתמש בכלי…", tapReveal: "הקש להצגת התשובה המלאה" },
+  hi: { toolTime: "समय जाँचा जा रहा है…", toolLocation: "स्थान जाँचा जा रहा है…", toolWebSearch: "वेब पर खोज जारी…", toolMcp: "MCP का उपयोग जारी", toolGeneric: "टूल का उपयोग जारी…", tapReveal: "पूरा उत्तर तुरंत देखने के लिए टैप करें" },
+  bn: { toolTime: "সময় দেখা হচ্ছে…", toolLocation: "অবস্থান দেখা হচ্ছে…", toolWebSearch: "ওয়েবে খোঁজা হচ্ছে…", toolMcp: "MCP ব্যবহার হচ্ছে", toolGeneric: "টুল ব্যবহার হচ্ছে…", tapReveal: "সম্পূর্ণ উত্তর দেখতে ট্যাপ করুন" },
+  id: { toolTime: "MEMERIKSA WAKTU…", toolLocation: "MEMERIKSA LOKASI…", toolWebSearch: "MENCARI DI WEB…", toolMcp: "MENGGUNAKAN MCP", toolGeneric: "MENGGUNAKAN ALAT…", tapReveal: "KETUK UNTUK MELIHAT JAWABAN LENGKAP" },
+  vi: { toolTime: "ĐANG KIỂM TRA GIỜ…", toolLocation: "ĐANG KIỂM TRA VỊ TRÍ…", toolWebSearch: "ĐANG TÌM TRÊN WEB…", toolMcp: "ĐANG DÙNG MCP", toolGeneric: "ĐANG DÙNG CÔNG CỤ…", tapReveal: "CHẠM ĐỂ HIỆN TOÀN BỘ CÂU TRẢ LỜI" },
+  th: { toolTime: "กำลังตรวจสอบเวลา…", toolLocation: "กำลังตรวจสอบตำแหน่ง…", toolWebSearch: "กำลังค้นหาเว็บ…", toolMcp: "กำลังใช้ MCP", toolGeneric: "กำลังใช้เครื่องมือ…", tapReveal: "แตะเพื่อแสดงคำตอบทั้งหมด" },
+  ms: { toolTime: "MENYEMAK MASA…", toolLocation: "MENYEMAK LOKASI…", toolWebSearch: "MENCARI DI WEB…", toolMcp: "MENGGUNAKAN MCP", toolGeneric: "MENGGUNAKAN ALAT…", tapReveal: "KETIK UNTUK PAPARKAN JAWAPAN PENUH" },
+  fil: { toolTime: "TINITINGNAN ANG ORAS…", toolLocation: "TINITINGNAN ANG LOKASYON…", toolWebSearch: "NAGHAHANAP SA WEB…", toolMcp: "GINAGAMIT ANG MCP", toolGeneric: "GUMAGAMIT NG TOOL…", tapReveal: "I-TAP PARA IPAKITA ANG BUONG SAGOT" },
+  sv: { toolTime: "KONTROLLERAR TIDEN…", toolLocation: "KONTROLLERAR PLATSEN…", toolWebSearch: "SÖKER PÅ WEBBEN…", toolMcp: "ANVÄNDER MCP", toolGeneric: "ANVÄNDER VERKTYG…", tapReveal: "TRYCK FÖR ATT VISA HELA SVARET" },
+  no: { toolTime: "SJEKKER TIDEN…", toolLocation: "SJEKKER POSISJONEN…", toolWebSearch: "SØKER PÅ NETTET…", toolMcp: "BRUKER MCP", toolGeneric: "BRUKER VERKTØY…", tapReveal: "TRYKK FOR Å VISE HELE SVARET" },
+  da: { toolTime: "KONTROLLERER TIDEN…", toolLocation: "KONTROLLERER PLACERINGEN…", toolWebSearch: "SØGER PÅ NETTET…", toolMcp: "BRUGER MCP", toolGeneric: "BRUGER VÆRKTØJ…", tapReveal: "TRYK FOR AT VISE HELE SVARET" },
+  fi: { toolTime: "TARKISTETAAN AIKAA…", toolLocation: "TARKISTETAAN SIJAINTIA…", toolWebSearch: "HAETAAN VERKOSTA…", toolMcp: "KÄYTETÄÄN MCP:TÄ", toolGeneric: "KÄYTETÄÄN TYÖKALUA…", tapReveal: "NAPAUTA NÄYTTÄÄKSESI KOKO VASTAUKSEN" },
+  cs: { toolTime: "KONTROLA ČASU…", toolLocation: "KONTROLA POLOHY…", toolWebSearch: "VYHLEDÁVÁNÍ NA WEBU…", toolMcp: "POUŽÍVÁ SE MCP", toolGeneric: "POUŽÍVÁ SE NÁSTROJ…", tapReveal: "KLEPNUTÍM ZOBRAZÍTE CELOU ODPOVĚĎ" },
+  ro: { toolTime: "SE VERIFICĂ ORA…", toolLocation: "SE VERIFICĂ LOCAȚIA…", toolWebSearch: "SE CAUTĂ PE WEB…", toolMcp: "SE FOLOSEȘTE MCP", toolGeneric: "SE FOLOSEȘTE INSTRUMENTUL…", tapReveal: "ATINGE PENTRU A AFIȘA RĂSPUNSUL COMPLET" },
+} as const satisfies Readonly<Record<SupportedLocale, AiHudActivityStrings>>;
+
 export function translateAiHud(
   locale: SupportedLocale,
   key: AiHudStringKey,
 ): string {
-  return AI_HUD_TRANSLATIONS[locale][key];
+  if (key in AI_HUD_TRANSLATIONS[locale]) {
+    return AI_HUD_TRANSLATIONS[locale][key as keyof AiHudStrings];
+  }
+  return AI_HUD_ACTIVITY_TRANSLATIONS[locale][key as keyof AiHudActivityStrings];
+}
+
+export function aiHudStatusLabel(
+  snapshot: AiHudSnapshot,
+  locale: SupportedLocale,
+): string {
+  if (!snapshot.configured) return translateAiHud(locale, "ready");
+  const tool = snapshot.activeTool;
+  if (tool) {
+    if (tool.kind === "time") return translateAiHud(locale, "toolTime");
+    if (tool.kind === "location") return translateAiHud(locale, "toolLocation");
+    if (tool.kind === "web-search") return translateAiHud(locale, "toolWebSearch");
+    if (tool.kind === "mcp") {
+      const label = translateAiHud(locale, "toolMcp");
+      return tool.displayName ? `${label} // ${tool.displayName}` : label;
+    }
+    return translateAiHud(locale, "toolGeneric");
+  }
+  switch (snapshot.phase) {
+    case "connecting": return translateAiHud(locale, "connecting");
+    case "listening": return translateAiHud(locale, "listening");
+    case "thinking": return translateAiHud(locale, "thinking");
+    case "displaying": return translateAiHud(locale, "displaying");
+    case "error": return translateAiHud(locale, "error");
+    default: return translateAiHud(locale, "ready");
+  }
 }
 
 type AiApprovalStrings = Readonly<{

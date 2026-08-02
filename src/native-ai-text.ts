@@ -5,6 +5,7 @@ import {
 } from "@evenrealities/even_hub_sdk";
 import type { AiHudSnapshot } from "./ai-hud-state";
 import {
+  aiHudStatusLabel,
   localizeAiTranscriptLines,
   translateAiApproval,
   translateAiHud,
@@ -50,25 +51,25 @@ export function createNativeAiTextContent(
     ].join("\n").slice(0, MAXIMUM_CONTENT_LENGTH);
   }
   const lines = snapshot.transcriptLines;
-  const latestSelected = lines.length === 0
-    || Math.floor(selectedLine) >= lines.length - 1;
-  const showListening = snapshot.phase === "listening" && latestSelected;
-  const listeningRows = showListening ? (lines.length > 0 ? 2 : 1) : 0;
+  const revealRows = snapshot.canRevealFullResponse ? 2 : 0;
+  const transcriptRows = Math.max(
+    1,
+    AI_TRANSCRIPT_VISIBLE_LINES - 2 - revealRows,
+  );
   const visible = selectAiTranscriptDisplayRows(
     lines,
     selectedLine,
-    AI_TRANSCRIPT_VISIBLE_LINES - listeningRows,
+    transcriptRows,
   );
-  const localized = [...localizeAiTranscriptLines(visible, locale)];
-  if (showListening) {
-    if (localized.length > 0) localized.push("");
-    localized.push(translateAiHud(locale, "listening"));
-  }
+  const localized = [aiHudStatusLabel(snapshot, locale)];
+  if (visible.length > 0) localized.push("");
+  localized.push(...localizeAiTranscriptLines(visible, locale));
   if (snapshot.error?.trim()) localized.push(snapshot.error.trim());
-  if (localized.length === 0) {
-    localized.push(snapshot.configured
-      ? translateAiHud(locale, "listening")
-      : translatePhone(locale, "aiKeyRequired"));
+  if (!snapshot.configured) {
+    localized.push("", translatePhone(locale, "aiKeyRequired"));
+  }
+  if (snapshot.canRevealFullResponse) {
+    localized.push("", translateAiHud(locale, "tapReveal"));
   }
   return localized.join("\n").slice(0, MAXIMUM_CONTENT_LENGTH);
 }
