@@ -1,6 +1,7 @@
 import {
   createBlankDisplayPage,
   createImageDisplayPage,
+  G2_IMAGE_PAGE_SETTLE_MS,
 } from "./g2-display-hide";
 import type { Tile } from "./g2-canvas";
 import { diagnosticDuration, diagnosticNow } from "./diagnostic-timing";
@@ -15,7 +16,7 @@ export type DisposableNativeTextController = FastCanvasNativeTextController & {
   dispose(): void;
 };
 
-export const NATIVE_AI_IMAGE_PAGE_SETTLE_MS = 200;
+export const NATIVE_AI_IMAGE_PAGE_SETTLE_MS = G2_IMAGE_PAGE_SETTLE_MS;
 
 export function createFastNativeAiTextController(options: {
   readonly bridge: Bridge;

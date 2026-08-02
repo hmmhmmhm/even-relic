@@ -292,6 +292,19 @@ async function createFastRefreshHarness(
 afterEach(() => vi.useRealTimers());
 
 describe("G2 raster transport", () => {
+  it("waits for the initial image page before sending the first raster frame", async () => {
+    const harness = await createFastRefreshHarness();
+
+    expect(harness.transitionEvents.slice(0, 6)).toEqual([
+      "wait:200",
+      "encode:3,5,2,4",
+      "image:3",
+      "image:5",
+      "image:2",
+      "image:4",
+    ]);
+  });
+
   it("neutralizes native AI text before restoring the binocular Canvas page", async () => {
     const harness = await createFastRefreshHarness();
     const initialEncodeCount = harness.encodedTileIds.length;
@@ -368,17 +381,21 @@ describe("G2 raster transport", () => {
 
   it("drops late native text updates throughout the binocular restore", async () => {
     const pageReady = deferred();
+    let pageReadyCalls = 0;
     const harness = await createFastRefreshHarness({
       waitForPageReady: async (milliseconds) => {
         expect(milliseconds).toBe(200);
-        await pageReady.promise;
+        pageReadyCalls += 1;
+        if (pageReadyCalls > 1) await pageReady.promise;
       },
     });
 
     expect(await harness.nativeText.enter("ASK AI // READY")).toBe(true);
     const restoring = harness.nativeText.restore();
     await vi.waitFor(() => (
-      expect(harness.transitionEvents).toContain("wait:200")
+      expect(
+        harness.transitionEvents.filter((event) => event === "wait:200"),
+      ).toHaveLength(2)
     ));
     const initialTextCount = harness.textContents.length;
 
@@ -1554,6 +1571,7 @@ describe("G2 raster transport", () => {
     expect(harness.imageIds).toEqual([3, 5, 2, 4]);
     expect(harness.rebuiltPages[0].containerTotalNum).toBe(1);
 
+    const transitionStart = harness.transitionEvents.length;
     harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
     await vi.waitFor(() => expect(harness.rebuiltPages).toHaveLength(2));
     await vi.waitFor(() => expect(harness.imageIds).toEqual([
@@ -1562,6 +1580,15 @@ describe("G2 raster transport", () => {
     ]));
     expect(harness.encodedSources).toEqual(["hud", "hud"]);
     expect(harness.rebuiltPages[1].containerTotalNum).toBe(5);
+    expect(harness.transitionEvents.slice(transitionStart)).toEqual([
+      "rebuild:image",
+      "wait:200",
+      "encode:3,5,2,4",
+      "image:3",
+      "image:5",
+      "image:2",
+      "image:4",
+    ]);
   });
 
   it("keeps visible input active after a failed blank hide rebuild", async () => {

@@ -1,10 +1,41 @@
 import {
   RebuildPageContainer,
+  StartUpPageCreateResult,
   TextContainerProperty,
 } from "@evenrealities/even_hub_sdk";
-import { createContainerObjects, type Tile } from "./g2-canvas";
+import {
+  createContainerObjects,
+  createGlassesPage,
+  type Tile,
+} from "./g2-canvas";
 
 export type G2DisplayHideStrategy = "black-tiles" | "blank-rebuild";
+
+export const G2_IMAGE_PAGE_SETTLE_MS = 200;
+
+type ImagePageBridge = {
+  createStartUpPageContainer: (
+    page: ReturnType<typeof createGlassesPage>,
+  ) => Promise<unknown>;
+  rebuildPageContainer: (page: RebuildPageContainer) => Promise<boolean>;
+};
+
+export async function initializeImageDisplayPage(
+  bridge: ImagePageBridge,
+  tiles: readonly Tile[],
+): Promise<void> {
+  const created = StartUpPageCreateResult.normalize(
+    await bridge.createStartUpPageContainer(createGlassesPage(tiles)),
+  );
+  if (created === StartUpPageCreateResult.invalid) {
+    const rebuilt = await bridge.rebuildPageContainer(
+      createImageDisplayPage(tiles),
+    );
+    if (!rebuilt) throw new Error("Existing glasses page rebuild failed");
+  } else if (created !== StartUpPageCreateResult.success) {
+    throw new Error(`Glasses page creation failed: ${created}`);
+  }
+}
 
 export function resolveG2DisplayHideStrategy(
   search: string,

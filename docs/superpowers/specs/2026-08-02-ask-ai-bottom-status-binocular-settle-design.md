@@ -4,6 +4,10 @@ Date: 2026-08-02
 
 Status: Approved
 
+The later hardware-proven general image-page readiness policy supersedes this
+document's original Ask-AI-only scope. See
+`2026-08-02-g2-image-page-readiness-barrier-design.md`.
+
 ## Goal
 
 Keep transient Ask AI activity text at the bottom of the native transcript and
@@ -33,11 +37,11 @@ The accepted AI exit path remains:
 5. invalidate the successful-image cache and send IDs 3, 5, 2, and 4 through
    the existing four-call pipeline.
 
-The wait is scoped only to native Ask AI restoration. Startup, paging, normal
-external refresh, and blank display hide/restore keep their existing timing and
-concurrency. The SDK exposes no page-ready event, so a bounded settle interval
-is the smallest observable barrier between a successful page rebuild and image
-updates.
+The SDK exposes no page-ready event, so a bounded settle interval is the
+smallest observable barrier between a successful page rebuild and image
+updates. Later hardware evidence applies the same interval to initial image-page
+creation and normal blank-display restoration. Paging and external refreshes
+that reuse the installed image page keep their existing timing and concurrency.
 
 Late native Text updates remain dropped for the complete neutralize, rebuild,
 settle, and image-send transition. A failed neutral or image-page rebuild sends

@@ -326,7 +326,10 @@ http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.13&build=<BUILD-ID>
 ```
 
 No performance query is required. Serial image transport is the production
-default. For an explicit original-palette comparison, use:
+default. Initial startup and blank-display restoration wait 200 ms after the
+SDK image page is ready before the first raster send; normal paging and live
+refreshes reuse the installed page without that delay. For an explicit
+original-palette comparison, use:
 
 ```text
 http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.13&pipeline=1&levels=original&build=<BUILD-ID>
