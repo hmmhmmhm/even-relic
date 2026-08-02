@@ -87,8 +87,8 @@ The package is private and is not published to npm or Even Hub.
   Restore rebuilds the image page, invalidates the successful-tile cache, and
   sends all current quadrants again.
 - Ask AI uses the official full-screen native Text container. Exiting first
-  neutralizes native Text, rebuilds the image page, waits 200 ms for bilateral
-  container installation, and then restores all four image quadrants.
+  neutralizes native Text, waits 200 ms for bilateral neutral-page propagation,
+  rebuilds the image page, and then restores all four image quadrants.
 
 ## Physical evidence carried forward
 
@@ -102,12 +102,12 @@ The owner has confirmed the following on updated G2 hardware and Even App:
   image encode or image send;
 - Ask AI microphone recognition, Realtime answers, localized status, response
   pacing, and normal return to the HUD work; and
-- the earlier complete one-eye loss after Ask AI exit was resolved.
+- the earlier complete one-eye loss after Ask AI exit improved, but intermittent
+  partial or one-sided restoration remains under active physical validation.
 
-The latest lower-right-specific settle barrier and the newly promoted
-query-free serial default have complete automated coverage but have not yet
-received a separately recorded final physical spot check. They remain narrow
-regression checks, not missing implementations.
+The inter-rebuild Ask AI settle barrier and the restored query-free four-call
+default have complete automated coverage but still require a fresh physical
+spot check. They remain narrow hardware candidates, not a confirmed final fix.
 
 ## Visual comparison status
 

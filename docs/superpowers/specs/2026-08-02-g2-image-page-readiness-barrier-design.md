@@ -30,12 +30,13 @@ restoration use the hardware-proven four-call default without an added delay.
 Pipeline one remains available only through an explicit diagnostic query.
 
 The 200 ms barrier remains narrowly scoped to Ask AI exit because that path
-changes from a frequently updated native Text page back to the five-container
-Canvas page and has separate physical evidence.
+performs two consecutive rebuilds: native Text to the neutral event page, then
+the neutral page to the five-container Canvas page. It now separates those two
+rebuilds; the rejected post-image-rebuild wait is not retained.
 
 ## Diagnostics and verification
 
 The accepted main route must log `pipeline 4`, start IDs 3/5/2/4 with an
 in-flight limit of four, and omit general `initial image page ready` and
-`restore image page ready` diagnostics. Native Ask AI exit retains its own
-`native AI image page ready · 200ms` diagnostic.
+`restore image page ready` diagnostics. Native Ask AI exit instead logs
+`native AI neutral page ready · 200ms` before rebuilding the image page.

@@ -336,8 +336,8 @@ describe("G2 raster transport", () => {
     expect(harness.imageIds).toHaveLength(initialImageCount + 4);
     expect(harness.transitionEvents.slice(transitionStart)).toEqual([
       "rebuild:neutral",
-      "rebuild:image",
       "wait:200",
+      "rebuild:image",
       "encode:3,5,2,4",
       "image:3",
       "image:5",

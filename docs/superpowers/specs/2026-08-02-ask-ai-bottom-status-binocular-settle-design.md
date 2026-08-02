@@ -28,16 +28,17 @@ The accepted AI exit path remains:
 
 1. stop the Realtime session and microphone;
 2. rebuild the proven blank event page to neutralize native Text updates;
-3. rebuild the established five-container Canvas page;
-4. wait 200 ms for both lenses to install the four image containers;
+3. wait 200 ms for both lenses to install that neutral page;
+4. rebuild the established five-container Canvas page;
 5. invalidate the successful-image cache and send IDs 3, 5, 2, and 4 through
    the existing four-call pipeline.
 
 The wait is scoped only to native Ask AI restoration. Startup, paging, normal
 external refresh, and blank display hide/restore keep their existing timing and
-concurrency. The SDK exposes no page-ready event, so a bounded settle interval
-is the smallest observable barrier between a successful page rebuild and image
-updates.
+concurrency. The SDK exposes no page-ready event. Physical testing rejected a
+wait after the image-page rebuild; the barrier instead separates the two
+consecutive rebuilds unique to Ask AI exit so the image page cannot immediately
+supersede a still-propagating neutral page.
 
 Late native Text updates remain dropped for the complete neutralize, rebuild,
 settle, and image-send transition. A failed neutral or image-page rebuild sends
@@ -46,14 +47,14 @@ a later independent exit input can try again.
 
 ## Diagnostics and verification
 
-Add one diagnostic after the image-page rebuild and before encoding:
+Add one diagnostic between the neutral-page and image-page rebuilds:
 
 ```text
-[REFRESH] native AI image page ready · 200ms
+[REFRESH] native AI neutral page ready · 200ms
 ```
 
 Formatter tests cover Thinking and Web search below the transcript. Transport
-tests prove the settle callback occurs after the image-page rebuild and before
-the first image update, and that Text updates remain dropped while waiting.
+tests prove the settle callback occurs after the neutral-page rebuild and before
+the image-page rebuild, and that Text updates remain dropped while waiting.
 Run the complete test, type, repository, Sites, build, and package gates before
 deployment to the existing port 4179 hardware preview.

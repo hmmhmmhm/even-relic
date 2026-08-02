@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit",
     "test:sites": "npm run build && node --test --test-concurrency=1 tests/sites-worker.test.mjs tests/realtime-api.test.mjs tests/ai-web-search-api.test.mjs",
     "verify:rss-live": "node scripts/verify-rss-feeds.mjs",
-    "qr": "evenhub qr --url \"http://100.127.255.11:4179/hud-canvas-fast?sdk=0.0.13&build=pipeline4-binocular-sdk0013-056\"",
+    "qr": "evenhub qr --url \"http://100.127.255.11:4179/hud-canvas-fast?sdk=0.0.13&build=ai-neutral-settle-sdk0013-057\"",
     "qr:hide-black": "evenhub qr --url \"http://100.127.255.11:4179/hud-canvas-fast?sdk=0.0.13&hide=black&build=hide-black-control-048\"",
     "qr:rollback": "evenhub qr --url \"http://100.127.255.11:4179/hud-canvas-fast?sdk=0.0.13&pipeline=1&levels=original&build=rollback-serial-original-sdk0013-043\"",
     "qr:pipeline2": "evenhub qr --url \"http://100.127.255.11:4179/hud-canvas-fast?sdk=0.0.13&pipeline=2&build=pipeline-2-sdk0013-043\"",
