@@ -69,4 +69,4 @@
 - [x] **Step 1: Mark completed plan checkboxes and run `node scripts/check-repository-copy.mjs`; expect no oversized implementation files.**
 - [x] **Step 2: Run `npm test`, `npm run typecheck`, `npm run test:repo`, `npm run test:sites`, `npm run pack`, and `git diff --check`; expect zero failures.**
 - [x] **Step 3: Confirm the query-free `/hud-canvas-fast` still resolves image pipeline concurrency to one and the preview returns HTTP 200.**
-- [ ] **Step 4: Commit the focused refactor, push `main`, and verify local and remote commit IDs match.**
+- [x] **Step 4: Commit the focused refactor, push `main`, and verify local and remote commit IDs match.**
