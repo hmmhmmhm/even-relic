@@ -153,7 +153,7 @@ describe("drawFastDetailHud", () => {
     expect((assistant?.y ?? 0) - (user?.y ?? 0)).toBe(58);
   });
 
-  it("shows localized listening status above the live transcript", () => {
+  it("shows localized listening status below the live transcript", () => {
     const { canvas, texts } = createCanvas();
     const ai = {
       ...createAiHudSnapshot(true),
@@ -184,9 +184,32 @@ describe("drawFastDetailHud", () => {
     ]));
     const listening = texts.find(({ value }) => value === "듣는 중…");
     const user = texts.find(({ value }) => value === "사용자 // 이전 질문");
-    expect(listening?.y).toBe(14);
-    expect((user?.y ?? 0) - (listening?.y ?? 0)).toBeGreaterThanOrEqual(29);
+    expect(listening?.y).toBe(274);
+    expect((listening?.y ?? 0) - (user?.y ?? 0)).toBeGreaterThanOrEqual(29);
     expect(values(texts).some((value) => value.includes("1/"))).toBe(false);
+  });
+
+  it("does not show a response-displaying phase header", () => {
+    const { canvas, texts } = createCanvas();
+    const ai = {
+      ...createAiHudSnapshot(true),
+      phase: "displaying" as const,
+      transcriptLines: ["AI // 천천히 표시되는 답변"],
+    };
+
+    drawFastDetailHud(canvas, {
+      mode: "ai",
+      live: liveState(),
+      newsIndex: 0,
+      newsPage: 0,
+      todoIndex: 0,
+      navigationIndex: 0,
+      ai,
+      aiLine: 0,
+    }, "ko");
+
+    expect(values(texts)).toContain("AI // 천천히 표시되는 답변");
+    expect(values(texts)).not.toContain("답변 표시 중…");
   });
 
   it("renders English fixed copy while preserving source content", () => {

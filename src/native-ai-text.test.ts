@@ -25,7 +25,7 @@ describe("native Ask AI text page", () => {
     });
   });
 
-  it("renders only localized transcript lines and the live listening line", () => {
+  it("renders the live listening line after the localized transcript", () => {
     const snapshot = {
       ...createAiHudSnapshot(true),
       phase: "listening" as const,
@@ -38,8 +38,6 @@ describe("native Ask AI text page", () => {
     };
 
     expect(createNativeAiTextContent(snapshot, 3, "ko")).toBe([
-      "듣는 중…",
-      "",
       "사용자 // Earlier",
       "",
       "AI // Previous answer",
@@ -47,6 +45,8 @@ describe("native Ask AI text page", () => {
       "사용자 // Now",
       "",
       "AI // Streaming answer",
+      "",
+      "듣는 중…",
     ].join("\n"));
   });
 
@@ -77,6 +77,7 @@ describe("native Ask AI text page", () => {
       canRevealFullResponse: true,
     };
     const content = createNativeAiTextContent(delayed, 0, "ko");
+    expect(content).not.toContain("답변 표시 중…");
     expect(content).toContain("탭하여 전체 답변 바로 보기");
     expect(delayed.transcriptLines).toEqual(["YOU // private question"]);
   });

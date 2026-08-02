@@ -203,7 +203,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Keep the Ask AI detail view deliberately plain: no title, frame, phase
   header, page counter, or footer instructions. Show only the rolling
   localized conversation and a short localized `Listening…` line when
-  applicable. Use the full native text width for wrapping and add exactly one
+  applicable. Never show the response-pacing `Displaying response…` phase;
+  append `Listening…` after the conversation instead of above it. Use the full
+  native text width for wrapping and add exactly one
   blank display row whenever the speaker changes and immediately before a
   trailing `Listening…` status, without making either spacer a scroll target.
   Follow the newest line by default and move exactly one

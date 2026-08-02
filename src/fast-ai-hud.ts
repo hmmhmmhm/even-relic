@@ -129,21 +129,30 @@ export function drawFastAiDetail(
   selectedLine: number,
   locale: PhoneLocale,
 ) {
-  drawText(
-    context,
-    aiHudStatusLabel(snapshot, locale),
-    8,
-    14,
-    14,
-    COLOR.secondary,
-    "bold",
-  );
+  const trailingListening = snapshot.phase === "listening"
+    && !snapshot.activeTool;
+  const leadingStatus = snapshot.activeTool
+    || (snapshot.phase !== "listening" && snapshot.phase !== "displaying")
+    ? aiHudStatusLabel(snapshot, locale)
+    : undefined;
+  if (leadingStatus) {
+    drawText(
+      context,
+      leadingStatus,
+      8,
+      14,
+      14,
+      COLOR.secondary,
+      "bold",
+    );
+  }
   const revealRows = snapshot.canRevealFullResponse ? 2 : 0;
+  const statusRows = leadingStatus || trailingListening ? 2 : 0;
   const lines = [...localizeAiTranscriptLines(
     selectAiTranscriptDisplayRows(
       snapshot.transcriptLines,
       selectedLine,
-      Math.max(1, AI_TRANSCRIPT_VISIBLE_LINES - 2 - revealRows),
+      Math.max(1, AI_TRANSCRIPT_VISIBLE_LINES - statusRows - revealRows),
     ),
     locale,
   )];
@@ -158,12 +167,23 @@ export function drawFastAiDetail(
       context,
       line,
       8,
-      52 + lineIndex * 29,
+      (leadingStatus ? 52 : 14) + lineIndex * 29,
       21,
       snapshot.phase === "error" ? COLOR.secondary : COLOR.primary,
       "bold",
     );
   });
+  if (trailingListening) {
+    drawText(
+      context,
+      translateAiHud(locale, "listening"),
+      8,
+      274,
+      13,
+      COLOR.secondary,
+      "bold",
+    );
+  }
   if (snapshot.canRevealFullResponse) {
     drawText(
       context,
