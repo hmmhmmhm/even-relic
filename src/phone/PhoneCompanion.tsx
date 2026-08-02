@@ -22,6 +22,7 @@ import type { RoutingStatus } from "../routing";
 import { writePhonePreferences } from "../phone-preferences";
 import type { RssSource } from "../rss-sources";
 import { weatherCodeLabel } from "../weather";
+import { transportStatusKey } from "../transport-status";
 import { DevicesScreen } from "./DevicesScreen";
 import { DeveloperScreen } from "./DeveloperScreen";
 import { HudLayoutScreen } from "./HudLayoutScreen";
@@ -79,10 +80,7 @@ function transportStatusLabel(
   status: string,
   t: (key: PhoneStringKey) => string,
 ): string {
-  if (/fail|error|실패|오류/i.test(status)) return t("unavailable");
-  if (/disabled|비활성/i.test(status)) return t("disabled");
-  if (/wait|대기|준비/i.test(status)) return t("ready");
-  return t("active");
+  return t(transportStatusKey(status));
 }
 
 export function PhoneCompanion({

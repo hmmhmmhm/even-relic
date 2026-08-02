@@ -28,6 +28,7 @@ import type { ImageSendConcurrency } from "./image-send-concurrency";
 import { waitForTileSend } from "./image-send-timeout";
 import { createFastNativeAiTextController } from "./fast-native-ai-text-transport";
 import { fastRefreshDropReason } from "./fast-refresh-guard";
+import { TRANSPORT_STATUS } from "./transport-status";
 import type {
   Bridge,
   DisplayToggle,
@@ -73,24 +74,24 @@ export async function transmitCanvas(
   tileImageFormat: G2TileImageFormat = "png",
   displayHideStrategy: G2DisplayHideStrategy = "blank-rebuild",
 ) {
-  onProgress("Even 앱 브리지 연결 대기 중");
+  onProgress(TRANSPORT_STATUS.preparing);
   const bridge = await dependencies.waitForBridge();
-  onProgress("안경 페이지 생성 중");
+  onProgress(TRANSPORT_STATUS.preparing);
 
   const created = StartUpPageCreateResult.normalize(
     await bridge.createStartUpPageContainer(createGlassesPage(tiles)),
   );
   if (created === StartUpPageCreateResult.invalid) {
-    onProgress("기존 안경 페이지 재구성 중");
+    onProgress(TRANSPORT_STATUS.preparing);
     const { eventLayer, imageObject } = createContainerObjects(tiles);
     const rebuilt = await bridge.rebuildPageContainer(new RebuildPageContainer({
       containerTotalNum: tiles.length + 1,
       textObject: [eventLayer],
       imageObject,
     }));
-    if (!rebuilt) throw new Error("기존 안경 페이지 재구성 실패");
+    if (!rebuilt) throw new Error("Existing glasses page rebuild failed");
   } else if (created !== StartUpPageCreateResult.success) {
-    throw new Error(`안경 페이지 생성 실패: ${created}`);
+    throw new Error(`Glasses page creation failed: ${created}`);
   }
 
   const lastSuccessfulTilePayload = new Map<number, Uint8Array>();
@@ -179,7 +180,7 @@ export async function transmitCanvas(
               `${tile.name} failed · ${String(result)}`,
               diagnosticDuration(tileStartedAt),
             );
-            throw new Error(`${tile.name} 전송 실패: ${result}`);
+            throw new Error(`${tile.name} send failed: ${result}`);
           }
           logDiagnostic(
             "TILE",
@@ -188,7 +189,7 @@ export async function transmitCanvas(
           );
           lastSuccessfulTilePayload.set(tile.id, bytes.slice());
           sentCount += 1;
-          onProgress(`안경 이미지 전송 중 ${index + 1}/${targetTiles.length}`);
+          onProgress(TRANSPORT_STATUS.active);
         } finally {
           activeImageSends -= 1;
         }
@@ -210,16 +211,15 @@ export async function transmitCanvas(
       );
     }
   };
-  await refreshImages(source, tiles, "안경 전송 완료");
-  let disposed = false;
-  let hidden = false;
+  await refreshImages(source, tiles, TRANSPORT_STATUS.active);
+  let disposed = false, hidden = false;
   let hiddenSource: HTMLCanvasElement | undefined;
   let busy = false;
   const nativeText = createFastNativeAiTextController({
     bridge, tiles,
     waitForImagePageReady: dependencies.waitForPageReady,
     invalidateImages: () => lastSuccessfulTilePayload.clear(),
-    restoreImages: () => refreshImages(source, tiles, "Canvas HUD 복원 완료"),
+    restoreImages: () => refreshImages(source, tiles, TRANSPORT_STATUS.active),
     onFailure: (operation) => {
       logDiagnostic("ERROR", `native AI text ${operation} failed`);
     },
@@ -259,12 +259,12 @@ export async function transmitCanvas(
   };
   const performNavigation = async (direction: PageDirection) => {
     if (!onNavigate || hidden || disposed) return;
-    onProgress("HUD 페이지 전환 중");
+    onProgress(TRANSPORT_STATUS.active);
     logDiagnostic("REFRESH", `page ${direction} prepare`);
     await onNavigate(direction);
     if (disposed) return;
     try {
-      await refreshImages(source, navigationTiles, "페이지 전송 완료");
+      await refreshImages(source, navigationTiles, TRANSPORT_STATUS.active);
       logDiagnostic("REFRESH", `page ${direction} commit`);
     } catch (error) {
       const rollbackDirection = direction === "next" ? "previous" : "next";
@@ -294,7 +294,7 @@ export async function transmitCanvas(
     }
     if (hidden) {
       logDiagnostic("REFRESH", "restore start");
-      onProgress("HUD 표시 복원 중");
+      onProgress(TRANSPORT_STATUS.active);
       await displayToggle.beforeRestore?.();
       if (disposed) return;
       if (displayHideStrategy === "blank-rebuild") {
@@ -302,7 +302,7 @@ export async function transmitCanvas(
         const rebuilt = await bridge.rebuildPageContainer(
           createImageDisplayPage(tiles),
         );
-        if (!rebuilt) throw new Error("안경 페이지 복원 재구성 실패");
+        if (!rebuilt) throw new Error("Glasses page restore rebuild failed");
         logDiagnostic(
           "REFRESH",
           "restore page rebuild success",
@@ -310,18 +310,18 @@ export async function transmitCanvas(
         );
         lastSuccessfulTilePayload.clear();
       }
-      await refreshImages(source, tiles, "HUD 표시 복원 완료");
+      await refreshImages(source, tiles, TRANSPORT_STATUS.active);
       hidden = false;
       logDiagnostic("REFRESH", "restore complete");
     } else {
       if (displayHideStrategy === "blank-rebuild") {
         logDiagnostic("REFRESH", "hide start · strategy blank-rebuild");
-        onProgress("HUD 표시 숨기는 중");
+        onProgress(TRANSPORT_STATUS.active);
         const rebuildStartedAt = diagnosticNow();
         const rebuilt = await bridge.rebuildPageContainer(
           createBlankDisplayPage(),
         );
-        if (!rebuilt) throw new Error("빈 안경 페이지 재구성 실패");
+        if (!rebuilt) throw new Error("Blank glasses page rebuild failed");
         logDiagnostic(
           "REFRESH",
           "blank rebuild success",
@@ -329,16 +329,16 @@ export async function transmitCanvas(
         );
         lastSuccessfulTilePayload.clear();
         hidden = true;
-        onProgress("HUD 표시 숨김 완료");
+        onProgress(TRANSPORT_STATUS.active);
         logDiagnostic("REFRESH", "hide complete");
         return;
       }
       logDiagnostic("REFRESH", "hide start");
-      onProgress("HUD 표시 숨기는 중");
+      onProgress(TRANSPORT_STATUS.active);
       await refreshImages(
         hiddenSource ??= displayToggle.createHiddenSource(),
         tiles,
-        "HUD 표시 숨김 완료",
+        TRANSPORT_STATUS.active,
         undefined, "original", "png",
       );
       hidden = true;
@@ -366,7 +366,7 @@ export async function transmitCanvas(
       logDiagnostic("INPUT", `${input} result · ${result}`);
       if (disposed) return;
       if (result === "redraw") {
-        await refreshImages(source, tiles, "상세 화면 전송 완료");
+        await refreshImages(source, tiles, TRANSPORT_STATUS.active);
       } else if (result === "unhandled") {
         await fallback?.();
       }
@@ -385,13 +385,13 @@ export async function transmitCanvas(
       return;
     }
     startOperation(`external ${target}`, async () => {
-      onProgress("라이브 HUD 갱신 중");
+      onProgress(TRANSPORT_STATUS.active);
       await externalRefresh!.beforeExternalRefresh?.();
       if (hidden || disposed) return;
       await refreshImages(
         source,
         externalRefresh!.targetTiles[target],
-        "라이브 HUD 갱신 완료",
+        TRANSPORT_STATUS.active,
         () => !disposed && !hidden,
       );
     });

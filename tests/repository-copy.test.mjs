@@ -3,11 +3,27 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
+  findActiveRuntimeHangulViolations,
   findCurrentBrandViolations,
   findHangulViolations,
   findOversizedImplementationFiles,
   validateRepositoryMetadata,
 } from "../scripts/check-repository-copy.mjs";
+
+test("findActiveRuntimeHangulViolations rejects fixed Hangul copy", () => {
+  assert.deepEqual(
+    findActiveRuntimeHangulViolations([{
+      path: "src/fast-canvas-transport.ts",
+      content: 'onProgress("안경 전송 중");\n',
+    }]),
+    [{
+      path: "src/fast-canvas-transport.ts",
+      line: 1,
+      message: "Active runtime copy must be locale-neutral",
+      excerpt: 'onProgress("안경 전송 중");',
+    }],
+  );
+});
 
 test("findHangulViolations reports the tracked path and one-based line", () => {
   assert.deepEqual(

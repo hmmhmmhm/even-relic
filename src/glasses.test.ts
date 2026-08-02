@@ -8,6 +8,7 @@ import {
 } from "@evenrealities/even_hub_sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { diagnosticLogger } from "./diagnostic-log";
+import { TRANSPORT_STATUS } from "./transport-status";
 
 async function loadGlasses() {
   const module = await import("./glasses").catch(() => null);
@@ -1572,7 +1573,7 @@ describe("G2 raster transport", () => {
 
     harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
     await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
-      "[ERROR] input double-tap failed · 빈 안경 페이지 재구성 실패",
+      "[ERROR] input double-tap failed · Blank glasses page rebuild failed",
     ));
     expect(harness.rebuiltPages).toHaveLength(1);
     expect(harness.encodedSources).toEqual(["hud"]);
@@ -1595,7 +1596,7 @@ describe("G2 raster transport", () => {
     harness.emit(OsEventTypeList.DOUBLE_CLICK_EVENT);
     await vi.waitFor(() => expect(harness.rebuiltPages).toHaveLength(2));
     await vi.waitFor(() => expect(diagnosticLogger.text()).toContain(
-      "[ERROR] input double-tap failed · 안경 페이지 복원 재구성 실패",
+      "[ERROR] input double-tap failed · Glasses page restore rebuild failed",
     ));
 
     harness.emit(OsEventTypeList.SCROLL_BOTTOM_EVENT);
@@ -1870,7 +1871,7 @@ describe("G2 raster transport", () => {
       [3, 5, 2, 4],
     ]);
     expect(harness.imageIds).toHaveLength(16);
-    expect(harness.progress).toContain("상세 화면 전송 완료");
+    expect(harness.progress).toContain(TRANSPORT_STATUS.active);
     expect(harness.maximumActiveImageSends).toBe(1);
   });
 

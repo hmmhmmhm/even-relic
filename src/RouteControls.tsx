@@ -11,6 +11,7 @@ import {
   type RoutingStatus,
 } from "./routing";
 import { LOCALE_REGISTRY } from "./i18n/locale-registry";
+import { translatePhone, type PhoneStringKey } from "./phone-i18n";
 import type { PhoneLocale } from "./phone-types";
 
 type RouteControlsProps = {
@@ -33,6 +34,17 @@ const PROFILE_VALUES: readonly RouteProfile[] = [
   "cycling-regular",
   "driving-car",
 ];
+
+function routeStateHeading(
+  locale: PhoneLocale,
+  state: "disabled" | "stale" | "active" | "ready",
+): string {
+  const copy = LOCALE_REGISTRY[locale].route;
+  const stateLabel = state === "stale"
+    ? copy.previousRoute
+    : translatePhone(locale, state as PhoneStringKey);
+  return `${copy.navigation.toUpperCase()} // ${stateLabel.toUpperCase()}`;
+}
 
 function conciseError(
   error: unknown,
@@ -72,7 +84,7 @@ export function RouteControls({
   if (!status.enabled) {
     return (
       <section className="route-controls" aria-label={copy.navigation}>
-        <strong>ROUTE // DISABLED</strong>
+        <strong>{routeStateHeading(locale, "disabled")}</strong>
         <p>{copy.disabledHelp}</p>
       </section>
     );
@@ -140,7 +152,7 @@ export function RouteControls({
     const stale = routeStatus === "stale";
     return (
       <section className="route-controls" aria-label={copy.navigation}>
-        <strong>{stale ? "ROUTE // STALE" : "ROUTE // ACTIVE"}</strong>
+        <strong>{routeStateHeading(locale, stale ? "stale" : "active")}</strong>
         <p>
           {activeRoute.destinationName}{" "}
           {stale ? copy.previousRoute : copy.navigating}
@@ -166,7 +178,7 @@ export function RouteControls({
 
   return (
     <section className="route-controls" aria-label={copy.navigation}>
-      <strong>ROUTE // READY</strong>
+      <strong>{routeStateHeading(locale, "ready")}</strong>
       <form
         aria-label={copy.destinationSearch}
         onSubmit={(event) => void submitSearch(event)}

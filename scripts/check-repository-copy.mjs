@@ -10,6 +10,12 @@ const LEGACY_EVIDENCE_PATTERN = /\blegacy evidence\b/iu;
 const IMPLEMENTATION_PATH_PATTERN = /\.(?:css|ts|tsx)$/u;
 const TEST_PATH_PATTERN = /\.(?:spec|test)\.(?:ts|tsx)$/u;
 const MAX_IMPLEMENTATION_LINES = 450;
+const ACTIVE_RUNTIME_COPY_PATHS = new Set([
+  "src/RouteControls.tsx",
+  "src/fast-canvas-transport.ts",
+  "src/fast-hud-controller.ts",
+  "src/phone/PhoneCompanion.tsx",
+]);
 
 function linesOf(content) {
   return content.split(/\r?\n/u);
@@ -31,6 +37,26 @@ export function findHangulViolations(entries) {
           path: entry.path,
           line: index + 1,
           message: "Hangul is not allowed in tracked Markdown",
+          excerpt: line.trim(),
+        });
+      }
+    });
+  }
+
+  return violations;
+}
+
+export function findActiveRuntimeHangulViolations(entries) {
+  const violations = [];
+
+  for (const entry of entries) {
+    if (!ACTIVE_RUNTIME_COPY_PATHS.has(entry.path)) continue;
+    linesOf(entry.content).forEach((line, index) => {
+      if (HANGUL_PATTERN.test(line)) {
+        violations.push({
+          path: entry.path,
+          line: index + 1,
+          message: "Active runtime copy must be locale-neutral",
           excerpt: line.trim(),
         });
       }
@@ -174,6 +200,9 @@ export function checkRepository(repositoryRoot = process.cwd()) {
   return [
     ...findHangulViolations(readEntries(repositoryRoot, markdownPaths)),
     ...findCurrentBrandViolations(
+      readEntries(repositoryRoot, currentSourcePaths),
+    ),
+    ...findActiveRuntimeHangulViolations(
       readEntries(repositoryRoot, currentSourcePaths),
     ),
     ...findOversizedImplementationFiles(

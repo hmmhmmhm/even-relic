@@ -50,6 +50,7 @@ import { resolvePhoneLocale } from "./phone-i18n";
 import { getRoutingStatus } from "./routing";
 import { createAiRuntime, type AiRuntime } from "./ai-runtime";
 import { createNativeAiTextContent } from "./native-ai-text";
+import { TRANSPORT_STATUS } from "./transport-status";
 type LiveSession = ReturnType<typeof createLiveDashboardSession>;
 export function useHudController({
   autoStart,
@@ -178,7 +179,7 @@ export function useHudController({
     };
     void (async () => {
       await prepareInitialHud(canvas, modes, drawCurrentPage);
-      report("Even 앱 브리지 연결 대기 중 · Safari에서는 미리보기만 표시됩니다");
+      report(TRANSPORT_STATUS.preparing);
       if (modes.fastCanvas) {
         logDiagnostic(
           "APP",
@@ -230,8 +231,10 @@ export function useHudController({
             onRawEvent: (event) => {
               if (!event.hidden) return;
               const field = (value: number | undefined) => value ?? "-";
-              report(
-                `숨김 입력 #${event.count}`
+              report(TRANSPORT_STATUS.active);
+              logDiagnostic(
+                "INPUT",
+                `hidden input #${event.count}`
                   + ` · SYS ${field(event.sysEventType)}`
                   + ` · TEXT ${field(event.textEventType)}`
                   + ` · SRC ${field(event.eventSource)}`,
@@ -392,7 +395,7 @@ export function useHudController({
           }`,
         );
       }
-      report(error instanceof Error ? error.message : String(error));
+      report(TRANSPORT_STATUS.error);
     });
 
     return () => {

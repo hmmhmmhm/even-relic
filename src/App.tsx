@@ -47,6 +47,7 @@ import {
 } from "./ai-cost";
 import { resolveAiConversationHistory } from "./ai-history";
 import { resolveOpenAiKey } from "./openai-key";
+import { TRANSPORT_STATUS } from "./transport-status";
 
 type AppProps = { autoStart?: boolean };
 
@@ -77,8 +78,8 @@ export function App({ autoStart = true }: AppProps) {
     ReturnType<typeof createLiveDashboardSession> | undefined
   >(undefined);
   const displayRefreshRef = useRef<(() => void) | undefined>(undefined);
-  const [status, setStatus] = useState(
-    autoStart ? "HUD 이미지 준비 중" : "자동 전송 비활성",
+  const [status, setStatus] = useState<string>(
+    autoStart ? TRANSPORT_STATUS.preparing : TRANSPORT_STATUS.disabled,
   );
   const [routingStatus, setRoutingStatus] = useState<RoutingStatus>({
     enabled: false,

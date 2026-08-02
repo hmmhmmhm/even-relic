@@ -60,6 +60,18 @@ describe("RouteControls", () => {
     expect(search).not.toHaveBeenCalled();
   });
 
+  it("localizes the route state heading instead of hardcoding English", () => {
+    render(<RouteControls
+      locale="en"
+      status={{ enabled: true }}
+      onStart={vi.fn()}
+      onEnd={vi.fn()}
+    />);
+
+    expect(screen.getByText("NAVIGATION // READY")).toBeTruthy();
+    expect(screen.queryByText("ROUTE // READY")).toBeNull();
+  });
+
   it("shows a clean disabled state without a destination input", () => {
     render(<RouteControls
       status={{ enabled: false }}
