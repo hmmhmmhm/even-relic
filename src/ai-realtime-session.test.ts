@@ -35,6 +35,46 @@ class FakeSocket {
 }
 
 describe("G2 Realtime session", () => {
+  it("keeps the default Window.fetch receiver when opening the AI detail", async () => {
+    const windowFetch = vi.fn(function (
+      this: typeof globalThis,
+      _input: RequestInfo | URL,
+      _init?: RequestInit,
+    ) {
+      if (this !== globalThis) {
+        throw new TypeError("Can only call Window.fetch on instances of Window");
+      }
+      return Promise.resolve(Response.json({
+        value: "ek_test_ephemeral_123456",
+        expiresAt: 1_800_000_000,
+        model: "gpt-realtime",
+      }));
+    });
+    vi.stubGlobal("fetch", windowFetch);
+    const session = createAiRealtimeSession({
+      bridge: {
+        audioControl: vi.fn(async () => true),
+        onEvenHubEvent: () => vi.fn(),
+      },
+      key: "sk-test-1234567890abcdefghijklmnop",
+      locale: "ko",
+      createSocket: (_url, protocols) => {
+        const socket = new FakeSocket(protocols);
+        queueMicrotask(() => socket.open());
+        return socket;
+      },
+    });
+
+    try {
+      await expect(session.start()).resolves.toBeUndefined();
+      expect(windowFetch).toHaveBeenCalledOnce();
+      expect(windowFetch.mock.calls[0]?.[0]).toBe("/api/realtime-token");
+    } finally {
+      await session.stop();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("normalizes a non-JSON token response instead of leaking a parser error", async () => {
     const session = createAiRealtimeSession({
       bridge: {

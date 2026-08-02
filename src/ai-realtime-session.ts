@@ -38,7 +38,7 @@ const MAX_PCM_CHUNK_BYTES = 65_536;
 export function createAiRealtimeSession(
   options: AiRealtimeSessionOptions,
 ): AiRealtimeSession {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  const fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
   const createSocket = options.createSocket ?? createDefaultRealtimeSocket;
   let state = createRealtimeProtocolState();
   let socket: RealtimeSocket | undefined;
