@@ -29,17 +29,17 @@ The rejected general wait is removed. Query-free startup and blank-display
 restoration use the hardware-proven four-call default without an added delay.
 Pipeline one remains available only through an explicit diagnostic query.
 
-The paired 200 ms barriers remain narrowly scoped to Ask AI exit because that path
-performs two consecutive rebuilds: native Text to the neutral event page, then
-the neutral page to the five-container Canvas page. The first separates those
-rebuilds. Physical evidence that this improved but did not eliminate partial
-restoration justifies a second barrier between the image rebuild and its first
-image update.
+The 1 s and 200 ms barriers remain narrowly scoped to Ask AI exit because that
+path performs two consecutive rebuilds: native Text to the neutral event page,
+then the neutral page to the five-container Canvas page. The first separates
+those rebuilds. Physical evidence that this improved but did not eliminate
+partial restoration justifies a second barrier between the image rebuild and
+its first image update.
 
 ## Diagnostics and verification
 
 The accepted main route must log `pipeline 4`, start IDs 3/5/2/4 with an
 in-flight limit of four, and omit general `initial image page ready` and
 `restore image page ready` diagnostics. Native Ask AI exit instead logs
-`native AI neutral page ready · 200ms` before rebuilding the image page and
+`native AI neutral page ready · 1000ms` before rebuilding the image page and
 `native AI image page ready · 200ms` before its four image updates.

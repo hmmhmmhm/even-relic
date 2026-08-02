@@ -87,7 +87,7 @@ The package is private and is not published to npm or Even Hub.
   Restore rebuilds the image page, invalidates the successful-tile cache, and
   sends all current quadrants again.
 - Ask AI uses the official full-screen native Text container. Exiting first
-  neutralizes native Text, waits 200 ms for bilateral neutral-page propagation,
+  neutralizes native Text, waits 1 s for bilateral neutral-page propagation,
   rebuilds the image page, waits another 200 ms for bilateral container
   installation, and then restores all four image quadrants.
 

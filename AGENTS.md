@@ -93,7 +93,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   default: pipeline one increased intermittent one-sided and fully absent HUD
   output even though all four calls reported success. A general 200 ms wait
   after page creation and blank-display restoration did not improve it. Keep
-  the hardware-proven four-call default and scope the 200 ms neutral-page
+  the hardware-proven four-call default and scope the 1 s neutral-page
   barrier only to the native Ask AI exit transition.
 - Treat routing as optional. Accept a user-owned OpenRouteService key in the
   phone companion, persist it only in Even local storage, forward it through
@@ -198,7 +198,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   suppress image refreshes while the native page is active, and rebuild/send
   the established four-tile Canvas dashboard once on exit. Before that image
   rebuild, neutralize the frequently updated AI Text page with the proven
-  blank event page. Wait a fixed 200 ms for that neutral page before rebuilding
+  blank event page. Wait a fixed 1 s for that neutral page before rebuilding
   the five-container image page, then wait another fixed 200 ms before encoding
   and sending IDs 3/5/2/4. Apply these two page-installation barriers only to
   Ask AI exit, keep dropping late Text upgrades throughout them, and do not add

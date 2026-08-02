@@ -336,7 +336,7 @@ describe("G2 raster transport", () => {
     expect(harness.imageIds).toHaveLength(initialImageCount + 4);
     expect(harness.transitionEvents.slice(transitionStart)).toEqual([
       "rebuild:neutral",
-      "wait:200",
+      "wait:1000",
       "rebuild:image",
       "wait:200",
       "encode:3,5,2,4",
@@ -381,9 +381,10 @@ describe("G2 raster transport", () => {
 
   it("drops late native text updates throughout the binocular restore", async () => {
     const pageReady = deferred();
+    const waits: number[] = [];
     const harness = await createFastRefreshHarness({
       waitForPageReady: async (milliseconds) => {
-        expect(milliseconds).toBe(200);
+        waits.push(milliseconds);
         await pageReady.promise;
       },
     });
@@ -391,7 +392,7 @@ describe("G2 raster transport", () => {
     expect(await harness.nativeText.enter("ASK AI // READY")).toBe(true);
     const restoring = harness.nativeText.restore();
     await vi.waitFor(() => (
-      expect(harness.transitionEvents).toContain("wait:200")
+      expect(harness.transitionEvents).toContain("wait:1000")
     ));
     const initialTextCount = harness.textContents.length;
 
@@ -400,6 +401,7 @@ describe("G2 raster transport", () => {
 
     pageReady.resolve();
     expect(await restoring).toBe(true);
+    expect(waits).toEqual([1_000, 200]);
   });
 
   it("covers the 576 by 288 display with four ordered tiles", async () => {

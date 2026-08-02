@@ -28,7 +28,7 @@ The accepted AI exit path remains:
 
 1. stop the Realtime session and microphone;
 2. rebuild the proven blank event page to neutralize native Text updates;
-3. wait 200 ms for both lenses to install that neutral page;
+3. wait 1 s for both lenses to install that neutral page;
 4. rebuild the established five-container Canvas page;
 5. wait 200 ms for both lenses to install the Canvas containers;
 6. invalidate the successful-image cache and send IDs 3, 5, 2, and 4 through
@@ -51,7 +51,7 @@ a later independent exit input can try again.
 Add diagnostics after each page-installation boundary:
 
 ```text
-[REFRESH] native AI neutral page ready · 200ms
+[REFRESH] native AI neutral page ready · 1000ms
 [REFRESH] native AI image page ready · 200ms
 ```
 
