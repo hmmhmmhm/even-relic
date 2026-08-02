@@ -10,7 +10,9 @@ export type AiCitationSource = {
 };
 
 export type AiWebSearchUsage = {
+  readonly model: string;
   readonly inputTokens: number;
+  readonly cachedInputTokens: number;
   readonly outputTokens: number;
   readonly webSearchCalls: number;
 };

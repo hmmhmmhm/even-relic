@@ -34,8 +34,10 @@ test("returns bounded grounded text, HTTPS citations, and usage", async () => {
     fetchImpl: async (url, init) => {
       upstreamRequest = { url, init };
       return Response.json({
+        model: "gpt-5.5-2026-07-01",
         output: [
-          { type: "web_search_call", status: "completed" },
+          { type: "web_search_call", status: "completed", action: { type: "search" } },
+          { type: "web_search_call", status: "completed", action: { type: "open_page" } },
           {
             type: "message",
             content: [{
@@ -48,7 +50,11 @@ test("returns bounded grounded text, HTTPS citations, and usage", async () => {
             }],
           },
         ],
-        usage: { input_tokens: 22, output_tokens: 9 },
+        usage: {
+          input_tokens: 22,
+          input_tokens_details: { cached_tokens: 4 },
+          output_tokens: 9,
+        },
       });
     },
   });
@@ -57,7 +63,13 @@ test("returns bounded grounded text, HTTPS citations, and usage", async () => {
   assert.deepEqual(await response.json(), {
     answer: "Firmware 2.2 is current.",
     sources: [{ title: "Even support", url: "https://example.com/support" }],
-    usage: { inputTokens: 22, outputTokens: 9, webSearchCalls: 1 },
+    usage: {
+      model: "gpt-5.5-2026-07-01",
+      inputTokens: 22,
+      cachedInputTokens: 4,
+      outputTokens: 9,
+      webSearchCalls: 1,
+    },
   });
   assert.equal(upstreamRequest.url, "https://api.openai.com/v1/responses");
   assert.equal(upstreamRequest.init.headers.Authorization, `Bearer ${KEY}`);

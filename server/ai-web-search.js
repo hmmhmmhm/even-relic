@@ -21,6 +21,7 @@ const MAX_SOURCES = 6;
 const SEARCH_TIMEOUT_MS = 30_000;
 const LOCALE = /^[A-Za-z]{2,3}(?:-[A-Za-z]{2,8})?$/;
 const SAFE_UPSTREAM_ERROR_PART = /^[A-Za-z0-9_.-]{1,80}$/;
+const SAFE_MODEL = /^[A-Za-z0-9_.:-]{1,120}$/;
 
 function safeUpstreamErrorPart(value) {
   return typeof value === "string" && SAFE_UPSTREAM_ERROR_PART.test(value)
@@ -64,7 +65,9 @@ function parseSearchResponse(value) {
   const sources = [];
   let webSearchCalls = 0;
   for (const item of output) {
-    if (item?.type === "web_search_call") webSearchCalls += 1;
+    if (item?.type === "web_search_call" && item.action?.type === "search") {
+      webSearchCalls += 1;
+    }
     if (!Array.isArray(item?.content)) continue;
     for (const content of item.content) {
       if (content?.type !== "output_text" || typeof content.text !== "string") {
@@ -80,14 +83,28 @@ function parseSearchResponse(value) {
     }
   }
   const answer = texts.join("\n").trim().slice(0, MAX_ANSWER_LENGTH);
-  if (!answer) return undefined;
+  const model = typeof value.model === "string" && SAFE_MODEL.test(value.model)
+    ? value.model
+    : undefined;
+  if (!answer || !model) return undefined;
+  const inputTokens = Number.isFinite(value.usage?.input_tokens)
+    ? Math.max(0, Math.floor(value.usage.input_tokens))
+    : 0;
+  const cachedInputTokens = Number.isFinite(
+    value.usage?.input_tokens_details?.cached_tokens,
+  )
+    ? Math.min(inputTokens, Math.max(
+      0,
+      Math.floor(value.usage.input_tokens_details.cached_tokens),
+    ))
+    : 0;
   return {
     answer,
     sources: sources.slice(0, MAX_SOURCES),
     usage: {
-      inputTokens: Number.isFinite(value.usage?.input_tokens)
-        ? Math.max(0, Math.floor(value.usage.input_tokens))
-        : 0,
+      model,
+      inputTokens,
+      cachedInputTokens,
       outputTokens: Number.isFinite(value.usage?.output_tokens)
         ? Math.max(0, Math.floor(value.usage.output_tokens))
         : 0,

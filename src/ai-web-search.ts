@@ -39,18 +39,39 @@ function parseResult(value: unknown): AiWebSearchResult | undefined {
     || item.answer.length > MAX_ANSWER
     || !usage
   ) return undefined;
+  const model = typeof usage.model === "string"
+    && usage.model.length > 0
+    && usage.model.length <= 120
+    && /^[A-Za-z0-9_.:-]+$/.test(usage.model)
+    ? usage.model
+    : undefined;
   const count = (key: string) => typeof usage[key] === "number"
     && Number.isFinite(usage[key])
     && (usage[key] as number) >= 0
+    && (usage[key] as number) <= Number.MAX_SAFE_INTEGER
     ? Math.floor(usage[key] as number)
-    : 0;
+    : undefined;
+  const inputTokens = count("inputTokens");
+  const cachedInputTokens = count("cachedInputTokens");
+  const outputTokens = count("outputTokens");
+  const webSearchCalls = count("webSearchCalls");
+  if (
+    !model
+    || inputTokens === undefined
+    || cachedInputTokens === undefined
+    || cachedInputTokens > inputTokens
+    || outputTokens === undefined
+    || webSearchCalls === undefined
+  ) return undefined;
   return {
     answer: item.answer,
     sources: sources.slice(0, MAX_SOURCES),
     usage: {
-      inputTokens: count("inputTokens"),
-      outputTokens: count("outputTokens"),
-      webSearchCalls: count("webSearchCalls"),
+      model,
+      inputTokens,
+      cachedInputTokens,
+      outputTokens,
+      webSearchCalls,
     },
   };
 }

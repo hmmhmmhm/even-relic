@@ -4,6 +4,12 @@ import {
   writeCache,
   type EvenStorage,
 } from "./live-cache";
+import {
+  LEGACY_AI_PRICING_VERSION,
+  emptyAiUsageCharge,
+  mergeAiUsageCharge,
+  type AiUsageCharge,
+} from "./ai-pricing";
 
 export type AiUsage = {
   readonly textInputTokens: number;
@@ -14,6 +20,7 @@ export type AiUsage = {
   readonly transcriptionAudioInputTokens: number;
   readonly transcriptionTextOutputTokens: number;
   readonly searchTextInputTokens: number;
+  readonly cachedSearchTextInputTokens: number;
   readonly searchTextOutputTokens: number;
   readonly webSearchCalls: number;
 };
@@ -21,6 +28,7 @@ export type AiUsage = {
 export type AiDailyUsage = {
   readonly date: string;
   readonly usage: AiUsage;
+  readonly charge: AiUsageCharge;
 };
 
 export const EMPTY_AI_USAGE: AiUsage = {
@@ -32,6 +40,7 @@ export const EMPTY_AI_USAGE: AiUsage = {
   transcriptionAudioInputTokens: 0,
   transcriptionTextOutputTokens: 0,
   searchTextInputTokens: 0,
+  cachedSearchTextInputTokens: 0,
   searchTextOutputTokens: 0,
   webSearchCalls: 0,
 };
@@ -45,6 +54,7 @@ const PRICE_PER_MILLION = {
   transcriptionAudioInputTokens: 1.25,
   transcriptionTextOutputTokens: 5,
   searchTextInputTokens: 0.25,
+  cachedSearchTextInputTokens: 0,
   searchTextOutputTokens: 2,
   webSearchCalls: 10_000,
 } as const satisfies Record<keyof AiUsage, number>;
@@ -83,14 +93,29 @@ export function addDailyAiUsage(
   ledger: readonly AiDailyUsage[],
   at: Date,
   usage: AiUsage,
+  charge: AiUsageCharge = legacyCharge(usage),
 ): readonly AiDailyUsage[] {
   const date = localDateKey(at);
-  const previous = ledger.find((entry) => entry.date === date)?.usage
-    ?? EMPTY_AI_USAGE;
+  const previousEntry = ledger.find((entry) => entry.date === date);
   return [
     ...ledger.filter((entry) => entry.date !== date),
-    { date, usage: addAiUsage(previous, usage) },
+    {
+      date,
+      usage: addAiUsage(previousEntry?.usage ?? EMPTY_AI_USAGE, usage),
+      charge: mergeAiUsageCharge(
+        previousEntry?.charge ?? emptyAiUsageCharge(),
+        charge,
+      ),
+    },
   ].sort((left, right) => left.date.localeCompare(right.date)).slice(-400);
+}
+
+function legacyCharge(usage: AiUsage): AiUsageCharge {
+  return {
+    estimatedNanoUsd: Math.round(estimateAiUsageUsd(usage) * 1_000_000_000),
+    unpricedEvents: 0,
+    pricingVersions: [LEGACY_AI_PRICING_VERSION],
+  };
 }
 
 function usageInRange(
@@ -126,8 +151,40 @@ export function usageForCurrentMonth(
   return usageInRange(ledger, start, now);
 }
 
+function chargeInRange(
+  ledger: readonly AiDailyUsage[],
+  start: Date,
+  end: Date,
+): AiUsageCharge {
+  const startKey = localDateKey(start);
+  const endKey = localDateKey(end);
+  return ledger.reduce(
+    (total, entry) => entry.date >= startKey && entry.date <= endKey
+      ? mergeAiUsageCharge(total, entry.charge)
+      : total,
+    emptyAiUsageCharge(),
+  );
+}
+
+export function costSummaryForCurrentPeriod(
+  ledger: readonly AiDailyUsage[],
+  now = new Date(),
+): { weekUsd: number; monthUsd: number; hasUnpricedUsage: boolean } {
+  const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = weekStart.getDay();
+  weekStart.setDate(weekStart.getDate() - (day === 0 ? 6 : day - 1));
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const week = chargeInRange(ledger, weekStart, now);
+  const month = chargeInRange(ledger, monthStart, now);
+  return {
+    weekUsd: week.estimatedNanoUsd / 1_000_000_000,
+    monthUsd: month.estimatedNanoUsd / 1_000_000_000,
+    hasUnpricedUsage: week.unpricedEvents > 0 || month.unpricedEvents > 0,
+  };
+}
+
 const LEGACY_USAGE_KEYS = Object.keys(EMPTY_AI_USAGE).filter((key) => (
-  !key.startsWith("search") && key !== "webSearchCalls"
+  !key.toLowerCase().includes("search")
 ));
 
 function isUsage(value: unknown): value is AiUsage {
@@ -149,7 +206,24 @@ function isUsageLedger(value: unknown): value is readonly AiDailyUsage[] {
       && typeof entry.date === "string"
       && /^\d{4}-\d{2}-\d{2}$/.test(entry.date)
       && isUsage(entry.usage)
+      && (
+        entry.charge === undefined
+        || isCharge(entry.charge)
+      )
     ));
+}
+
+function isCharge(value: unknown): value is AiUsageCharge {
+  if (typeof value !== "object" || value === null) return false;
+  const item = value as Record<string, unknown>;
+  return typeof item.estimatedNanoUsd === "number"
+    && Number.isFinite(item.estimatedNanoUsd)
+    && item.estimatedNanoUsd >= 0
+    && typeof item.unpricedEvents === "number"
+    && Number.isFinite(item.unpricedEvents)
+    && item.unpricedEvents >= 0
+    && Array.isArray(item.pricingVersions)
+    && item.pricingVersions.every((version) => typeof version === "string");
 }
 
 export async function resolveAiUsageLedger(
@@ -159,6 +233,7 @@ export async function resolveAiUsageLedger(
   return ledger.map((entry) => ({
     ...entry,
     usage: addAiUsage(EMPTY_AI_USAGE, entry.usage),
+    charge: entry.charge ?? legacyCharge(addAiUsage(EMPTY_AI_USAGE, entry.usage)),
   }));
 }
 
