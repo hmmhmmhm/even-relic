@@ -81,11 +81,12 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   `0.0.12-reproduce` branch as the historical compressed-image failure sent to
   Even Realities. Do not describe the reproduction branch as the current host
   behavior.
-- The query-free `/hud-canvas-fast` transport defaults to four in-flight SDK
-  image calls and the `hud-4` transmitted palette. Preserve
-  `?pipeline=1&levels=original` as the explicit rollback. Encode generated
-  solid-black hide frames with the original path, then restore content with
-  the resolved content palette.
+- The query-free `/hud-canvas-fast` transport defaults to one in-flight SDK
+  image call and the `hud-4` transmitted palette. Keep explicit
+  `?pipeline=2`, `?pipeline=3`, and `?pipeline=4` values available only for
+  controlled diagnostics, and preserve `?levels=original` as the palette
+  rollback. Encode generated solid-black hide frames with the original path,
+  then restore content with the resolved content palette.
 - Treat routing as optional. Accept a user-owned OpenRouteService key in the
   phone companion, persist it only in Even local storage, forward it through
   fixed same-origin routing endpoints without server persistence or logging,

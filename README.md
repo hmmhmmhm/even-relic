@@ -23,8 +23,8 @@
 
 Sandevistan is an unofficial, fan-made personal HUD for the Even Realities G2.
 It renders a 576×288 tactical interface to Canvas, splits it into four 288×144
-images, and sends those tiles through a bounded four-call SDK pipeline. The
-current product candidate is `/hud-canvas-fast`.
+images, and sends those tiles through a bounded serial SDK transport by
+default. The current product candidate is `/hud-canvas-fast`.
 
 The project favors useful information, predictable controls, and hardware-proven
 behavior over browser-only effects. It has been tested on physical G2 glasses
@@ -149,19 +149,20 @@ The hardware-proven send order is:
 - Map movement: left side only, `2 → 4`.
 - Visible minute or battery change: top-right only, `3`.
 
-Only one accepted refresh owns the transport at a time. Up to four SDK tile
-calls belonging to that refresh may be in flight; missing or invalid `pipeline`
-values resolve to four, while explicit values from `1` through `4` remain
-available for diagnosis. A tile whose encoded bytes match the last successful
-send is skipped. Any refresh request arriving while transport is busy is
-dropped immediately: it is not queued, merged, replayed, or retried. A failed
-refresh remains failed and the next independent event may try again.
+Only one accepted refresh owns the transport at a time. Its SDK tile calls run
+one at a time by default; missing or invalid `pipeline` values resolve to one,
+while explicit values from `1` through `4` remain available for controlled
+diagnosis. A tile whose encoded bytes match the last successful send is
+skipped. Any refresh request arriving while transport is busy is dropped
+immediately: it is not queued, merged, replayed, or retried. A failed refresh
+remains failed and the next independent event may try again.
 
 Content tiles use a four-level grayscale palette by default. On physical G2
 hardware this reduced the measured full-frame payload by 54.4% and the median
 restore latency by 24.8%. Explicit black-control hide frames bypass palette
 conversion because their encoded payload is already minimal. Use
-`?pipeline=1&levels=original` for the complete serial/original rollback.
+`?levels=original` for the palette rollback, or
+`?pipeline=1&levels=original` for an explicit serial/original comparison.
 See the [pipeline hardware gate](docs/hardware/2026-07-30-g2-pipelined-image-transport.md)
 and [palette comparison](docs/hardware/2026-07-31-g2-hud-palette-compression.md).
 An opt-in 1-bit BMP path remained reliable but was 14.7% slower in the
@@ -291,7 +292,8 @@ Open the app through **Even Hub → Scan QR**:
 http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.13&build=<BUILD-ID>
 ```
 
-No performance query is required. For an explicit transport rollback, use:
+No performance query is required. Serial image transport is the production
+default. For an explicit original-palette comparison, use:
 
 ```text
 http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.13&pipeline=1&levels=original&build=<BUILD-ID>

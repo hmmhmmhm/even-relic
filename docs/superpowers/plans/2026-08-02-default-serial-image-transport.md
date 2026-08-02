@@ -58,7 +58,7 @@ Expected: PASS with the production route at concurrency `1` and explicit experim
 Run:
 
 ```bash
-npm test -- --run src/bounded-task-pool.test.ts src/fast-canvas-transport.test.ts
+npm test -- --run src/bounded-task-pool.test.ts src/glasses.test.ts
 ```
 
 Expected: PASS, proving concurrency `1` remains serial without changing send order, unchanged-tile skipping, failure handling, or retry behavior.

@@ -266,6 +266,16 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(fastOptions().imageSendConcurrency).toBe(2);
   });
 
+  it("uses one-at-a-time image transport by default", async () => {
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+
+    render(<App />);
+
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+    expect(fastOptions().imageSendConcurrency).toBe(1);
+  });
+
   it("passes the four-call image pipeline to the fast transport", async () => {
     window.history.replaceState(
       {},
@@ -280,7 +290,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     expect(fastOptions().imageSendConcurrency).toBe(4);
   });
 
-  it("falls back to four-call image transport for an invalid pipeline", async () => {
+  it("falls back to one-at-a-time image transport for an invalid pipeline", async () => {
     window.history.replaceState(
       {},
       "",
@@ -291,7 +301,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     render(<App />);
 
     await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
-    expect(fastOptions().imageSendConcurrency).toBe(4);
+    expect(fastOptions().imageSendConcurrency).toBe(1);
   });
 
   it("passes the opt-in four-level tile palette to the fast transport", async () => {
