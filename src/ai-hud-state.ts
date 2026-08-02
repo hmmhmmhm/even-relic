@@ -21,6 +21,7 @@ export type AiHudSnapshot = {
   readonly weekUsd: number;
   readonly monthUsd: number;
   readonly responseComplete: boolean;
+  readonly canRevealFullResponse: boolean;
   readonly activeTool?: AiActiveTool;
   readonly pendingApproval?: AiMcpApproval;
   readonly error?: string;
@@ -43,6 +44,7 @@ export function createAiHudSnapshot(
     weekUsd,
     monthUsd,
     responseComplete: false,
+    canRevealFullResponse: false,
   };
 }
 
@@ -66,6 +68,7 @@ export function updateAiHudProtocol(
     pendingApproval: protocol.pendingApproval,
     activeTool: protocol.activeTool,
     responseComplete: protocol.responseComplete,
+    canRevealFullResponse: false,
     error: protocol.error,
   };
 }

@@ -8,6 +8,13 @@ export type AiPresentationPacer = {
   dispose(): void;
 };
 
+export function normalizeAiPresentationInterval(value: unknown): number {
+  const finite = typeof value === "number" && Number.isFinite(value)
+    ? value
+    : 200;
+  return Math.min(1_000, Math.max(100, Math.round(finite / 50) * 50));
+}
+
 export function createAiPresentationPacer(options: {
   readonly onFrame: (
     snapshot: AiHudSnapshot,
@@ -15,9 +22,12 @@ export function createAiPresentationPacer(options: {
     waitForPresentation?: boolean,
   ) => unknown;
   readonly intervalMs?: number;
+  readonly getIntervalMs?: () => number;
   readonly graphemesPerTick?: number;
 }): AiPresentationPacer {
-  const intervalMs = Math.max(1, options.intervalMs ?? 250);
+  const intervalMs = () => normalizeAiPresentationInterval(
+    options.getIntervalMs?.() ?? options.intervalMs,
+  );
   const step = Math.max(1, Math.floor(options.graphemesPerTick ?? 1));
   type ArchivedPresentation = {
     index: number;
@@ -75,6 +85,7 @@ export function createAiPresentationPacer(options: {
     const frame: AiHudSnapshot = {
       ...target,
       phase: isCaughtUp ? target.phase : "displaying",
+      canRevealFullResponse: target.responseComplete && !isCaughtUp,
       assistantText: visibleAssistant,
       transcriptLines: createAiTranscriptLines(visibleTurns, {
         user: target.userText,
@@ -155,7 +166,7 @@ export function createAiPresentationPacer(options: {
           schedule();
         }
       });
-    }, intervalMs);
+    }, intervalMs());
   };
 
   return {
@@ -219,6 +230,7 @@ export function createAiPresentationPacer(options: {
         options.onFrame(snapshot, snapshot.phase === "listening");
         return;
       }
+      if (snapshot.responseComplete && !previous?.responseComplete) emit();
       schedule();
     },
     flush() {

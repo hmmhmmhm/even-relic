@@ -46,6 +46,7 @@ export function createAiRuntime(options: {
   readonly getSnapshot: () => AiHudSnapshot;
   readonly onSnapshot: (snapshot: AiHudSnapshot) => void;
   readonly refresh: () => void | Promise<void>;
+  readonly getPresentationIntervalMs?: () => number;
   readonly createSession?: typeof createAiRealtimeSession;
 }): AiRuntime {
   let session: ReturnType<typeof createAiRealtimeSession> | undefined;
@@ -64,6 +65,7 @@ export function createAiRuntime(options: {
   };
   const pacer = createAiPresentationPacer({
     onFrame: publish,
+    getIntervalMs: options.getPresentationIntervalMs,
   });
 
   const persist = async (

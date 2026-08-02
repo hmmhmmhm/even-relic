@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { createAiHudSnapshot } from "./ai-hud-state";
-import { createAiPresentationPacer } from "./ai-presentation-pacer";
+import {
+  createAiPresentationPacer,
+  normalizeAiPresentationInterval,
+} from "./ai-presentation-pacer";
 
 describe("Ask AI presentation pacer", () => {
-  it("reveals exactly one Unicode grapheme every 250 ms", async () => {
+  it("reveals exactly one Unicode grapheme every 200 ms by default", async () => {
     vi.useFakeTimers();
     const frames: Array<{ text: string; phase: string; settled: boolean }> = [];
     const pacer = createAiPresentationPacer({
@@ -21,7 +24,7 @@ describe("Ask AI presentation pacer", () => {
     });
 
     expect(frames).toEqual([]);
-    await vi.advanceTimersByTimeAsync(249);
+    await vi.advanceTimersByTimeAsync(199);
     expect(frames).toEqual([]);
     await vi.advanceTimersByTimeAsync(1);
     expect(frames.at(-1)).toEqual({
@@ -29,18 +32,80 @@ describe("Ask AI presentation pacer", () => {
       phase: "displaying",
       settled: false,
     });
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
     expect(frames.at(-1)).toEqual({
       text: "가나",
       phase: "displaying",
       settled: false,
     });
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
     expect(frames.at(-1)).toEqual({
       text: "가나다",
       phase: "thinking",
       settled: false,
     });
+    pacer.dispose();
+    vi.useRealTimers();
+  });
+
+  it("normalizes persisted intervals to supported 50 ms steps", () => {
+    expect(normalizeAiPresentationInterval(undefined)).toBe(200);
+    expect(normalizeAiPresentationInterval(10)).toBe(100);
+    expect(normalizeAiPresentationInterval(226)).toBe(250);
+    expect(normalizeAiPresentationInterval(5_000)).toBe(1_000);
+  });
+
+  it("reads a live interval before scheduling the next grapheme", async () => {
+    vi.useFakeTimers();
+    let intervalMs = 200;
+    const texts: string[] = [];
+    const pacer = createAiPresentationPacer({
+      getIntervalMs: () => intervalMs,
+      onFrame: (snapshot) => texts.push(snapshot.assistantText),
+    });
+    pacer.push({
+      ...createAiHudSnapshot(true),
+      phase: "thinking",
+      assistantText: "가나다",
+    });
+    intervalMs = 600;
+
+    await vi.advanceTimersByTimeAsync(200);
+    expect(texts).toEqual(["가"]);
+    await vi.advanceTimersByTimeAsync(599);
+    expect(texts).toEqual(["가"]);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(texts).toEqual(["가", "가나"]);
+    pacer.dispose();
+    vi.useRealTimers();
+  });
+
+  it("offers reveal only after generation completes while text is withheld", async () => {
+    vi.useFakeTimers();
+    const frames: Array<{ text: string; reveal: boolean }> = [];
+    const pacer = createAiPresentationPacer({
+      onFrame: (snapshot) => frames.push({
+        text: snapshot.assistantText,
+        reveal: snapshot.canRevealFullResponse,
+      }),
+    });
+    pacer.push({
+      ...createAiHudSnapshot(true),
+      phase: "thinking",
+      assistantText: "가나다",
+      responseComplete: false,
+    });
+    await vi.advanceTimersByTimeAsync(200);
+    expect(frames.at(-1)).toEqual({ text: "가", reveal: false });
+    pacer.push({
+      ...createAiHudSnapshot(true),
+      phase: "listening",
+      assistantText: "가나다",
+      responseComplete: true,
+    });
+    expect(frames.at(-1)?.reveal).toBe(true);
+    await pacer.flush();
+    expect(frames.at(-1)).toEqual({ text: "가나다", reveal: false });
     pacer.dispose();
     vi.useRealTimers();
   });
@@ -62,7 +127,7 @@ describe("Ask AI presentation pacer", () => {
       assistantText: "최신응답전체문장",
     });
 
-    await vi.advanceTimersByTimeAsync(500);
+    await vi.advanceTimersByTimeAsync(400);
     expect(texts).toEqual(["최", "최신"]);
     pacer.dispose();
     vi.useRealTimers();
@@ -95,7 +160,7 @@ describe("Ask AI presentation pacer", () => {
       userText: "바로 보이는 질문",
       assistantText: "짧은 답변",
     });
-    await vi.advanceTimersByTimeAsync(1_250);
+    await vi.advanceTimersByTimeAsync(1_000);
     expect(frames.at(-1)).toEqual({
       text: "짧은 답변",
       phase: "listening",
@@ -117,9 +182,9 @@ describe("Ask AI presentation pacer", () => {
       assistantText: "👨‍👩‍👧‍👦좋아",
     });
 
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
     expect(texts).toEqual(["👨‍👩‍👧‍👦"]);
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
     expect(texts.at(-1)).toBe("👨‍👩‍👧‍👦좋");
     pacer.dispose();
     vi.useRealTimers();
@@ -138,7 +203,7 @@ describe("Ask AI presentation pacer", () => {
       assistantText: "답변",
     });
 
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
     expect(lines.at(-1)).toEqual([
       "YOU // 질문",
       "AI // 답",
@@ -159,7 +224,7 @@ describe("Ask AI presentation pacer", () => {
       userText: "질문",
       assistantText: "가나다",
     });
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
     expect(frames.at(-1)).toEqual([
       "YOU // 질문",
       "AI // 가",
@@ -176,7 +241,7 @@ describe("Ask AI presentation pacer", () => {
       "AI // 가",
     ]);
 
-    await vi.advanceTimersByTimeAsync(500);
+    await vi.advanceTimersByTimeAsync(400);
     expect(frames.at(-1)).toEqual([
       "YOU // 질문",
       "AI // 가나다",
@@ -197,7 +262,7 @@ describe("Ask AI presentation pacer", () => {
       userText: "질문",
       assistantText: "가",
     });
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
 
     pacer.push({
       ...createAiHudSnapshot(true),
@@ -216,12 +281,12 @@ describe("Ask AI presentation pacer", () => {
       "YOU // 질문",
       "AI // 가",
     ]);
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
     expect(frames.at(-1)).toEqual([
       "YOU // 질문",
       "AI // 가나",
     ]);
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
     expect(frames.at(-1)).toEqual([
       "YOU // 질문",
       "AI // 가나다",
@@ -246,13 +311,13 @@ describe("Ask AI presentation pacer", () => {
       assistantText: "가나다",
     });
 
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
     expect(texts).toEqual(["가"]);
     await vi.advanceTimersByTimeAsync(5_000);
     expect(texts).toEqual(["가"]);
 
     release?.();
-    await vi.advanceTimersByTimeAsync(249);
+    await vi.advanceTimersByTimeAsync(199);
     expect(texts).toEqual(["가"]);
     await vi.advanceTimersByTimeAsync(1);
     expect(texts).toEqual(["가", "가나"]);
@@ -272,7 +337,7 @@ describe("Ask AI presentation pacer", () => {
       userText: "첫 질문",
       assistantText: "첫 답",
     });
-    await vi.advanceTimersByTimeAsync(750);
+    await vi.advanceTimersByTimeAsync(600);
     pacer.push({
       ...createAiHudSnapshot(true),
       phase: "listening",
@@ -286,7 +351,7 @@ describe("Ask AI presentation pacer", () => {
       assistantText: "둘째 답",
     });
 
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
     expect(frames.at(-1)).toEqual([
       "YOU // 첫 질문",
       "AI // 첫 답",
@@ -348,7 +413,7 @@ describe("Ask AI presentation pacer", () => {
       phase: "thinking",
       assistantText: "가나다",
     });
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(200);
     expect(texts).toEqual(["가"]);
 
     let flushed = false;
