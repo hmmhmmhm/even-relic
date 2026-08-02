@@ -113,3 +113,39 @@ republishing those reference screens.
 
 No actionable `P0`, `P1`, or `P2` difference remains in the audited Home,
 detail-navigation, or HUD-layout states.
+
+## 2026-08-02 structural follow-up
+
+The current Codex session exposed no controllable in-app browser. The phone
+companion after the Ask AI addition therefore has not received a new
+screenshot-based visual audit. The 2026-07-29 captures above remain evidence
+only for the states and build they record.
+
+Fresh source-level verification on 2026-08-02 covered the current companion:
+
+- all nine Home destinations, including Ask AI, render as complete semantic
+  card buttons;
+- every Home card routes directly to its detail screen without an intermediate
+  management menu, and the persistent HUD Canvas remains mounted;
+- detail navigation exposes one text breadcrumb and one localized return card;
+- Home retains two columns at the 320-pixel acceptance width, the approved
+  neutral treatment, 8-pixel card radius, and no card shadow;
+- reorder and phone TODO controls retain 44-pixel minimum targets; and
+- Ask AI BYOK storage, local cost and conversation summaries, response pacing,
+  MCP server storage, and localized phone copy remain covered by automated
+  tests.
+
+Verification commands:
+
+```sh
+npm test -- --run src/phone/PhoneCompanion.test.tsx \
+  src/phone/AiScreen.test.tsx src/ai-i18n.test.ts \
+  src/mcp-i18n.test.ts src/phone-i18n.test.ts
+npx vitest run src/phone/phone-home-styles.test.mjs \
+  --no-file-parallelism --maxWorkers=1
+```
+
+Result: 28 component and localization tests plus 7 CSS policy tests passed.
+This follow-up does not establish current pixel fidelity, contrast, keyboard
+focus visuals, or screen-reader behavior. Those checks remain pending until a
+controllable in-app browser is available.
