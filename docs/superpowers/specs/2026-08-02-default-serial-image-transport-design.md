@@ -1,5 +1,8 @@
 # Default Serial Image Transport Design
 
+Status: Rejected after physical G2 testing. Pipeline one remains an explicit
+diagnostic, while the query-free route uses pipeline four.
+
 ## Goal
 
 Make the production HUD transport send one image update at a time by default.

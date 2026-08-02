@@ -2,10 +2,14 @@ import {
   ImageRawDataUpdate,
   ImageRawDataUpdateResult,
   OsEventTypeList,
+  RebuildPageContainer,
+  StartUpPageCreateResult,
   waitForEvenAppBridge,
 } from "@evenrealities/even_hub_sdk";
 import {
   G2_TILES,
+  createContainerObjects,
+  createGlassesPage,
   encodeCanvasTiles,
   type Tile,
 } from "./g2-canvas";
@@ -18,8 +22,6 @@ import type { G2TileImageFormat } from "./g2-tile-format";
 import {
   createBlankDisplayPage,
   createImageDisplayPage,
-  G2_IMAGE_PAGE_SETTLE_MS,
-  initializeImageDisplayPage,
   type G2DisplayHideStrategy,
 } from "./g2-display-hide";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
@@ -75,17 +77,22 @@ export async function transmitCanvas(
   onProgress(TRANSPORT_STATUS.preparing);
   const bridge = await dependencies.waitForBridge();
   onProgress(TRANSPORT_STATUS.preparing);
-  const waitForImagePageReady = dependencies.waitForPageReady
-    ?? ((milliseconds: number) => new Promise<void>((resolve) => {
-      setTimeout(resolve, milliseconds);
-    }));
 
-  await initializeImageDisplayPage(bridge, tiles);
-  await waitForImagePageReady(G2_IMAGE_PAGE_SETTLE_MS);
-  logDiagnostic(
-    "REFRESH",
-    `initial image page ready · ${G2_IMAGE_PAGE_SETTLE_MS}ms`,
+  const created = StartUpPageCreateResult.normalize(
+    await bridge.createStartUpPageContainer(createGlassesPage(tiles)),
   );
+  if (created === StartUpPageCreateResult.invalid) {
+    onProgress(TRANSPORT_STATUS.preparing);
+    const { eventLayer, imageObject } = createContainerObjects(tiles);
+    const rebuilt = await bridge.rebuildPageContainer(new RebuildPageContainer({
+      containerTotalNum: tiles.length + 1,
+      textObject: [eventLayer],
+      imageObject,
+    }));
+    if (!rebuilt) throw new Error("Existing glasses page rebuild failed");
+  } else if (created !== StartUpPageCreateResult.success) {
+    throw new Error(`Glasses page creation failed: ${created}`);
+  }
 
   const lastSuccessfulTilePayload = new Map<number, Uint8Array>();
   const refreshImages = async (
@@ -210,7 +217,7 @@ export async function transmitCanvas(
   let busy = false;
   const nativeText = createFastNativeAiTextController({
     bridge, tiles,
-    waitForImagePageReady,
+    waitForImagePageReady: dependencies.waitForPageReady,
     invalidateImages: () => lastSuccessfulTilePayload.clear(),
     restoreImages: () => refreshImages(source, tiles, TRANSPORT_STATUS.active),
     onFailure: (operation) => {
@@ -300,11 +307,6 @@ export async function transmitCanvas(
           "REFRESH",
           "restore page rebuild success",
           diagnosticDuration(rebuildStartedAt),
-        );
-        await waitForImagePageReady(G2_IMAGE_PAGE_SETTLE_MS);
-        logDiagnostic(
-          "REFRESH",
-          `restore image page ready · ${G2_IMAGE_PAGE_SETTLE_MS}ms`,
         );
         lastSuccessfulTilePayload.clear();
       }

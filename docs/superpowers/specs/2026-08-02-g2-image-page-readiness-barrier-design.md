@@ -2,42 +2,40 @@
 
 Date: 2026-08-02
 
-Status: Approved from physical G2 evidence
+Status: Rejected by physical G2 evidence
 
 ## Goal
 
-Prevent intermittent missing quadrants, one-sided output, and fully absent HUD
-frames even when every SDK image call reports success.
+Test whether a general page-readiness delay prevents intermittent missing
+quadrants, one-sided output, and fully absent HUD frames when every SDK image
+call reports success.
 
 ## Evidence and cause
 
-Physical logs on SDK `0.0.13` show successful serial sends for IDs 3, 5, 2,
-and 4, but the optical output can remain incomplete. The affected transitions
-start encoding and sending immediately after startup page creation or a
-blank-display image-page rebuild. The already stabilized Ask AI exit path waits
-200 ms at the same boundary and restores complete binocular output.
+Physical logs on SDK `0.0.13` showed successful serial sends for IDs 3, 5, 2,
+and 4 while the optical output remained incomplete. The candidate added a
+200 ms wait after startup page creation and blank-display image-page rebuild.
+Repeated physical cycles still produced the same one-sided and fully absent
+output.
 
-`updateImageRawData` success therefore confirms SDK request acceptance, not
-that every newly rebuilt image container is ready in both optical outputs.
+The result rejects insufficient page-settle time as the general HUD cause.
+The regression instead correlates with promotion of pipeline one: the previous
+four-call default had completed its physical gate without this reported
+integrity regression.
 
 ## Behavior
 
-After successful startup page creation, an existing-page fallback rebuild, or
-a blank-display image-page restore rebuild:
+The rejected general wait is removed. Query-free startup and blank-display
+restoration use the hardware-proven four-call default without an added delay.
+Pipeline one remains available only through an explicit diagnostic query.
 
-1. wait 200 ms;
-2. encode the requested frame;
-3. send the established IDs 3, 5, 2, and 4 with the production serial limit;
-4. commit visibility only after every image call succeeds.
-
-Blank hiding remains an immediate one-container rebuild and adds no wait.
-Paging, input redraws, and live refreshes reuse the installed image page and add
-no wait. The change does not add retries, concurrent calls, forced resends, or
-new SDK containers.
+The 200 ms barrier remains narrowly scoped to Ask AI exit because that path
+changes from a frequently updated native Text page back to the five-container
+Canvas page and has separate physical evidence.
 
 ## Diagnostics and verification
 
-Startup logs `initial image page ready · 200ms`; normal restoration logs
-`restore image page ready · 200ms`. Transport tests assert that each readiness
-barrier occurs before encoding and before the first image call. Existing tests
-continue to prove one image call at a time and the 3/5/2/4 order.
+The accepted main route must log `pipeline 4`, start IDs 3/5/2/4 with an
+in-flight limit of four, and omit general `initial image page ready` and
+`restore image page ready` diagnostics. Native Ask AI exit retains its own
+`native AI image page ready · 200ms` diagnostic.

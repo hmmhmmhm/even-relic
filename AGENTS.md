@@ -83,18 +83,18 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   `0.0.12-reproduce` branch as the historical compressed-image failure sent to
   Even Realities. Do not describe the reproduction branch as the current host
   behavior.
-- The query-free `/hud-canvas-fast` transport defaults to one in-flight SDK
-  image call and the `hud-4` transmitted palette. Keep explicit
-  `?pipeline=2`, `?pipeline=3`, and `?pipeline=4` values available only for
-  controlled diagnostics, and preserve `?levels=original` as the palette
-  rollback. Encode generated solid-black hide frames with the original path,
-  then restore content with the resolved content palette.
-- Hardware evidence on the serial SDK `0.0.13` path shows that successful image
-  calls can still leave one side or the complete HUD absent when they begin
-  immediately after an image-page creation or rebuild. Wait a fixed 200 ms
-  after those page operations before the first raster send. Keep blank hiding
-  immediate, and do not delay paging or live refreshes that reuse the existing
-  image page.
+- The query-free `/hud-canvas-fast` transport defaults to four in-flight SDK
+  image calls and the `hud-4` transmitted palette. Preserve
+  `?pipeline=1&levels=original` as the explicit rollback, and keep pipeline
+  values 1 through 4 available for controlled diagnostics. Encode generated
+  solid-black hide frames with the original path, then restore content with
+  the resolved content palette.
+- Physical SDK `0.0.13` evidence rejects serial transport as the production
+  default: pipeline one increased intermittent one-sided and fully absent HUD
+  output even though all four calls reported success. A general 200 ms wait
+  after page creation and blank-display restoration did not improve it. Keep
+  the hardware-proven four-call default and scope the 200 ms image-page barrier
+  only to the native Ask AI exit transition.
 - Treat routing as optional. Accept a user-owned OpenRouteService key in the
   phone companion, persist it only in Even local storage, forward it through
   fixed same-origin routing endpoints without server persistence or logging,
@@ -200,10 +200,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   rebuild, neutralize the frequently updated AI Text page with the proven
   blank event page. After rebuilding the five-container image page, wait a
   fixed 200 ms before encoding and sending IDs 3/5/2/4 so both lenses can
-  install every quadrant. Reuse the same image-page readiness barrier used by
-  initial startup and normal blank-display restoration, keep dropping late Text
-  upgrades throughout Ask AI exit, and do not add retries, queued refreshes, or
-  forced tile resends.
+  install every quadrant. Apply this barrier only to Ask AI exit, keep dropping
+  late Text upgrades throughout it, and do not add retries, queued refreshes,
+  or forced tile resends.
 - Keep Ask AI microphone ownership session-scoped: a normal detail tap flushes
   an already-complete answer or cancels an active Realtime response, reveals
   its received partial text, and resumes listening without closing the

@@ -7,5 +7,5 @@ export function resolveImageSendConcurrency(
   if (value === "1") return 1;
   if (value === "2") return 2;
   if (value === "3") return 3;
-  return value === "4" ? 4 : 1;
+  return 4;
 }

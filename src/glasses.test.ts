@@ -292,11 +292,10 @@ async function createFastRefreshHarness(
 afterEach(() => vi.useRealTimers());
 
 describe("G2 raster transport", () => {
-  it("waits for the initial image page before sending the first raster frame", async () => {
+  it("starts the initial raster frame without a general page-settle delay", async () => {
     const harness = await createFastRefreshHarness();
 
-    expect(harness.transitionEvents.slice(0, 6)).toEqual([
-      "wait:200",
+    expect(harness.transitionEvents.slice(0, 5)).toEqual([
       "encode:3,5,2,4",
       "image:3",
       "image:5",
@@ -381,21 +380,17 @@ describe("G2 raster transport", () => {
 
   it("drops late native text updates throughout the binocular restore", async () => {
     const pageReady = deferred();
-    let pageReadyCalls = 0;
     const harness = await createFastRefreshHarness({
       waitForPageReady: async (milliseconds) => {
         expect(milliseconds).toBe(200);
-        pageReadyCalls += 1;
-        if (pageReadyCalls > 1) await pageReady.promise;
+        await pageReady.promise;
       },
     });
 
     expect(await harness.nativeText.enter("ASK AI // READY")).toBe(true);
     const restoring = harness.nativeText.restore();
     await vi.waitFor(() => (
-      expect(
-        harness.transitionEvents.filter((event) => event === "wait:200"),
-      ).toHaveLength(2)
+      expect(harness.transitionEvents).toContain("wait:200")
     ));
     const initialTextCount = harness.textContents.length;
 
@@ -1582,7 +1577,6 @@ describe("G2 raster transport", () => {
     expect(harness.rebuiltPages[1].containerTotalNum).toBe(5);
     expect(harness.transitionEvents.slice(transitionStart)).toEqual([
       "rebuild:image",
-      "wait:200",
       "encode:3,5,2,4",
       "image:3",
       "image:5",
