@@ -420,9 +420,10 @@ describe("SANDEVISTAN peripheral HUD", () => {
     vi.spyOn(window.navigator, "language", "get").mockReturnValue("ko-KR");
     window.history.replaceState({}, "", "/hud-canvas-fast");
     mocks.transmitFast.mockResolvedValue(vi.fn());
+    const setLocalStorage = vi.fn(async () => true);
     mocks.waitForBridge.mockResolvedValue({
       getLocalStorage: vi.fn(async () => ""),
-      setLocalStorage: vi.fn(async () => true),
+      setLocalStorage,
     });
     const session = {
       start: vi.fn(async () => undefined),
@@ -441,6 +442,10 @@ describe("SANDEVISTAN peripheral HUD", () => {
     fireEvent.click(screen.getByRole("button", { name: /^언어/ }));
     fireEvent.click(screen.getByRole("radio", { name: "English" }));
 
+    await vi.waitFor(() => expect(setLocalStorage).toHaveBeenCalledWith(
+      "sandevistan:phone-preferences:v1",
+      expect.stringContaining('"locale":"en"'),
+    ));
     await vi.waitFor(() => expect(screen.getByRole("heading", {
       level: 1,
       name: "Language",

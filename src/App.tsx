@@ -122,6 +122,7 @@ export function App({ autoStart = true }: AppProps) {
   const phonePreferencesRef = useRef<PhonePreferences>(
     DEFAULT_PHONE_PREFERENCES,
   );
+  const phonePreferencesRevisionRef = useRef(0);
   const [companionOrsKey, setCompanionOrsKeyState] = useState<string>();
   const companionOrsKeyRef = useRef<string | undefined>(undefined);
   const [companionOpenAiKey, setCompanionOpenAiKeyState] = useState<string>();
@@ -146,6 +147,7 @@ export function App({ autoStart = true }: AppProps) {
     );
     const nextLocale = resolvePhoneLocale(value.locale, browserLanguage);
     phonePreferencesRef.current = value;
+    phonePreferencesRevisionRef.current += 1;
     setPhonePreferencesState(value);
     if (nextLocale !== previousLocale) {
       setCompanionLive((current) => {
@@ -183,11 +185,17 @@ export function App({ autoStart = true }: AppProps) {
   useEffect(() => {
     if (!fastCanvasHudMode) return;
     let active = true;
+    const revision = phonePreferencesRevisionRef.current;
     void resolvePhonePreferences(
       companionStorage,
       phoneNavigationAvailable,
     ).then((value) => {
-      if (active) setPhonePreferences(value);
+      if (
+        active
+        && phonePreferencesRevisionRef.current === revision
+      ) {
+        setPhonePreferences(value);
+      }
     });
     return () => {
       active = false;
