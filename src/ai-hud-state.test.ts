@@ -45,4 +45,20 @@ describe("Ask AI HUD state", () => {
     expect(state.transcriptLines.every((line) => !line.includes("\n")))
       .toBe(true);
   });
+
+  it("projects only bounded safe tool lifecycle fields", () => {
+    const protocol = {
+      ...createRealtimeProtocolState(),
+      activeTool: {
+        id: "call-1",
+        kind: "web-search" as const,
+        displayName: "Search",
+      },
+      responseComplete: true,
+    };
+    const state = updateAiHudProtocol(createAiHudSnapshot(true), protocol);
+    expect(state.activeTool).toEqual(protocol.activeTool);
+    expect(state.responseComplete).toBe(true);
+    expect(JSON.stringify(state)).not.toContain("private query");
+  });
 });

@@ -10,7 +10,14 @@ import {
   type McpServerConfig,
 } from "./mcp-servers";
 import type { AiCitationSource } from "./ai-tools";
-import type { AiMcpApproval } from "./ai-realtime-tools";
+import type { AiActiveTool, AiMcpApproval } from "./ai-realtime-tools";
+import {
+  emptyAiUsageCharge,
+  mergeAiUsageCharge,
+  priceRealtimeUsage,
+  priceTranscriptionUsage,
+  type AiUsageCharge,
+} from "./ai-pricing";
 
 export type AiRealtimePhase =
   | "idle"
@@ -35,6 +42,9 @@ export type AiRealtimeProtocolState = {
   readonly userText: string;
   readonly assistantText: string;
   readonly usage: AiUsage;
+  readonly charge: AiUsageCharge;
+  readonly responseComplete: boolean;
+  readonly activeTool?: AiActiveTool;
   readonly activeUserItemId?: string;
   readonly activeResponseId?: string;
   readonly retiredUserItemIds: readonly string[];
@@ -204,6 +214,8 @@ export function createRealtimeProtocolState(): AiRealtimeProtocolState {
     userText: "",
     assistantText: "",
     usage: EMPTY_AI_USAGE,
+    charge: emptyAiUsageCharge(),
+    responseComplete: false,
     retiredUserItemIds: [],
     retiredResponseIds: [],
     turnRefs: [],
@@ -341,6 +353,8 @@ export function cancelActiveRealtimeResponse(
   return {
     ...state,
     phase: "listening",
+    responseComplete: false,
+    activeTool: undefined,
     retiredResponseIds: retireId(
       state.retiredResponseIds,
       state.activeResponseId,
@@ -399,7 +413,12 @@ export function reduceRealtimeServerEvent(
   switch (event.type) {
     case "session.created":
     case "session.updated":
-      return { ...state, phase: "listening", error: undefined };
+      return {
+        ...state,
+        phase: "listening",
+        responseComplete: false,
+        error: undefined,
+      };
     case "input_audio_buffer.speech_started": {
       const archived = archiveCurrentTurn(state);
       return {
@@ -411,6 +430,8 @@ export function reduceRealtimeServerEvent(
         assistantText: "",
         activeUserItemId: event.item_id,
         activeResponseId: undefined,
+        activeTool: undefined,
+        responseComplete: false,
         retiredUserItemIds: retireId(
           state.retiredUserItemIds,
           state.activeUserItemId,
@@ -423,13 +444,14 @@ export function reduceRealtimeServerEvent(
       };
     }
     case "input_audio_buffer.speech_stopped":
-      return { ...state, phase: "thinking" };
+      return { ...state, phase: "thinking", responseComplete: false };
     case "response.created": {
       const id = responseId(event);
       if (!acceptsResponse(state, id)) return state;
       return {
         ...state,
         phase: "thinking",
+        responseComplete: false,
         activeResponseId: id ?? state.activeResponseId,
       };
     }
@@ -457,6 +479,12 @@ export function reduceRealtimeServerEvent(
       };
     }
     case "conversation.item.input_audio_transcription.completed": {
+      const usage = usageFromTranscription(event);
+      const charge = priceTranscriptionUsage({
+        model: "gpt-4o-mini-transcribe",
+        audioInputTokens: usage.transcriptionAudioInputTokens,
+        textOutputTokens: usage.transcriptionTextOutputTokens,
+      });
       if (isRetired(state.retiredUserItemIds, event.item_id)) {
         const timeline = updateArchivedTurn(
           state,
@@ -470,7 +498,8 @@ export function reduceRealtimeServerEvent(
         return {
           ...state,
           ...timeline,
-          usage: addAiUsage(state.usage, usageFromTranscription(event)),
+          usage: addAiUsage(state.usage, usage),
+          charge: mergeAiUsageCharge(state.charge, charge),
         };
       }
       if (!acceptsUserItem(state, event.item_id)) return state;
@@ -478,7 +507,8 @@ export function reduceRealtimeServerEvent(
         ...state,
         activeUserItemId: event.item_id ?? state.activeUserItemId,
         userText: boundedText(event.transcript ?? state.userText),
-        usage: addAiUsage(state.usage, usageFromTranscription(event)),
+        usage: addAiUsage(state.usage, usage),
+        charge: mergeAiUsageCharge(state.charge, charge),
       };
     }
     case "response.output_text.delta":
@@ -503,6 +533,7 @@ export function reduceRealtimeServerEvent(
       return {
         ...state,
         phase: "thinking",
+        responseComplete: false,
         activeResponseId: id ?? state.activeResponseId,
         assistantText: boundedText(state.assistantText + (event.delta ?? "")),
       };
@@ -534,23 +565,37 @@ export function reduceRealtimeServerEvent(
     case "response.done": {
       const id = responseId(event);
       if (isRetired(state.retiredResponseIds, id)) {
+        const usage = usageFromResponse(event);
         return {
           ...state,
-          usage: addAiUsage(state.usage, usageFromResponse(event)),
+          usage: addAiUsage(state.usage, usage),
+          charge: mergeAiUsageCharge(state.charge, priceRealtimeUsage({
+            model: "gpt-realtime",
+            ...usage,
+          })),
         };
       }
       if (!acceptsResponse(state, id)) return state;
+      const usage = usageFromResponse(event);
       return {
         ...state,
         phase: "listening",
+        responseComplete: true,
+        activeTool: undefined,
         activeResponseId: id ?? state.activeResponseId,
-        usage: addAiUsage(state.usage, usageFromResponse(event)),
+        usage: addAiUsage(state.usage, usage),
+        charge: mergeAiUsageCharge(state.charge, priceRealtimeUsage({
+          model: "gpt-realtime",
+          ...usage,
+        })),
       };
     }
     case "error":
       return {
         ...state,
         phase: "error",
+        responseComplete: false,
+        activeTool: undefined,
         error: boundedText(event.error?.message ?? "Realtime session failed", 160),
       };
     default:

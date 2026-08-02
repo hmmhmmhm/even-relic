@@ -6,6 +6,7 @@ import type {
 } from "./ai-realtime-protocol";
 import { createAiTranscriptLines } from "./ai-transcript";
 import type { AiMcpApproval } from "./ai-realtime-tools";
+import type { AiActiveTool } from "./ai-realtime-tools";
 
 export type AiHudPhase = "unconfigured" | "displaying" | AiRealtimePhase;
 
@@ -19,6 +20,8 @@ export type AiHudSnapshot = {
   readonly history: readonly AiConversationExcerpt[];
   readonly weekUsd: number;
   readonly monthUsd: number;
+  readonly responseComplete: boolean;
+  readonly activeTool?: AiActiveTool;
   readonly pendingApproval?: AiMcpApproval;
   readonly error?: string;
 };
@@ -39,6 +42,7 @@ export function createAiHudSnapshot(
     history: history.slice(0, 3),
     weekUsd,
     monthUsd,
+    responseComplete: false,
   };
 }
 
@@ -60,6 +64,8 @@ export function updateAiHudProtocol(
       },
     ),
     pendingApproval: protocol.pendingApproval,
+    activeTool: protocol.activeTool,
+    responseComplete: protocol.responseComplete,
     error: protocol.error,
   };
 }

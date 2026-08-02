@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { EvenHubEvent } from "@evenrealities/even_hub_sdk";
 import { AudioInputSource } from "@evenrealities/even_hub_sdk";
 import { createAiRealtimeSession } from "./ai-realtime-session";
+import type { AiWebSearchResult } from "./ai-tools";
 
 class FakeSocket {
   readyState = 0;
@@ -493,11 +494,22 @@ describe("G2 Realtime session", () => {
 
   it("executes each built-in function call once and continues the response", async () => {
     let socket: FakeSocket | undefined;
-    const searchWeb = vi.fn().mockResolvedValue({
+    let finishSearch: ((value: AiWebSearchResult) => void) | undefined;
+    const searchWeb = vi.fn(() => new Promise<AiWebSearchResult>((resolve) => {
+      finishSearch = resolve;
+    }));
+    const toolStates: Array<unknown> = [];
+    const result = {
       answer: "Current result [1]",
       sources: [{ title: "Source", url: "https://example.com/source" }],
-      usage: { inputTokens: 3, outputTokens: 4, webSearchCalls: 1 },
-    });
+      usage: {
+        model: "gpt-5.5",
+        inputTokens: 3,
+        cachedInputTokens: 1,
+        outputTokens: 4,
+        webSearchCalls: 1,
+      },
+    } satisfies AiWebSearchResult;
     const session = createAiRealtimeSession({
       bridge: {
         audioControl: vi.fn(async () => true),
@@ -516,6 +528,7 @@ describe("G2 Realtime session", () => {
         socket = new FakeSocket(protocols);
         return socket;
       },
+      onState: (state) => toolStates.push(state.activeTool),
     });
     const starting = session.start();
     await vi.waitFor(() => expect(socket).toBeDefined());
@@ -537,6 +550,11 @@ describe("G2 Realtime session", () => {
     socket?.server(event);
 
     await vi.waitFor(() => expect(searchWeb).toHaveBeenCalledOnce());
+    expect(session.getState().activeTool).toEqual({
+      id: "call-1",
+      kind: "web-search",
+    });
+    finishSearch?.(result);
     await vi.waitFor(() => expect(socket?.sent.some((raw) => {
       const sent = JSON.parse(raw);
       return sent.type === "conversation.item.create"
@@ -548,6 +566,15 @@ describe("G2 Realtime session", () => {
     expect(session.getState().sources).toEqual([
       { title: "Source", url: "https://example.com/source" },
     ]);
+    expect(session.getState().activeTool).toBeUndefined();
+    expect(toolStates).toContainEqual({ id: "call-1", kind: "web-search" });
+    expect(session.getState().usage).toMatchObject({
+      searchTextInputTokens: 2,
+      cachedSearchTextInputTokens: 1,
+      searchTextOutputTokens: 4,
+      webSearchCalls: 1,
+    });
+    expect(session.getState().charge.estimatedNanoUsd).toBeGreaterThan(0);
     await session.stop();
   });
 
@@ -605,6 +632,28 @@ describe("G2 Realtime session", () => {
         approve: true,
       },
     });
+    socket?.server({
+      type: "response.mcp_call.in_progress",
+      item_id: "mcp-call-1",
+      name: "search",
+      server_label: "mcp_docs",
+    });
+    expect(session.getState().activeTool).toEqual({
+      id: "mcp-call-1",
+      kind: "mcp",
+      displayName: "search",
+    });
+    socket?.server({
+      type: "response.output_item.done",
+      item: {
+        type: "mcp_call",
+        id: "mcp-call-1",
+        name: "search",
+        server_label: "mcp_docs",
+        status: "completed",
+      },
+    });
+    expect(session.getState().activeTool).toBeUndefined();
 
     socket?.server({
       type: "conversation.item.done",

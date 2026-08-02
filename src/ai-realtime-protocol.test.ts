@@ -20,6 +20,7 @@ describe("Realtime protocol", () => {
     const cancelled = cancelActiveRealtimeResponse(active);
     expect(cancelled).toMatchObject({
       phase: "listening",
+      responseComplete: false,
       activeResponseId: "response-1",
       assistantText: "받은 부분",
       retiredResponseIds: ["response-1"],
@@ -29,6 +30,26 @@ describe("Realtime protocol", () => {
       response_id: "response-1",
       delta: " 늦은 내용",
     }).assistantText).toBe("받은 부분");
+  });
+
+  it("tracks response completion as an explicit lifecycle state", () => {
+    let state = createRealtimeProtocolState();
+    expect(state.responseComplete).toBe(false);
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.created",
+      response: { id: "response-1" },
+    });
+    expect(state.responseComplete).toBe(false);
+    state = reduceRealtimeServerEvent(state, {
+      type: "response.done",
+      response: { id: "response-1" },
+    });
+    expect(state.responseComplete).toBe(true);
+    state = reduceRealtimeServerEvent(state, {
+      type: "input_audio_buffer.speech_started",
+      item_id: "user-2",
+    });
+    expect(state.responseComplete).toBe(false);
   });
 
   it("configures text-only semantic VAD for the glasses microphone", () => {
@@ -147,6 +168,7 @@ describe("Realtime protocol", () => {
       transcriptionAudioInputTokens: 24,
       transcriptionTextOutputTokens: 7,
     });
+    expect(state.charge.estimatedNanoUsd).toBeGreaterThan(0);
   });
 
   it("archives the completed exchange before a fresh semantic-VAD turn", () => {

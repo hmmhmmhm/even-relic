@@ -6,6 +6,7 @@ import { openAiKeyHeaders } from "./openai-key";
 import { requestAiWebSearch } from "./ai-web-search";
 import {
   createAiRealtimeToolRunner,
+  mcpToolLifecycleUpdate,
   mcpApprovalRequest,
   mcpApprovalResponse,
   responseFunctionCalls,
@@ -19,6 +20,7 @@ import {
   type RealtimeSocket,
 } from "./ai-realtime-transport";
 import { addAiUsage, EMPTY_AI_USAGE } from "./ai-cost";
+import { mergeAiUsageCharge, priceSearchUsage } from "./ai-pricing";
 import {
   cancelActiveRealtimeResponse,
   createAudioAppendEvent,
@@ -124,15 +126,31 @@ export function createAiRealtimeSession(
       publish({ ...state, sources: merged.slice(-6) }, "tool.sources");
     },
     onSearchUsage: (usage) => {
+      const cachedInputTokens = Math.min(
+        usage.inputTokens,
+        usage.cachedInputTokens,
+      );
       publish({
         ...state,
         usage: addAiUsage(state.usage, {
           ...EMPTY_AI_USAGE,
-          searchTextInputTokens: usage.inputTokens,
+          searchTextInputTokens: Math.max(
+            0,
+            usage.inputTokens - cachedInputTokens,
+          ),
+          cachedSearchTextInputTokens: cachedInputTokens,
           searchTextOutputTokens: usage.outputTokens,
           webSearchCalls: usage.webSearchCalls,
         }),
+        charge: mergeAiUsageCharge(state.charge, priceSearchUsage(usage)),
       }, "tool.usage");
+    },
+    onActiveTool: (activeTool) => {
+      if (activeTool) {
+        publish({ ...state, activeTool }, "tool.active");
+      } else if (state.activeTool?.kind !== "mcp") {
+        publish({ ...state, activeTool: undefined }, "tool.complete");
+      }
     },
   });
 
@@ -179,7 +197,13 @@ export function createAiRealtimeSession(
       microphoneOpen = false;
       starting = false;
       if (finalPhase === "idle") {
-        publish({ ...state, phase: "idle", error: undefined });
+        publish({
+          ...state,
+          phase: "idle",
+          activeTool: undefined,
+          responseComplete: false,
+          error: undefined,
+        });
       }
       return microphoneClosed;
     })().finally(() => {
@@ -249,6 +273,8 @@ export function createAiRealtimeSession(
         publish({
           ...state,
           phase: "error",
+          activeTool: undefined,
+          responseComplete: false,
           error: "Realtime connection failed",
         });
         void cleanup("error");
@@ -264,6 +290,8 @@ export function createAiRealtimeSession(
         publish({
           ...state,
           phase: "error",
+          activeTool: undefined,
+          responseComplete: false,
           error: "Realtime connection closed",
         });
         void cleanup("error");
@@ -306,6 +334,19 @@ export function createAiRealtimeSession(
           }, "mcp_approval_request");
           return;
         }
+        const toolLifecycle = mcpToolLifecycleUpdate(parsed);
+        if (toolLifecycle && "activeTool" in toolLifecycle) {
+          publish({
+            ...state,
+            phase: "thinking",
+            activeTool: toolLifecycle.activeTool,
+          }, "mcp.active");
+        } else if (
+          toolLifecycle
+          && state.activeTool?.id === toolLifecycle.clearId
+        ) {
+          publish({ ...state, activeTool: undefined }, "mcp.complete");
+        }
         if (eventType === "input_audio_buffer.speech_started") {
           pendingResponseCancel = false;
           suppressCancelledResponse = false;
@@ -345,14 +386,17 @@ export function createAiRealtimeSession(
         const next = reduceRealtimeServerEvent(state, parsed as never);
         const hasFunctionCalls = eventType === "response.done"
           && responseFunctionCalls(parsed).length > 0;
-        if (hasFunctionCalls) toolRunner.handle(parsed);
-        const published = hasFunctionCalls
-          ? {
-              ...next,
-              phase: "thinking" as const,
-              activeResponseId: undefined,
-            }
-          : next;
+        if (hasFunctionCalls) {
+          const published = {
+            ...next,
+            phase: "thinking" as const,
+            activeResponseId: undefined,
+            responseComplete: false,
+          };
+          toolRunner.handle(parsed, () => publish(published, eventType));
+          return;
+        }
+        const published = next;
         if (published !== state) publish(published, eventType);
         if (published.phase === "error") void cleanup("error");
       };
@@ -401,6 +445,8 @@ export function createAiRealtimeSession(
         publish({
           ...state,
           phase: "error",
+          activeTool: undefined,
+          responseComplete: false,
           error: error instanceof Error
             ? error.message.slice(0, 160)
             : "Realtime session failed",
