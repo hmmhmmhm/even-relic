@@ -7,7 +7,7 @@ import {
   resolveLocale,
 } from "./locale-registry";
 
-const EXPECTED_LOCALES = [
+const ORIGINAL_LOCALES = [
   "ko", "en", "ja", "zh-Hans", "zh-Hant", "es", "fr", "de", "it", "pt",
   "nl", "pl", "ru", "uk", "tr", "ar", "he", "hi", "bn", "id", "vi", "th",
   "ms", "fil", "sv", "no", "da", "fi", "cs", "ro",
@@ -44,9 +44,10 @@ function translatedMessages(
 
 describe("locale registry", () => {
   it("derives supported locales and native language options", () => {
-    expect(SUPPORTED_LOCALES).toEqual(EXPECTED_LOCALES);
-    expect(new Set(SUPPORTED_LOCALES)).toHaveLength(30);
-    expect(LOCALE_OPTIONS).toHaveLength(30);
+    expect(SUPPORTED_LOCALES.slice(0, ORIGINAL_LOCALES.length))
+      .toEqual(ORIGINAL_LOCALES);
+    expect(new Set(SUPPORTED_LOCALES)).toHaveLength(180);
+    expect(LOCALE_OPTIONS).toHaveLength(180);
     for (const locale of SUPPORTED_LOCALES) {
       expect(["ltr", "rtl"]).toContain(LOCALE_REGISTRY[locale].direction);
     }

@@ -15,6 +15,12 @@ describe("resolveHudModeResolution", () => {
     });
   });
 
+  it("uses the fast Canvas HUD for packaged entrypoints", () => {
+    expect(resolveHudModeResolution("/", "").fastCanvasHudMode).toBe(true);
+    expect(resolveHudModeResolution("/app/index.html", "").fastCanvasHudMode)
+      .toBe(true);
+  });
+
   it("retains legacy, layered hybrid, and query diagnostics", () => {
     expect(resolveHudModeResolution("/hud-canvas", "").modes)
       .toMatchObject({ canvas: true, legacyCanvas: true });

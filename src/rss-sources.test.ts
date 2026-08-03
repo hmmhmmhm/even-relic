@@ -31,11 +31,12 @@ class TestStorage implements EvenStorage {
 
 describe("RSS source preferences", () => {
   it("shares one valid three-feed catalog for every supported locale", () => {
-    expect(BUILT_IN_RSS_FEEDS).toHaveLength(90);
+    expect(BUILT_IN_RSS_FEEDS).toHaveLength(540);
     expect(new Set(BUILT_IN_RSS_FEEDS.map(({ id }) => id)).size)
       .toBe(BUILT_IN_RSS_FEEDS.length);
-    expect(new Set(BUILT_IN_RSS_FEEDS.map(({ url }) => url)).size)
-      .toBe(BUILT_IN_RSS_FEEDS.length);
+    const localized = BUILT_IN_RSS_FEEDS.filter((feed) => !feed.fallbackLocale);
+    expect(new Set(localized.map(({ url }) => url)).size)
+      .toBe(localized.length);
     for (const feed of BUILT_IN_RSS_FEEDS) {
       expect(isSupportedLocale(feed.locale)).toBe(true);
       expect(new URL(feed.url).protocol).toBe("https:");

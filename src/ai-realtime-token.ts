@@ -1,7 +1,4 @@
-import { openAiKeyHeaders } from "./openai-key";
-import { isRealtimeTokenResponse } from "./ai-realtime-transport";
-
-const TOKEN_URL = "/api/realtime-token";
+const TOKEN_URL = "https://api.openai.com/v1/realtime/client_secrets";
 
 export async function requestRealtimeClientSecret(options: {
   readonly fetchImpl: typeof fetch;
@@ -10,7 +7,13 @@ export async function requestRealtimeClientSecret(options: {
 }): Promise<string> {
   const response = await options.fetchImpl(TOKEN_URL, {
     method: "POST",
-    headers: openAiKeyHeaders(options.key),
+    headers: {
+      Authorization: `Bearer ${options.key}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      session: { type: "realtime", model: "gpt-realtime" },
+    }),
     signal: options.signal,
   });
   let data: unknown;
@@ -19,8 +22,14 @@ export async function requestRealtimeClientSecret(options: {
   } catch {
     throw new Error("Could not create Realtime session");
   }
-  if (!response.ok || !isRealtimeTokenResponse(data)) {
+  const value = typeof data === "object"
+      && data !== null
+      && "value" in data
+      && typeof data.value === "string"
+    ? data.value
+    : undefined;
+  if (!response.ok || !value || value.length < 10 || value.length > 4_096) {
     throw new Error("Could not create Realtime session");
   }
-  return data.value;
+  return value;
 }

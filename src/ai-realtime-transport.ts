@@ -8,25 +8,6 @@ export type RealtimeSocket = {
   close(): void;
 };
 
-export type RealtimeTokenResponse = {
-  readonly value: string;
-  readonly expiresAt: number;
-  readonly model: string;
-};
-
-export function isRealtimeTokenResponse(
-  value: unknown,
-): value is RealtimeTokenResponse {
-  if (typeof value !== "object" || value === null) return false;
-  const item = value as Record<string, unknown>;
-  return typeof item.value === "string"
-    && item.value.length >= 10
-    && item.value.length <= 4_096
-    && typeof item.expiresAt === "number"
-    && Number.isFinite(item.expiresAt)
-    && item.model === "gpt-realtime";
-}
-
 export function createDefaultRealtimeSocket(
   url: string,
   protocols: string[],

@@ -1,4 +1,5 @@
 import type { SupportedLocale } from "./i18n/locale-registry";
+import { ADDITIONAL_AI_TRANSLATIONS } from "./i18n/additional-ai-translations";
 
 export type McpPhoneStringKey =
   | "mcpServers"
@@ -20,6 +21,11 @@ const common = (servers: string, help: string, name: string, url: string,
   mcpAllowedTools: tools,
   noMcpServers: empty,
 });
+
+const additionalMcpTranslations = Object.fromEntries(
+  Object.entries(ADDITIONAL_AI_TRANSLATIONS)
+    .map(([locale, value]) => [locale, value.mcp]),
+) as Record<keyof typeof ADDITIONAL_AI_TRANSLATIONS, Strings>;
 
 const strings = {
   en: common("MCP servers", "Every call requires approval on the glasses.", "Server name", "HTTPS server URL", "Bearer token (optional)", "Allowed tools (comma-separated)", "No MCP servers added"),
@@ -52,6 +58,7 @@ const strings = {
   fi: common("MCP-palvelimet", "Jokainen kutsu vaatii hyväksynnän laseissa.", "Palvelimen nimi", "HTTPS-palvelimen URL", "Bearer-tunnus (valinnainen)", "Sallitut työkalut (pilkuin eroteltuna)", "MCP-palvelimia ei ole lisätty"),
   cs: common("Servery MCP", "Každé volání vyžaduje schválení na brýlích.", "Název serveru", "HTTPS URL serveru", "Bearer token (volitelné)", "Povolené nástroje (oddělené čárkou)", "Nebyly přidány žádné servery MCP"),
   ro: common("Servere MCP", "Fiecare apel necesită aprobare pe ochelari.", "Numele serverului", "URL HTTPS al serverului", "Token Bearer (opțional)", "Instrumente permise (separate prin virgulă)", "Nu sunt adăugate servere MCP"),
+  ...additionalMcpTranslations,
 } as const satisfies Readonly<Record<SupportedLocale, Strings>>;
 
 export function isMcpPhoneStringKey(key: string): key is McpPhoneStringKey {

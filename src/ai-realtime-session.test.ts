@@ -35,7 +35,7 @@ class FakeSocket {
 }
 
 describe("G2 Realtime session", () => {
-  it("keeps the default Window.fetch receiver when opening the AI detail", async () => {
+  it("mints a client secret directly with the device-local BYOK", async () => {
     const windowFetch = vi.fn(function (
       this: typeof globalThis,
       _input: RequestInfo | URL,
@@ -46,8 +46,7 @@ describe("G2 Realtime session", () => {
       }
       return Promise.resolve(Response.json({
         value: "ek_test_ephemeral_123456",
-        expiresAt: 1_800_000_000,
-        model: "gpt-realtime",
+        expires_at: 1_800_000_000,
       }));
     });
     vi.stubGlobal("fetch", windowFetch);
@@ -68,7 +67,20 @@ describe("G2 Realtime session", () => {
     try {
       await expect(session.start()).resolves.toBeUndefined();
       expect(windowFetch).toHaveBeenCalledOnce();
-      expect(windowFetch.mock.calls[0]?.[0]).toBe("/api/realtime-token");
+      expect(windowFetch.mock.calls[0]?.[0]).toBe(
+        "https://api.openai.com/v1/realtime/client_secrets",
+      );
+      expect(windowFetch.mock.calls[0]?.[1]).toMatchObject({
+        method: "POST",
+        headers: {
+          Authorization: "Bearer sk-test-1234567890abcdefghijklmnop",
+          "Content-Type": "application/json",
+        },
+      });
+      expect(JSON.parse(String(windowFetch.mock.calls[0]?.[1]?.body)))
+        .toEqual({
+          session: { type: "realtime", model: "gpt-realtime" },
+        });
     } finally {
       await session.stop();
       vi.unstubAllGlobals();
@@ -261,9 +273,8 @@ describe("G2 Realtime session", () => {
       key: "sk-test-1234567890abcdefghijklmnop",
       locale: "ko",
       fetchImpl: async (_input, init) => {
-        expect((init?.headers as Record<string, string>)[
-          "x-sandevistan-openai-key"
-        ]).toContain("sk-test-");
+        expect((init?.headers as Record<string, string>).Authorization)
+          .toContain("Bearer sk-test-");
         return Response.json({
           value: "ek_test_ephemeral_123456",
           expiresAt: 1_800_000_000,

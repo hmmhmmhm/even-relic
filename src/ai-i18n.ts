@@ -1,4 +1,5 @@
 import type { SupportedLocale } from "./i18n/locale-registry";
+import { ADDITIONAL_AI_TRANSLATIONS } from "./i18n/additional-ai-translations";
 
 type AiPhoneBaseStringKey =
   | "ai"
@@ -32,6 +33,11 @@ const english: AiStrings = {
   clearAiData: "Clear AI history and usage",
   aiKeyRequired: "OpenAI key required",
 };
+
+const additionalPhoneTranslations = Object.fromEntries(
+  Object.entries(ADDITIONAL_AI_TRANSLATIONS)
+    .map(([locale, strings]) => [locale, strings.phone]),
+) as Record<keyof typeof ADDITIONAL_AI_TRANSLATIONS, AiStrings>;
 
 const localized: Partial<Record<SupportedLocale, Partial<AiStrings>>> = {
   ar: {
@@ -75,7 +81,13 @@ const localized: Partial<Record<SupportedLocale, Partial<AiStrings>>> = {
   vi: { ai: "Hỏi AI", openAiKey: "Khóa API OpenAI", estimatedCost: "Chi phí Realtime ước tính", thisWeek: "Tuần này", thisMonth: "Tháng này", recentConversations: "Cuộc trò chuyện gần đây", noConversations: "Chưa có cuộc trò chuyện", clearAiData: "Xóa lịch sử và mức dùng AI", aiKeyRequired: "Cần khóa OpenAI" },
   "zh-Hans": { ai: "询问 AI", openAiKey: "OpenAI API 密钥", estimatedCost: "预计 Realtime 费用", thisWeek: "本周", thisMonth: "本月", recentConversations: "最近对话", noConversations: "暂无对话", clearAiData: "清除 AI 历史和用量", aiKeyRequired: "需要 OpenAI 密钥" },
   "zh-Hant": { ai: "詢問 AI", openAiKey: "OpenAI API 金鑰", estimatedCost: "預估 Realtime 費用", thisWeek: "本週", thisMonth: "本月", recentConversations: "最近對話", noConversations: "尚無對話", clearAiData: "清除 AI 歷史與用量", aiKeyRequired: "需要 OpenAI 金鑰" },
+  ...additionalPhoneTranslations,
 };
+
+const additionalControlTranslations = Object.fromEntries(
+  Object.entries(ADDITIONAL_AI_TRANSLATIONS)
+    .map(([locale, strings]) => [locale, strings.control]),
+) as Record<keyof typeof ADDITIONAL_AI_TRANSLATIONS, AiPhoneControlStrings>;
 
 export const AI_PHONE_CONTROL_TRANSLATIONS = {
   en: { responseSpeed: "Response display speed", millisecondsPerCharacter: "ms per character", unpricedUsage: "Some usage could not be priced." },
@@ -108,6 +120,7 @@ export const AI_PHONE_CONTROL_TRANSLATIONS = {
   fi: { responseSpeed: "Vastauksen näyttönopeus", millisecondsPerCharacter: "ms merkkiä kohti", unpricedUsage: "Osaa käytöstä ei voitu hinnoitella." },
   cs: { responseSpeed: "Rychlost zobrazení odpovědi", millisecondsPerCharacter: "ms na znak", unpricedUsage: "Část využití nebylo možné ocenit." },
   ro: { responseSpeed: "Viteza de afișare a răspunsului", millisecondsPerCharacter: "ms per caracter", unpricedUsage: "O parte din utilizare nu a putut fi evaluată." },
+  ...additionalControlTranslations,
 } as const satisfies Readonly<Record<SupportedLocale, AiPhoneControlStrings>>;
 
 export function translateAiPhone(

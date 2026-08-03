@@ -31,8 +31,8 @@ describe("Ask AI phone translations", () => {
       )).toBe(true);
     }
   });
-  it("resolves every Ask AI string for all 30 supported locales", () => {
-    expect(SUPPORTED_LOCALES).toHaveLength(30);
+  it("resolves every Ask AI string for all 180 supported locales", () => {
+    expect(SUPPORTED_LOCALES).toHaveLength(180);
     for (const locale of SUPPORTED_LOCALES) {
       for (const key of KEYS) {
         expect(translateAiPhone(locale, key).trim()).not.toBe("");

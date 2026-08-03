@@ -9,13 +9,23 @@ const FIXED_FEEDS = new Map(
 );
 const FEED_URL = FIXED_FEEDS.get("sbs-latest");
 
-test("uses unique fixed feed IDs and URLs", () => {
-  assert.equal(BUILT_IN_RSS_FEEDS.length, 90);
+test("uses unique fixed feed IDs and explicit shared fallback URLs", () => {
+  assert.equal(BUILT_IN_RSS_FEEDS.length, 540);
   assert.equal(FIXED_FEEDS.size, BUILT_IN_RSS_FEEDS.length);
+  const localized = BUILT_IN_RSS_FEEDS.filter((feed) => !feed.fallbackLocale);
   assert.equal(
-    new Set(BUILT_IN_RSS_FEEDS.map(({ url }) => url)).size,
-    BUILT_IN_RSS_FEEDS.length,
+    new Set(localized.map(({ url }) => url)).size,
+    localized.length,
   );
+  const englishUrls = new Set(
+    BUILT_IN_RSS_FEEDS
+      .filter((feed) => feed.locale === "en")
+      .map(({ url }) => url),
+  );
+  for (const feed of BUILT_IN_RSS_FEEDS.filter((item) => item.fallbackLocale)) {
+    assert.equal(feed.fallbackLocale, "en");
+    assert.equal(englishUrls.has(feed.url), true);
+  }
 });
 
 function rssResponse(body = "<rss><channel /></rss>", init = {}) {

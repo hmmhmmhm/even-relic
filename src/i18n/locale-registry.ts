@@ -28,6 +28,7 @@ import { ukLocale } from "./locales/uk";
 import { viLocale } from "./locales/vi";
 import { zhHansLocale } from "./locales/zh-Hans";
 import { zhHantLocale } from "./locales/zh-Hant";
+import { ADDITIONAL_LOCALES } from "./additional-locales";
 
 export const LOCALE_REGISTRY = {
   ko: koLocale,
@@ -60,6 +61,7 @@ export const LOCALE_REGISTRY = {
   fi: fiLocale,
   cs: csLocale,
   ro: roLocale,
+  ...ADDITIONAL_LOCALES,
 } as const;
 
 export type SupportedLocale = keyof typeof LOCALE_REGISTRY;

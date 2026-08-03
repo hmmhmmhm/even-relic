@@ -1,5 +1,6 @@
 import type { SupportedLocale } from "./i18n/locale-registry";
 import type { AiHudSnapshot } from "./ai-hud-state";
+import { ADDITIONAL_AI_TRANSLATIONS } from "./i18n/additional-ai-translations";
 
 export type AiHudStrings = Readonly<{
   you: string;
@@ -27,6 +28,16 @@ export type AiHudActivityStrings = Readonly<{
 }>;
 
 export type AiHudStringKey = keyof AiHudStrings | keyof AiHudActivityStrings;
+
+const additionalHudTranslations = Object.fromEntries(
+  Object.entries(ADDITIONAL_AI_TRANSLATIONS)
+    .map(([locale, strings]) => [locale, strings.hud]),
+) as Record<keyof typeof ADDITIONAL_AI_TRANSLATIONS, AiHudStrings>;
+
+const additionalActivityTranslations = Object.fromEntries(
+  Object.entries(ADDITIONAL_AI_TRANSLATIONS)
+    .map(([locale, strings]) => [locale, strings.activity]),
+) as Record<keyof typeof ADDITIONAL_AI_TRANSLATIONS, AiHudActivityStrings>;
 
 export const AI_HUD_TRANSLATIONS = {
   en: { you: "YOU", assistant: "AI", ready: "READY", connecting: "CONNECTING…", listening: "LISTENING…", thinking: "THINKING…", displaying: "DISPLAYING RESPONSE…", error: "ERROR", live: "LIVE", history: "HISTORY", listeningPrompt: "Listening… Speak naturally.", scrollTranscript: "SCROLL // TRANSCRIPT", doubleTapBack: "DOUBLE TAP // BACK" },
@@ -59,6 +70,7 @@ export const AI_HUD_TRANSLATIONS = {
   fi: { you: "SINÄ", assistant: "AI", ready: "VALMIS", connecting: "YHDISTETÄÄN…", listening: "KUUNTELEE…", thinking: "AJATTELEE…", displaying: "NÄYTTÄÄ VASTAUSTA…", error: "VIRHE", live: "LIVE", history: "HISTORIA", listeningPrompt: "Kuuntelen… Puhu luonnollisesti.", scrollTranscript: "VIERITÄ // KESKUSTELU", doubleTapBack: "KAKSOISNAPAUTUS // TAKAISIN" },
   cs: { you: "VY", assistant: "AI", ready: "PŘIPRAVENO", connecting: "PŘIPOJOVÁNÍ…", listening: "POSLOUCHÁM…", thinking: "PŘEMÝŠLÍM…", displaying: "ZOBRAZUJI ODPOVĚĎ…", error: "CHYBA", live: "ŽIVĚ", history: "HISTORIE", listeningPrompt: "Poslouchám… Mluvte přirozeně.", scrollTranscript: "POSUN // KONVERZACE", doubleTapBack: "DVOJITÉ KLEPNUTÍ // ZPĚT" },
   ro: { you: "TU", assistant: "AI", ready: "PREGĂTIT", connecting: "CONECTARE…", listening: "ASCULT…", thinking: "GÂNDESC…", displaying: "AFIȘEZ RĂSPUNSUL…", error: "EROARE", live: "LIVE", history: "ISTORIC", listeningPrompt: "Ascult… Vorbiți natural.", scrollTranscript: "DERULARE // CONVERSAȚIE", doubleTapBack: "ATINGERE DUBLĂ // ÎNAPOI" },
+  ...additionalHudTranslations,
 } as const satisfies Readonly<Record<SupportedLocale, AiHudStrings>>;
 
 export const AI_HUD_ACTIVITY_TRANSLATIONS = {
@@ -92,6 +104,7 @@ export const AI_HUD_ACTIVITY_TRANSLATIONS = {
   fi: { toolTime: "TARKISTETAAN AIKAA…", toolLocation: "TARKISTETAAN SIJAINTIA…", toolWebSearch: "HAETAAN VERKOSTA…", toolMcp: "KÄYTETÄÄN MCP:TÄ", toolGeneric: "KÄYTETÄÄN TYÖKALUA…", tapReveal: "NAPAUTA NÄYTTÄÄKSESI KOKO VASTAUKSEN" },
   cs: { toolTime: "KONTROLA ČASU…", toolLocation: "KONTROLA POLOHY…", toolWebSearch: "VYHLEDÁVÁNÍ NA WEBU…", toolMcp: "POUŽÍVÁ SE MCP", toolGeneric: "POUŽÍVÁ SE NÁSTROJ…", tapReveal: "KLEPNUTÍM ZOBRAZÍTE CELOU ODPOVĚĎ" },
   ro: { toolTime: "SE VERIFICĂ ORA…", toolLocation: "SE VERIFICĂ LOCAȚIA…", toolWebSearch: "SE CAUTĂ PE WEB…", toolMcp: "SE FOLOSEȘTE MCP", toolGeneric: "SE FOLOSEȘTE INSTRUMENTUL…", tapReveal: "ATINGE PENTRU A AFIȘA RĂSPUNSUL COMPLET" },
+  ...additionalActivityTranslations,
 } as const satisfies Readonly<Record<SupportedLocale, AiHudActivityStrings>>;
 
 export function translateAiHud(
@@ -136,6 +149,11 @@ type AiApprovalStrings = Readonly<{
   reject: string;
 }>;
 
+const additionalApprovalTranslations = Object.fromEntries(
+  Object.entries(ADDITIONAL_AI_TRANSLATIONS)
+    .map(([locale, strings]) => [locale, strings.approval]),
+) as Record<keyof typeof ADDITIONAL_AI_TRANSLATIONS, AiApprovalStrings>;
+
 const AI_APPROVAL_TRANSLATIONS = {
   en: { title: "APPROVE MCP TOOL", approve: "TAP // APPROVE", reject: "DOUBLE TAP // REJECT AND EXIT" },
   ko: { title: "MCP 도구 승인", approve: "한 번 탭 // 승인", reject: "두 번 탭 // 거절하고 나가기" },
@@ -167,6 +185,7 @@ const AI_APPROVAL_TRANSLATIONS = {
   fi: { title: "HYVÄKSY MCP-TYÖKALU", approve: "NAPAUTA // HYVÄKSY", reject: "KAKSOISNAPAUTUS // HYLKÄÄ JA POISTU" },
   cs: { title: "SCHVÁLIT NÁSTROJ MCP", approve: "KLEPNOUT // SCHVÁLIT", reject: "DVOJITĚ // ODMÍTNOUT A ODEJÍT" },
   ro: { title: "APROBĂ INSTRUMENTUL MCP", approve: "ATINGE // APROBĂ", reject: "ATINGE DUBLU // REFUZĂ ȘI IEȘI" },
+  ...additionalApprovalTranslations,
 } as const satisfies Readonly<Record<SupportedLocale, AiApprovalStrings>>;
 
 export function translateAiApproval(locale: SupportedLocale): AiApprovalStrings {

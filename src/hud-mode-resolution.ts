@@ -18,7 +18,9 @@ export function resolveHudModeResolution(
 ): HudModeResolution {
   const calibrationMode = pathname === "/calibration-max";
   const legacyCanvasHudMode = pathname === "/hud-canvas";
-  const fastCanvasHudMode = pathname === "/hud-canvas-fast";
+  const fastCanvasHudMode = pathname === "/hud-canvas-fast"
+    || pathname === "/"
+    || pathname.endsWith("/index.html");
   const canvasHudMode = legacyCanvasHudMode || fastCanvasHudMode;
   const legacyHybridHudMode = pathname === "/hud-hybrid";
   const layeredHybridHudMode = pathname === "/hud-hybrid-z";

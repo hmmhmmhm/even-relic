@@ -106,8 +106,16 @@ export async function verifyAllFeeds(
   dependencies,
 ) {
   const results = [];
+  const byUrl = new Map();
   for (const feed of feeds) {
-    results.push(await verifyFeed(feed, fetchImpl, dependencies));
+    const cached = byUrl.get(feed.url);
+    if (cached) {
+      results.push({ ...cached, feed, durationMs: 0 });
+      continue;
+    }
+    const result = await verifyFeed(feed, fetchImpl, dependencies);
+    byUrl.set(feed.url, result);
+    results.push(result);
   }
   return results;
 }

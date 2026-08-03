@@ -144,10 +144,10 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   built-in sample TODO titles, weather labels, generic OSM `name:<language>`
   selection, and the active built-in RSS bundle. Never translate user-authored
   TODO text, RSS article content, destination names, or route instructions.
-- Ship thirty complete locale packs. Arabic and Hebrew set the phone companion
-  root to RTL, while the nested 576×288 tactical HUD and Canvas remain LTR.
+- Ship 180 complete locale packs. RTL locale packs set the phone companion root
+  to RTL, while the nested 576×288 tactical HUD and Canvas remain LTR.
 - Even Hub's current manifest schema accepts only `en`, `de`, `fr`, `es`, `it`,
-  `zh`, `ja`, and `ko`. Keep all thirty app-internal locale packs available in
+  `zh`, `ja`, and `ko`. Keep all 180 app-internal locale packs available in
   the phone picker, but declare only that accepted subset in `app.json`.
 - Add a language only through one complete `src/i18n/locales/<code>.ts` pack,
   including `direction`, one registry entry, and three entries in
@@ -155,9 +155,11 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   locale unions, language-picker choices, weather branches, route dictionaries,
   TODO title tables, or RSS URLs anywhere else.
 - Keep `server/news-feeds.js` as the single browser/server built-in RSS catalog.
-  Its current thirty-locale baseline is ninety unique HTTPS feeds. Every
+  Its current 180-locale baseline is 540 HTTPS feeds. Every
   supported locale has exactly three non-deletable built-ins that may be
-  disabled or renamed. User-added HTTPS RSS sources remain shared across
+  disabled or renamed. Prefer validated local-language feeds; where none are
+  available without redirects, explicitly reuse the three English international
+  feeds with `fallbackLocale: "en"`. User-added HTTPS RSS sources remain shared across
   locales and retain the six-source limit.
 - Run `npm run verify:rss-live` after any built-in feed change. It must check
   all feeds serially and reject redirects, non-200 responses, non-XML content,
@@ -186,6 +188,10 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   panel previews short excerpts from the three most recent conversations and
   the locally estimated current-week/current-month Realtime spend, but merely
   viewing the panel must never start the microphone or an API session.
+- Keep Conversate separate from Ask AI. Conversate assists a live human-to-human
+  conversation with translation, contextual speaking tips, and selectable
+  language/reply recommendations; it is not an Ask AI transcript or prompt
+  variant and needs its own phone screen, HUD page, state, and input flow.
 - Start a new text-only OpenAI Realtime conversation only after the user taps
   the Ask AI dashboard panel. Use the G2 glasses microphone by default, leave
   turn detection to semantic VAD, render user transcription and streamed AI
@@ -214,7 +220,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   archived response with late final text. Serialize a tap flush behind any SDK
   text update already in flight, emit only the newest complete target, ignore
   late deltas from the cancelled response, and localize every visible native
-  detail string across all thirty locales.
+  detail string across all 180 locales.
 - Keep the Ask AI detail view deliberately plain: no title, frame, phase
   header, page counter, or footer instructions. Show only the rolling
   localized conversation and a short localized `Listening…` line when
@@ -228,10 +234,11 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   conversation line per glasses scroll gesture; never reintroduce transcript
   pages.
 - Treat the OpenAI key as BYOK. Accept it only in the phone companion, persist
-  it only in Even local storage, exchange it through a same-origin endpoint for
-  a short-lived Realtime client secret, and never bundle, log, or persist the
-  key on the server. Keep conversation excerpts and per-response usage/cost
-  records local to the device.
+  it only in Even local storage, and use it from the packaged WebView only to
+  mint a short-lived Realtime client secret directly from OpenAI. This
+  owner-approved client-side BYOK flow supports serverless Private Builds;
+  never bundle, log, or send the key anywhere else. Keep conversation excerpts
+  and per-response usage/cost records local to the device.
 - Let users add bounded HTTPS MCP servers from the phone Ask AI settings, with
   optional locally stored bearer authentication and tool allowlists. Register
   enabled servers directly with the Realtime session and require explicit

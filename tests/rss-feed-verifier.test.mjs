@@ -131,3 +131,18 @@ test("verifies feeds sequentially and retains later results", async () => {
   assert.equal(results.length, 3);
   assert.deepEqual(results.map(({ ok }) => ok), [true, false, true]);
 });
+
+test("checks a shared fallback URL once and reports every locale", async () => {
+  let calls = 0;
+  const results = await verifyAllFeeds([
+    FEED,
+    { ...FEED, id: "fallback", locale: "af" },
+  ], async () => {
+    calls += 1;
+    return response();
+  });
+
+  assert.equal(calls, 1);
+  assert.deepEqual(results.map(({ feed }) => feed.id), ["example", "fallback"]);
+  assert.deepEqual(results.map(({ ok }) => ok), [true, true]);
+});
