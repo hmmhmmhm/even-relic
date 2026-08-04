@@ -3,6 +3,13 @@ import { AudioInputSource, type EvenHubEvent } from "@evenrealities/even_hub_sdk
 import { createConversateRealtimeSession } from "./conversate-realtime-session";
 import type { RealtimeSocket } from "./ai-realtime-transport";
 
+const pcm = (amplitude: number, milliseconds = 100) => {
+  const bytes = new Uint8Array(16 * milliseconds * 2);
+  const view = new DataView(bytes.buffer);
+  for (let index = 0; index < bytes.byteLength; index += 2) view.setInt16(index, amplitude, true);
+  return bytes;
+};
+
 describe("Conversate realtime transcription", () => {
   it("uses gpt-live-transcribe, publishes deltas, and closes the G2 microphone", async () => {
     const sent: string[][] = [];
@@ -49,9 +56,7 @@ describe("Conversate realtime transcription", () => {
       model: "gpt-live-transcribe", delay: "medium",
       languages: ["ko", "en"], keywords: ["Sandevistan", "G2"],
     });
-    expect(liveUpdate.session.audio.input.turn_detection).toMatchObject({
-      threshold: 0.5, prefix_padding_ms: 500, silence_duration_ms: 800,
-    });
+    expect(liveUpdate.session.audio.input.turn_detection).toBeNull();
     const refinementUpdate = sent[1]?.map((value) => JSON.parse(value))
       .find(({ type }) => type === "session.update");
     expect(refinementUpdate.session.audio.input.transcription.model).toBe("gpt-transcribe");
@@ -86,11 +91,15 @@ describe("Conversate realtime transcription", () => {
     sockets[0]?.onmessage?.({ data: JSON.stringify({ type: "error" }) } as MessageEvent<string>);
     expect(error).toHaveBeenCalledWith("Transcription session error");
     listener?.({ audioEvent: {
-      source: AudioInputSource.Glasses,
-      audioPcm: new Uint8Array([0, 0, 1, 0]),
+      source: AudioInputSource.Glasses, audioPcm: pcm(4_000),
+    } } as EvenHubEvent);
+    for (let index = 0; index < 8; index += 1) listener?.({ audioEvent: {
+      source: AudioInputSource.Glasses, audioPcm: pcm(0),
     } } as EvenHubEvent);
     expect(sent.every((messages) => messages.map((value) => JSON.parse(value).type)
       .includes("input_audio_buffer.append"))).toBe(true);
+    expect(sent.every((messages) => messages.map((value) => JSON.parse(value).type)
+      .includes("input_audio_buffer.commit"))).toBe(true);
     await session.stop();
     expect(audioControl).toHaveBeenNthCalledWith(1, true, AudioInputSource.Glasses);
     expect(audioControl).toHaveBeenLastCalledWith(false);

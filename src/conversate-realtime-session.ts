@@ -7,6 +7,7 @@ import {
 } from "./ai-realtime-transport";
 import { logDiagnostic } from "./diagnostic-log";
 import type { PhoneLocale } from "./phone-types";
+import { createConversateLocalVad } from "./conversate-local-vad";
 
 const REALTIME_URL = "wss://api.openai.com/v1/realtime?intent=transcription";
 const SOCKET_OPEN = 1;
@@ -49,6 +50,7 @@ export function createConversateRealtimeSession(options: {
   let configured = false;
   let usedCompatibilityFallback = false;
   const abort = new AbortController();
+  const localVad = createConversateLocalVad();
   const languages = [...new Set(options.languages ?? [])]
     .filter((value) => /^[a-z]{2,3}(?:-[a-z]{2})?$/.test(value))
     .slice(0, 3);
@@ -76,12 +78,7 @@ export function createConversateRealtimeSession(options: {
             ...(extended && languages.length ? { languages } : {}),
             ...(extended && keywords.length ? { keywords } : {}),
           },
-          turn_detection: {
-            type: "server_vad",
-            ...(extended ? { threshold: 0.5 } : {}),
-            prefix_padding_ms: extended ? 500 : 300,
-            silence_duration_ms: extended ? 800 : 500,
-          },
+          turn_detection: null,
         } },
       },
     });
@@ -189,12 +186,6 @@ export function createConversateRealtimeSession(options: {
         refinementSocket?.close();
         refinementSocket = undefined;
       });
-      const turnDetection = {
-        type: "server_vad",
-        threshold: 0.5,
-        prefix_padding_ms: 500,
-        silence_duration_ms: 800,
-      };
       sendLiveConfiguration(true);
       send(refinementSocket, {
         type: "session.update",
@@ -203,7 +194,7 @@ export function createConversateRealtimeSession(options: {
           audio: { input: {
             format: { type: "audio/pcm", rate: 24_000 },
             transcription: { model: "gpt-transcribe" },
-            turn_detection: turnDetection,
+            turn_detection: null,
           } },
         },
       });
@@ -212,11 +203,18 @@ export function createConversateRealtimeSession(options: {
         if (!microphoneOpen || socket?.readyState !== SOCKET_OPEN || !audio
           || audio.source !== AudioInputSource.Glasses || audio.audioPcm.length === 0
           || audio.audioPcm.length > MAX_PCM_CHUNK_BYTES) return;
-        const bytes = resamplePcm16Le16To24(audio.audioPcm);
-        if (bytes.length) {
+        const decision = localVad(audio.audioPcm);
+        for (const chunk of decision.audio) {
+          const bytes = resamplePcm16Le16To24(chunk);
+          if (!bytes.length) continue;
           const append = createAudioAppendEvent(bytes);
           send(socket, append);
           send(refinementSocket, append);
+        }
+        if (decision.commit) {
+          const commit = { type: "input_audio_buffer.commit" };
+          send(socket, commit);
+          send(refinementSocket, commit);
         }
       });
       microphoneOpen = await options.bridge.audioControl(true, AudioInputSource.Glasses);
