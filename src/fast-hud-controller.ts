@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { waitForEvenAppBridge } from "@evenrealities/even_hub_sdk";
 import {
   drawDenseCanvasHud,
   getAdjacentHudPage,
@@ -51,6 +50,7 @@ import { getRoutingStatus } from "./routing";
 import { createAiRuntime, type AiRuntime } from "./ai-runtime";
 import { createNativeAiTextContent } from "./native-ai-text";
 import { TRANSPORT_STATUS } from "./transport-status";
+import { prepareFastHudBridge, stopIdleSdkSensors, type FastHudBridge } from "./fast-hud-bootstrap";
 type LiveSession = ReturnType<typeof createLiveDashboardSession>;
 export function useHudController({
   autoStart,
@@ -72,6 +72,7 @@ export function useHudController({
   setCompanionLive,
   setCompanionBattery,
   setCompanionStorage,
+  setPhonePreferences,
   setCompanionAiSnapshot,
 }: UseHudControllerOptions) {
   useEffect(() => {
@@ -82,6 +83,7 @@ export function useHudController({
     let liveSession: LiveSession | undefined;
     let aiRuntime: AiRuntime | undefined;
     let nativeAiText: FastCanvasNativeTextController | undefined;
+    let bridge: FastHudBridge | undefined;
     let page: FastHudPage = HUD_PAGES[0];
     let view = createFastHudViewState();
     let battery: FastCanvasBattery | undefined;
@@ -178,6 +180,10 @@ export function useHudController({
       drawCurrentPage();
     };
     void (async () => {
+      if (modes.fastCanvas) {
+        bridge = await prepareFastHudBridge({ onPreferences: setPhonePreferences, onStorage: setCompanionStorage });
+        if (cancelled) return;
+      }
       await prepareInitialHud(canvas, modes, drawCurrentPage);
       report(TRANSPORT_STATUS.preparing);
       if (modes.fastCanvas) {
@@ -290,10 +296,10 @@ export function useHudController({
         }
         unsubscribe = transportCleanup;
         logDiagnostic("APP", "live bridge wait");
-        const [bridge, nextRoutingStatus] = await Promise.all([
-          waitForEvenAppBridge(),
-          getRoutingStatus().catch(() => ({ enabled: false })),
-        ]);
+        const activeBridge = bridge;
+        if (!activeBridge) return;
+        const nextRoutingStatus = await getRoutingStatus()
+          .catch(() => ({ enabled: false }));
         if (cancelled) return;
         logDiagnostic(
           "APP",
@@ -305,14 +311,8 @@ export function useHudController({
         setCompanionRoute(nextRoutingStatus.enabled
           ? { status: "fresh" }
           : { status: "disabled" });
-        if (
-          typeof bridge.getLocalStorage === "function"
-          && typeof bridge.setLocalStorage === "function"
-        ) {
-          setCompanionStorage(bridge);
-        }
         aiRuntime = createAiRuntime({
-          bridge,
+          bridge: activeBridge,
           getKey: () => companionOpenAiKeyRef.current,
           getLocale: currentLocale,
           getLocation: () => live.location,
@@ -336,7 +336,7 @@ export function useHudController({
           },
         });
         liveSession = createLiveDashboardSession({
-          bridge,
+          bridge: activeBridge,
           routingStatus: nextRoutingStatus,
           canRefreshNews: () => view.mode !== "news",
           getLocale: currentLocale,
@@ -407,6 +407,7 @@ export function useHudController({
       displayRefreshRef.current = undefined;
       liveSession?.dispose();
       aiRuntime?.dispose();
+      if (bridge) void stopIdleSdkSensors(bridge);
       if (liveSessionRef.current === liveSession) {
         liveSessionRef.current = undefined;
       }
@@ -441,6 +442,7 @@ export function useHudController({
     setCompanionLive,
     setCompanionRoute,
     setCompanionStorage,
+    setPhonePreferences,
     setCompanionAiSnapshot,
     setRoutingStatus,
     setStatus,

@@ -46,5 +46,6 @@ export type UseHudControllerOptions = {
     value: FastCanvasBattery | undefined,
   ) => void;
   readonly setCompanionStorage: (value: EvenStorage) => void;
+  readonly setPhonePreferences: (value: PhonePreferences) => void;
   readonly setCompanionAiSnapshot: (value: AiHudSnapshot) => void;
 };

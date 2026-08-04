@@ -131,7 +131,7 @@ export function App({ autoStart = true }: AppProps) {
   const phoneNavigationAvailable = routingStatus.enabled
     || companionOrsKey !== undefined;
 
-  const setPhonePreferences = (value: PhonePreferences) => {
+  const setPhonePreferences = useCallback((value: PhonePreferences) => {
     const browserLanguage = typeof navigator === "undefined"
       ? "en"
       : navigator.language;
@@ -157,7 +157,7 @@ export function App({ autoStart = true }: AppProps) {
       liveSessionRef.current?.refreshLocale?.();
       displayRefreshRef.current?.();
     }
-  };
+  }, []);
   const setCompanionOrsKey = (value: string | undefined) => {
     companionOrsKeyRef.current = value;
     setCompanionOrsKeyState(value);
@@ -264,6 +264,7 @@ export function App({ autoStart = true }: AppProps) {
     setCompanionLive,
     setCompanionBattery,
     setCompanionStorage,
+    setPhonePreferences,
     setCompanionAiSnapshot,
   });
 

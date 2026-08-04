@@ -158,6 +158,7 @@ beforeEach(() => {
   mocks.searchDestinations.mockResolvedValue([]);
   mocks.transmitFast.mockReset();
   mocks.waitForBridge.mockReset();
+  mocks.waitForBridge.mockResolvedValue({});
 });
 
 afterEach(() => {
@@ -424,6 +425,44 @@ describe("SANDEVISTAN peripheral HUD", () => {
     fireEvent.click(screen.getByRole("button", { name: /^TODO/ }));
     expect(screen.getByText("Go to the subway station")).toBeTruthy();
     expect(screen.queryByText("지하철역으로 이동")).toBeNull();
+  });
+
+  it("uses the saved locale on the first HUD frame and stops idle sensors", async () => {
+    vi.spyOn(window.navigator, "language", "get").mockReturnValue("en-US");
+    window.history.replaceState({}, "", "/hud-canvas-fast");
+    const audioControl = vi.fn(async () => true);
+    const imuControl = vi.fn(async () => true);
+    const stopAppLocationUpdates = vi.fn(async () => true);
+    mocks.waitForBridge.mockResolvedValue({
+      audioControl,
+      imuControl,
+      stopAppLocationUpdates,
+      getLocalStorage: vi.fn(async (key: string) => key.includes("phone-preferences")
+        ? JSON.stringify({
+            locale: "ko",
+            order: ["overview", "news", "todo", "weather", "ai"],
+            enabled: ["overview", "news", "todo", "weather", "ai"],
+            aiTextIntervalMs: 200,
+          })
+        : ""),
+      setLocalStorage: vi.fn(async () => true),
+    });
+    mocks.transmitFast.mockResolvedValue(vi.fn());
+    mocks.createSession.mockReturnValue({
+      start: vi.fn(async () => undefined),
+      getState: vi.fn(),
+      dispose: vi.fn(),
+    });
+
+    const view = render(<App />);
+    await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledOnce());
+
+    expect(mocks.drawLocale.mock.calls[0]?.[0]).toBe("ko");
+    expect(mocks.drawLocale).not.toHaveBeenCalledWith("en");
+    expect(audioControl).toHaveBeenCalledWith(false);
+    expect(imuControl).toHaveBeenCalledWith(false);
+    expect(stopAppLocationUpdates).toHaveBeenCalledOnce();
+    view.unmount();
   });
 
   it("relocalizes built-in TODOs independently of a G2 refresh", async () => {
@@ -1356,7 +1395,7 @@ describe("SANDEVISTAN peripheral HUD", () => {
     view.unmount();
   });
 
-  it("does not start bridge or session after unmounting during transport", async () => {
+  it("does not start a session after unmounting during transport", async () => {
     window.history.replaceState({}, "", "/hud-canvas-fast");
     const transport = deferred<() => void>();
     const transportCleanup = vi.fn();
@@ -1369,11 +1408,11 @@ describe("SANDEVISTAN peripheral HUD", () => {
     transport.resolve(transportCleanup);
     await vi.waitFor(() => expect(transportCleanup).toHaveBeenCalledTimes(1));
 
-    expect(mocks.waitForBridge).not.toHaveBeenCalled();
+    expect(mocks.waitForBridge).toHaveBeenCalledTimes(1);
     expect(mocks.createSession).not.toHaveBeenCalled();
   });
 
-  it("disposes transport and skips session after unmounting during bridge wait", async () => {
+  it("skips transport and session after unmounting during bridge wait", async () => {
     window.history.replaceState({}, "", "/hud-canvas-fast");
     const transportCleanup = vi.fn();
     const bridge = deferred<object>();
@@ -1384,12 +1423,12 @@ describe("SANDEVISTAN peripheral HUD", () => {
 
     view.unmount();
     view.unmount();
-    expect(transportCleanup).toHaveBeenCalledTimes(1);
+    expect(transportCleanup).not.toHaveBeenCalled();
     bridge.resolve({});
     await new Promise((resolve) => setTimeout(resolve, 0));
 
     expect(mocks.createSession).not.toHaveBeenCalled();
-    expect(transportCleanup).toHaveBeenCalledTimes(1);
+    expect(transportCleanup).not.toHaveBeenCalled();
   });
 
   it("starts one live session after fast transport and cleans both up", async () => {
@@ -1410,12 +1449,11 @@ describe("SANDEVISTAN peripheral HUD", () => {
 
     const view = render(<App />);
     await vi.waitFor(() => expect(mocks.transmitFast).toHaveBeenCalledTimes(1));
-    expect(mocks.waitForBridge).not.toHaveBeenCalled();
+    expect(mocks.waitForBridge).toHaveBeenCalledTimes(1);
     expect(mocks.createSession).not.toHaveBeenCalled();
 
     finishTransport(transportCleanup);
     await vi.waitFor(() => expect(session.start).toHaveBeenCalledTimes(1));
-    expect(mocks.waitForBridge).toHaveBeenCalledTimes(1);
     expect(mocks.createSession).toHaveBeenCalledWith(expect.objectContaining({
       bridge,
       onUpdate: expect.any(Function),

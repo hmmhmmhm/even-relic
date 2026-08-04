@@ -154,6 +154,14 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   `server/news-feeds.js`. Do not add
   locale unions, language-picker choices, weather branches, route dictionaries,
   TODO title tables, or RSS URLs anywhere else.
+- Resolve the saved locale before encoding the first fast-HUD frame. When no
+  explicit locale is saved, use the device system language whenever it is in
+  the registry; never flash an English HUD before the resolved locale HUD.
+- Keep native sensors explicitly off outside their scoped features. On startup,
+  best-effort stop audio, IMU, and stale location updates before enabling only
+  what the active feature needs; stop them again on feature exit and app
+  cleanup. In particular, the microphone must remain explicitly off unless an
+  Ask AI or Conversate session owns it.
 - Keep `server/news-feeds.js` as the single browser/server built-in RSS catalog.
   Its current 180-locale baseline is 540 HTTPS feeds. Every
   supported locale has exactly three non-deletable built-ins that may be
