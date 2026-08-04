@@ -49,25 +49,20 @@ type Bridge = {
   textContainerUpgrade(update: TextContainerUpgrade): Promise<boolean>;
 };
 
-const INFORM_ID = 1;
-const BODY_ID = 2;
-const visibleText = (content: string) => content || " ";
+const TEXT_ID = 1;
+const TEXT_NAME = "conversateText";
+const visibleText = (content: NativeConversateContent) =>
+  [content.inform, content.body].filter(Boolean).join("\n\n") || " ";
 
 function page(content: NativeConversateContent) {
   return new RebuildPageContainer({
-    containerTotalNum: 2,
+    containerTotalNum: 1,
     textObject: [
       new TextContainerProperty({
-        xPosition: 8, yPosition: 8, width: 560, height: 64,
-        borderWidth: 1, borderColor: 1, borderRadius: 4, paddingLength: 7,
-        containerID: INFORM_ID, containerName: "conversateInform",
-        content: visibleText(content.inform), isEventCapture: 0,
-      }),
-      new TextContainerProperty({
-        xPosition: 8, yPosition: 80, width: 560, height: 200,
-        borderWidth: 0, borderColor: 0, borderRadius: 0, paddingLength: 6,
-        containerID: BODY_ID, containerName: "conversateBody",
-        content: visibleText(content.body), isEventCapture: 1,
+        xPosition: 0, yPosition: 0, width: 576, height: 288,
+        borderWidth: 0, borderColor: 0, borderRadius: 0, paddingLength: 8,
+        containerID: TEXT_ID, containerName: TEXT_NAME,
+        content: visibleText(content), isEventCapture: 1,
       }),
     ],
   });
@@ -84,15 +79,9 @@ export function createNativeConversateMode(options: {
     if (!active || busy) return false;
     busy = true;
     try {
-      let succeeded = true;
-      if (content.inform !== last?.inform) succeeded = await options.bridge.textContainerUpgrade(
+      const succeeded = visibleText(content) === (last && visibleText(last)) || await options.bridge.textContainerUpgrade(
         new TextContainerUpgrade({
-          containerID: INFORM_ID, containerName: "conversateInform", content: visibleText(content.inform),
-        }),
-      );
-      if (succeeded && content.body !== last?.body) succeeded = await options.bridge.textContainerUpgrade(
-        new TextContainerUpgrade({
-          containerID: BODY_ID, containerName: "conversateBody", content: visibleText(content.body),
+          containerID: TEXT_ID, containerName: TEXT_NAME, content: visibleText(content),
         }),
       );
       if (succeeded) last = content;

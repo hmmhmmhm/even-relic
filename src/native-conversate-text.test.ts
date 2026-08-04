@@ -4,7 +4,7 @@ import { createConversateSnapshot, DEFAULT_CONVERSATE_SETTINGS } from "./convers
 import { createNativeConversateContent, createNativeConversateMode } from "./native-conversate-text";
 
 describe("native Conversate text page", () => {
-  it("reserves a bordered Inform region above an event-capturing conversation region", async () => {
+  it("uses the hardware-proven single event-capturing text page", async () => {
     const pages: RebuildPageContainer[] = [];
     const rebuildPageContainer = vi.fn(async (page: RebuildPageContainer) => {
       pages.push(page);
@@ -18,10 +18,15 @@ describe("native Conversate text page", () => {
     const page = pages[0];
     expect(page).toBeDefined();
     if (!page) return;
-    expect(page.containerTotalNum).toBe(2);
+    expect(page.containerTotalNum).toBe(1);
     expect(page.textObject).toEqual([
-      expect.objectContaining({ containerName: "conversateInform", borderWidth: 1, content: "Correction" }),
-      expect.objectContaining({ containerName: "conversateBody", isEventCapture: 1, content: "Live transcript" }),
+      expect.objectContaining({
+        containerName: "conversateText",
+        width: 576,
+        height: 288,
+        isEventCapture: 1,
+        content: "Correction\n\nLive transcript",
+      }),
     ]);
   });
 
@@ -37,15 +42,13 @@ describe("native Conversate text page", () => {
     });
     await mode.enter({ inform: "", body: "" });
     expect(rebuildPageContainer.mock.calls[0]?.[0].textObject).toEqual([
-      expect.objectContaining({ containerName: "conversateInform", content: " " }),
-      expect.objectContaining({ containerName: "conversateBody", content: " " }),
+      expect.objectContaining({ containerName: "conversateText", content: " " }),
     ]);
     await mode.update({ inform: "Correction", body: "Transcript" });
     await mode.update({ inform: "", body: "" });
-    expect(upgrades).toEqual(expect.arrayContaining([
-      expect.objectContaining({ containerName: "conversateInform", content: " " }),
-      expect.objectContaining({ containerName: "conversateBody", content: " " }),
-    ]));
+    expect(upgrades.at(-1)).toEqual(
+      expect.objectContaining({ containerName: "conversateText", content: " " }),
+    );
   });
 
   it("honors independent transcription and translation display toggles", () => {
