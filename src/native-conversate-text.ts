@@ -51,6 +51,7 @@ type Bridge = {
 
 const INFORM_ID = 1;
 const BODY_ID = 2;
+const visibleText = (content: string) => content || " ";
 
 function page(content: NativeConversateContent) {
   return new RebuildPageContainer({
@@ -60,13 +61,13 @@ function page(content: NativeConversateContent) {
         xPosition: 8, yPosition: 8, width: 560, height: 64,
         borderWidth: 1, borderColor: 1, borderRadius: 4, paddingLength: 7,
         containerID: INFORM_ID, containerName: "conversateInform",
-        content: content.inform, isEventCapture: 0,
+        content: visibleText(content.inform), isEventCapture: 0,
       }),
       new TextContainerProperty({
         xPosition: 8, yPosition: 80, width: 560, height: 200,
         borderWidth: 0, borderColor: 0, borderRadius: 0, paddingLength: 6,
         containerID: BODY_ID, containerName: "conversateBody",
-        content: content.body, isEventCapture: 1,
+        content: visibleText(content.body), isEventCapture: 1,
       }),
     ],
   });
@@ -86,12 +87,12 @@ export function createNativeConversateMode(options: {
       let succeeded = true;
       if (content.inform !== last?.inform) succeeded = await options.bridge.textContainerUpgrade(
         new TextContainerUpgrade({
-          containerID: INFORM_ID, containerName: "conversateInform", content: content.inform,
+          containerID: INFORM_ID, containerName: "conversateInform", content: visibleText(content.inform),
         }),
       );
       if (succeeded && content.body !== last?.body) succeeded = await options.bridge.textContainerUpgrade(
         new TextContainerUpgrade({
-          containerID: BODY_ID, containerName: "conversateBody", content: content.body,
+          containerID: BODY_ID, containerName: "conversateBody", content: visibleText(content.body),
         }),
       );
       if (succeeded) last = content;

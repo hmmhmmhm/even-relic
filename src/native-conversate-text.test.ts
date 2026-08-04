@@ -25,6 +25,29 @@ describe("native Conversate text page", () => {
     ]);
   });
 
+  it("uses SDK-safe blank text when entering or clearing an empty region", async () => {
+    const upgrades: unknown[] = [];
+    const rebuildPageContainer = vi.fn(async (_page: RebuildPageContainer) => true);
+    const mode = createNativeConversateMode({
+      bridge: {
+        rebuildPageContainer,
+        textContainerUpgrade: vi.fn(async (update) => { upgrades.push(update); return true; }),
+      },
+      createImagePage: () => new RebuildPageContainer({ containerTotalNum: 0 }),
+    });
+    await mode.enter({ inform: "", body: "" });
+    expect(rebuildPageContainer.mock.calls[0]?.[0].textObject).toEqual([
+      expect.objectContaining({ containerName: "conversateInform", content: " " }),
+      expect.objectContaining({ containerName: "conversateBody", content: " " }),
+    ]);
+    await mode.update({ inform: "Correction", body: "Transcript" });
+    await mode.update({ inform: "", body: "" });
+    expect(upgrades).toEqual(expect.arrayContaining([
+      expect.objectContaining({ containerName: "conversateInform", content: " " }),
+      expect.objectContaining({ containerName: "conversateBody", content: " " }),
+    ]));
+  });
+
   it("honors independent transcription and translation display toggles", () => {
     const snapshot = {
       ...createConversateSnapshot(),
