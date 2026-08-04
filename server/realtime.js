@@ -11,6 +11,7 @@ import {
 
 export { OPENAI_KEY_HEADER } from "./openai-auth.js";
 export const OPENAI_REALTIME_MODEL = "gpt-realtime";
+export const OPENAI_TRANSCRIPTION_MODEL = "gpt-live-transcribe";
 const OPENAI_TOKEN_URL = "https://api.openai.com/v1/realtime/client_secrets";
 const TOKEN_TIMEOUT_MS = 8_000;
 const MAX_UPSTREAM_BYTES = 16_384;
@@ -35,6 +36,18 @@ export async function handleRealtimeTokenRequest(
       400,
     );
   }
+  let purpose = "assistant";
+  try {
+    const body = await request.clone().json();
+    if (body?.purpose === "transcription") purpose = "transcription";
+  } catch {
+    // Empty request bodies retain the Ask AI default.
+  }
+  const session = purpose === "transcription"
+    ? { type: "transcription", audio: { input: { transcription: {
+        model: OPENAI_TRANSCRIPTION_MODEL,
+      } } } }
+    : { type: "realtime", model: OPENAI_REALTIME_MODEL };
 
   const fetchImpl = dependencies.fetchImpl ?? fetch;
   const timeout = createTimeout(TOKEN_TIMEOUT_MS);
@@ -47,7 +60,7 @@ export async function handleRealtimeTokenRequest(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        session: { type: "realtime", model: OPENAI_REALTIME_MODEL },
+        session,
       }),
       signal: timeout.signal,
     });
@@ -101,7 +114,9 @@ export async function handleRealtimeTokenRequest(
     {
       value: data.value,
       expiresAt: data.expires_at,
-      model: OPENAI_REALTIME_MODEL,
+      model: purpose === "transcription"
+        ? OPENAI_TRANSCRIPTION_MODEL
+        : OPENAI_REALTIME_MODEL,
     },
     { headers: { "cache-control": "no-store" } },
   );

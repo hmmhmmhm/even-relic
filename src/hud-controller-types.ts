@@ -10,6 +10,7 @@ import type { G2TileImageFormat } from "./g2-tile-format";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
 import type { G2DisplayHideStrategy } from "./g2-display-hide";
 import type { AiHudSnapshot } from "./ai-hud-state";
+import type { ConversateSettings, ConversateSnapshot } from "./conversate-state";
 
 export type HudControllerModes = {
   readonly calibration: boolean;
@@ -33,6 +34,8 @@ export type UseHudControllerOptions = {
   readonly companionOrsKeyRef: MutableRefObject<string | undefined>;
   readonly companionOpenAiKeyRef: MutableRefObject<string | undefined>;
   readonly aiSnapshotRef: MutableRefObject<AiHudSnapshot>;
+  readonly conversateSettingsRef: MutableRefObject<ConversateSettings>;
+  readonly conversateSnapshotRef: MutableRefObject<ConversateSnapshot>;
   readonly displayHideStrategy: G2DisplayHideStrategy;
   readonly imageSendConcurrency: ImageSendConcurrency;
   readonly tileImageFormat: G2TileImageFormat;
@@ -48,4 +51,5 @@ export type UseHudControllerOptions = {
   readonly setCompanionStorage: (value: EvenStorage) => void;
   readonly setPhonePreferences: (value: PhonePreferences) => void;
   readonly setCompanionAiSnapshot: (value: AiHudSnapshot) => void;
+  readonly setConversateSnapshot: (value: ConversateSnapshot) => void;
 };

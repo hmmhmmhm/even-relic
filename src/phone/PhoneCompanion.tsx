@@ -34,6 +34,13 @@ import { PhoneHome } from "./PhoneHome";
 import { TodoScreen } from "./TodoScreen";
 import { WeatherScreen } from "./WeatherScreen";
 import { AiScreen } from "./AiScreen";
+import { ConversateScreen } from "./ConversateScreen";
+import {
+  createConversateSnapshot,
+  DEFAULT_CONVERSATE_SETTINGS,
+  type ConversateSettings,
+  type ConversateSnapshot,
+} from "../conversate-state";
 import {
   createAiHudSnapshot,
   type AiHudSnapshot,
@@ -62,6 +69,10 @@ type PhoneCompanionProps = {
   readonly aiSnapshot?: AiHudSnapshot;
   readonly onOpenAiKeyChange?: (key: string | undefined) => void;
   readonly onAiSnapshotChange?: (snapshot: AiHudSnapshot) => void;
+  readonly conversateSettings?: ConversateSettings;
+  readonly conversateSnapshot?: ConversateSnapshot;
+  readonly onConversateSettingsChange?: (settings: ConversateSettings) => void;
+  readonly onConversateSnapshotChange?: (snapshot: ConversateSnapshot) => void;
 };
 
 const SCREEN_TITLE: Record<Exclude<PhoneScreen, "home">, PhoneStringKey> = {
@@ -71,6 +82,7 @@ const SCREEN_TITLE: Record<Exclude<PhoneScreen, "home">, PhoneStringKey> = {
   todo: "todo",
   weather: "weather",
   ai: "ai",
+  conversate: "conversate",
   navigation: "navigation",
   language: "language",
   developer: "developer",
@@ -103,6 +115,10 @@ export function PhoneCompanion({
   aiSnapshot = createAiHudSnapshot(false),
   onOpenAiKeyChange,
   onAiSnapshotChange,
+  conversateSettings = DEFAULT_CONVERSATE_SETTINGS,
+  conversateSnapshot = createConversateSnapshot(),
+  onConversateSettingsChange,
+  onConversateSnapshotChange,
 }: PhoneCompanionProps) {
   const [screen, setScreen] = useState<PhoneScreen>("home");
   const locale = resolvePhoneLocale(
@@ -181,6 +197,14 @@ export function PhoneCompanion({
         status: openAiKey ? t("ready") : t("aiKeyRequired"),
       },
       {
+        screen: "conversate",
+        icon: "ai",
+        titleKey: "conversate",
+        status: openAiKey
+          ? t(conversateSnapshot.phase === "listening" ? "live" : "ready")
+          : t("keyRequired"),
+      },
+      {
         screen: "developer",
         icon: "debug",
         titleKey: "developer",
@@ -196,6 +220,7 @@ export function PhoneCompanion({
     localizedStatus,
     locale,
     openAiKey,
+    conversateSnapshot.phase,
   ]);
 
   const savePreferences = async (next: PhonePreferences): Promise<boolean> => {
@@ -290,6 +315,20 @@ export function PhoneCompanion({
             onSnapshotChange={onAiSnapshotChange}
             textIntervalMs={preferences.aiTextIntervalMs}
             onTextIntervalChange={updateAiTextInterval}
+          />
+        );
+      case "conversate":
+        return (
+          <ConversateScreen
+            storage={storage}
+            locale={locale}
+            settings={conversateSettings}
+            snapshot={conversateSnapshot}
+            openAiKey={openAiKey}
+            t={t}
+            onSettingsChange={onConversateSettingsChange}
+            onSnapshotChange={onConversateSnapshotChange}
+            onKeyChange={onOpenAiKeyChange}
           />
         );
       case "developer":

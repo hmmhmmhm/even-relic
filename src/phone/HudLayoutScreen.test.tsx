@@ -62,7 +62,7 @@ describe("HudLayoutScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: /Weather.*Enabled/ }));
     await vi.waitFor(() => expect(onChange).toHaveBeenCalledWith({
       ...DEFAULT_PHONE_PREFERENCES,
-      enabled: ["overview", "news", "todo", "ai"],
+      enabled: ["overview", "news", "todo", "ai", "conversate"],
     }));
   });
 
@@ -80,7 +80,7 @@ describe("HudLayoutScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Move up TODO" }));
     await vi.waitFor(() => expect(onChange).toHaveBeenCalledWith({
       ...DEFAULT_PHONE_PREFERENCES,
-      order: ["overview", "todo", "news", "weather", "ai"],
+      order: ["overview", "todo", "news", "weather", "ai", "conversate"],
     }));
     expect(await screen.findByText("Could not save on this device."))
       .toBeTruthy();

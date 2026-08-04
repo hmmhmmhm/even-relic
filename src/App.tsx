@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createBrowserStorage } from "./browser-storage";
-import { HUD_PAGES } from "./canvas-hud";
 import { useHudController } from "./fast-hud-controller";
 import { resolveG2DisplayHideStrategy } from "./g2-display-hide";
 import { resolveG2TileImageFormat } from "./g2-tile-format";
@@ -15,10 +14,7 @@ import {
   type LiveDashboardState,
 } from "./live-state";
 import { resolveOrsKey } from "./ors-key";
-import {
-  resolvePhoneLocale,
-  translatePhone,
-} from "./phone-i18n";
+import { resolvePhoneLocale } from "./phone-i18n";
 import {
   DEFAULT_PHONE_PREFERENCES,
   resolvePhonePreferences,
@@ -48,6 +44,8 @@ import {
 import { resolveAiConversationHistory } from "./ai-history";
 import { resolveOpenAiKey } from "./openai-key";
 import { TRANSPORT_STATUS } from "./transport-status";
+import { useConversateCompanion } from "./use-conversate-companion";
+import { HudSurface } from "./HudSurface";
 
 type AppProps = { autoStart?: boolean };
 
@@ -128,6 +126,7 @@ export function App({ autoStart = true }: AppProps) {
   const [companionRssSources, setCompanionRssSources] = useState<
     readonly RssSource[]
   >(defaultRssSources("ko"));
+  const conversate = useConversateCompanion(companionStorage, fastCanvasHudMode);
   const phoneNavigationAvailable = routingStatus.enabled
     || companionOrsKey !== undefined;
 
@@ -253,6 +252,8 @@ export function App({ autoStart = true }: AppProps) {
     companionOrsKeyRef,
     companionOpenAiKeyRef,
     aiSnapshotRef,
+    conversateSettingsRef: conversate.settingsRef,
+    conversateSnapshotRef: conversate.snapshotRef,
     displayHideStrategy,
     imageSendConcurrency,
     tileImageFormat,
@@ -266,6 +267,7 @@ export function App({ autoStart = true }: AppProps) {
     setCompanionStorage,
     setPhonePreferences,
     setCompanionAiSnapshot,
+    setConversateSnapshot: conversate.setSnapshot,
   });
 
   const startCompanionRoute = async (
@@ -295,51 +297,7 @@ export function App({ autoStart = true }: AppProps) {
     enabled: phoneNavigationAvailable,
   };
 
-  const hudSurface = (
-    <section
-      className="hud-frame"
-      data-testid="hud-frame"
-      dir="ltr"
-      data-logical-size="576x288"
-      data-renderer={
-        fastCanvasHudMode
-          ? "canvas-fast"
-          : layeredHybridHudMode
-            ? "hybrid-z"
-            : hybridHudMode
-              ? "hybrid"
-              : canvasHudMode
-                ? "canvas"
-                : calibrationMode
-                  ? "calibration"
-                  : "image"
-      }
-      data-layering={layeredHybridHudMode ? "explicit" : undefined}
-      data-layout={
-        fastCanvasHudMode
-          ? "static-left-dynamic-right"
-          : layeredHybridHudMode
-            ? "map-text-console"
-            : undefined
-      }
-      data-update-tiles={fastCanvasHudMode ? "2" : undefined}
-      data-text-containers={diagnosticMode ? "2" : "1"}
-      data-image-containers={diagnosticMode ? "1" : "4"}
-      data-pages={
-        canvasHudMode || hybridHudMode ? HUD_PAGES.length : undefined
-      }
-      aria-label={translatePhone(phoneLocale, "hudRasterPreview")}
-    >
-      <canvas
-        ref={canvasRef}
-        width="576"
-        height="288"
-        dir="ltr"
-        role="img"
-        aria-label={translatePhone(phoneLocale, "hudGlassesFrame")}
-      />
-    </section>
-  );
+  const hudSurface = <HudSurface canvasRef={canvasRef} modes={modes} locale={phoneLocale} />;
 
   if (fastCanvasHudMode) {
     return (
@@ -386,6 +344,10 @@ export function App({ autoStart = true }: AppProps) {
           setCompanionAiSnapshot(snapshot);
           displayRefreshRef.current?.();
         }}
+        conversateSettings={conversate.settings}
+        conversateSnapshot={conversate.snapshot}
+        onConversateSettingsChange={conversate.setSettings}
+        onConversateSnapshotChange={conversate.setSnapshot}
         onDeleteRoute={endCompanionRoute}
         routeControls={(
           <RouteControls

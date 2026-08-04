@@ -13,6 +13,7 @@ import type { G2TileImageFormat } from "./g2-tile-format";
 import type { G2TilePaletteMode } from "./g2-tile-palette";
 import type { ImageSendConcurrency } from "./image-send-concurrency";
 import type { G2DisplayHideStrategy } from "./g2-display-hide";
+import type { NativeConversateContent } from "./native-conversate-text";
 
 export type Bridge = {
   createStartUpPageContainer: (
@@ -86,6 +87,8 @@ export type FastCanvasNativeTextController = {
   active(): boolean;
   enter(content: string): Promise<boolean>;
   update(content: string): Promise<boolean>;
+  enterConversate?(content: NativeConversateContent): Promise<boolean>;
+  updateConversate?(content: NativeConversateContent): Promise<boolean>;
   restore(): Promise<boolean>;
 };
 

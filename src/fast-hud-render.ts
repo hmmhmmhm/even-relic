@@ -8,6 +8,7 @@ import type { FastHudViewContext, FastHudViewState } from "./fast-hud-view";
 import type { FastCanvasBattery } from "./glasses";
 import type { LiveDashboardState } from "./live-state";
 import type { PhoneLocale } from "./phone-types";
+import type { ConversateSnapshot } from "./conversate-state";
 
 export type FastHudNewsPageCache = {
   readonly key: string;
@@ -58,9 +59,10 @@ export function drawFastHudSurface(options: {
   readonly battery?: FastCanvasBattery;
   readonly mapRadiusMeters: number;
   readonly ai: AiHudSnapshot;
+  readonly conversate: ConversateSnapshot;
   readonly locale: PhoneLocale;
 }) {
-  const { canvas, page, view, live, battery, mapRadiusMeters, ai, locale } = options;
+  const { canvas, page, view, live, battery, mapRadiusMeters, ai, conversate, locale } = options;
   if (view.mode === "map") {
     drawFastFullscreenMap(canvas, live, mapRadiusMeters, locale);
     return;
@@ -74,6 +76,7 @@ export function drawFastHudSurface(options: {
       todoIndex: view.todoIndex,
       navigationIndex: view.navigationIndex,
       ...(view.mode === "ai" ? { ai, aiLine: view.aiLine } : {}),
+      ...(view.mode === "conversate" ? { conversate } : {}),
     }, locale);
     return;
   }
@@ -82,5 +85,6 @@ export function drawFastHudSurface(options: {
     live,
     mapRadiusMeters,
     ...(page === "ai" ? { ai } : {}),
+    ...(page === "conversate" ? { conversate } : {}),
   }, locale);
 }

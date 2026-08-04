@@ -1,32 +1,11 @@
 import { useEffect } from "react";
-import {
-  drawDenseCanvasHud,
-  getAdjacentHudPage,
-  HUD_PAGES,
-  type HudPage,
-} from "./canvas-hud";
-import {
-  logDiagnostic,
-  startDiagnosticHeartbeat,
-  startWindowErrorDiagnostics,
-} from "./diagnostic-log";
+import { drawDenseCanvasHud, getAdjacentHudPage, HUD_PAGES, type HudPage } from "./canvas-hud";
+import { logDiagnostic, startDiagnosticHeartbeat, startWindowErrorDiagnostics } from "./diagnostic-log";
 import { detailRefreshTarget } from "./fast-detail-refresh";
-import {
-  getAdjacentFastHudPage,
-  normalizeFastHudPage,
-  type FastHudPage,
-} from "./fast-hud-pages";
-import {
-  FAST_MAP_ZOOM_RADII,
-  createFastHudViewState,
-  syncFastHudView,
-} from "./fast-hud-view";
+import { getAdjacentFastHudPage, normalizeFastHudPage, type FastHudPage } from "./fast-hud-pages";
+import { FAST_MAP_ZOOM_RADII, createFastHudViewState, syncFastHudView } from "./fast-hud-view";
 import { createFastHudInputController } from "./fast-hud-input-controller";
-import {
-  drawFastHudSurface,
-  resolveFastHudViewContext,
-  type FastHudNewsPageCache,
-} from "./fast-hud-render";
+import { drawFastHudSurface, resolveFastHudViewContext, type FastHudNewsPageCache } from "./fast-hud-render";
 import {
   transmitFastCanvas,
   type FastCanvasBattery,
@@ -34,15 +13,9 @@ import {
   type FastCanvasRefreshRequest,
   type FastCanvasRefreshTarget,
 } from "./glasses";
-import {
-  prepareInitialHud,
-  transmitLegacyHud,
-} from "./legacy-hud-controller";
+import { prepareInitialHud, transmitLegacyHud } from "./legacy-hud-controller";
 import { createLiveDashboardSession } from "./live-dashboard";
-import {
-  createInitialLiveDashboardState,
-  type LiveDashboardState,
-} from "./live-state";
+import { createInitialLiveDashboardState, type LiveDashboardState } from "./live-state";
 import { startMinuteRefresh } from "./minute-refresh";
 import type { UseHudControllerOptions } from "./hud-controller-types";
 import { resolvePhoneLocale } from "./phone-i18n";
@@ -50,30 +23,18 @@ import { getRoutingStatus } from "./routing";
 import { createAiRuntime, type AiRuntime } from "./ai-runtime";
 import { createNativeAiTextContent } from "./native-ai-text";
 import { TRANSPORT_STATUS } from "./transport-status";
+import { createConversateRuntime, type ConversateRuntime } from "./conversate-runtime";
+import { createNativeConversateContent } from "./native-conversate-text";
 import { prepareFastHudBridge, stopIdleSdkSensors, type FastHudBridge } from "./fast-hud-bootstrap";
 type LiveSession = ReturnType<typeof createLiveDashboardSession>;
 export function useHudController({
-  autoStart,
-  canvasRef,
-  liveSessionRef,
-  phonePreferencesRef,
-  displayRefreshRef,
-  companionOrsKeyRef,
-  companionOpenAiKeyRef,
-  aiSnapshotRef,
-  displayHideStrategy,
-  imageSendConcurrency,
-  tileImageFormat,
-  tilePaletteMode,
-  modes,
-  setStatus,
-  setRoutingStatus,
-  setCompanionRoute,
-  setCompanionLive,
-  setCompanionBattery,
-  setCompanionStorage,
-  setPhonePreferences,
-  setCompanionAiSnapshot,
+  autoStart, canvasRef, liveSessionRef, phonePreferencesRef, displayRefreshRef,
+  companionOrsKeyRef, companionOpenAiKeyRef, aiSnapshotRef,
+  conversateSettingsRef, conversateSnapshotRef, displayHideStrategy,
+  imageSendConcurrency, tileImageFormat, tilePaletteMode, modes, setStatus,
+  setRoutingStatus, setCompanionRoute, setCompanionLive, setCompanionBattery,
+  setCompanionStorage, setPhonePreferences, setCompanionAiSnapshot,
+  setConversateSnapshot,
 }: UseHudControllerOptions) {
   useEffect(() => {
     if (!autoStart || !canvasRef.current) return;
@@ -82,6 +43,7 @@ export function useHudController({
     let unsubscribe: (() => void) | undefined;
     let liveSession: LiveSession | undefined;
     let aiRuntime: AiRuntime | undefined;
+    let conversateRuntime: ConversateRuntime | undefined;
     let nativeAiText: FastCanvasNativeTextController | undefined;
     let bridge: FastHudBridge | undefined;
     let page: FastHudPage = HUD_PAGES[0];
@@ -142,6 +104,7 @@ export function useHudController({
           battery,
           mapRadiusMeters: currentMapRadius(),
           ai: aiSnapshotRef.current,
+          conversate: conversateSnapshotRef.current,
           locale: currentLocale(),
         });
       } else {
@@ -153,6 +116,11 @@ export function useHudController({
       view.aiLine,
       currentLocale(),
     );
+    const nativeConversateContent = () => createNativeConversateContent(
+      conversateSnapshotRef.current,
+      currentLocale(),
+      conversateSettingsRef.current,
+    );
     const handleFastInput = createFastHudInputController({
       getView: () => view,
       setView: (next) => { view = next; },
@@ -160,8 +128,10 @@ export function useHudController({
       getContext: viewContext,
       getLiveSession: () => liveSession,
       getAiRuntime: () => aiRuntime,
+      getConversateRuntime: () => conversateRuntime,
       getNativeText: () => nativeAiText,
       nativeContent: nativeAiContent,
+      conversateContent: nativeConversateContent,
       drawCurrentPage,
       log: (message) => logDiagnostic("INPUT", message),
     });
@@ -258,6 +228,10 @@ export function useHudController({
                   void nativeAiText.update(nativeAiContent());
                   return;
                 }
+                if (view.mode === "conversate" && nativeAiText?.active()) {
+                  void nativeAiText.updateConversate?.(nativeConversateContent());
+                  return;
+                }
                 drawCurrentPage();
                 requestVisibleRefresh("all");
               };
@@ -329,6 +303,26 @@ export function useHudController({
             if (cancelled) return;
             if (view.mode === "ai" && nativeAiText?.active()) {
               await nativeAiText.update(nativeAiContent());
+              return;
+            }
+            drawCurrentPage();
+            requestVisibleRefresh("right");
+          },
+        });
+        conversateRuntime = createConversateRuntime({
+          bridge: activeBridge,
+          getKey: () => companionOpenAiKeyRef.current,
+          getLocale: currentLocale,
+          getSettings: () => conversateSettingsRef.current,
+          getSnapshot: () => conversateSnapshotRef.current,
+          onSnapshot: (snapshot) => {
+            conversateSnapshotRef.current = snapshot;
+            setConversateSnapshot(snapshot);
+          },
+          refresh: async () => {
+            if (cancelled) return;
+            if (view.mode === "conversate" && nativeAiText?.active()) {
+              await nativeAiText.updateConversate?.(nativeConversateContent());
               return;
             }
             drawCurrentPage();
@@ -407,6 +401,7 @@ export function useHudController({
       displayRefreshRef.current = undefined;
       liveSession?.dispose();
       aiRuntime?.dispose();
+      conversateRuntime?.dispose();
       if (bridge) void stopIdleSdkSensors(bridge);
       if (liveSessionRef.current === liveSession) {
         liveSessionRef.current = undefined;
@@ -423,6 +418,8 @@ export function useHudController({
     companionOrsKeyRef,
     companionOpenAiKeyRef,
     aiSnapshotRef,
+    conversateSettingsRef,
+    conversateSnapshotRef,
     displayHideStrategy,
     displayRefreshRef,
     imageSendConcurrency,
@@ -444,6 +441,7 @@ export function useHudController({
     setCompanionStorage,
     setPhonePreferences,
     setCompanionAiSnapshot,
+    setConversateSnapshot,
     setRoutingStatus,
     setStatus,
   ]);

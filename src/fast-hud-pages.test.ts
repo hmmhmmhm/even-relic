@@ -6,24 +6,27 @@ import {
 } from "./fast-hud-pages";
 
 describe("Fast Canvas page model", () => {
-  it("adds Ask AI as the final keyless page", () => {
+  it("adds Conversate after Ask AI as the final keyless page", () => {
     expect(getFastHudPages("disabled")).toEqual([
       "overview",
       "news",
       "todo",
       "weather",
       "ai",
+      "conversate",
     ]);
     expect(getAdjacentFastHudPage(
       "ai",
       "next",
       "disabled",
-    )).toBe("overview");
+    )).toBe("conversate");
+    expect(getAdjacentFastHudPage("conversate", "next", "disabled"))
+      .toBe("overview");
     expect(getAdjacentFastHudPage(
       "overview",
       "previous",
       "disabled",
-    )).toBe("ai");
+    )).toBe("conversate");
   });
 
   it("adds Navigation last whenever routing is enabled", () => {
@@ -33,6 +36,7 @@ describe("Fast Canvas page model", () => {
       "todo",
       "weather",
       "ai",
+      "conversate",
       "navigation",
     ]);
     expect(getAdjacentFastHudPage(
@@ -40,11 +44,9 @@ describe("Fast Canvas page model", () => {
       "next",
       "fresh",
     )).toBe("ai");
-    expect(getAdjacentFastHudPage(
-      "ai",
-      "next",
-      "fresh",
-    )).toBe("navigation");
+    expect(getAdjacentFastHudPage("ai", "next", "fresh")).toBe("conversate");
+    expect(getAdjacentFastHudPage("conversate", "next", "fresh"))
+      .toBe("navigation");
   });
 
   it("normalizes a removed Navigation page to Weather", () => {

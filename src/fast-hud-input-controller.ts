@@ -1,4 +1,6 @@
 import type { AiRuntime } from "./ai-runtime";
+import type { ConversateRuntime } from "./conversate-runtime";
+import type { NativeConversateContent } from "./native-conversate-text";
 import type {
   FastCanvasInput,
   FastCanvasInputResult,
@@ -23,8 +25,10 @@ export function createFastHudInputController(options: {
   readonly getContext: () => FastHudViewContext;
   readonly getLiveSession: () => InteractiveLiveSession | undefined;
   readonly getAiRuntime: () => AiRuntime | undefined;
+  readonly getConversateRuntime?: () => ConversateRuntime | undefined;
   readonly getNativeText: () => FastCanvasNativeTextController | undefined;
   readonly nativeContent: () => string;
+  readonly conversateContent?: () => NativeConversateContent;
   readonly drawCurrentPage: () => void;
   readonly log?: (message: string) => void;
 }) {
@@ -53,6 +57,15 @@ export function createFastHudInputController(options: {
 
     const nativeText = options.getNativeText();
     const aiRuntime = options.getAiRuntime();
+    const conversateRuntime = options.getConversateRuntime?.();
+    if (transition.effect?.type === "tap-conversate") {
+      conversateRuntime?.tap();
+      return "consume";
+    }
+    if (transition.effect?.type === "scroll-conversate") {
+      conversateRuntime?.scroll(transition.effect.delta);
+      return "consume";
+    }
     if (transition.effect?.type === "interrupt-ai") {
       await aiRuntime?.interrupt();
       return "consume";
@@ -67,6 +80,16 @@ export function createFastHudInputController(options: {
         return "consume";
       }
       void aiRuntime?.start();
+    } else if (transition.effect?.type === "start-conversate") {
+      const content = options.conversateContent?.();
+      if (!content || !nativeText?.enterConversate
+        || !conversateRuntime
+        || !await nativeText.enterConversate(content)) {
+        options.setView(previous);
+        return "consume";
+      }
+      void conversateRuntime.start();
+      return "consume";
     } else if (transition.effect?.type === "stop-ai") {
       try {
         await aiRuntime?.stop();
@@ -80,6 +103,13 @@ export function createFastHudInputController(options: {
         if (!await nativeText.restore()) options.setView(previous);
         return "consume";
       }
+    } else if (transition.effect?.type === "stop-conversate") {
+      await conversateRuntime?.stop();
+      if (nativeText?.active()) {
+        options.drawCurrentPage();
+        if (!await nativeText.restore()) options.setView(previous);
+        return "consume";
+      }
     }
 
     if (
@@ -88,6 +118,16 @@ export function createFastHudInputController(options: {
       && nativeText?.active()
     ) {
       await nativeText.update(options.nativeContent());
+      return "consume";
+    }
+    if (
+      transition.state.mode === "conversate"
+      && transition.result === "redraw"
+      && nativeText?.active()
+      && nativeText.updateConversate
+      && options.conversateContent
+    ) {
+      await nativeText.updateConversate(options.conversateContent());
       return "consume";
     }
     if (transition.result === "redraw") options.drawCurrentPage();

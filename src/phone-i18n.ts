@@ -14,10 +14,15 @@ import {
   translateMcpPhone,
   type McpPhoneStringKey,
 } from "./mcp-i18n";
+import {
+  isConversateStringKey,
+  translateConversate,
+  type ConversateStringKey,
+} from "./conversate-i18n";
 
 type CorePhoneStringKey = keyof typeof enLocale.phone;
 export type PhoneStringKey = CorePhoneStringKey | AiPhoneStringKey
-  | McpPhoneStringKey;
+  | McpPhoneStringKey | ConversateStringKey;
 
 export const PHONE_STRINGS = Object.fromEntries(
   SUPPORTED_LOCALES.map((locale) => [
@@ -45,5 +50,7 @@ export function translatePhone(
     ? PHONE_STRINGS[locale][key as CorePhoneStringKey]
     : isMcpPhoneStringKey(key)
       ? translateMcpPhone(locale, key)
-      : translateAiPhone(locale, key as AiPhoneStringKey);
+      : isConversateStringKey(key)
+        ? translateConversate(locale, key)
+        : translateAiPhone(locale, key as AiPhoneStringKey);
 }

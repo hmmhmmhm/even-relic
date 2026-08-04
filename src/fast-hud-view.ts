@@ -14,6 +14,7 @@ export type FastHudViewMode =
   | "todo"
   | "weather"
   | "ai"
+  | "conversate"
   | "navigation";
 
 export type FastHudViewState = {
@@ -39,7 +40,9 @@ export type FastHudViewContext = {
 
 export type FastHudEffect =
   | { readonly type: "toggle-todo"; readonly index: number }
-  | { readonly type: "start-ai" | "interrupt-ai" | "stop-ai" };
+  | { readonly type: "start-ai" | "interrupt-ai" | "stop-ai" }
+  | { readonly type: "start-conversate" | "tap-conversate" | "stop-conversate" }
+  | { readonly type: "scroll-conversate"; readonly delta: -1 | 1 };
 
 export type FastHudTransition = {
   readonly state: FastHudViewState;
@@ -167,7 +170,11 @@ export function reduceFastHudInput(
             }
         : { ...state, mode },
       result: "redraw",
-      effect: mode === "ai" ? { type: "start-ai" } : undefined,
+      effect: mode === "ai"
+        ? { type: "start-ai" }
+        : mode === "conversate"
+          ? { type: "start-conversate" }
+          : undefined,
     };
   }
 
@@ -190,7 +197,7 @@ export function reduceFastHudInput(
             ...current,
             todoIndex: clampIndex(current.todoIndex, context.todoCount),
           }
-        : current.mode === "weather" || current.mode === "ai"
+        : current.mode === "weather" || current.mode === "ai" || current.mode === "conversate"
           ? current
           : {
               ...current,
@@ -209,7 +216,11 @@ export function reduceFastHudInput(
     return {
       state: { ...state, mode: "dashboard" },
       result: "redraw",
-      effect: state.mode === "ai" ? { type: "stop-ai" } : undefined,
+      effect: state.mode === "ai"
+        ? { type: "stop-ai" }
+        : state.mode === "conversate"
+          ? { type: "stop-conversate" }
+          : undefined,
     };
   }
 
@@ -304,6 +315,23 @@ export function reduceFastHudInput(
       state: { ...state, aiLine, aiFollowsLatest },
       result: "redraw",
     };
+  }
+
+  if (state.mode === "conversate") {
+    if (input === "tap") {
+      return { state, result: "consume", effect: { type: "tap-conversate" } };
+    }
+    if (input === "scroll-next" || input === "scroll-previous") {
+      return {
+        state,
+        result: "consume",
+        effect: {
+          type: "scroll-conversate",
+          delta: input === "scroll-next" ? 1 : -1,
+        },
+      };
+    }
+    return { state, result: "consume" };
   }
 
   if (state.mode === "todo") {

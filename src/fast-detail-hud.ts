@@ -27,12 +27,14 @@ import type {
 import type { AiHudSnapshot } from "./ai-hud-state";
 import { createAiHudSnapshot } from "./ai-hud-state";
 import { drawFastAiDetail } from "./fast-ai-hud";
+import { drawFastConversateDetail } from "./fast-conversate-hud";
+import type { ConversateSnapshot } from "./conversate-state";
 
 const WIDTH = 576;
 const HEIGHT = 288;
 
 export type FastDetailHudOptions = {
-  readonly mode: "news" | "todo" | "weather" | "navigation" | "ai";
+  readonly mode: "news" | "todo" | "weather" | "navigation" | "ai" | "conversate";
   readonly live: LiveDashboardState;
   readonly newsIndex: number;
   readonly newsPage: number;
@@ -40,6 +42,7 @@ export type FastDetailHudOptions = {
   readonly navigationIndex: number;
   readonly ai?: AiHudSnapshot;
   readonly aiLine?: number;
+  readonly conversate?: ConversateSnapshot;
 };
 
 function newsLabel(state: DataState<readonly NewsItem[]>): string {
@@ -390,6 +393,8 @@ export function drawFastDetailHud(
       options.aiLine ?? 0,
       locale,
     );
+  } else if (options.mode === "conversate" && options.conversate) {
+    drawFastConversateDetail(context, options.conversate, locale);
   } else if (options.mode === "news") {
     drawNews(
       context,

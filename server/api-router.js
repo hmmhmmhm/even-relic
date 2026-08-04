@@ -8,7 +8,10 @@ import {
   handleRoutingStatus,
 } from "./route.js";
 import { handleRealtimeTokenRequest } from "./realtime.js";
-import { handleAiWebSearchRequest } from "./ai-web-search.js";
+import {
+  handleAiWebSearchRequest,
+  handleConversateRequest,
+} from "./ai-web-search.js";
 
 export async function handleApiRequest(request, env, dependencies = {}) {
   const url = new URL(request.url);
@@ -45,6 +48,12 @@ export async function handleApiRequest(request, env, dependencies = {}) {
     && request.method === "POST"
   ) {
     return handleAiWebSearchRequest(request, env, dependencies);
+  }
+  if (
+    url.pathname === "/api/conversate-analyze"
+    && request.method === "POST"
+  ) {
+    return handleConversateRequest(request, env, dependencies);
   }
 
   return jsonResponse(

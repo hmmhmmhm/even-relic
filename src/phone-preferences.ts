@@ -13,6 +13,7 @@ const KEYLESS_PAGES = [
   "todo",
   "weather",
   "ai",
+  "conversate",
 ] as const satisfies readonly HudPageId[];
 
 const ALL_PAGES = [
@@ -97,7 +98,7 @@ export function normalizePhonePreferences(
       value.aiTextIntervalMs,
     ),
   };
-  const migrated: PhonePreferences = !withInterval.order.includes("ai")
+  const withAi: PhonePreferences = !withInterval.order.includes("ai")
     ? {
         ...withInterval,
         order: withInterval.order.includes("navigation")
@@ -110,6 +111,19 @@ export function normalizePhonePreferences(
         enabled: [...withInterval.enabled, "ai" as const],
       }
     : withInterval;
+  const migrated: PhonePreferences = !withAi.order.includes("conversate")
+    ? {
+        ...withAi,
+        order: withAi.order.includes("navigation")
+          ? [
+              ...withAi.order.filter((page) => page !== "navigation"),
+              "conversate" as const,
+              "navigation" as const,
+            ]
+          : [...withAi.order, "conversate" as const],
+        enabled: [...withAi.enabled, "conversate" as const],
+      }
+    : withAi;
   if (!isValidLayout(migrated, navigationAvailable)) {
     return {
       ...DEFAULT_PHONE_PREFERENCES,

@@ -201,6 +201,19 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   conversation with translation, contextual speaking tips, and selectable
   language/reply recommendations; it is not an Ask AI transcript or prompt
   variant and needs its own phone screen, HUD page, state, and input flow.
+- Conversate defaults Transcription, Translation, Inform, Prep Note, and
+  Copilot on. Use `gpt-live-transcribe` for streaming G2 microphone captions,
+  persist bounded conversation records only in Even local storage, translate
+  speech outside the resolved UI language, and keep all five controls
+  independently configurable. An empty Prep Note is inactive and Prep Note is
+  unavailable when Inform is off.
+- Show Conversate Inform as a short bordered region above the transcript,
+  auto-hide it after a configurable 10-second default, let one tap dismiss the
+  current Inform or open its history when none is visible, use scroll to select
+  earlier Inform items, and use tap to reopen the selection. Copilot provides
+  three deliberately different replies with original text, pronunciation, and
+  meaning; use the saved goal when present and infer it from recent context
+  otherwise.
 - Start a new text-only OpenAI Realtime conversation only after the user taps
   the Ask AI dashboard panel. Use the G2 glasses microphone by default, leave
   turn detection to semantic VAD, render user transcription and streamed AI

@@ -10,6 +10,7 @@ import type {
   FastCanvasNativeTextController,
 } from "./fast-canvas-types";
 import { createNativeAiTextModeController } from "./native-ai-text";
+import { createNativeConversateMode } from "./native-conversate-text";
 
 export type DisposableNativeTextController = FastCanvasNativeTextController & {
   dispose(): void;
@@ -38,6 +39,13 @@ export function createFastNativeAiTextController(options: {
     createImagePage: () => createImageDisplayPage(options.tiles),
     onFailure: options.onFailure,
   });
+  const conversate = createNativeConversateMode({
+    bridge: {
+      rebuildPageContainer: options.bridge.rebuildPageContainer.bind(options.bridge),
+      textContainerUpgrade: updateText.bind(options.bridge),
+    },
+    createImagePage: () => createImageDisplayPage(options.tiles),
+  });
   let restoringImages = false;
   const waitForImagePageReady = options.waitForImagePageReady
     ?? ((milliseconds: number) => new Promise<void>((resolve) => {
@@ -58,9 +66,9 @@ export function createFastNativeAiTextController(options: {
     return succeeded;
   };
   return {
-    active: mode.active,
+    active: () => mode.active() || conversate.active(),
     async enter(content) {
-      if (restoringImages) return false;
+      if (restoringImages || conversate.active()) return false;
       const entered = await trace("native AI enter", () => mode.enter(content));
       if (entered) options.invalidateImages();
       return entered;
@@ -68,8 +76,20 @@ export function createFastNativeAiTextController(options: {
     update: (content) => restoringImages
       ? Promise.resolve(false)
       : trace("native AI update", () => mode.update(content)),
+    async enterConversate(content) {
+      if (restoringImages || mode.active()) return false;
+      const entered = await trace(
+        "native Conversate enter",
+        () => conversate.enter(content),
+      );
+      if (entered) options.invalidateImages();
+      return entered;
+    },
+    updateConversate: (content) => restoringImages
+      ? Promise.resolve(false)
+      : trace("native Conversate update", () => conversate.update(content)),
     async restore() {
-      if (!mode.active() || restoringImages) return false;
+      if ((!mode.active() && !conversate.active()) || restoringImages) return false;
       restoringImages = true;
       try {
         const neutralized = await trace("native AI neutralize", async () => {
@@ -90,7 +110,10 @@ export function createFastNativeAiTextController(options: {
           "REFRESH",
           `native AI neutral page ready · ${NATIVE_AI_NEUTRAL_PAGE_SETTLE_MS}ms`,
         );
-        const left = await trace("native AI leave", mode.leave);
+        const left = await trace(
+          mode.active() ? "native AI leave" : "native Conversate leave",
+          mode.active() ? mode.leave : conversate.leave,
+        );
         if (!left) return false;
         await waitForImagePageReady(NATIVE_AI_IMAGE_PAGE_SETTLE_MS);
         logDiagnostic(
@@ -104,6 +127,9 @@ export function createFastNativeAiTextController(options: {
         restoringImages = false;
       }
     },
-    dispose: mode.dispose,
+    dispose() {
+      mode.dispose();
+      conversate.dispose();
+    },
   };
 }

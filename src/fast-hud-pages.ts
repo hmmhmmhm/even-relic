@@ -1,7 +1,7 @@
 import type { HudPage } from "./canvas-hud";
 import type { DataStatus } from "./live-state";
 
-export type FastHudPage = HudPage | "weather" | "ai";
+export type FastHudPage = HudPage | "weather" | "ai" | "conversate";
 export type FastHudPageDirection = "next" | "previous";
 export type FastHudLayout = {
   readonly order: readonly FastHudPage[];
@@ -14,6 +14,7 @@ const KEYLESS_FAST_HUD_PAGES = [
   "todo",
   "weather",
   "ai",
+  "conversate",
 ] as const satisfies readonly FastHudPage[];
 
 const ROUTED_FAST_HUD_PAGES = [

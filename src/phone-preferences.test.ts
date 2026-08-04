@@ -26,8 +26,8 @@ describe("phone preferences", () => {
   it("uses the approved keyless layout by default", () => {
     expect(DEFAULT_PHONE_PREFERENCES).toEqual({
       locale: "system",
-      order: ["overview", "news", "todo", "weather", "ai"],
-      enabled: ["overview", "news", "todo", "weather", "ai"],
+      order: ["overview", "news", "todo", "weather", "ai", "conversate"],
+      enabled: ["overview", "news", "todo", "weather", "ai", "conversate"],
       aiTextIntervalMs: 200,
     });
   });
@@ -39,8 +39,8 @@ describe("phone preferences", () => {
       enabled: ["news", "navigation", "todo"],
     }, false)).toEqual({
       locale: "ko",
-      order: ["overview", "news", "todo", "weather", "ai"],
-      enabled: ["overview", "news", "todo", "weather", "ai"],
+      order: ["overview", "news", "todo", "weather", "ai", "conversate"],
+      enabled: ["overview", "news", "todo", "weather", "ai", "conversate"],
       aiTextIntervalMs: 200,
     });
   });
@@ -48,8 +48,8 @@ describe("phone preferences", () => {
   it("adds validated Navigation as an available but disabled page", () => {
     expect(normalizePhonePreferences(DEFAULT_PHONE_PREFERENCES, true)).toEqual({
       locale: "system",
-      order: ["overview", "news", "todo", "weather", "ai", "navigation"],
-      enabled: ["overview", "news", "todo", "weather", "ai"],
+      order: ["overview", "news", "todo", "weather", "ai", "conversate", "navigation"],
+      enabled: ["overview", "news", "todo", "weather", "ai", "conversate"],
       aiTextIntervalMs: 200,
     });
   });
@@ -59,8 +59,8 @@ describe("phone preferences", () => {
 
     await expect(resolvePhonePreferences(storage, true)).resolves.toEqual({
       locale: "system",
-      order: ["overview", "news", "todo", "weather", "ai", "navigation"],
-      enabled: ["overview", "news", "todo", "weather", "ai"],
+      order: ["overview", "news", "todo", "weather", "ai", "conversate", "navigation"],
+      enabled: ["overview", "news", "todo", "weather", "ai", "conversate"],
       aiTextIntervalMs: 200,
     });
   });
@@ -79,8 +79,8 @@ describe("phone preferences", () => {
 
     await expect(resolvePhonePreferences(storage, false)).resolves.toEqual({
       ...saved,
-      order: [...saved.order, "ai"],
-      enabled: [...saved.enabled, "ai"],
+      order: [...saved.order, "ai", "conversate"],
+      enabled: [...saved.enabled, "ai", "conversate"],
       aiTextIntervalMs: 200,
     });
     await expect(writePhonePreferences(storage, {

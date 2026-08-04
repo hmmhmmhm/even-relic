@@ -240,7 +240,7 @@ describe("fast split Canvas HUD", () => {
         "14:37",
         "2026.07.27 월요일",
         "WEATHER --",
-        `0${index + 1} / 05`,
+        `0${index + 1} / 06`,
         "LOC // NO GPS · NO DATA",
         "NO GPS DATA",
         "© OSM CONTRIBUTORS",
@@ -312,7 +312,7 @@ describe("fast split Canvas HUD", () => {
       "습도 63%",
       "강수 20%",
       "바람 8km/h",
-      "04 / 05",
+      "04 / 06",
     ]));
     expect(weather.values).not.toContain("BATTERY --");
     expect(weather.values).not.toContain("경로 키 필요");
@@ -350,7 +350,7 @@ describe("fast split Canvas HUD", () => {
     const hud = renderFastHud(module, "ai", { ai });
 
     expect(hud.values).toEqual(expect.arrayContaining([
-      "05 / 05",
+      "05 / 06",
       "AI에게 묻기 // 준비됨",
       "대화 기록 // 사용자",
       "오늘 일정을 알려줘",
@@ -361,7 +361,7 @@ describe("fast split Canvas HUD", () => {
     ]));
   });
 
-  it("adds Navigation sixth only when routing is enabled", async () => {
+  it("adds Navigation seventh only when routing is enabled", async () => {
     const module = await loadFastHud();
     if (!module?.drawFastCanvasHud) return;
     const initial = createInitialLiveDashboardState();
@@ -372,7 +372,7 @@ describe("fast split Canvas HUD", () => {
     const navigation = renderFastHud(module, "navigation", { live });
 
     expect(navigation.values).toEqual(expect.arrayContaining([
-      "06 / 06",
+      "07 / 07",
       "NAV // READY",
       "목적지를 선택하세요",
     ]));
@@ -385,7 +385,7 @@ describe("fast split Canvas HUD", () => {
     const navigation = renderFastHud(module, "navigation");
 
     expect(navigation.values).toEqual(expect.arrayContaining([
-      "04 / 05",
+      "04 / 06",
       "WEATHER // LOADING",
     ]));
     expect(navigation.values).not.toContain("NAV // DISABLED");

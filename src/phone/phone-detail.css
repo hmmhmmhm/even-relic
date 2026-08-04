@@ -113,6 +113,7 @@
 
 .phone-inline-form input,
 .phone-stacked-form input,
+.phone-stacked-form textarea,
 .phone-item-row input,
 .phone-source-name-input {
   width: 100%;
@@ -189,6 +190,37 @@
 .phone-stacked-form input {
   color: var(--phone-text);
   font-size: 1rem;
+}
+
+.phone-stacked-form textarea {
+  width: 100%;
+  padding: 12px 14px;
+  color: var(--phone-text);
+  border: 1px solid var(--phone-line);
+  border-radius: 8px;
+  background: #fff;
+  resize: vertical;
+}
+
+.phone-conversate-record {
+  border-top: 1px solid #ededed;
+  padding: 12px 0;
+}
+
+.phone-conversate-record summary {
+  cursor: pointer;
+  color: var(--phone-muted);
+}
+
+.phone-conversate-record p {
+  display: grid;
+  gap: 4px;
+  margin: 12px 0 0;
+  line-height: 1.45;
+}
+
+.phone-conversate-record small {
+  color: var(--phone-muted);
 }
 
 .phone-source-row {

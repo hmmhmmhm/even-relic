@@ -9,6 +9,7 @@ const PAGE_KEYS: Record<HudPageId, PhoneStringKey> = {
   todo: "todo",
   weather: "weather",
   ai: "ai",
+  conversate: "conversate",
   navigation: "navigation",
 };
 

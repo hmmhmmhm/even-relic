@@ -23,12 +23,15 @@ import { weatherCodeLabel } from "./weather";
 import type { AiHudSnapshot } from "./ai-hud-state";
 import { createAiHudSnapshot } from "./ai-hud-state";
 import { drawFastAiPanel } from "./fast-ai-hud";
+import { drawFastConversatePanel } from "./fast-conversate-hud";
+import type { ConversateSnapshot } from "./conversate-state";
 
 export type FastCanvasHudData = {
   readonly battery?: FastCanvasBattery;
   readonly live: LiveDashboardState;
   readonly mapRadiusMeters?: number;
   readonly ai?: AiHudSnapshot;
+  readonly conversate?: ConversateSnapshot;
 };
 
 function formatTime(now: Date) {
@@ -402,5 +405,8 @@ export function drawFastDynamicPage(
   if (page === "weather") drawWeather(context, data.live, locale);
   if (page === "ai") {
     drawFastAiPanel(context, data.ai ?? createAiHudSnapshot(false), locale);
+  }
+  if (page === "conversate" && data.conversate) {
+    drawFastConversatePanel(context, data.conversate, locale);
   }
 }
