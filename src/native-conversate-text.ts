@@ -75,17 +75,25 @@ export function createNativeConversateMode(options: {
   let active = false;
   let busy = false;
   let last: NativeConversateContent | undefined;
+  let pending: NativeConversateContent | undefined;
   const update = async (content: NativeConversateContent) => {
-    if (!active || busy) return false;
+    if (!active) return false;
+    if (busy) { pending = content; return true; }
     busy = true;
     try {
-      const succeeded = visibleText(content) === (last && visibleText(last)) || await options.bridge.textContainerUpgrade(
-        new TextContainerUpgrade({
-          containerID: TEXT_ID, containerName: TEXT_NAME, content: visibleText(content),
-        }),
-      );
-      if (succeeded) last = content;
-      return succeeded;
+      let next: NativeConversateContent | undefined = content;
+      while (active && next) {
+        pending = undefined;
+        const succeeded = visibleText(next) === (last && visibleText(last)) || await options.bridge.textContainerUpgrade(
+          new TextContainerUpgrade({
+            containerID: TEXT_ID, containerName: TEXT_NAME, content: visibleText(next),
+          }),
+        );
+        if (!succeeded) return false;
+        last = next;
+        next = pending;
+      }
+      return true;
     } finally { busy = false; }
   };
   return {
@@ -96,7 +104,7 @@ export function createNativeConversateMode(options: {
       busy = true;
       try {
         const entered = await options.bridge.rebuildPageContainer(page(content));
-        if (entered) { active = true; last = content; }
+        if (entered) { active = true; last = content; pending = undefined; }
         return entered;
       } finally { busy = false; }
     },
@@ -106,10 +114,10 @@ export function createNativeConversateMode(options: {
       busy = true;
       try {
         const left = await options.bridge.rebuildPageContainer(options.createImagePage());
-        if (left) { active = false; last = undefined; }
+        if (left) { active = false; last = undefined; pending = undefined; }
         return left;
       } finally { busy = false; }
     },
-    dispose() { active = false; last = undefined; },
+    dispose() { active = false; last = undefined; pending = undefined; },
   };
 }

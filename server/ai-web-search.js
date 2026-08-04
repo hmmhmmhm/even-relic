@@ -263,7 +263,7 @@ export async function handleConversateRequest(request, _env, dependencies = {}) 
   const goal = cleanConversateString(settings.goal, 500);
   const instructions = [
     `Analyze the newest utterance in a live human-to-human conversation. The user's primary language is ${locale}.`,
-    "Return its likely language code. Translate only when it differs from the primary language; otherwise return null.",
+    "Return its likely language code. If it differs from the primary language, translation MUST contain a natural translation in the primary language. Otherwise translation MUST be null.",
     settings.inform
       ? "Return one compact Inform whenever the newest utterance contains a term worth defining, useful background, an acronym, a named entity, a number worth contextualizing, or a factual claim worth checking or correcting. Return null only for greetings, filler, or content with no useful context. Never exceed one short HUD sentence."
       : "Always return null for Inform.",
@@ -288,10 +288,6 @@ export async function handleConversateRequest(request, _env, dependencies = {}) 
           type: "json_schema", name: "conversate_analysis", strict: true,
           schema: CONVERSATE_SCHEMA,
         } },
-        ...(settings.inform ? {
-          tools: [{ type: "web_search", search_context_size: "low" }],
-          tool_choice: "auto",
-        } : {}),
       }),
       signal: timeout.signal,
     });

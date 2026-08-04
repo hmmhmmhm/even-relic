@@ -51,6 +51,30 @@ describe("native Conversate text page", () => {
     );
   });
 
+  it("sends the newest correction immediately after an in-flight update", async () => {
+    let releaseFirst: ((value: boolean) => void) | undefined;
+    const first = new Promise<boolean>((resolve) => { releaseFirst = resolve; });
+    const textContainerUpgrade = vi.fn()
+      .mockImplementationOnce(() => first)
+      .mockResolvedValue(true);
+    const mode = createNativeConversateMode({
+      bridge: {
+        rebuildPageContainer: vi.fn(async () => true),
+        textContainerUpgrade,
+      },
+      createImagePage: () => new RebuildPageContainer({ containerTotalNum: 0 }),
+    });
+    await mode.enter({ inform: "", body: "Initial" });
+    const updating = mode.update({ inform: "", body: "Rough transcript" });
+    expect(await mode.update({ inform: "", body: "Corrected transcript" })).toBe(true);
+    releaseFirst?.(true);
+    expect(await updating).toBe(true);
+    expect(textContainerUpgrade.mock.calls.map(([update]) => update.content)).toEqual([
+      "Rough transcript",
+      "Corrected transcript",
+    ]);
+  });
+
   it("honors independent transcription and translation display toggles", () => {
     const snapshot = {
       ...createConversateSnapshot(),

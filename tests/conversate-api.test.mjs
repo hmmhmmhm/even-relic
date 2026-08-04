@@ -36,7 +36,9 @@ test("returns bounded translation, Inform, and three Copilot choices", async () 
   assert.equal(upstream.url, "https://api.openai.com/v1/responses");
   assert.equal(body.model, "gpt-5.6-terra");
   assert.deepEqual(body.reasoning, { effort: "low" });
-  assert.deepEqual(body.tools, [{ type: "web_search", search_context_size: "low" }]);
+  assert.equal(body.tools, undefined);
+  assert.equal(body.tool_choice, undefined);
+  assert.match(body.instructions, /translation MUST contain a natural translation/);
   assert.match(body.instructions, /Return null only for greetings, filler/);
   assert.equal(upstream.init.headers.Authorization, `Bearer ${KEY}`);
   assert.equal(upstream.init.body.includes(KEY), false);
