@@ -138,7 +138,6 @@ export function createConversateRuntime(options: {
     } catch (error) {
       if ((error as Error).name !== "AbortError") {
         logDiagnostic("ERROR", "Conversate analysis failed");
-        publish({ error: "Conversate analysis unavailable" });
       }
     } finally {
       analysisAbort = undefined;

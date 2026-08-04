@@ -1,4 +1,5 @@
 import { openAiKeyHeaders } from "./openai-key";
+import { logDiagnostic } from "./diagnostic-log";
 import type {
   ConversateSegment,
   ConversateSettings,
@@ -56,6 +57,16 @@ export async function requestConversateAnalysis(options: {
     throw new Error("Conversate analysis unavailable");
   }
   if (!response.ok || !isAnalysis(value)) {
+    const item = typeof value === "object" && value !== null
+      ? value as Record<string, unknown> : {};
+    const error = typeof item.error === "object" && item.error !== null
+      ? item.error as Record<string, unknown> : {};
+    logDiagnostic(
+      "ERROR",
+      `Conversate analysis rejected · status ${response.status}`
+        + ` · code ${String(error.code ?? "unknown").slice(0, 80)}`
+        + ` · upstream ${String(response.headers.get("x-sandevistan-upstream-code") ?? "unknown").slice(0, 80)}`,
+    );
     throw new Error("Conversate analysis unavailable");
   }
   return value;

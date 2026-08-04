@@ -34,7 +34,7 @@ test("returns bounded translation, Inform, and three Copilot choices", async () 
   assert.equal((await response.json()).suggestions.length, 3);
   const body = JSON.parse(upstream.init.body);
   assert.equal(upstream.url, "https://api.openai.com/v1/responses");
-  assert.equal(body.model, "gpt-5.6-luna");
+  assert.equal(body.model, "gpt-5.6-terra");
   assert.deepEqual(body.reasoning, { effort: "low" });
   assert.deepEqual(body.tools, [{ type: "web_search", search_context_size: "low" }]);
   assert.match(body.instructions, /Return null only for greetings, filler/);
@@ -46,4 +46,25 @@ test("rejects missing BYOK and empty transcripts before upstream", async () => {
   const dependencies = { fetchImpl: () => assert.fail("must not call upstream") };
   assert.equal((await handleConversateRequest(request({ transcript: [] }, null), {}, dependencies)).status, 401);
   assert.equal((await handleConversateRequest(request({ transcript: [] }), {}, dependencies)).status, 400);
+});
+
+test("reports bounded upstream rejection metadata without exposing the key", async () => {
+  const warnings = [];
+  const response = await handleConversateRequest(request({
+    locale: "ko",
+    transcript: ["Project Atlas uses a vector database."],
+    settings: { inform: true, copilot: true },
+  }), {}, {
+    fetchImpl: async () => Response.json({
+      error: { type: "invalid_request_error", code: "model_not_found", message: KEY },
+    }, { status: 400 }),
+    logWarn: (message) => warnings.push(message),
+  });
+  assert.equal(response.status, 502);
+  assert.equal(response.headers.get("x-sandevistan-upstream-status"), "400");
+  assert.equal(response.headers.get("x-sandevistan-upstream-code"), "model_not_found");
+  assert.deepEqual(warnings, [
+    "[CONVERSATE] upstream rejected · status 400 · type invalid_request_error · code model_not_found",
+  ]);
+  assert.equal(warnings[0].includes(KEY), false);
 });

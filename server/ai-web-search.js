@@ -185,7 +185,7 @@ export async function handleAiWebSearchRequest(
   return jsonResponse(parsed, { headers: { "cache-control": "no-store" } });
 }
 
-export const CONVERSATE_MODEL = "gpt-5.6-luna";
+export const CONVERSATE_MODEL = "gpt-5.6-terra";
 const CONVERSATE_MAX_REQUEST_BYTES = 12_000;
 const CONVERSATE_MAX_UPSTREAM_BYTES = 64_000;
 const CONVERSATE_TIMEOUT_MS = 20_000;
@@ -303,8 +303,15 @@ export async function handleConversateRequest(request, _env, dependencies = {}) 
     );
   } finally { timeout.dispose(); }
   if (!upstream.ok) {
-    await upstream.body?.cancel().catch(() => undefined);
-    return openAiError("CONVERSATE_REJECTED", "OpenAI rejected Conversate analysis", 502);
+    const metadata = await upstreamErrorMetadata(upstream);
+    (dependencies.logWarn ?? console.warn)(
+      `[CONVERSATE] upstream rejected · status ${upstream.status}`
+      + ` · type ${metadata.type} · code ${metadata.code}`,
+    );
+    const response = openAiError("CONVERSATE_REJECTED", "OpenAI rejected Conversate analysis", 502);
+    response.headers.set("x-sandevistan-upstream-status", String(upstream.status));
+    response.headers.set("x-sandevistan-upstream-code", metadata.code);
+    return response;
   }
   let parsed;
   try {
