@@ -5,6 +5,7 @@ import {
   createDefaultRealtimeSocket,
   type RealtimeSocket,
 } from "./ai-realtime-transport";
+import { logDiagnostic } from "./diagnostic-log";
 import type { PhoneLocale } from "./phone-types";
 
 const REALTIME_URL = "wss://api.openai.com/v1/realtime?intent=transcription";
@@ -45,6 +46,8 @@ export function createConversateRealtimeSession(options: {
   const partials = new Map<string, string>();
   const liveItems: string[] = [];
   const refinedTurns: string[] = [];
+  let configured = false;
+  let usedCompatibilityFallback = false;
   const abort = new AbortController();
   const languages = [...new Set(options.languages ?? [])]
     .filter((value) => /^[a-z]{2,3}(?:-[a-z]{2})?$/.test(value))
@@ -56,6 +59,32 @@ export function createConversateRealtimeSession(options: {
 
   const send = (target: RealtimeSocket | undefined, value: unknown) => {
     if (target?.readyState === SOCKET_OPEN) target.send(JSON.stringify(value));
+  };
+
+  const sendLiveConfiguration = (extended: boolean) => {
+    configured = false;
+    send(socket, {
+      type: "session.update",
+      session: {
+        type: "transcription",
+        audio: { input: {
+          format: { type: "audio/pcm", rate: 24_000 },
+          transcription: {
+            model: "gpt-live-transcribe",
+            delay: extended ? "medium" : "low",
+            ...(extended && options.prompt ? { prompt: options.prompt } : {}),
+            ...(extended && languages.length ? { languages } : {}),
+            ...(extended && keywords.length ? { keywords } : {}),
+          },
+          turn_detection: {
+            type: "server_vad",
+            ...(extended ? { threshold: 0.5 } : {}),
+            prefix_padding_ms: extended ? 500 : 300,
+            silence_duration_ms: extended ? 800 : 500,
+          },
+        } },
+      },
+    });
   };
 
   const publishRefinements = () => {
@@ -101,8 +130,22 @@ export function createConversateRealtimeSession(options: {
     next.onmessage = ({ data }) => {
       let event: Record<string, unknown>;
       try { event = JSON.parse(data) as Record<string, unknown>; } catch { return; }
+      if (!refinement && event.type === "session.updated") {
+        configured = true;
+        return;
+      }
       if (event.type === "error") {
-        if (!refinement) options.onError("Transcription session error");
+        if (!refinement && !configured && !usedCompatibilityFallback) {
+          const detail = typeof event.error === "object" && event.error !== null
+            ? event.error as Record<string, unknown> : {};
+          logDiagnostic(
+            "ERROR",
+            `Conversate config rejected · code ${String(detail.code ?? "unknown").slice(0, 80)}`
+              + ` · param ${String(detail.param ?? "unknown").slice(0, 120)}`,
+          );
+          usedCompatibilityFallback = true;
+          sendLiveConfiguration(false);
+        } else if (!refinement) options.onError("Transcription session error");
         return;
       }
       const itemId = typeof event.item_id === "string" ? event.item_id : "";
@@ -152,23 +195,7 @@ export function createConversateRealtimeSession(options: {
         prefix_padding_ms: 500,
         silence_duration_ms: 800,
       };
-      send(socket, {
-        type: "session.update",
-        session: {
-          type: "transcription",
-          audio: { input: {
-            format: { type: "audio/pcm", rate: 24_000 },
-            transcription: {
-              model: "gpt-live-transcribe",
-              delay: "medium",
-              ...(options.prompt ? { prompt: options.prompt } : {}),
-              ...(languages.length ? { languages } : {}),
-              ...(keywords.length ? { keywords } : {}),
-            },
-            turn_detection: turnDetection,
-          } },
-        },
-      });
+      sendLiveConfiguration(true);
       send(refinementSocket, {
         type: "session.update",
         session: {

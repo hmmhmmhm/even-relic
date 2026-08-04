@@ -77,7 +77,6 @@ export async function transmitCanvas(
   onProgress(TRANSPORT_STATUS.preparing);
   const bridge = await dependencies.waitForBridge();
   onProgress(TRANSPORT_STATUS.preparing);
-
   const created = StartUpPageCreateResult.normalize(
     await bridge.createStartUpPageContainer(createGlassesPage(tiles)),
   );
@@ -399,6 +398,7 @@ export async function transmitCanvas(
   let eventCount = 0;
   const sdkUnsubscribe = bridge.onEvenHubEvent((event) => {
     if (disposed) return;
+    if (!event.sysEvent && !event.textEvent) return;
     eventCount += 1;
     logDiagnostic(
       "INPUT",

@@ -56,6 +56,16 @@ describe("Conversate realtime transcription", () => {
       .find(({ type }) => type === "session.update");
     expect(refinementUpdate.session.audio.input.transcription.model).toBe("gpt-transcribe");
     sockets[0]?.onmessage?.({ data: JSON.stringify({
+      type: "error",
+      error: { code: "invalid_value", param: "session.audio.input.transcription.languages" },
+    }) } as MessageEvent<string>);
+    const fallback = JSON.parse(sent[0]?.at(-1) ?? "{}");
+    expect(fallback.session.audio.input.transcription).toEqual({
+      model: "gpt-live-transcribe", delay: "low",
+    });
+    expect(error).not.toHaveBeenCalled();
+    sockets[0]?.onmessage?.({ data: JSON.stringify({ type: "session.updated" }) } as MessageEvent<string>);
+    sockets[0]?.onmessage?.({ data: JSON.stringify({
       type: "conversation.item.input_audio_transcription.delta",
       item_id: "item-1",
       delta: "안녕",

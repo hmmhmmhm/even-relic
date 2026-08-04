@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  AudioInputSource,
   DeviceInfo,
   DeviceModel,
   DeviceStatus,
@@ -1820,6 +1821,19 @@ describe("G2 raster transport", () => {
     expect(trace).toContain("[TILE] sandevistanTR success");
     expect(trace).toContain("[REFRESH] hide complete");
     expect(harness.imageIds).toHaveLength(12);
+  });
+
+  it("does not trace microphone frames as glasses input", async () => {
+    const harness = await createFastRefreshHarness();
+    diagnosticLogger.clear();
+
+    harness.emitEvent({
+      audioEvent: { source: AudioInputSource.Glasses, audioPcm: new Uint8Array([0, 0]) },
+    } as EvenHubEvent);
+
+    expect(harness.inputs).toEqual([]);
+    expect(harness.rawEvents).toEqual([]);
+    expect(diagnosticLogger.text()).not.toContain("[INPUT] raw");
   });
 
   it("treats a text event with an omitted zero event type as a tap", async () => {
