@@ -265,7 +265,7 @@ export async function handleConversateRequest(request, _env, dependencies = {}) 
     `Analyze the newest utterance in a live human-to-human conversation. The user's primary language is ${locale}.`,
     "Return its likely language code. Translate only when it differs from the primary language; otherwise return null.",
     settings.inform
-      ? "Return one compact Inform only for a useful factual correction, crucial term, or immediately relevant knowledge. Otherwise null. Never exceed one short HUD sentence."
+      ? "Return one compact Inform whenever the newest utterance contains a term worth defining, useful background, an acronym, a named entity, a number worth contextualizing, or a factual claim worth checking or correcting. Return null only for greetings, filler, or content with no useful context. Never exceed one short HUD sentence."
       : "Always return null for Inform.",
     settings.copilot
       ? "Return exactly three short, meaningfully different replies the user could say next: direct, warm, and exploratory. Each needs original target-language text, readable pronunciation, meaning in the primary language, and style."

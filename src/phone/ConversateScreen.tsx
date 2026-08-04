@@ -115,6 +115,26 @@ export function ConversateScreen({
 
       <section className="phone-panel phone-stacked-form">
         <label>
+          <span>{tc("spokenLanguages")}</span>
+          <input
+            type="text"
+            maxLength={120}
+            value={settings.spokenLanguages}
+            placeholder={tc("spokenLanguagesHelp")}
+            onChange={(event) => save({ spokenLanguages: event.target.value })}
+          />
+        </label>
+        <label>
+          <span>{tc("transcriptionKeywords")}</span>
+          <textarea
+            rows={3}
+            maxLength={1_000}
+            value={settings.transcriptionKeywords}
+            placeholder={tc("transcriptionKeywordsHelp")}
+            onChange={(event) => save({ transcriptionKeywords: event.target.value })}
+          />
+        </label>
+        <label>
           <span>{tc("prepNote")}</span>
           <textarea
             rows={5}

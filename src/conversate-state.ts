@@ -6,6 +6,8 @@ export type ConversateSettings = {
   readonly inform: boolean;
   readonly prepNote: boolean;
   readonly prepNoteText: string;
+  readonly spokenLanguages: string;
+  readonly transcriptionKeywords: string;
   readonly copilot: boolean;
   readonly goal: string;
   readonly informSeconds: number;
@@ -60,6 +62,8 @@ export const DEFAULT_CONVERSATE_SETTINGS: ConversateSettings = {
   inform: true,
   prepNote: true,
   prepNoteText: "",
+  spokenLanguages: "",
+  transcriptionKeywords: "",
   copilot: true,
   goal: "",
   informSeconds: 10,
@@ -77,6 +81,11 @@ export function normalizeConversateSettings(value: Partial<ConversateSettings>):
     inform: value.inform !== false,
     prepNote: value.prepNote !== false,
     prepNoteText: bounded(typeof value.prepNoteText === "string" ? value.prepNoteText : "", 2_000),
+    spokenLanguages: bounded(typeof value.spokenLanguages === "string" ? value.spokenLanguages : "", 120),
+    transcriptionKeywords: bounded(
+      typeof value.transcriptionKeywords === "string" ? value.transcriptionKeywords : "",
+      1_000,
+    ),
     copilot: value.copilot !== false,
     goal: bounded(typeof value.goal === "string" ? value.goal : "", 500),
     informSeconds: Math.min(60, Math.max(3, Math.round(value.informSeconds ?? 10))),
@@ -88,6 +97,8 @@ function isSettings(value: unknown): value is ConversateSettings {
     && ["transcription", "translation", "inform", "prepNote", "copilot"]
       .every((key) => typeof value[key] === "boolean")
     && typeof value.prepNoteText === "string"
+    && (value.spokenLanguages === undefined || typeof value.spokenLanguages === "string")
+    && (value.transcriptionKeywords === undefined || typeof value.transcriptionKeywords === "string")
     && typeof value.goal === "string"
     && typeof value.informSeconds === "number";
 }

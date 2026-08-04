@@ -26,8 +26,11 @@ export function createConversateRealtimeSession(options: {
   readonly key: string;
   readonly locale: PhoneLocale;
   readonly prompt?: string;
+  readonly languages?: readonly string[];
+  readonly keywords?: readonly string[];
   readonly onPartial: (itemId: string, text: string) => void;
   readonly onCompleted: (itemId: string, text: string) => void;
+  readonly onRefined: (itemId: string, text: string) => void;
   readonly onError: (message: string) => void;
   readonly fetchImpl?: typeof fetch;
   readonly createSocket?: (url: string, protocols: string[]) => RealtimeSocket;
@@ -35,14 +38,31 @@ export function createConversateRealtimeSession(options: {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
   const socketFactory = options.createSocket ?? createDefaultRealtimeSocket;
   let socket: RealtimeSocket | undefined;
+  let refinementSocket: RealtimeSocket | undefined;
   let unsubscribe: (() => void) | undefined;
   let microphoneOpen = false;
   let closing = false;
   const partials = new Map<string, string>();
+  const liveItems: string[] = [];
+  const refinedTurns: string[] = [];
   const abort = new AbortController();
+  const languages = [...new Set(options.languages ?? [])]
+    .filter((value) => /^[a-z]{2,3}(?:-[a-z]{2})?$/.test(value))
+    .slice(0, 3);
+  const keywords = [...new Set(options.keywords ?? [])]
+    .map((value) => value.trim())
+    .filter((value) => value && value.length <= 100 && !/[<>\r\n]/.test(value))
+    .slice(0, 50);
 
-  const send = (value: unknown) => {
-    if (socket?.readyState === SOCKET_OPEN) socket.send(JSON.stringify(value));
+  const send = (target: RealtimeSocket | undefined, value: unknown) => {
+    if (target?.readyState === SOCKET_OPEN) target.send(JSON.stringify(value));
+  };
+
+  const publishRefinements = () => {
+    // ponytail: same audio and VAD preserve turn order; add timestamp matching if production proves otherwise.
+    while (liveItems.length && refinedTurns.length) {
+      options.onRefined(liveItems.shift() ?? "", refinedTurns.shift() ?? "");
+    }
   };
 
   const closeMicrophone = async () => {
@@ -51,12 +71,13 @@ export function createConversateRealtimeSession(options: {
     microphoneOpen = false;
   };
 
-  const openSocket = (secret: string) => new Promise<void>((resolve, reject) => {
+  const openSocket = (secret: string, refinement = false) => new Promise<void>((resolve, reject) => {
     const next = socketFactory(REALTIME_URL, [
       "realtime",
       `openai-insecure-api-key.${secret}`,
     ]);
-    socket = next;
+    if (refinement) refinementSocket = next;
+    else socket = next;
     let settled = false;
     const timeout = setTimeout(() => {
       if (!settled) reject(new Error("Transcription connection timed out"));
@@ -71,18 +92,22 @@ export function createConversateRealtimeSession(options: {
         settled = true;
         clearTimeout(timeout);
         reject(new Error("Transcription connection failed"));
-      } else if (!closing) options.onError("Transcription connection failed");
+      } else if (!closing && !refinement) options.onError("Transcription connection failed");
     };
     next.onclose = () => {
       if (!settled) reject(new Error("Transcription connection closed"));
-      else if (!closing) options.onError("Transcription connection closed");
+      else if (!closing && !refinement) options.onError("Transcription connection closed");
     };
     next.onmessage = ({ data }) => {
       let event: Record<string, unknown>;
       try { event = JSON.parse(data) as Record<string, unknown>; } catch { return; }
+      if (event.type === "error") {
+        if (!refinement) options.onError("Transcription session error");
+        return;
+      }
       const itemId = typeof event.item_id === "string" ? event.item_id : "";
       if (!itemId) return;
-      if (event.type === "conversation.item.input_audio_transcription.delta") {
+      if (!refinement && event.type === "conversation.item.input_audio_transcription.delta") {
         const delta = typeof event.delta === "string" ? event.delta : "";
         const text = `${partials.get(itemId) ?? ""}${delta}`;
         partials.set(itemId, text);
@@ -92,23 +117,42 @@ export function createConversateRealtimeSession(options: {
         const text = typeof event.transcript === "string"
           ? event.transcript.trim()
           : (partials.get(itemId) ?? "").trim();
-        partials.delete(itemId);
-        if (text) options.onCompleted(itemId, text);
+        if (!refinement) partials.delete(itemId);
+        if (text && refinement) {
+          refinedTurns.push(text);
+          publishRefinements();
+        } else if (text) {
+          options.onCompleted(itemId, text);
+          liveItems.push(itemId);
+          publishRefinements();
+        }
       }
-      if (event.type === "error") options.onError("Transcription session error");
     };
   });
 
   return {
     async start() {
-      const secret = await requestRealtimeClientSecret({
-        fetchImpl,
-        key: options.key,
-        signal: abort.signal,
-        purpose: "transcription",
-      });
+      const [secret, refinementSecret] = await Promise.all([
+        requestRealtimeClientSecret({
+          fetchImpl, key: options.key, signal: abort.signal, purpose: "transcription",
+        }),
+        requestRealtimeClientSecret({
+          fetchImpl, key: options.key, signal: abort.signal, purpose: "transcription",
+          transcriptionModel: "gpt-transcribe",
+        }).catch(() => undefined),
+      ]);
       await openSocket(secret);
-      send({
+      if (refinementSecret) await openSocket(refinementSecret, true).catch(() => {
+        refinementSocket?.close();
+        refinementSocket = undefined;
+      });
+      const turnDetection = {
+        type: "server_vad",
+        threshold: 0.5,
+        prefix_padding_ms: 500,
+        silence_duration_ms: 800,
+      };
+      send(socket, {
         type: "session.update",
         session: {
           type: "transcription",
@@ -116,14 +160,23 @@ export function createConversateRealtimeSession(options: {
             format: { type: "audio/pcm", rate: 24_000 },
             transcription: {
               model: "gpt-live-transcribe",
-              delay: "low",
+              delay: "medium",
               ...(options.prompt ? { prompt: options.prompt } : {}),
+              ...(languages.length ? { languages } : {}),
+              ...(keywords.length ? { keywords } : {}),
             },
-            turn_detection: {
-              type: "server_vad",
-              prefix_padding_ms: 300,
-              silence_duration_ms: 500,
-            },
+            turn_detection: turnDetection,
+          } },
+        },
+      });
+      send(refinementSocket, {
+        type: "session.update",
+        session: {
+          type: "transcription",
+          audio: { input: {
+            format: { type: "audio/pcm", rate: 24_000 },
+            transcription: { model: "gpt-transcribe" },
+            turn_detection: turnDetection,
           } },
         },
       });
@@ -133,7 +186,11 @@ export function createConversateRealtimeSession(options: {
           || audio.source !== AudioInputSource.Glasses || audio.audioPcm.length === 0
           || audio.audioPcm.length > MAX_PCM_CHUNK_BYTES) return;
         const bytes = resamplePcm16Le16To24(audio.audioPcm);
-        if (bytes.length) send(createAudioAppendEvent(bytes));
+        if (bytes.length) {
+          const append = createAudioAppendEvent(bytes);
+          send(socket, append);
+          send(refinementSocket, append);
+        }
       });
       microphoneOpen = await options.bridge.audioControl(true, AudioInputSource.Glasses);
       if (!microphoneOpen) throw new Error("G2 microphone unavailable");
@@ -145,6 +202,8 @@ export function createConversateRealtimeSession(options: {
       unsubscribe = undefined;
       socket?.close();
       socket = undefined;
+      refinementSocket?.close();
+      refinementSocket = undefined;
       await closeMicrophone();
     },
   };

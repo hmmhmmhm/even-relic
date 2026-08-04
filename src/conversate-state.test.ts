@@ -10,6 +10,8 @@ describe("Conversate settings", () => {
       informSeconds: 200,
       goal: `  ${"x".repeat(600)}  `,
       prepNoteText: " note ",
+      spokenLanguages: " ko, en ",
+      transcriptionKeywords: " Sandevistan, G2 ",
     })).toMatchObject({ informSeconds: 60, prepNoteText: "note" });
     expect(normalizeConversateSettings({ goal: "x".repeat(600) }).goal).toHaveLength(500);
   });

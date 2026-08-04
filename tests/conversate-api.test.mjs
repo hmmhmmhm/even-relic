@@ -37,6 +37,7 @@ test("returns bounded translation, Inform, and three Copilot choices", async () 
   assert.equal(body.model, "gpt-5.6-luna");
   assert.deepEqual(body.reasoning, { effort: "low" });
   assert.deepEqual(body.tools, [{ type: "web_search", search_context_size: "low" }]);
+  assert.match(body.instructions, /Return null only for greetings, filler/);
   assert.equal(upstream.init.headers.Authorization, `Bearer ${KEY}`);
   assert.equal(upstream.init.body.includes(KEY), false);
 });

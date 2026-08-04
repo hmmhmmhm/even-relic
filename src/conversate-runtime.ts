@@ -11,6 +11,7 @@ import {
 } from "./conversate-state";
 import type { EvenStorage } from "./live-cache";
 import type { PhoneLocale } from "./phone-types";
+import { logDiagnostic } from "./diagnostic-log";
 
 type Bridge = EvenStorage & {
   audioControl(isOpen: boolean, source?: AudioInputSource): Promise<boolean>;
@@ -29,6 +30,27 @@ const clamp = (value: number, count: number) => Math.min(
   Math.max(0, value),
   Math.max(0, count - 1),
 );
+
+const transcriptionLanguage = (locale: PhoneLocale) => locale === "zh-Hans"
+  ? "zh-cn"
+  : locale === "zh-Hant" ? "zh-tw" : locale.toLowerCase().split("-")[0] ?? "en";
+
+function transcriptionHints(locale: PhoneLocale, settings: ConversateSettings) {
+  const languages = [transcriptionLanguage(locale), ...settings.spokenLanguages
+    .toLowerCase().split(/[\s,;]+/)]
+    .filter((value, index, all) => /^[a-z]{2,3}(?:-[a-z]{2})?$/.test(value)
+      && all.indexOf(value) === index)
+    .slice(0, 3);
+  const keywords = settings.transcriptionKeywords
+    .split(/[,;\n]+/).map((value) => value.trim()).filter(Boolean).slice(0, 50);
+  const prompt = [
+    `Live human conversation. Primary language: ${languages[0]}.`,
+    settings.goal.trim() ? `Conversation goal: ${settings.goal.trim()}.` : "",
+    settings.prepNote && settings.inform && settings.prepNoteText.trim()
+      ? `Context: ${settings.prepNoteText.trim()}` : "",
+  ].filter(Boolean).join(" ").slice(0, 2_500);
+  return { languages, keywords, prompt };
+}
 
 export function createConversateRuntime(options: {
   readonly bridge: Bridge;
@@ -72,6 +94,7 @@ export function createConversateRuntime(options: {
     if (!snapshot.segments.length) return;
     const targetId = snapshot.segments.at(-1)?.id;
     if (!targetId) return;
+    logDiagnostic("LIVE", "Conversate analysis start");
     analysisAbort = new AbortController();
     try {
       const result = await requestConversateAnalysis({
@@ -111,8 +134,10 @@ export function createConversateRuntime(options: {
         } : {}),
       });
       if (inform) scheduleInformHide();
+      logDiagnostic("LIVE", `Conversate analysis complete · Inform ${inform ? "ready" : "empty"}`);
     } catch (error) {
       if ((error as Error).name !== "AbortError") {
+        logDiagnostic("ERROR", "Conversate analysis failed");
         publish({ error: "Conversate analysis unavailable" });
       }
     } finally {
@@ -138,13 +163,12 @@ export function createConversateRuntime(options: {
         activeInform: undefined, suggestions: [], error: undefined,
       });
       const settings = options.getSettings();
+      const hints = transcriptionHints(options.getLocale(), settings);
       session = (options.createSession ?? createConversateRealtimeSession)({
         bridge: options.bridge,
         key,
         locale: options.getLocale(),
-        prompt: settings.prepNote && settings.inform
-          ? settings.prepNoteText.trim() || undefined
-          : undefined,
+        ...hints,
         onPartial: (_itemId, text) => publish({ partial: text.slice(-500) }),
         onCompleted: (itemId, text) => {
           const current = options.getSnapshot();
@@ -159,6 +183,16 @@ export function createConversateRuntime(options: {
             phase: "listening",
           });
           void analyzeLatest();
+        },
+        onRefined: (itemId, text) => {
+          const current = options.getSnapshot();
+          const index = current.segments.findIndex(({ id }) => id === itemId);
+          if (index < 0 || current.segments[index]?.text === text) return;
+          const segments = [...current.segments];
+          const segment = segments[index];
+          if (!segment) return;
+          segments[index] = { ...segment, text: text.slice(0, 500) };
+          publish({ segments });
         },
         onError: (error) => publish({ phase: "error", error }),
       });

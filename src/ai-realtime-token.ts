@@ -5,6 +5,7 @@ export async function requestRealtimeClientSecret(options: {
   readonly key: string;
   readonly signal: AbortSignal;
   readonly purpose?: "assistant" | "transcription";
+  readonly transcriptionModel?: "gpt-live-transcribe" | "gpt-transcribe";
 }): Promise<string> {
   const response = await options.fetchImpl(TOKEN_URL, {
     method: "POST",
@@ -15,7 +16,7 @@ export async function requestRealtimeClientSecret(options: {
     body: JSON.stringify({
       session: options.purpose === "transcription"
         ? { type: "transcription", audio: { input: { transcription: {
-            model: "gpt-live-transcribe",
+            model: options.transcriptionModel ?? "gpt-live-transcribe",
           } } } }
         : { type: "realtime", model: "gpt-realtime" },
     }),
