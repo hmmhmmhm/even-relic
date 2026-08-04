@@ -24,7 +24,7 @@ describe("DevicesScreen", () => {
     expect(screen.getByText("Connected")).toBeTruthy();
     expect(screen.getByText("43% · Charging")).toBeTruthy();
     expect(screen.getAllByText("Unavailable").length).toBeGreaterThan(0);
-    expect(screen.getByText("0.0.13")).toBeTruthy();
+    expect(screen.getByText("0.0.11")).toBeTruthy();
     expect(screen.getByText("Ready")).toBeTruthy();
   });
 });

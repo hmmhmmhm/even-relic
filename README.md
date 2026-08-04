@@ -11,7 +11,7 @@
   <img alt="TypeScript 5.9" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white">
   <img alt="React 19" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111111">
   <img alt="Vite 6" src="https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white">
-  <img alt="Even Hub SDK 0.0.13" src="https://img.shields.io/badge/Even_Hub_SDK-0.0.13-7CF36A">
+  <img alt="Even Hub SDK 0.0.11" src="https://img.shields.io/badge/Even_Hub_SDK-0.0.11-7CF36A">
   <img alt="Validated on physical G2 hardware" src="https://img.shields.io/badge/G2-physical_hardware_validated-2EA043">
   <img alt="180 bundled languages" src="https://img.shields.io/badge/Languages-180-555555">
   <img alt="90 live-validated news feeds" src="https://img.shields.io/badge/RSS_feeds-90_live--validated-555555">
@@ -28,7 +28,7 @@ current product candidate is `/hud-canvas-fast`.
 
 The project favors useful information, predictable controls, and hardware-proven
 behavior over browser-only effects. It has been tested on physical G2 glasses
-with the Even Hub SDK pinned to `0.0.13`, Even App `2.2.6`, and updated G2
+with the Even Hub SDK pinned to `0.0.11`, Even App `2.2.6`, and updated G2
 firmware.
 
 ## Table of contents
@@ -325,7 +325,7 @@ ORS_API_KEY='<server-only-key>' \
 Open the app through **Even Hub → Scan QR**:
 
 ```text
-http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.13&build=<BUILD-ID>
+http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.11&build=<BUILD-ID>
 ```
 
 No performance query is required. The hardware-proven four-call pipeline is the
@@ -333,7 +333,7 @@ production default. For an explicit serial and original-palette comparison,
 use:
 
 ```text
-http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.13&pipeline=1&levels=original&build=<BUILD-ID>
+http://<PHONE-REACHABLE-IP>:4176/hud-canvas-fast?sdk=0.0.11&pipeline=1&levels=original&build=<BUILD-ID>
 ```
 
 You can generate the configured QR code with:
@@ -412,13 +412,15 @@ Preserved diagnostic routes include:
 
 | SDK | Physical G2 result | Status |
 | --- | --- | --- |
-| `0.0.11` | Four-tile bounded image transport works | Proven legacy baseline |
+| `0.0.11` | Four-tile bounded image transport works | Current pinned fallback |
 | `0.0.12` | The old host failed immediately on its compressed image path | Historical reproduction only |
-| `0.0.13` | Four-tile bilateral transport, paging, detail views, and repeated hide/restore pass | Supported and pinned |
+| `0.0.13` | Passed bilateral transport checkpoints but later showed intermittent compression instability | Held for comparison |
 
 SDK `0.0.12` introduced the `compressMode: 2` path that failed on the earlier
 Even app and glasses combination. After the Even App and G2 firmware update,
-the same compressed-image contract succeeds through SDK `0.0.13`. The minimal
+the same compressed-image contract passed checkpoints through SDK `0.0.13`,
+but later intermittent behavior justified returning the active build to
+`0.0.11`. The minimal
 historical failure remains available on the unchanged
 [`0.0.12-reproduce`](https://github.com/hmmhmmhm/sandevistan/tree/0.0.12-reproduce)
 branch for the Even Realities team.
