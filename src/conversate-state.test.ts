@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_CONVERSATE_SETTINGS, normalizeConversateSettings } from "./conversate-state";
+import {
+  createConversateSnapshot,
+  DEFAULT_CONVERSATE_SETTINGS,
+  normalizeConversateSettings,
+} from "./conversate-state";
 
 describe("Conversate settings", () => {
   it("defaults every requested feature on and bounds editable values", () => {
@@ -14,5 +18,9 @@ describe("Conversate settings", () => {
       transcriptionKeywords: " Sandevistan, G2 ",
     })).toMatchObject({ informSeconds: 60, prepNoteText: "note" });
     expect(normalizeConversateSettings({ goal: "x".repeat(600) }).goal).toHaveLength(500);
+    expect(normalizeConversateSettings({ transcription: false }).transcription).toBe(true);
+    expect(createConversateSnapshot()).toMatchObject({
+      transcriptOffset: 0, copilotOpen: false,
+    });
   });
 });

@@ -49,7 +49,7 @@ export function ConversateScreen({
     if (storage) void writeConversateSettings(storage, next);
   };
   const toggle = (
-    key: "transcription" | "translation" | "inform" | "prepNote" | "copilot",
+    key: "translation" | "inform" | "prepNote" | "copilot",
     label: string,
     disabled = false,
   ) => (
@@ -106,7 +106,6 @@ export function ConversateScreen({
         {keyError && <p className="phone-ai-cost-warning">{keyError}</p>}
       </section>
       <section className="phone-panel phone-choice-list">
-        {toggle("transcription", tc("transcription"))}
         {toggle("translation", tc("translation"))}
         {toggle("inform", tc("inform"))}
         {toggle("prepNote", tc("prepNote"), !settings.inform)}

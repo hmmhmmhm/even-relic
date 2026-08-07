@@ -117,18 +117,24 @@ export function createConversateRuntime(options: {
             at: new Date().toISOString(),
           }
         : undefined;
+      const isLatest = current.segments.at(-1)?.id === targetId && !current.partial;
       publish({
         segments,
-        suggestions: settings.copilot ? result.suggestions.slice(0, 3) : [],
-        selectedSuggestion: 0,
+        ...(isLatest ? {
+          suggestions: settings.copilot ? result.suggestions.slice(0, 3) : [],
+          selectedSuggestion: 0,
+          copilotOpen: false,
+        } : {}),
         ...(inform ? {
           informs: [inform, ...current.informs].slice(0, 20),
-          activeInform: inform,
-          informHistoryOpen: false,
-          selectedInform: 0,
+          ...(isLatest ? {
+            activeInform: inform,
+            informHistoryOpen: false,
+            selectedInform: 0,
+          } : {}),
         } : {}),
       });
-      if (inform) scheduleInformHide();
+      if (inform && isLatest) scheduleInformHide();
       logDiagnostic("LIVE", `Conversate analysis complete · Inform ${inform ? "ready" : "empty"}`);
     } catch (error) {
       if ((error as Error).name !== "AbortError") {
@@ -154,7 +160,8 @@ export function createConversateRuntime(options: {
       startedAt = new Date().toISOString();
       publish({
         phase: "connecting", partial: "", segments: [], informs: [],
-        activeInform: undefined, suggestions: [], error: undefined,
+        activeInform: undefined, suggestions: [], selectedSuggestion: 0,
+        copilotOpen: false, transcriptOffset: 0, error: undefined,
       });
       const settings = options.getSettings();
       const hints = transcriptionHints(settings);
@@ -163,7 +170,13 @@ export function createConversateRuntime(options: {
         key,
         locale: options.getLocale(),
         ...hints,
-        onPartial: (_itemId, text) => publish({ partial: text.slice(-500) }),
+        onPartial: (_itemId, text) => {
+          clearTimeout(hideTimer);
+          publish({
+            partial: text.slice(-500), activeInform: undefined,
+            suggestions: [], selectedSuggestion: 0, copilotOpen: false,
+          });
+        },
         onCompleted: (itemId, text) => {
           const current = options.getSnapshot();
           const segment: ConversateSegment = {
@@ -174,6 +187,7 @@ export function createConversateRuntime(options: {
           publish({
             partial: "",
             segments: [...current.segments, segment].slice(-200),
+            suggestions: [], selectedSuggestion: 0, copilotOpen: false,
             phase: "listening",
           });
           void analyzeLatest();
@@ -227,7 +241,8 @@ export function createConversateRuntime(options: {
       await writeConversateHistory(options.bridge, nextHistory);
       publish({
         phase: "idle", partial: "", history: nextHistory,
-        activeInform: undefined, informHistoryOpen: false, error: undefined,
+        activeInform: undefined, suggestions: [], copilotOpen: false,
+        transcriptOffset: 0, informHistoryOpen: false, error: undefined,
       });
     },
     tap() {
@@ -238,6 +253,12 @@ export function createConversateRuntime(options: {
       } else if (current.informHistoryOpen && current.informs.length) {
         publish({ activeInform: current.informs[current.selectedInform], informHistoryOpen: false });
         scheduleInformHide();
+      } else if (current.copilotOpen) {
+        publish(current.informs.length
+          ? { copilotOpen: false, informHistoryOpen: true, selectedInform: 0 }
+          : { copilotOpen: false });
+      } else if (current.suggestions.length) {
+        publish({ copilotOpen: true, transcriptOffset: 0 });
       } else if (current.informs.length) {
         publish({ informHistoryOpen: true, selectedInform: 0 });
       }
@@ -246,10 +267,15 @@ export function createConversateRuntime(options: {
       const current = options.getSnapshot();
       if (current.informHistoryOpen) {
         publish({ selectedInform: clamp(current.selectedInform + delta, current.informs.length) });
-      } else {
+      } else if (current.copilotOpen) {
         publish({ selectedSuggestion: clamp(
           current.selectedSuggestion + delta,
           current.suggestions.length,
+        ) });
+      } else {
+        publish({ transcriptOffset: clamp(
+          current.transcriptOffset - delta,
+          current.segments.length,
         ) });
       }
     },

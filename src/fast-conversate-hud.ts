@@ -34,26 +34,32 @@ export function drawFastConversateDetail(
   snapshot: ConversateSnapshot,
   locale: PhoneLocale,
 ) {
-  if (snapshot.activeInform) {
+  const visibleInform = snapshot.informHistoryOpen
+    ? snapshot.informs[snapshot.selectedInform]
+    : snapshot.activeInform;
+  if (visibleInform) {
     context.strokeStyle = COLOR.primary;
     context.strokeRect(8, 8, 560, 62);
-    wrapHudText(snapshot.activeInform.text, 55, 2).forEach((line, index) => {
+    wrapHudText(visibleInform.text, 55, 2).forEach((line, index) => {
       drawText(context, line, 18, 17 + index * 22, 17, COLOR.primary, "bold");
     });
   }
-  const latest = snapshot.segments.at(-1);
-  const lines = latest
-    ? [latest.text, ...(latest.translation ? [`→ ${latest.translation}`] : [])]
-    : [translateConversate(locale, "listening")];
+  const index = Math.max(0, snapshot.segments.length - 1 - snapshot.transcriptOffset);
+  const visible = snapshot.segments[index];
+  const lines = visible
+    ? [visible.text, ...(visible.translation ? [`→ ${visible.translation}`] : [])]
+    : [];
+  if (snapshot.partial && snapshot.transcriptOffset === 0) lines.push(snapshot.partial);
+  if (!lines.length) lines.push(translateConversate(locale, "listening"));
+  const transcriptY = visibleInform ? 84 : 18;
   lines.forEach((line, index) => drawText(
-    context, wrapHudText(line, 50, 1)[0] ?? "", 14, 94 + index * 30, 20,
+    context, wrapHudText(line, 50, 2)[0] ?? "", 14, transcriptY + index * 32, 20,
     index ? COLOR.secondary : COLOR.primary, "bold",
   ));
   const suggestion = snapshot.suggestions[snapshot.selectedSuggestion];
   if (suggestion) {
-    drawText(context, `${snapshot.selectedSuggestion + 1}/3 ${suggestion.style}`, 14, 174, 11, COLOR.secondary, "bold");
-    drawText(context, wrapHudText(suggestion.original, 45, 1)[0] ?? "", 14, 194, 18, COLOR.primary, "bold");
-    drawText(context, wrapHudText(suggestion.pronunciation, 56, 1)[0] ?? "", 14, 224, 14, COLOR.secondary, "bold");
-    drawText(context, wrapHudText(suggestion.meaning, 56, 1)[0] ?? "", 14, 250, 14, COLOR.primary, "bold");
+    drawText(context, `${snapshot.copilotOpen ? ">" : "·"} ${snapshot.selectedSuggestion + 1}/${snapshot.suggestions.length} ${suggestion.style}`, 14, 198, 11, COLOR.secondary, "bold");
+    drawText(context, wrapHudText(suggestion.original, 52, 1)[0] ?? "", 14, 218, 16, COLOR.primary, "bold");
+    drawText(context, `${wrapHudText(suggestion.pronunciation, 26, 1)[0] ?? ""} · ${wrapHudText(suggestion.meaning, 28, 1)[0] ?? ""}`, 14, 248, 13, COLOR.secondary, "bold");
   }
 }

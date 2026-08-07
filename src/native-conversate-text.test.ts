@@ -75,16 +75,51 @@ describe("native Conversate text page", () => {
     ]);
   });
 
-  it("honors independent transcription and translation display toggles", () => {
+  it("keeps transcription primary while honoring the translation toggle", () => {
     const snapshot = {
       ...createConversateSnapshot(),
       segments: [{ id: "one", text: "Hello", translation: "안녕하세요", at: new Date().toISOString() }],
     };
     expect(createNativeConversateContent(snapshot, "ko", {
       ...DEFAULT_CONVERSATE_SETTINGS, transcription: false,
-    }).body).not.toContain("Hello");
+    }).body).toContain("Hello");
     expect(createNativeConversateContent(snapshot, "ko", {
       ...DEFAULT_CONVERSATE_SETTINGS, translation: false,
     }).body).not.toContain("안녕하세요");
+  });
+
+  it("keeps the selected transcript visible with translation and compact Copilot", () => {
+    const snapshot = {
+      ...createConversateSnapshot(),
+      segments: [
+        { id: "old", text: "Earlier topic", translation: "이전 주제", at: "1" },
+        { id: "new", text: "Latest speech", translation: "최신 발화", at: "2" },
+      ],
+      suggestions: [{
+        style: "direct", original: "I agree", pronunciation: "아이 어그리", meaning: "동의합니다",
+      }],
+    };
+    const latest = createNativeConversateContent(snapshot, "ko", DEFAULT_CONVERSATE_SETTINGS);
+    expect(latest.body).toContain("Latest speech\n→ 최신 발화");
+    expect(latest.body).toContain("· 1/1 direct · I agree");
+    const previous = createNativeConversateContent(
+      { ...snapshot, transcriptOffset: 1 },
+      "ko",
+      DEFAULT_CONVERSATE_SETTINGS,
+    );
+    expect(previous.body).toContain("Earlier topic\n→ 이전 주제");
+    expect(previous.body).not.toContain("Latest speech");
+  });
+
+  it("shows Inform history without replacing the transcript", () => {
+    const snapshot = {
+      ...createConversateSnapshot(),
+      segments: [{ id: "new", text: "Still transcribing", at: "1" }],
+      informs: [{ id: "info", text: "Useful context", at: "1" }],
+      informHistoryOpen: true,
+    };
+    const content = createNativeConversateContent(snapshot, "en", DEFAULT_CONVERSATE_SETTINGS);
+    expect(content.inform).toContain("Useful context");
+    expect(content.body).toContain("Still transcribing");
   });
 });

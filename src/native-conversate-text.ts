@@ -9,38 +9,50 @@ import type { PhoneLocale } from "./phone-types";
 
 export type NativeConversateContent = { readonly inform: string; readonly body: string };
 
+const boundedLine = (value: string, length: number) => value
+  .replace(/\s+/g, " ").trim().slice(0, length);
+
 export function createNativeConversateContent(
   snapshot: ConversateSnapshot,
   locale: PhoneLocale,
   settings: ConversateSettings,
 ): NativeConversateContent {
-  const inform = snapshot.activeInform?.text
-    ?? (snapshot.informHistoryOpen
-      ? `${translateConversate(locale, "informHistory")} ${snapshot.selectedInform + 1}/${snapshot.informs.length}`
-      : "");
-  if (snapshot.informHistoryOpen) {
-    return {
-      inform,
-      body: snapshot.informs.length
-        ? snapshot.informs.map((item, index) => `${index === snapshot.selectedInform ? ">" : " "} ${item.text}`).join("\n")
-        : translateConversate(locale, "noInform"),
-    };
-  }
-  const recent = snapshot.segments.slice(-4).flatMap((segment) => [
-    ...(settings.transcription ? [segment.text] : []),
-    ...(settings.translation && segment.translation ? [`→ ${segment.translation}`] : []),
+  const historyInform = snapshot.informHistoryOpen
+    ? snapshot.informs[snapshot.selectedInform]
+    : undefined;
+  const inform = snapshot.error
+    ? boundedLine(snapshot.error, 160)
+    : historyInform
+      ? `${translateConversate(locale, "informHistory")} ${snapshot.selectedInform + 1}/${snapshot.informs.length} · ${boundedLine(historyInform.text, 150)}`
+      : boundedLine(snapshot.activeInform?.text ?? "", 160);
+  const lastIndex = Math.max(0, snapshot.segments.length - 1 - snapshot.transcriptOffset);
+  const segmentCount = snapshot.partial || snapshot.suggestions.length ? 1 : 2;
+  const visibleSegments = snapshot.segments.slice(
+    Math.max(0, lastIndex - segmentCount + 1),
+    lastIndex + 1,
+  );
+  const recent = visibleSegments.flatMap((segment) => [
+    boundedLine(segment.text, 260),
+    ...(settings.translation && segment.translation
+      ? [`→ ${boundedLine(segment.translation, 220)}`] : []),
   ]);
-  if (settings.transcription && snapshot.partial) recent.push(snapshot.partial);
+  if (snapshot.partial && snapshot.transcriptOffset === 0) {
+    recent.push(boundedLine(snapshot.partial, 260));
+  }
   const suggestion = snapshot.suggestions[snapshot.selectedSuggestion];
   if (suggestion) recent.push(
     "",
-    `${snapshot.selectedSuggestion + 1}/3 · ${suggestion.style}`,
-    suggestion.original,
-    `${translateConversate(locale, "pronunciation")}: ${suggestion.pronunciation}`,
-    `${translateConversate(locale, "meaning")}: ${suggestion.meaning}`,
+    `${snapshot.copilotOpen ? ">" : "·"} ${snapshot.selectedSuggestion + 1}/${snapshot.suggestions.length} ${boundedLine(suggestion.style, 24)} · ${boundedLine(suggestion.original, 150)}`,
+    snapshot.copilotOpen
+      ? `${translateConversate(locale, "pronunciation")}: ${boundedLine(suggestion.pronunciation, 120)}`
+      : `${boundedLine(suggestion.pronunciation, 70)} · ${boundedLine(suggestion.meaning, 100)}`,
+    ...(snapshot.copilotOpen
+      ? [`${translateConversate(locale, "meaning")}: ${boundedLine(suggestion.meaning, 140)}`]
+      : []),
   );
-  if (snapshot.phase === "listening") recent.push("", translateConversate(locale, "listening"));
-  if (snapshot.error) recent.push("", snapshot.error);
+  if (!recent.length && snapshot.phase === "listening") {
+    recent.push(translateConversate(locale, "listening"));
+  }
   return { inform, body: recent.join("\n").slice(-1_200) };
 }
 

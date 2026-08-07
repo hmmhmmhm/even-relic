@@ -201,10 +201,10 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   conversation with translation, contextual speaking tips, and selectable
   language/reply recommendations; it is not an Ask AI transcript or prompt
   variant and needs its own phone screen, HUD page, state, and input flow.
-- Conversate defaults Transcription, Translation, Inform, Prep Note, and
-  Copilot on. Use `gpt-live-transcribe` for streaming G2 microphone captions,
+- Conversate keeps Transcription permanently on and defaults Translation,
+  Inform, Prep Note, and Copilot on. Use `gpt-live-transcribe` for streaming G2 microphone captions,
   persist bounded conversation records only in Even local storage, translate
-  speech outside the resolved UI language, and keep all five controls
+  speech outside the resolved UI language, and keep the four auxiliary controls
   independently configurable. An empty Prep Note is inactive and Prep Note is
   unavailable when Inform is off.
 - Show Conversate Inform as a short bordered region above the transcript,
@@ -214,6 +214,16 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
   three deliberately different replies with original text, pronunciation, and
   meaning; use the saved goal when present and infer it from recent context
   otherwise.
+- Treat the live transcript as Conversate's non-negotiable primary surface.
+  Always keep the newest heard text visible by default; translation, Inform,
+  Copilot, status, and errors must never replace, hide, or block it. Ring/glasses
+  scroll browses older transcript turns unless an auxiliary Inform or Copilot
+  selector is explicitly open, and returning to offset zero resumes following
+  the latest turn.
+- Keep each translation directly paired with its source utterance. Limit
+  Copilot to a compact auxiliary preview, clear stale choices as soon as new
+  speech begins, and replace them only with suggestions analyzed from the
+  latest completed or refined turn.
 - Start a new text-only OpenAI Realtime conversation only after the user taps
   the Ask AI dashboard panel. Use the G2 glasses microphone by default, leave
   turn detection to semantic VAD, render user transcription and streamed AI

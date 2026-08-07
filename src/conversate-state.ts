@@ -50,6 +50,8 @@ export type ConversateSnapshot = {
   readonly activeInform?: ConversateInform;
   readonly suggestions: readonly ConversateSuggestion[];
   readonly selectedSuggestion: number;
+  readonly copilotOpen: boolean;
+  readonly transcriptOffset: number;
   readonly informHistoryOpen: boolean;
   readonly selectedInform: number;
   readonly history: readonly ConversateRecord[];
@@ -76,7 +78,7 @@ const record = (value: unknown): value is Record<string, unknown> => (
 
 export function normalizeConversateSettings(value: Partial<ConversateSettings>): ConversateSettings {
   return {
-    transcription: value.transcription !== false,
+    transcription: true,
     translation: value.translation !== false,
     inform: value.inform !== false,
     prepNote: value.prepNote !== false,
@@ -122,6 +124,8 @@ export function createConversateSnapshot(
     informs: [],
     suggestions: [],
     selectedSuggestion: 0,
+    copilotOpen: false,
+    transcriptOffset: 0,
     informHistoryOpen: false,
     selectedInform: 0,
     history: history.slice(0, 20),
