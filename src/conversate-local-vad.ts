@@ -4,7 +4,7 @@ export type LocalVadDecision = {
 };
 
 const SAMPLE_RATE = 16_000;
-const SPEECH_RMS = 0.02;
+const SPEECH_RMS = 0.006;
 const PRE_ROLL_MS = 500;
 const SILENCE_MS = 800;
 const MAX_UTTERANCE_MS = 15_000;

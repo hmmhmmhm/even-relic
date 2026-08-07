@@ -34,7 +34,7 @@ test("returns bounded translation, Inform, and three Copilot choices", async () 
   assert.equal((await response.json()).suggestions.length, 3);
   const body = JSON.parse(upstream.init.body);
   assert.equal(upstream.url, "https://api.openai.com/v1/responses");
-  assert.equal(body.model, "gpt-5.6-terra");
+  assert.equal(body.model, "gpt-5.6-luna");
   assert.deepEqual(body.reasoning, { effort: "low" });
   assert.equal(body.tools, undefined);
   assert.equal(body.tool_choice, undefined);

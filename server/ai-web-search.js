@@ -185,7 +185,7 @@ export async function handleAiWebSearchRequest(
   return jsonResponse(parsed, { headers: { "cache-control": "no-store" } });
 }
 
-export const CONVERSATE_MODEL = "gpt-5.6-terra";
+export const CONVERSATE_MODEL = "gpt-5.6-luna";
 const CONVERSATE_MAX_REQUEST_BYTES = 12_000;
 const CONVERSATE_MAX_UPSTREAM_BYTES = 64_000;
 const CONVERSATE_TIMEOUT_MS = 20_000;

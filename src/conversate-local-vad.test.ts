@@ -21,4 +21,10 @@ describe("Conversate local VAD", () => {
     for (let index = 1; index < 8; index += 1) decision = push(pcm(0));
     expect(decision.commit).toBe(true);
   });
+
+  it("keeps quiet speech instead of dropping the whole turn", () => {
+    const push = createConversateLocalVad();
+    const started = push(pcm(200));
+    expect(started.audio).toHaveLength(1);
+  });
 });

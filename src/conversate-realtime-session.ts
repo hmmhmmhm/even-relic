@@ -193,7 +193,12 @@ export function createConversateRealtimeSession(options: {
           type: "transcription",
           audio: { input: {
             format: { type: "audio/pcm", rate: 24_000 },
-            transcription: { model: "gpt-transcribe" },
+            transcription: {
+              model: "gpt-transcribe",
+              ...(options.prompt ? { prompt: options.prompt } : {}),
+              ...(languages.length ? { languages } : {}),
+              ...(keywords.length ? { keywords } : {}),
+            },
             turn_detection: null,
           } },
         },

@@ -31,20 +31,15 @@ const clamp = (value: number, count: number) => Math.min(
   Math.max(0, count - 1),
 );
 
-const transcriptionLanguage = (locale: PhoneLocale) => locale === "zh-Hans"
-  ? "zh-cn"
-  : locale === "zh-Hant" ? "zh-tw" : locale.toLowerCase().split("-")[0] ?? "en";
-
-function transcriptionHints(locale: PhoneLocale, settings: ConversateSettings) {
-  const languages = [transcriptionLanguage(locale), ...settings.spokenLanguages
-    .toLowerCase().split(/[\s,;]+/)]
+function transcriptionHints(settings: ConversateSettings) {
+  const languages = settings.spokenLanguages.toLowerCase().split(/[\s,;]+/)
     .filter((value, index, all) => /^[a-z]{2,3}(?:-[a-z]{2})?$/.test(value)
       && all.indexOf(value) === index)
     .slice(0, 3);
   const keywords = settings.transcriptionKeywords
     .split(/[,;\n]+/).map((value) => value.trim()).filter(Boolean).slice(0, 50);
   const prompt = [
-    `Live human conversation. Primary language: ${languages[0]}.`,
+    "Live human conversation.",
     settings.goal.trim() ? `Conversation goal: ${settings.goal.trim()}.` : "",
     settings.prepNote && settings.inform && settings.prepNoteText.trim()
       ? `Context: ${settings.prepNoteText.trim()}` : "",
@@ -162,7 +157,7 @@ export function createConversateRuntime(options: {
         activeInform: undefined, suggestions: [], error: undefined,
       });
       const settings = options.getSettings();
-      const hints = transcriptionHints(options.getLocale(), settings);
+      const hints = transcriptionHints(settings);
       session = (options.createSession ?? createConversateRealtimeSession)({
         bridge: options.bridge,
         key,
@@ -192,6 +187,7 @@ export function createConversateRuntime(options: {
           if (!segment) return;
           segments[index] = { ...segment, text: text.slice(0, 500) };
           publish({ segments });
+          void analyzeLatest();
         },
         onError: (error) => publish({ phase: "error", error }),
       });

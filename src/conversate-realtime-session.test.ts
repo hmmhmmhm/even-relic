@@ -59,7 +59,10 @@ describe("Conversate realtime transcription", () => {
     expect(liveUpdate.session.audio.input.turn_detection).toBeNull();
     const refinementUpdate = sent[1]?.map((value) => JSON.parse(value))
       .find(({ type }) => type === "session.update");
-    expect(refinementUpdate.session.audio.input.transcription.model).toBe("gpt-transcribe");
+    expect(refinementUpdate.session.audio.input.transcription).toMatchObject({
+      model: "gpt-transcribe", prompt: "Live conversation about Sandevistan",
+      languages: ["ko", "en"], keywords: ["Sandevistan", "G2"],
+    });
     sockets[0]?.onmessage?.({ data: JSON.stringify({
       type: "error",
       error: { code: "invalid_value", param: "session.audio.input.transcription.languages" },
